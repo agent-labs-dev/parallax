@@ -66,7 +66,11 @@ def policy_identity(tasks: Sequence[Task] = ()) -> str:
     for name in named:
         policy = policies[name]
         sourced.append(
-            name if policy.judge is None else identity(policy.judge, panel_from_env(), _route_config(), None)
+            policy.identity()
+            if policy.identity is not None
+            else name
+            if policy.judge is None
+            else identity(policy.judge, panel_from_env(), _route_config(), None)
         )
     return ":".join(
         (
@@ -75,7 +79,11 @@ def policy_identity(tasks: Sequence[Task] = ()) -> str:
             os.environ.get(jev.BASE_URL_ENV, jev.DEFAULT_BASE_URL),
             "jev-configured" if os.environ.get(jev.KEY_ENV) else "jev-unavailable",
             os.environ.get("PARALLAX_JUDGE_BASE_URL", ""),
-            *sorted(ext.policy.id for ext in extensions.task_extensions().values() if ext.policy is not None),
+            *sorted(
+                ext.policy.id
+                for ext in extensions.task_extensions().values()
+                if ext.policy is not None and (ext.policy.identity is None or ext.policy.id in named)
+            ),
             *sourced,
         )
     )
@@ -202,6 +210,8 @@ class Graded(Model):
     judgments: tuple[Judgment, ...] = ()
     # The judging identity the checks were decided under (`judging.identity`); None for a policy that declares none.
     judge_identity: str | None = Field(default=None, exclude_if=lambda v: v is None)
+    # A published judge's own score in [0, 1], used as the trial score in place of the checks' weighted fraction.
+    score: float | None = Field(default=None, ge=0, le=1, exclude_if=lambda v: v is None)
 
 
 async def grade_checks(

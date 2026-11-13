@@ -13,6 +13,7 @@ acted on, and never the harness's own account of what it did.
 - [Metering and cost](#metering-and-cost)
 - [Checking a new harness](#checking-a-new-harness)
 - [Harness matrix](#harness-matrix)
+- [Official browser suites](official-suites.md)
 
 ## Protocol
 
@@ -102,6 +103,7 @@ below is an entry point that core loads on demand and never imports directly:
 |---|---|---|
 | `parallax.harnesses` | a harness name | a `Harness` class |
 | `parallax.task_extensions` | the extension's `name` | a `TaskExtension`: a model for `[metadata.<name>]`, lane rules, an optional load check (`check_absent=True` also checks tasks without the block), `real_accounts` for tasks that act on real owned accounts (exempt from the synthetic-address lint), and an optional `GradingPolicy` that grades the extension's tasks from the product state its harness reports as `trial_metadata`: its `checks` replace the task's, its `evidence` builds what the judge sees, and its versioned `id` joins the run's grading policy, so runs graded by different policy versions never compare |
+| `parallax.task_sources` | a source name | a callable returning immutable `TaskRecord`s. The source name selects its world-less tasks, and each record names its registered grading policy. |
 | `parallax.suites` | the suite name | a callable returning the suite's root directories |
 | `parallax.provenance` | a prefix | a callable `(run_dir) -> dict[str, str]`, recorded as `<prefix>.<key>` |
 

@@ -34,6 +34,10 @@ All notable changes to Parallax are recorded here. The format follows
   group on stop, timeout and cancel.
 - A `parallax.run_artifacts` entry point adds a deterministic file to every
   run. It is sealed, carried in every evidence zip and rebuilt at upload.
+- Official browser task sources `bu-bench` and `online-mind2web` fetch pinned
+  datasets and grade BrowserEvidence with their pinned upstream judges.
+- A grading policy may report its judge's own score (`Graded.score`), which
+  becomes the trial score in place of the checks' weighted fraction.
 
 ### Fixed
 
@@ -114,8 +118,8 @@ All notable changes to Parallax are recorded here. The format follows
 
 The release procedure is in [the dev16 release plan](docs/release-dev16.md).
 
-[Unreleased]: https://github.com/agent-labs-dev/parallax/compare/v2.0.0.dev19...HEAD
-[2.0.0.dev19]: https://github.com/agent-labs-dev/parallax/compare/v2.0.0.dev18...v2.0.0.dev19
-[2.0.0.dev18]: https://github.com/agent-labs-dev/parallax/compare/v2.0.0.dev17...v2.0.0.dev18
-[2.0.0.dev17]: https://github.com/agent-labs-dev/parallax/compare/v2.0.0.dev16...v2.0.0.dev17
-[2.0.0.dev16]: https://github.com/agent-labs-dev/parallax/compare/v2.0.0.dev15...v2.0.0.dev16
+[Unreleased]: https://github.com/agent-labs-dev/parallax/commits/main
+[2.0.0.dev19]: https://pypi.org/project/parallax-evals/2.0.0.dev19/
+[2.0.0.dev18]: https://pypi.org/project/parallax-evals/2.0.0.dev18/
+[2.0.0.dev17]: https://pypi.org/project/parallax-evals/2.0.0.dev17/
+[2.0.0.dev16]: https://pypi.org/project/parallax-evals/2.0.0.dev16/

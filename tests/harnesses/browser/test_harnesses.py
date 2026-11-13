@@ -289,3 +289,48 @@ async def test_browser_timing_starts_before_execute_finishes() -> None:
     harness._clock = AttemptClock(bounded=False)
     await harness.turn(SimpleNamespace(index=1, text="find it"))
     assert harness.trial_timing().breakdown["agent"] >= 5
+
+
+async def test_browser_site_preflight_is_an_environment_interruption(monkeypatch) -> None:
+    from parallax.harnesses.browser.harnesses import BrowserHarness
+    from parallax.models import Area, Capability, Maturity, Provenance, TaskRecord
+    from parallax.task import task_from_record
+
+    class Harness(BrowserHarness):
+        info = BrowserHarnessOSS.info
+        executed = False
+
+        async def execute(self, _: object) -> dict[str, object]:
+            self.executed = True
+            return {"status": "done", "answer": "ok"}
+
+    record = TaskRecord(
+        id="browser-preflight",
+        version=1,
+        area=Area.BROWSER,
+        summary="preflight",
+        prompt="visit the site",
+        grading="browser-evidence-v1",
+        requires=frozenset({Capability.BROWSER}),
+        maturity=Maturity.REGRESSION,
+        provenance=Provenance.CONVERTED,
+        data={"website": "https://site.test/start"},
+    )
+    task_from_record("fixture-source", record)
+    harness = Harness()
+    harness.bind_task(task_from_record("fixture-source", record))
+    monkeypatch.setattr(
+        "parallax.harnesses.browser.harnesses.site_down",
+        lambda *_args, **_kwargs: _unavailable(),
+    )
+    harness._trial = SimpleNamespace(model=None)
+    from parallax.harnesses.browser.clock import AttemptClock
+
+    harness._clock = AttemptClock(bounded=False)
+    output = await harness.turn(SimpleNamespace(index=1, text="visit"))
+    assert output.error == "environment interruption: site unavailable"
+    assert not harness.executed
+
+
+async def _unavailable() -> str:
+    return "site unavailable"

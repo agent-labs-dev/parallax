@@ -32,6 +32,14 @@ async def test_site_down_classifies_transport_failures() -> None:
     assert reason is not None and "ConnectError" in reason
 
 
+async def test_site_down_classifies_access_blocks_before_agent_actions() -> None:
+    transport = httpx.MockTransport(lambda _: httpx.Response(403))
+    async with httpx.AsyncClient(transport=transport) as client:
+        assert await site_down(client, "https://site.test/start") == (
+            "site unavailable: https://site.test/start answered HTTP 403"
+        )
+
+
 async def test_site_watch_records_an_overlapping_stall() -> None:
     transport = httpx.MockTransport(lambda _: httpx.Response(503))
     async with httpx.AsyncClient(transport=transport) as client:

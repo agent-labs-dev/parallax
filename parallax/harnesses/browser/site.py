@@ -45,7 +45,7 @@ async def site_down(http: httpx.AsyncClient, url: str, *, timeout: float = 20.0)
         response = await http.get(url, follow_redirects=True, timeout=timeout)
     except httpx.TransportError as error:
         return f"site unavailable: {url} unreachable ({type(error).__name__})"
-    if response.status_code >= 500:
+    if retryable_status(response.status_code) or response.status_code in {401, 403}:
         return f"site unavailable: {url} answered HTTP {response.status_code}"
     return None
 

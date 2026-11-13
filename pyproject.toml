@@ -31,6 +31,8 @@ dependencies = [
 [project.optional-dependencies]
 browser = [
     "browser-use-sdk==3.12.1",
+    # BU Bench ships its tasks Fernet-encrypted upstream (`parallax.official_suites`).
+    "cryptography>=43",
     "websockets>=15,<16",
 ]
 
@@ -42,6 +44,14 @@ cua-codex = "parallax.harnesses.browser:CuaCodexHarness"
 
 [project.entry-points."parallax.browser_observers"]
 plain-cdp = "parallax.harnesses.browser.observer:PlainCDPObserver"
+
+[project.entry-points."parallax.task_sources"]
+bu-bench = "parallax.official_suites:bu_tasks"
+online-mind2web = "parallax.official_suites:mind2web_tasks"
+
+[project.entry-points."parallax.task_extensions"]
+official-bu-bench = "parallax.official_suites:BU_POLICY_EXTENSION"
+official-online-mind2web = "parallax.official_suites:MIND2WEB_POLICY_EXTENSION"
 
 [dependency-groups]
 # What a task's command checks import when trusted verify runs them on the host (`web_isolation=flags`):

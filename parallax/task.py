@@ -317,12 +317,18 @@ def task_from_record(source: str, record: TaskRecord) -> Task:
         raise TaskError(f"task source {source}: task {record.id}: {exc}") from exc
 
 
-def source_tasks(suites: Mapping[str, Sequence[Path]] | None = None) -> list[Task]:
+def source_tasks(
+    suites: Mapping[str, Sequence[Path]] | None = None,
+    source_names: Iterable[str] | None = None,
+) -> list[Task]:
     """Every task each `parallax.task_sources` entry point declares, sorted by id. An entry point is a callable
     returning `TaskRecord`s; its name selects its tasks like a suite's, so it may not shadow one."""
     suites = suite_roots() if suites is None else suites
+    selected = None if source_names is None else frozenset(source_names)
     tasks: list[Task] = []
     for ep in plugins.entry_points_in(SOURCES):
+        if selected is not None and ep.name not in selected:
+            continue
         if ep.name in suites:
             raise TaskError(f"task source {ep.value!r} may not shadow suite {ep.name!r}")
         records: Callable[[], Iterable[TaskRecord]] = ep.load()
@@ -404,7 +410,9 @@ def resolve(
     suites = suite_roots() if suites is None else suites
     path_terms = [Path(t) for t in parse_select(terms).names if _is_path_term(t, suites)]
     roots = [*(r for rs in suites.values() for r in rs), *extra_roots, *(p for p in path_terms if p.is_dir())]
-    return select(_unique([*discover(roots), *source_tasks(suites)]), terms, suites)
+    names = parse_select(terms).names
+    source_names = frozenset(ep.name for ep in plugins.entry_points_in(SOURCES) if ep.name in names)
+    return select(_unique([*discover(roots), *source_tasks(suites, source_names)]), terms, suites)
 
 
 # ---------------------------------------------------------------------------
