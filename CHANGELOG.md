@@ -6,6 +6,25 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev20] - 2026-11-13
+
+### Added
+
+- Official browser task sources `bu-bench` and `online-mind2web` fetch pinned
+  datasets and grade BrowserEvidence with their pinned upstream judges.
+- A grading policy may report its judge's own score (`Graded.score`), which
+  becomes the trial score in place of the checks' weighted fraction.
+- A grading policy may name its judge (`GradingPolicy.identity`), so results
+  graded under different judges never pool.
+
+### Fixed
+
+- The browser adapters probe a task's start URL before the agent acts. A site
+  that is down, returns 5xx, or answers 401 or 403 is an environment
+  interruption, retryable with `--retry-invalid`, not a failure.
+- A run loads only the task sources it selects, so an unrelated source that
+  cannot load no longer stops it.
+
 ## [2.0.0.dev19] - 2026-11-13
 
 ### Added
@@ -34,10 +53,6 @@ All notable changes to Parallax are recorded here. The format follows
   group on stop, timeout and cancel.
 - A `parallax.run_artifacts` entry point adds a deterministic file to every
   run. It is sealed, carried in every evidence zip and rebuilt at upload.
-- Official browser task sources `bu-bench` and `online-mind2web` fetch pinned
-  datasets and grade BrowserEvidence with their pinned upstream judges.
-- A grading policy may report its judge's own score (`Graded.score`), which
-  becomes the trial score in place of the checks' weighted fraction.
 
 ### Fixed
 
@@ -118,7 +133,8 @@ All notable changes to Parallax are recorded here. The format follows
 
 The release procedure is in [the dev16 release plan](docs/release-dev16.md).
 
-[Unreleased]: https://github.com/agent-labs-dev/parallax/commits/main
+[Unreleased]: https://github.com/agent-labs-dev/parallax/compare/v2.0.0.dev20...HEAD
+[2.0.0.dev20]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev20
 [2.0.0.dev19]: https://pypi.org/project/parallax-evals/2.0.0.dev19/
 [2.0.0.dev18]: https://pypi.org/project/parallax-evals/2.0.0.dev18/
 [2.0.0.dev17]: https://pypi.org/project/parallax-evals/2.0.0.dev17/
