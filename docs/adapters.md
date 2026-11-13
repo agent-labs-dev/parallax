@@ -65,8 +65,8 @@ the `memory` capability measures.
 Steps are stored for diagnosis, but they are never graded. If a turn
 does not complete, the trial ends early.
 
-**Capabilities** are `mcp`, `workspace`, `shell`, `desktop`, `multi_turn`, `memory`
-and `world_clock`.
+**Capabilities** are `mcp`, `workspace`, `shell`, `desktop`, `multi_turn`, `memory`,
+`world_clock`, `browser`, `credentials` and `authorization`.
 `HarnessInfo.capabilities` is what the harness declares; the
 [conformance canaries](#checking-a-new-harness) show whether it holds.
 
@@ -401,14 +401,24 @@ before browser cleanup. An observer plugin can replace it under the
 `parallax.browser_observers` entry-point group; its name is part of the harness
 configuration identity.
 
+Source tasks may declare `secrets` as an alias to environment-variable mapping.
+The runner checks those variables before spending, and the browser base reads
+their values only at trial start. It scopes cloud V4 secret bindings to the
+task's start host and scrubs values from answers, steps and pages before evidence
+is written. The cloud adapter declares `credentials`; the other built-in browser
+adapters declare only `browser`. A task may also declare `answer_schema`; cloud
+V4 sends it as structured output, while other harnesses ignore it. `{today}` in
+a source prompt is replaced with the UTC date at trial start and the template
+continues to determine the task hash.
+
 The built-in browser harness entry points are:
 
-| Name | Runtime | Cost and credentials |
+| Name | Runtime | Cost and capabilities |
 |---|---|---|
-| `browser-use-cloud` | Hosted Cloud API, V3 or V4 | Provider-reported costs; `BROWSER_USE_API_KEY` |
-| `browser-use-oss` | Optional Python browser worker | Browser and model costs from the worker; `BROWSER_USE_API_KEY` |
-| `browser-harness` | Optional command worker attached to a Cloud browser | Browser cost plus worker-reported cost; `BROWSER_USE_API_KEY` |
-| `cua-codex` | Optional desktop command worker | Worker-reported cost when available |
+| `browser-use-cloud` | Hosted Cloud API, V3 or V4 | Provider-reported costs; `browser`, `credentials` |
+| `browser-use-oss` | Optional Python browser worker | Browser and model costs from the worker; `browser` |
+| `browser-harness` | Optional command worker attached to a Cloud browser | Browser cost plus worker-reported cost; `browser` |
+| `cua-codex` | Optional desktop command worker | Worker-reported cost when available; `browser` |
 
 The caller selects the hosted model with the normal `--model` value. V4 preset
 models are sent without provider parameters because the API rejects

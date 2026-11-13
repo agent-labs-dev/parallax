@@ -301,6 +301,11 @@ def redact(text: str, secrets_: Sequence[str] = ()) -> str:
     return text
 
 
+def missing_task_secret_env(task: Task) -> tuple[tuple[str, str], ...]:
+    """Return task secret references whose host variables are absent or empty, without reading their values out."""
+    return tuple((alias, env_name) for alias, env_name in task.secrets.items() if not os.environ.get(env_name))
+
+
 def safe_segment(value: str | None) -> str:
     return "-" if value is None else _UNSAFE_PATH.sub("_", value)
 
@@ -735,6 +740,12 @@ class Session:
         if missing:
             na = f"requires {', '.join(sorted(c.value for c in missing))}"
             return TrialRun(self.unrun(plan, na=na), None)
+        missing_secrets = missing_task_secret_env(task)
+        if missing_secrets:
+            alias, env_name = missing_secrets[0]
+            return TrialRun(
+                self.unrun(plan, invalid=f"missing secret environment variable {env_name} for {alias}"), None
+            )
         if hp.unavailable is not None:
             return TrialRun(self.unrun(plan, invalid=f"harness unavailable: {hp.unavailable}"), None)
         kind = box_kind(task.meta.requires, hp.info, harness_isolation(hp.info, self.svc.isolation))
@@ -842,7 +853,11 @@ class TrialExecution:
         self.dir = trial_dir
         n_turns = len(self.task.turns) + len(self.task.meta.fires)
         self.t = Transcript(answers=[""] * n_turns)
-        self.secrets: list[str] = []
+        self.today = datetime.now(UTC).date().isoformat() if any("{today}" in t.text for t in self.task.turns) else None
+        self.t.details = {"today": self.today} if self.today is not None else {}
+        self.secrets: list[str] = [
+            os.environ[env_name] for env_name in self.task.secrets.values() if os.environ.get(env_name)
+        ]
         self.invalid: list[str] = []
         self.meter_key: str | None = None
         self.box_iso = harness_isolation(plan.harness.info, session.svc.isolation)
@@ -990,7 +1005,10 @@ class TrialExecution:
                 if isinstance(harness, TrialCosts):
                     self.t.costs = dict(harness.trial_costs())
                 if isinstance(harness, TrialDetails):
-                    self.t.details = harness.trial_details()
+                    self.t.details = {
+                        **harness.trial_details(),
+                        **({"today": self.today} if self.today is not None else {}),
+                    }
                 if isinstance(harness, RawLogged):
                     self.raw_output = harness.output_tail.text()
 
@@ -1087,10 +1105,11 @@ class TrialExecution:
             data = (seed_dir(self.task) / att.path).read_bytes()
             await box.write_file(box.workspace / "attachments" / name, data)
             rels.append(f"attachments/{name}")
+        text = turn.text if self.today is None else turn.text.replace("{today}", self.today)
         if not rels:
-            return turn.text, ()
+            return text, ()
         lines = "\n".join(f"Attached: {r}" for r in rels)
-        return f"{turn.text.rstrip()}\n\n{lines}\n", tuple(rels)
+        return f"{text.rstrip()}\n\n{lines}\n", tuple(rels)
 
     async def deliver(
         self,

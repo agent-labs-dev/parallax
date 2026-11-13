@@ -9,6 +9,7 @@ import json
 import struct
 import zlib
 from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
@@ -19,6 +20,7 @@ from parallax.judge import JudgeConfig, JudgePanel
 from parallax.judging import Decision, JudgePolicy, combined, identity
 from parallax.models import (
     Area,
+    Capability,
     CostSource,
     HarnessInfo,
     HarnessKind,
@@ -82,12 +84,14 @@ class Browsing:
     def __init__(self, outputs: list[TurnOutput] | None = None) -> None:
         self.outputs = outputs or [TurnOutput(status=TurnStatus.COMPLETED, answer="$24.00", session_id=None)]
         self.trials: list[Trial] = []
+        self.turns: list[TurnInput] = []
         self.trial_metadata: JsonObject = {"browser": OBSERVED.model_dump(mode="json")}
 
     async def start(self, trial: Trial, box: BoxHandle) -> None:
         self.trials.append(trial)
 
     async def turn(self, t: TurnInput) -> TurnOutput:
+        self.turns.append(t)
         return self.outputs.pop(0) if len(self.outputs) > 1 else self.outputs[0]
 
     async def stop(self) -> None:
@@ -110,10 +114,16 @@ def source_task():
     return task_from_record("shop", RECORD)
 
 
-async def run_browsing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, harness: Browsing, **opts: object) -> Path:
+async def run_browsing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    harness: Browsing,
+    task=None,
+    **opts: object,
+) -> Path:
     monkeypatch.setattr(runner, "load_harness", lambda name: harness)
     options = RunOptions(out=tmp_path / "run", isolation=Isolation.HOST, quiet=True, **opts)  # type: ignore[arg-type]
-    return await run_async([source_task()], ["browsing"], [None], options)
+    return await run_async([source_task() if task is None else task], ["browsing"], [None], options)
 
 
 # ---------------------------------------------------------------------------
@@ -146,6 +156,13 @@ def test_a_source_task_has_no_world_one_turn_and_its_policys_checks() -> None:
         task_from_record("shop", RECORD.model_copy(update={"grading": "no-such-policy"}))
 
 
+def test_answer_schema_reaches_the_browser_judge_state() -> None:
+    schema = {"type": "object", "properties": {"price": {"type": "string"}}}
+    task = source_task().model_copy(update={"answer_schema": schema})
+    state = browser_evidence.judge_state(task, OBSERVED, ("$24.00",), {})
+    assert state["answer_schema"] == schema
+
+
 # ---------------------------------------------------------------------------
 # a world-less trial and the hooks it reports
 # ---------------------------------------------------------------------------
@@ -167,6 +184,51 @@ async def test_a_world_less_trial_mounts_no_world_and_its_hooks_reach_the_row(
     # No judge is configured offline, so the policy abstains: unjudged, never a pass or a fail.
     assert row.verdict is Verdict.INVALID
     assert row.dir is not None and not (run_dir / row.dir / "world_evidence.json").exists()
+
+
+async def test_today_is_substituted_at_start_but_the_template_hash_and_details_are_stable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    record = RECORD.model_copy(update={"prompt": "Find today's price. Today is {today}."})
+    task = task_from_record("shop", record)
+    harness = Browsing()
+    run_dir = await run_browsing(tmp_path, monkeypatch, harness, task=task)
+    [turn] = harness.turns
+    [row] = read_results(run_dir / "results.jsonl")
+    today = datetime.now(UTC).date().isoformat()
+    assert "{today}" in task.turns[0].text
+    assert today in turn.text and "{today}" not in turn.text
+    assert row.task_hash == record_hash(record)
+    assert row.details["today"] == today
+
+
+async def test_missing_task_secret_is_invalid_before_the_harness_starts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from types import SimpleNamespace
+
+    from parallax.harnesses.browser.harnesses import BrowserHarnessCloud
+
+    monkeypatch.delenv("PARALLAX_TEST_SHOP_PASSWORD", raising=False)
+    record = RECORD.model_copy(
+        update={
+            "requires": frozenset({Capability.BROWSER, Capability.CREDENTIALS}),
+            "secrets": {"shop_password": "PARALLAX_TEST_SHOP_PASSWORD"},
+        }
+    )
+    task = task_from_record("shop", record)
+    harness_plan = runner.HarnessPlan(
+        name="browser-use-cloud", info=BrowserHarnessCloud.info, version="1", config_hash="c"
+    )
+    (plan,) = runner.plan_trials([task], [harness_plan], [None], RunOptions(out=tmp_path, isolation=Isolation.HOST))
+    session = runner.Session(SimpleNamespace(isolation=Isolation.HOST), tmp_path, None, None)
+    result = await session.trial(plan)
+    assert result.result.verdict is Verdict.INVALID
+    assert result.result.invalid_reason is not None
+    assert (
+        "missing secret environment variable PARALLAX_TEST_SHOP_PASSWORD for shop_password"
+        in result.result.invalid_reason
+    )
 
 
 @pytest.mark.parametrize(

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import date
 from enum import StrEnum
 from pathlib import Path
@@ -107,6 +108,10 @@ class Capability(StrEnum):
     TERMINAL = "terminal"
     # Operates a web browser on live sites; a task requiring it runs on no seeded world.
     BROWSER = "browser"
+    # Receives a task's site login through a protected binding that the model cannot inspect.
+    CREDENTIALS = "credentials"
+    # Receives the irreversible actions authorized for a task and stops before any other one, reporting it.
+    AUTHORIZATION = "authorization"
 
 
 # Starting a fresh session is universal (every adapter can start a new conversation); MEMORY is about recall.
@@ -590,6 +595,10 @@ class Task(Model):
     source: str | None = Field(default=None, exclude_if=lambda v: v is None)
     # The grading policy a task source's record names (`extensions.grading_policies`).
     grading: str | None = Field(default=None, exclude_if=lambda v: v is None)
+    # A source task's JSON Schema for its answer; browser V4 adapters may enforce it.
+    answer_schema: JsonObject | None = Field(default=None, exclude_if=lambda v: v is None)
+    # Secret aliases mapped to host environment variable names; values are resolved only at trial start.
+    secrets: dict[str, str] = Field(default={}, exclude_if=lambda v: not v)
     # A task source record's own data (a start URL, the intended outcome), for its harness and grader.
     data: JsonObject = Field(default_factory=dict, exclude_if=lambda v: not v)
 
@@ -623,7 +632,22 @@ class TaskRecord(Model):
     split: Split = Split.TUNE
     provenance: Provenance = Provenance.HAND_AUTHORED
     xfail: XFail | None = None
+    # Secret aliases mapped to host environment variable names; values never enter the record or its hash.
+    secrets: dict[str, str] = Field(default={}, exclude_if=lambda v: not v)
+    # JSON Schema for the answer, passed to adapters that support structured output.
+    answer_schema: JsonObject | None = Field(default=None, exclude_if=lambda v: v is None)
     data: JsonObject = {}  # the task's own facts for its harness and grader: start URL, intended outcome
+
+    @model_validator(mode="after")
+    def _valid_secret_references(self) -> TaskRecord:
+        alias_pattern = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
+        env_pattern = re.compile(r"^[A-Z][A-Z0-9_]*$")
+        for alias, env_name in self.secrets.items():
+            if not alias_pattern.fullmatch(alias):
+                raise ValueError(f"secret alias {alias!r} must be a letter followed by letters, digits or underscores")
+            if not env_pattern.fullmatch(env_name):
+                raise ValueError(f"secret environment variable {env_name!r} must be UPPER_SNAKE_CASE")
+        return self
 
 
 class CommandOutcome(Model):

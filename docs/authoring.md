@@ -53,7 +53,7 @@ id = "saas-reply-vendor"              # ^[a-z][a-z0-9-]{2,63}$, prefixed by its 
 version = 1
 area = "saas"                         # saas precision recovery safety code files research restraint memory schedule conformance (platform, voice: product lanes)
 summary = "Reply to Priya with the chosen vendor"
-requires = ["mcp"]                    # subset of mcp workspace shell desktop multi_turn memory world_clock unattended terminal; omit mcp for file-only tasks
+requires = ["mcp"]                    # subset of mcp workspace shell desktop multi_turn memory world_clock unattended terminal browser credentials authorization; omit mcp for file-only tasks
 services = ["drive"]                  # mounted on top of the defaults: mail chat calendar contacts user
 maturity = "candidate"                # draft | candidate | regression | aspirational | retired
 provenance = "hand_authored"          # hand_authored | converted | derived_from_failure_class
@@ -489,6 +489,9 @@ its twin in the pull request.
 - It must include `multi_turn` when a later step continues the session.
 - `desktop` and `[metadata.parallax.desktop]` must be declared together, with
   `workspace`, at least one app, and existing `.py` paths under `environment/files`.
+- `browser` for live-site tasks. Add `credentials` when the task uses protected
+  login bindings, and `authorization` when the harness must enforce an explicit
+  list of irreversible actions.
 
 **Services**
 - Every seeded service, faulted tool and checked table must belong to a mounted
@@ -570,6 +573,21 @@ hash, so any change to a field makes it a new task. The task gets one turn, no s
 `<source>/<id>`. Its id must start with its area, it must not reuse another task's id, and its prompt and data must
 hold no secret. A source may not share a name with a suite. `parallax run` selects a source's tasks by the source
 name, the same way it selects a suite.
+
+Browser records may add `secrets`, a mapping from an alias such as `shop_password`
+to the environment variable that holds its value. The record and task hash keep
+the mapping but never the value. The runner reads the variables when the trial
+starts, marks a trial INVALID when one is missing, and the browser base replaces
+the value in answers, steps and pages with `<secret>alias</secret>` before it
+becomes evidence. A secret task must provide a host-bearing `data.start_url` or
+`data.website`, and it should require `credentials`. Only `browser-use-cloud`
+uses these bindings, scoped to that start host.
+
+Use `answer_schema` for a JSON Schema when the answer has a structured shape.
+The cloud V4 adapter sends it as structured output and the browser judge receives
+it in its evidence state. Other harnesses ignore it. `{today}` in a source
+prompt is replaced with the run's UTC date at trial start and the date is saved
+in trial details. The hash still covers the template, not the substituted date.
 
 A world-less trial gets no MCP endpoint and no persona: `Trial.mcp` and `Trial.user` are None. A harness that needs the
 world uses `trial.world_mcp`, which raises for a world-less task.

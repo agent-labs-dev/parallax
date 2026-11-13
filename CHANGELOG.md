@@ -6,6 +6,14 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Browser source tasks can use protected environment-backed secret bindings,
+  structured answer schemas and rolling `{today}` prompts without changing task
+  hashes or exposing credentials in evidence.
+- Browser capabilities now distinguish protected credentials, and cloud V4
+  adapters pass host-scoped secret bindings and structured output schemas.
+
 ## [2.0.0.dev20] - 2026-11-13
 
 ### Added

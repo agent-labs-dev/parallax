@@ -18,6 +18,7 @@ import uuid
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from pathlib import Path
 from typing import Literal, cast
+from urllib.parse import urlsplit
 
 import yaml
 from pydantic import ValidationError
@@ -298,6 +299,12 @@ def task_from_record(source: str, record: TaskRecord) -> Task:
         )
     if policy.grade is None:
         raise TaskError(f"task source {source}: grading policy {policy.id} cannot grade a world-less task (no grade)")
+    if record.secrets:
+        start_url = record.data.get("website", record.data.get("start_url"))
+        if not isinstance(start_url, str) or not urlsplit(start_url).hostname:
+            raise TaskError(
+                f"task source {source}: task {record.id} secrets need data['website'] or data['start_url'] with a host"
+            )
     digest = record_hash(record)
     meta = TaskMeta(
         id=record.id, version=record.version, area=record.area, summary=record.summary, requires=record.requires,
@@ -308,7 +315,7 @@ def task_from_record(source: str, record: TaskRecord) -> Task:
         meta=meta, turns=(Turn(index=1, name="turn-01", text=record.prompt, new_session=False),), seed=None,
         checks=CheckSet.model_construct(checks=()), mutations=MutationSet(), oracle=None,
         path=Path(f"<{source}>") / record.id, hash=digest, extensions={}, source=source, grading=record.grading,
-        data=record.data,
+        answer_schema=record.answer_schema, secrets=dict(record.secrets), data=record.data,
     )  # fmt: skip
     try:
         checks = CheckSet(checks=tuple(policy.checks(task)))

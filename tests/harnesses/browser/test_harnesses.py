@@ -22,12 +22,17 @@ from browser_use_sdk.v4 import (
     SessionCostResponse,
 )
 from parallax.harnesses.browser.harnesses import (
+    BrowserHarnessCloud,
     BrowserHarnessOSS,
+    BrowserHarnessRunner,
+    CuaCodexHarness,
     _evidence_payload,
     _interruption,
+    _run_result,
     _run_v3,
     _run_v4,
 )
+from parallax.models import Capability
 
 NOW = datetime(2026, 1, 1, tzinfo=UTC)
 RUN_ID = UUID("00000000-0000-0000-0000-000000000001")
@@ -203,6 +208,154 @@ async def test_v4_event_stream_retries_visibility_and_keeps_browser_identity() -
         {"component": "browser", "dollars": "0.08"},
         {"component": "proxy", "dollars": "0.03"},
     ]
+
+
+async def test_v4_run_declares_structured_output_and_host_scoped_secret_bindings() -> None:
+    class Runs:
+        def __init__(self) -> None:
+            self.created: dict[str, object] = {}
+
+        async def create(self, goal: str, **request: object) -> RunCreateResponse:
+            self.created = {"goal": goal, **request}
+            return RunCreateResponse(
+                id=RUN_ID,
+                status=RunStatus.queued,
+                model="provider/model",
+                sessionId=SESSION_ID,
+                workspaceId=SESSION_ID,
+                eventsUrl="https://api.test/runs/events",
+            )
+
+        async def status(self, _: str) -> RunStatusResponse:
+            return RunStatusResponse(status=RunStatus.completed)
+
+        async def events(self, _: str, *, after: int | None = None) -> RunEventsResponse:
+            return RunEventsResponse(events=[], hasMore=False, nextAfter=after)
+
+        async def get(self, _: str) -> RunSummary:
+            return v4_run_summary()
+
+        async def cancel(self, _: str) -> None:
+            raise AssertionError("a completed run should not be cancelled")
+
+    class Sessions:
+        async def cost(self, _: str) -> SessionCostResponse:
+            return SessionCostResponse(
+                sessionId=SESSION_ID,
+                numRuns=1,
+                llmCostUsd="0.30",
+                searchCostUsd="0.01",
+                browserCostUsd="0.08",
+                proxyCostUsd="0.03",
+                proxyUsedMb="1",
+                totalCostUsd="0.42",
+            )
+
+    class Client:
+        def __init__(self) -> None:
+            self.runs = Runs()
+            self.sessions = Sessions()
+
+    schema = {"type": "object", "properties": {"price": {"type": "string"}}}
+    bindings = [
+        {
+            "alias": "shop_password",
+            "source": {"type": "inline", "value": "correct-horse-battery-staple"},
+            "allowedDomains": ["shop.example"],
+        }
+    ]
+    client = Client()
+    await _run_v4(
+        client,
+        "sign in and find the price",
+        "provider/model",
+        0,
+        output_schema=schema,
+        secret_bindings=bindings,
+    )
+    assert client.runs.created == {
+        "goal": "sign in and find the price",
+        "model": "provider/model",
+        "output_schema": schema,
+        "secret_bindings": bindings,
+    }
+
+
+def test_v4_structured_output_is_kept_as_the_answer() -> None:
+    result = _run_result(
+        SimpleNamespace(
+            status=RunStatus.completed,
+            output={"price": "$24.00"},
+            session_id=SESSION_ID,
+        ),
+        [],
+    )
+    assert result["answer"] == '{"price":"$24.00"}'
+
+
+def test_browser_capabilities_are_explicit_about_site_credentials() -> None:
+    assert BrowserHarnessCloud.info.capabilities == frozenset({Capability.BROWSER, Capability.CREDENTIALS})
+    for info in (BrowserHarnessOSS.info, BrowserHarnessRunner.info, CuaCodexHarness.info):
+        assert info.capabilities == frozenset({Capability.BROWSER})
+        assert Capability.CREDENTIALS not in info.capabilities
+        assert Capability.AUTHORIZATION not in info.capabilities
+
+
+def test_browser_workers_cannot_read_task_secret_environment(monkeypatch) -> None:
+    from parallax.models import Trial
+
+    monkeypatch.setenv("SHOP_PASSWORD", "correct-horse-battery-staple")
+    harness = BrowserHarnessOSS()
+    harness._task_secrets = {"shop_password": "SHOP_PASSWORD"}
+    harness._trial = Trial.model_construct(env={"PARALLAX_WORLD_TOKEN": "world"})
+    worker_env = harness._agent_env()
+    assert worker_env.get("PARALLAX_WORLD_TOKEN") == "world"
+    assert "SHOP_PASSWORD" not in worker_env
+
+
+async def test_browser_evidence_replaces_secret_values_with_named_tags(monkeypatch) -> None:
+    from parallax.harnesses.browser.harnesses import BrowserHarness
+    from parallax.models import Area, TaskRecord, Trial
+    from parallax.task import task_from_record
+
+    class Harness(BrowserHarness):
+        info = BrowserHarnessCloud.info
+
+        async def _site_preflight(self) -> str | None:
+            return None
+
+        async def execute(self, _: object) -> dict[str, object]:
+            secret = "correct-horse-battery-staple"
+            return {
+                "status": "done",
+                "answer": f"logged in with {secret}",
+                "step_log": [{"action": "type", "value": secret}],
+                "final_page": {"url": "https://shop.example/", "title": "Account", "text": secret},
+            }
+
+    monkeypatch.setenv("SHOP_PASSWORD", "correct-horse-battery-staple")
+    record = TaskRecord(
+        id="browser-secret-scrub",
+        version=1,
+        area=Area.BROWSER,
+        summary="scrub a login secret",
+        prompt="Sign in and report the result.",
+        grading="browser-evidence-v1",
+        requires=frozenset({Capability.BROWSER, Capability.CREDENTIALS}),
+        secrets={"shop_password": "SHOP_PASSWORD"},
+        data={"start_url": "https://shop.example/"},
+    )
+    harness = Harness()
+    task = task_from_record("fixture-source", record)
+    harness.bind_task(task)
+    await harness.start(Trial.model_construct(model=None, task_id=task.id, env={}), SimpleNamespace())
+    output = await harness.turn(SimpleNamespace(index=1, text="sign in"))
+
+    tag = "<secret>shop_password</secret>"
+    assert output.answer == f"logged in with {tag}"
+    evidence = harness.trial_metadata["browser"]
+    assert isinstance(evidence, dict)
+    assert tag in str(evidence) and "correct-horse-battery-staple" not in str(evidence)
 
 
 async def test_v3_session_resolves_its_browser_for_evidence_and_costs() -> None:
