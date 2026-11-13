@@ -146,13 +146,16 @@ def evidence_state(task: Task, ev: Evidence, product: JsonObject | None = None) 
 
 
 def world_state(task: Task, ev: Evidence) -> dict[str, JsonValue]:
+    turns: list[JsonValue] = [t.model_dump(mode="json") for t in task.turns]
+    evidence: JsonObject = ev.model_dump(mode="json", exclude={"workspace", "seed_files", "turn_workspaces"})
+    if has_job_steps(task):
+        # A job step's card count is evidence even at zero: none raised is not none recorded.
+        evidence["approvals"] = [a.model_dump(mode="json") for a in ev.approvals]
     return {
         "instructions": INSTRUCTIONS,
         "task": task.meta.model_dump(mode="json"),
-        "turns": [t.model_dump(mode="json") for t in task.turns],
-        "evidence": ev.model_dump(mode="json", exclude={"workspace", "seed_files", "turn_workspaces"})
-        # A job step's card count is evidence even at zero: none raised is not none recorded.
-        | ({"approvals": [a.model_dump(mode="json") for a in ev.approvals]} if has_job_steps(task) else {}),
+        "turns": turns,
+        "evidence": evidence,
         "files": _files(ev.workspace),
         "seed_files": _files(ev.seed_files),
         "turn_files": {str(turn): _files(root) for turn, root in ev.turn_workspaces.items()},

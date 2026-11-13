@@ -20,7 +20,7 @@ import signal
 import socket
 import sys
 import time
-from collections.abc import AsyncIterator, Awaitable, Coroutine, Iterator, Mapping, Sequence
+from collections.abc import AsyncGenerator, Awaitable, Coroutine, Generator, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -396,7 +396,7 @@ def score(checks: Sequence[CheckResult]) -> float:
 class _QuietServer(uvicorn.Server):
     # The runner owns Ctrl-C; an embedded server must not swallow it.
     @contextlib.contextmanager
-    def capture_signals(self) -> Iterator[None]:
+    def capture_signals(self) -> Generator[None]:
         yield
 
 
@@ -523,7 +523,7 @@ class Services:
 @contextlib.asynccontextmanager
 async def services(
     isolation: Isolation, public_url: str | None, need_meter: bool, run_id: str, world_port: int | None = None
-) -> AsyncIterator[Services]:
+) -> AsyncGenerator[Services]:
     svc = Services(
         isolation=isolation, public_url=public_url, need_meter=need_meter, run_id=run_id, world_port=world_port
     )

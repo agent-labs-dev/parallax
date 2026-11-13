@@ -9,7 +9,7 @@ license = "MIT AND CC-BY-4.0"
 license-files = ["LICENSE", "LICENSE-DATA", "NOTICE", "THIRD_PARTY.md"]
 dependencies = [
     # 2.12 for `Field(exclude_if=...)` (HarnessInfo.remote_box).
-    "pydantic>=2.12",
+    "pydantic>=2.14.3",
     # Pinned to the 2.x line: the world server uses only the low-level Server, the
     # streamable-HTTP app and the client.
     "mcp>=2.2,<3",
@@ -24,7 +24,7 @@ dependencies = [
     # Persona and scheduler timezones resolve through zoneinfo; slim images ship no tz database.
     "tzdata",
     # Langfuse holds every result; 5.1 for caller-supplied experiment ids.
-    "langfuse>=5.1.0,<6",
+    "langfuse>=5.2.0,<6",
     "opentelemetry-sdk",
 ]
 
@@ -33,7 +33,7 @@ browser = [
     "browser-use-sdk==3.12.1",
     # BU Bench ships its tasks Fernet-encrypted upstream (`parallax.official_suites`).
     "cryptography>=43",
-    "websockets>=15,<16",
+    "websockets>=17.4,<18",
 ]
 
 [project.entry-points."parallax.harnesses"]
@@ -64,7 +64,7 @@ dev = [
     "pytest-asyncio",
     "pytest-xdist>=3.8.0",
     "ruff",
-    "ty==0.0.80",
+    "ty==0.0.101",
 ]
 
 [project.scripts]

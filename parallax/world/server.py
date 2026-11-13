@@ -13,7 +13,7 @@ import json
 import os
 import secrets
 import sys
-from collections.abc import AsyncIterator, Callable, Mapping
+from collections.abc import AsyncGenerator, Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
@@ -190,7 +190,7 @@ class WorldServer:
         manager = StreamableHTTPSessionManager(app=self._mcp, json_response=True)
 
         @contextlib.asynccontextmanager
-        async def lifespan(_: Starlette) -> AsyncIterator[None]:
+        async def lifespan(_: Starlette) -> AsyncGenerator[None]:
             async with manager.run():
                 yield
 

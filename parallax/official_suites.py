@@ -346,12 +346,12 @@ def _unjudged(task: Task, detail: str) -> Graded:
     return Graded(checks=tuple(_result(check, None, detail) for check in _checks(task)))
 
 
-def _screenshots(evidence: Any) -> list[str]:
+def _screenshots(evidence: Any) -> list[JsonValue]:
     pages = [*evidence.pages, *([evidence.final_page] if evidence.final_page is not None else [])]
     return [page.screenshot_png_b64 for page in pages if page.screenshot_png_b64]
 
 
-def _steps(evidence: Any) -> list[str]:
+def _steps(evidence: Any) -> list[JsonValue]:
     return [json.dumps(step.model_dump(mode="json"), ensure_ascii=False, sort_keys=True) for step in evidence.steps]
 
 

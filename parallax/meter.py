@@ -23,7 +23,7 @@ import os
 import re
 import secrets
 import sys
-from collections.abc import AsyncIterator, Mapping
+from collections.abc import AsyncGenerator, AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -523,7 +523,7 @@ def app(
         return Response(content, status_code=response.status_code, headers=out_headers)
 
     @asynccontextmanager
-    async def lifespan(_: Starlette) -> AsyncIterator[None]:
+    async def lifespan(_: Starlette) -> AsyncGenerator[None]:
         try:
             yield
         finally:

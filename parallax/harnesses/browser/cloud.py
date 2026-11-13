@@ -10,7 +10,7 @@ import asyncio
 import contextlib
 import importlib
 import time
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncGenerator, Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -113,7 +113,7 @@ async def cloud_browser(
     client: Any | None = None,
     client_factory: Callable[[], Any] | None = None,
     screen: tuple[int, int] | None = None,
-) -> AsyncIterator[Browser]:
+) -> AsyncGenerator[Browser]:
     """Create a hosted browser, yield its CDP URL, and always stop and settle it."""
     owned_client = client is None
     if client is None:

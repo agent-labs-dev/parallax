@@ -18,7 +18,7 @@ import math
 import shutil
 import time
 import zipfile
-from collections.abc import Callable, Iterator, Mapping, Sequence
+from collections.abc import Callable, Generator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -130,7 +130,7 @@ def pending(root: Path) -> list[Path]:
 
 
 @contextmanager
-def owned(run_dir: Path) -> Iterator[None]:
+def owned(run_dir: Path) -> Generator[None]:
     """One uploader per run: a second one exits rather than racing the first."""
     try:
         fh = (run_dir / LOCK).open("w")
