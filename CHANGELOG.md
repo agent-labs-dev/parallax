@@ -36,6 +36,8 @@ All notable changes to Parallax are recorded here. The format follows
   run. It is sealed, carried in every evidence zip and rebuilt at upload.
 - Official browser task sources `bu-bench` and `online-mind2web` fetch pinned
   datasets and grade BrowserEvidence with their pinned upstream judges.
+- A grading policy may report its judge's own score (`Graded.score`), which
+  becomes the trial score in place of the checks' weighted fraction.
 
 ### Fixed
 

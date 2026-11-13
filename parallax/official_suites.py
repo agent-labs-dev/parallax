@@ -235,12 +235,14 @@ def _record(spec: SuiteSpec, row: dict[str, JsonValue], index: int, used: set[st
     upstream_id = str(row.get("task_id", row.get("id", ""))).strip()
     if not upstream_id:
         raise OfficialSuiteError(f"{spec.source}: task {index + 1} has no id")
-    prompt = _prompt(row, spec)
+    instruction = _prompt(row, spec)
     website = _url(row, spec)
     data: JsonObject = {
         "upstream_task_id": upstream_id,
-        "confirmed_task": prompt,
+        "confirmed_task": instruction,
     }
+    # The agent is told where to begin, as the upstream evaluation asks it; the judge reads the bare instruction.
+    prompt = f"Start at {website}. {instruction}" if website is not None else instruction
     if website is not None:
         data["website"] = website
     if spec is MIND2WEB_SPEC:
@@ -444,6 +446,7 @@ async def _grade(spec: SuiteSpec, req: GradeRequest) -> Graded:
     return Graded(
         checks=tuple(_result(checks[0], bool(result["passed"]), detail) for _ in checks),
         judge_identity=_identity(spec, model),
+        score=score,
     )
 
 

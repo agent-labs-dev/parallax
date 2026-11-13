@@ -796,8 +796,10 @@ def result_row(
     metrics: dict[str, float] | None = None,
     reported: Transcript | None = None,
     judge_identity: str | None = None,
+    judged_score: float | None = None,
 ) -> TrialResult:
-    """`reported`: the transcript whose harness-reported timing, cost components and details the row carries."""
+    """`reported`: the transcript whose harness-reported timing, cost components and details the row carries.
+    `judged_score`: a published judge's own score, which replaces the checks' weighted fraction."""
     task, hp = plan.task, plan.harness
     boot, ttft, wall, agent = timings
     # A harness that reports its cost by component reports all of it: the components are the trial's cost, unknown
@@ -814,7 +816,7 @@ def result_row(
             "harness": hp.name, "harness_version": hp.version or "unavailable", "harness_kind": hp.info.kind,
             "config_hash": hp.config_hash, "model": plan.model, "actual_models": actual,
             "repeat": plan.repeat, "verdict": verdict, "xfail": task.meta.xfail is not None,
-            "score": score(checks) if checks else 0.0, "invalid_reason": invalid_reason, "na_reason": na_reason,
+            "score": judged_score if judged_score is not None else score(checks) if checks else 0.0, "invalid_reason": invalid_reason, "na_reason": na_reason,
             "status": status, "checks": checks, "usage": usage,
             "cost_usd": None if not costs or any(c is None for c in costs) else sum(c for c in costs if c is not None),
             "cost_source": cost_source, "boot_ms": boot, "ttft_ms": ttft, "wall_ms": wall, "agent_ms": agent,
@@ -1205,6 +1207,7 @@ class TrialExecution:
         same_family = False
         execution_valid = None
         judged_under: str | None = None
+        judged_score: float | None = None
         # A world-less task has no world evidence; its policy grades what the harness reported. An interrupted
         # trial measured no agent, so nothing is judged.
         gradable = ev is not None or self.task.seed is None
@@ -1226,9 +1229,10 @@ class TrialExecution:
             )
             record_grade(self.dir / "judgments.jsonl", self.task, g)
             execution_valid = g.execution_valid
-            checks, same_family, judged_under = g.checks, g.same_family, g.judge_identity
+            checks, same_family, judged_under, judged_score = g.checks, g.same_family, g.judge_identity, g.score
         self.write_evidence(ev)
-        return TrialRun(self.finish(started, meter, checks, same_family, execution_valid, judged_under), ev)
+        finished = self.finish(started, meter, checks, same_family, execution_valid, judged_under, judged_score)
+        return TrialRun(finished, ev)
 
     def finish(
         self,
@@ -1238,6 +1242,7 @@ class TrialExecution:
         same_family: bool = False,
         execution_valid: bool | None = None,
         judge_identity: str | None = None,
+        judged_score: float | None = None,
     ) -> TrialResult:
         wall = int((time.monotonic() - started) * 1000)
         usage = meter.usage if meter is not None else tuple(self.t.usage)
@@ -1260,7 +1265,7 @@ class TrialExecution:
             timings=(self.t.boot_ms, self.t.ttft_ms, wall, self.t.agent_ms), judge=panel, same_family=same_family,
             web=trial_web_isolation(self.plan.harness.info, self.box_iso), rel_dir=self.plan.rel_dir,
             harness_flags=frozenset(self.t.flags), split=self.t.latency_split, metrics=self.t.metrics,
-            reported=self.t, judge_identity=judge_identity,
+            reported=self.t, judge_identity=judge_identity, judged_score=judged_score,
         )  # fmt: skip
         self.write_trajectory(row, usage, actual)
         self.write(self.dir / "result.json", row.model_dump_json(indent=2))

@@ -210,6 +210,8 @@ class Graded(Model):
     judgments: tuple[Judgment, ...] = ()
     # The judging identity the checks were decided under (`judging.identity`); None for a policy that declares none.
     judge_identity: str | None = Field(default=None, exclude_if=lambda v: v is None)
+    # A published judge's own score in [0, 1], used as the trial score in place of the checks' weighted fraction.
+    score: float | None = Field(default=None, ge=0, le=1, exclude_if=lambda v: v is None)
 
 
 async def grade_checks(

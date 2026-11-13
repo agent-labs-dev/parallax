@@ -1,16 +1,21 @@
 import base64
 import hashlib
 import json
+from pathlib import Path
 
 import httpx
 import pytest
 from cryptography.fernet import Fernet
 from parallax import official_suites as official
+from parallax import runner
 from parallax.extensions import GradeRequest
 from parallax.judge import JudgeConfig, JudgePanel
-from parallax.models import TrajectoryStatus
-from parallax.runner import decide
-from parallax.task import task_from_record
+from parallax.models import CheckResult, FailureMode, Isolation, TrajectoryStatus, Verdict
+from parallax.runner import RunOptions, decide, read_results, run_async
+from parallax.semantic import Graded
+from parallax.task import discover, task_from_record
+
+FIXTURES = Path(__file__).parent / "fixtures"
 
 
 def _spec(source: str = "fixture-suite") -> official.SuiteSpec:
@@ -67,6 +72,7 @@ def test_online_record_keeps_the_published_row_and_validates_start_site():
     record = official._record(official.MIND2WEB_SPEC, row, 0, set())
     assert record.data["record"] == row
     assert record.data["website"] == row["website"]
+    assert record.prompt == "Start at https://example.test/start. Complete the task"
     with pytest.raises(official.OfficialSuiteError, match="usable website"):
         official._record(
             official.MIND2WEB_SPEC,
@@ -128,6 +134,7 @@ async def test_grade_sends_any_browser_evidence_to_the_upstream_judge(monkeypatc
     assert graded.checks[0].passed is True
     assert graded.judge_identity and official.MIND2WEB_UPSTREAM_COMMIT in graded.judge_identity
     assert "configured/model" in graded.judge_identity
+    assert seen["task"] == "Complete the task"
     assert seen["screenshots"] == ["iVBORw=="]
     assert seen["actions"]
 
@@ -153,3 +160,23 @@ async def test_environment_interruption_remains_retryable(monkeypatch):
     assert graded.checks[0].passed is None
     _, reason = decide(None, (), TrajectoryStatus.COMPLETED, graded.checks)
     assert reason == "environment interruption: site unavailable"
+
+
+@pytest.mark.asyncio
+async def test_a_published_judge_score_is_the_trial_score(tmp_path, monkeypatch):
+    async def partial(*_: object, **__: object) -> Graded:
+        check = CheckResult(
+            id="upstream_judge", kind="rubric", mode=FailureMode.WRONG_OUTPUT, gate=True, advisory=False,
+            weight=1.0, passed=False, detail="",
+        )  # fmt: skip
+        return Graded(checks=(check,), score=0.6)
+
+    monkeypatch.setattr(runner, "grade_checks", partial)
+    out = await run_async(
+        discover([FIXTURES / "tasks"]),
+        ["null-claim"],
+        [None],
+        RunOptions(out=tmp_path / "run", isolation=Isolation.HOST, quiet=True),
+    )
+    rows = read_results(out / "results.jsonl")
+    assert rows and all(r.verdict is Verdict.FAIL and r.score == 0.6 for r in rows)

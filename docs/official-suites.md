@@ -52,6 +52,12 @@ The JSON dataset is pinned to revision `eacad896a84dc5b65e29b0b06e4699ab0544d701
 `e8a5e5a99f2be9eae14f4e4259bd5af562f80da9`. Its judge checkout is pinned to
 `b422075b059f0bba670ddda168444eb1d326aa45`.
 
+## Prompts and scores
+
+An Online-Mind2Web task's prompt begins `Start at <website>.`, as the upstream evaluation asks an agent; the
+judge receives the bare instruction. The upstream judge's own score becomes the trial `score`, so a BU Bench
+rubric met in part keeps its fractional score, while the verdict is the judge's pass or fail.
+
 ## Interruption handling
 
 The browser adapter probes the task start URL before the first agent action. A site transport failure,
