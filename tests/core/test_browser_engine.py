@@ -9,7 +9,7 @@ import json
 import struct
 import zlib
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import httpx
@@ -189,17 +189,20 @@ async def test_a_world_less_trial_mounts_no_world_and_its_hooks_reach_the_row(
 async def test_today_is_substituted_at_start_but_the_template_hash_and_details_are_stable(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    record = RECORD.model_copy(update={"prompt": "Find today's price. Today is {today}."})
+    record = RECORD.model_copy(update={"prompt": "Today is {today}. Find the price of a flight on {today+28}."})
     task = task_from_record("shop", record)
     harness = Browsing()
     run_dir = await run_browsing(tmp_path, monkeypatch, harness, task=task)
     [turn] = harness.turns
     [row] = read_results(run_dir / "results.jsonl")
-    today = datetime.now(UTC).date().isoformat()
+    today = datetime.now(UTC).date()
     assert "{today}" in task.turns[0].text
-    assert today in turn.text and "{today}" not in turn.text
+    assert (
+        turn.text
+        == f"Today is {today.isoformat()}. Find the price of a flight on {(today + timedelta(days=28)).isoformat()}."
+    )
     assert row.task_hash == record_hash(record)
-    assert row.details["today"] == today
+    assert row.details["today"] == today.isoformat()
 
 
 async def test_missing_task_secret_is_invalid_before_the_harness_starts(

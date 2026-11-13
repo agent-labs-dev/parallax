@@ -22,7 +22,7 @@ import sys
 import time
 from collections.abc import AsyncGenerator, Awaitable, Coroutine, Generator, Mapping, Sequence
 from dataclasses import dataclass, field, replace
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Protocol, assert_never, runtime_checkable
 from zoneinfo import ZoneInfo
@@ -299,6 +299,15 @@ def redact(text: str, secrets_: Sequence[str] = ()) -> str:
     for pattern in _SECRET_PATTERNS:
         text = pattern.sub(REDACTED, text)
     return text
+
+
+# A prompt's date placeholders: `{today}` is the run's UTC date, `{today+N}` the date N days later.
+DATE_PLACEHOLDER = re.compile(r"\{today(?:\+(\d+))?\}")
+
+
+def fill_dates(text: str, today: date) -> str:
+    """`text` with every date placeholder replaced by its ISO date counted from `today`."""
+    return DATE_PLACEHOLDER.sub(lambda m: (today + timedelta(days=int(m.group(1) or 0))).isoformat(), text)
 
 
 def missing_task_secret_env(task: Task) -> tuple[tuple[str, str], ...]:
@@ -853,7 +862,11 @@ class TrialExecution:
         self.dir = trial_dir
         n_turns = len(self.task.turns) + len(self.task.meta.fires)
         self.t = Transcript(answers=[""] * n_turns)
-        self.today = datetime.now(UTC).date().isoformat() if any("{today}" in t.text for t in self.task.turns) else None
+        self.today = (
+            datetime.now(UTC).date().isoformat()
+            if any(DATE_PLACEHOLDER.search(t.text) for t in self.task.turns)
+            else None
+        )
         self.t.details = {"today": self.today} if self.today is not None else {}
         self.secrets: list[str] = [
             os.environ[env_name] for env_name in self.task.secrets.values() if os.environ.get(env_name)
@@ -1105,7 +1118,7 @@ class TrialExecution:
             data = (seed_dir(self.task) / att.path).read_bytes()
             await box.write_file(box.workspace / "attachments" / name, data)
             rels.append(f"attachments/{name}")
-        text = turn.text if self.today is None else turn.text.replace("{today}", self.today)
+        text = turn.text if self.today is None else fill_dates(turn.text, date.fromisoformat(self.today))
         if not rels:
             return text, ()
         lines = "\n".join(f"Attached: {r}" for r in rels)

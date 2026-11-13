@@ -408,7 +408,8 @@ task's start host and scrubs values from answers, steps and pages before evidenc
 is written. The cloud adapter declares `credentials`; the other built-in browser
 adapters declare only `browser`. A task may also declare `answer_schema`; cloud
 V4 sends it as structured output, while other harnesses ignore it. `{today}` in
-a source prompt is replaced with the UTC date at trial start and the template
+a source prompt is replaced with the UTC date at trial start (`{today+N}` with
+the date N days later) and the template
 continues to determine the task hash.
 
 The built-in browser harness entry points are:

@@ -586,7 +586,8 @@ uses these bindings, scoped to that start host.
 Use `answer_schema` for a JSON Schema when the answer has a structured shape.
 The cloud V4 adapter sends it as structured output and the browser judge receives
 it in its evidence state. Other harnesses ignore it. `{today}` in a source
-prompt is replaced with the run's UTC date at trial start and the date is saved
+prompt is replaced with the run's UTC date at trial start, and `{today+N}` with
+the date N days later, and the date is saved
 in trial details. The hash still covers the template, not the substituted date.
 
 A world-less trial gets no MCP endpoint and no persona: `Trial.mcp` and `Trial.user` are None. A harness that needs the
