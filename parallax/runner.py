@@ -1534,6 +1534,11 @@ async def run_async(
         raise ValueError("no tasks to run (xfail tasks need --include-xfail)")
     if (opts.budget_usd is None) != (opts.reserve_usd is None):
         raise ValueError("a campaign budget needs both its limit (--budget) and each trial's reservation (--reserve)")
+    if opts.budget_journal is not None and opts.budget_usd is None and not opts.budget_journal.is_file():
+        # A named journal is a budget to reopen; without limits to create it, a missing one must not mean no budget.
+        raise ValueError(
+            f"no campaign budget journal at {opts.budget_journal}; pass --budget and --reserve to start one"
+        )
     panel, judge_config = judge_setup(opts.judge)
     opts = opts.model_copy(update={"judge": panel.models if panel else ()})
     infos = [load_harness(h).info for h in harnesses]

@@ -349,6 +349,14 @@ async def test_runs_sharing_a_budget_journal_share_its_limit(tmp_path: Path, mon
     assert not (first / "budget.jsonl").exists() and not (second / "budget.jsonl").exists()
 
 
+async def test_a_named_budget_journal_that_does_not_exist_is_refused_without_limits(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    with pytest.raises(ValueError, match="no campaign budget journal"):
+        await run_browsing(tmp_path, monkeypatch, Browsing(), budget_journal=tmp_path / "typo.jsonl")
+    assert not (tmp_path / "run").exists()
+
+
 # ---------------------------------------------------------------------------
 # the browser judge
 # ---------------------------------------------------------------------------
