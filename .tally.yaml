@@ -5,6 +5,7 @@ secretPatterns: []
 ignore:
   - LANGFUSE_PUBLIC_KEY
   - PUBLIC_SCAN_DENYLIST
+  - PARALLAX_REPORT_WEBHOOK_URL
 credentialNames: []
 ignorePaths: []
 sources: []
@@ -12,7 +13,7 @@ keys:
   - id: openrouter-parallax-ci
     service: openrouter
     group: ci
-    owner: agent-labs-dev
+    owner: cjber
     locations:
       - github: OPENROUTER_API_KEY
       - pass: openrouter/parallax-ci
@@ -23,16 +24,38 @@ keys:
   - id: langfuse-secret-key
     service: langfuse
     group: ci
-    owner: agent-labs-dev
+    owner: cjber
     locations:
       - github: LANGFUSE_SECRET_KEY
-    expires: unknown
+      - pass: parallax/langfuse/dev/secret-key
+    expires: none
+    expiresNote: Langfuse project API keys stay valid until revoked
     limit: unknown
   - id: parallax-upstream-openai-key
     service: openai
     group: ci
-    owner: agent-labs-dev
+    owner: cjber
     locations:
       - github: PARALLAX_UPSTREAM_OPENAI_KEY
     expires: unknown
     limit: unknown
+    note: not set yet; the official suites' upstream judges and native-credential harnesses read it
+  - id: parallax-upstream-anthropic-key
+    service: anthropic
+    group: ci
+    owner: cjber
+    locations:
+      - github: PARALLAX_UPSTREAM_ANTHROPIC_KEY
+    expires: unknown
+    limit: unknown
+    note: not set yet; parallax.yml passes it to a native-credential harness when present
+  - id: parallax-report-webhook-secret
+    service: webhook
+    group: ci
+    owner: cjber
+    locations:
+      - github: PARALLAX_REPORT_WEBHOOK_SECRET
+    expires: none
+    expiresNote: a shared HMAC secret we generate; it has no vendor expiry
+    limit: none
+    note: not set yet; signs the optional run report webhook
