@@ -478,3 +478,21 @@ def test_rows_graded_under_different_identities_never_pool(
 
 def test_a_row_refused_before_judging_does_not_split_the_identity() -> None:
     assert judge_identity([row("a"), row(None, Verdict.INVALID)]) == "a"
+
+
+def test_a_source_filter_selects_a_source_task_by_its_id(monkeypatch: pytest.MonkeyPatch) -> None:
+    from dataclasses import dataclass
+
+    from parallax import plugins
+    from parallax.task import SOURCES, resolve
+
+    @dataclass(frozen=True)
+    class Source:
+        name: str
+        value: str = "fake.module:records"
+
+        def load(self) -> Callable[[], list[TaskRecord]]:
+            return lambda: [RECORD, RECORD.model_copy(update={"id": "browser-other"})]
+
+    monkeypatch.setattr(plugins, "entry_points_in", lambda group: [Source("shop")] if group == SOURCES else [])
+    assert [t.id for t in resolve(["source=shop", "browser-find-price"], suites={})] == ["browser-find-price"]

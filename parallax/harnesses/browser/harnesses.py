@@ -347,19 +347,20 @@ class BrowserHarness(ABC):
 def _known_costs(raw: object) -> dict[str, float | None]:
     if not isinstance(raw, list):
         return {}
+    # A component may be billed in several lines (one per call or purpose): its cost is their sum, and unknown when
+    # any line's amount is.
     output: dict[str, float | None] = {}
     for item in raw:
         if not isinstance(item, Mapping) or not isinstance(item.get("component"), str):
             continue
-        dollars = item.get("dollars")
-        if dollars is None:
-            output[str(item["component"])] = None
-            continue
+        component = str(item["component"])
         try:
-            output[str(item["component"])] = float(dollars)
+            dollars = float(item["dollars"]) if item.get("dollars") is not None else None
         except (TypeError, ValueError):
             # An unreadable amount is still a charge: unknown, never zero or absent.
-            output[str(item["component"])] = None
+            dollars = None
+        before = output.get(component, 0.0)
+        output[component] = None if dollars is None or before is None else before + dollars
     return output
 
 

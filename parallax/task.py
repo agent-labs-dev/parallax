@@ -410,8 +410,12 @@ def resolve(
     suites = suite_roots() if suites is None else suites
     path_terms = [Path(t) for t in parse_select(terms).names if _is_path_term(t, suites)]
     roots = [*(r for rs in suites.values() for r in rs), *extra_roots, *(p for p in path_terms if p.is_dir())]
-    names = parse_select(terms).names
-    source_names = frozenset(ep.name for ep in plugins.entry_points_in(SOURCES) if ep.name in names)
+    selection = parse_select(terms)
+    names = selection.names
+    # A source loads when a term names it or `source=` filters on it, so its tasks are selectable by id.
+    source_names = frozenset(ep.name for ep in plugins.entry_points_in(SOURCES) if ep.name in names) | (
+        selection.sources or frozenset()
+    )
     return select(_unique([*discover(roots), *source_tasks(suites, source_names)]), terms, suites)
 
 
@@ -426,6 +430,7 @@ class Selection(Model):
     maturities: frozenset[Maturity] | None = None
     splits: frozenset[Split] | None = None
     requires_within: frozenset[Capability] | None = None
+    sources: frozenset[str] | None = None  # `parallax.task_sources` entry points: loaded, then intersected
 
 
 def parse_select(terms: Sequence[str] | str) -> Selection:
@@ -447,12 +452,13 @@ def parse_select(terms: Sequence[str] | str) -> Selection:
             maturities=_enum_set(Maturity, filters.get("maturity")),
             splits=_enum_set(Split, filters.get("split")),
             requires_within=_enum_set(Capability, filters.get("requires")),
+            sources=_sources(filters.get("source")),
         )
     except ValueError as exc:
         raise SelectError(str(exc)) from exc
 
 
-_FILTER_OPS = {"area": "=", "maturity": "=", "split": "=", "requires": "<="}
+_FILTER_OPS = {"area": "=", "maturity": "=", "split": "=", "requires": "<=", "source": "="}
 
 
 def _split_filter(word: str) -> tuple[str, str, str]:
@@ -461,8 +467,19 @@ def _split_filter(word: str) -> tuple[str, str, str]:
         return word, "", ""
     key, op = m["key"], m["op"]
     if _FILTER_OPS.get(key) != op:
-        raise SelectError(f"unknown filter {word!r}; use area=, maturity=, split= or requires<=")
+        raise SelectError(f"unknown filter {word!r}; use area=, maturity=, split=, source= or requires<=")
     return key, op, m["value"]
+
+
+def _sources(values: frozenset[str] | None) -> frozenset[str] | None:
+    if values is None:
+        return None
+    if not values:
+        raise SelectError("empty source filter")
+    known = {ep.name for ep in plugins.entry_points_in(SOURCES)}
+    if unknown := sorted(values - known):
+        raise SelectError(f"source={','.join(unknown)} names no task source; known: {', '.join(sorted(known))}")
+    return values
 
 
 def _enum_set[E: (Area, Maturity, Split, Capability)](
@@ -511,6 +528,7 @@ def _passes(task: Task, sel: Selection) -> bool:
         (sel.areas is None or task.meta.area in sel.areas)
         and (sel.splits is None or task.meta.split in sel.splits)
         and (sel.requires_within is None or task.meta.requires <= sel.requires_within)
+        and (sel.sources is None or task.source in sel.sources)
     )
 
 

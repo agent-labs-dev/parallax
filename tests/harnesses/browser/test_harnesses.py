@@ -254,6 +254,19 @@ def test_unknown_cost_components_are_kept_for_row_settlement() -> None:
     ) == {"browser": 0.12, "proxy": None, "model": None}
 
 
+def test_a_component_billed_in_several_lines_costs_their_sum() -> None:
+    from parallax.harnesses.browser.harnesses import _known_costs
+
+    assert _known_costs(
+        [
+            {"component": "jev", "dollars": 0.01},
+            {"component": "jev", "dollars": 0.02},
+            {"component": "llm", "dollars": 0.1},
+            {"component": "llm", "dollars": None},
+        ]
+    ) == {"jev": 0.03, "llm": None}
+
+
 def test_oss_declares_the_pinned_runtime_install() -> None:
     from parallax.harnesses.browser import pins
 
