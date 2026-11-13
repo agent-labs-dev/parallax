@@ -56,7 +56,10 @@ class AnalyticsService(Service):
         props: dict[str, set[str]] = {}
         for e in self._events():
             props.setdefault(get_str(e, "event"), set()).update(_props(e))
-        return {"events": [{"name": n, "volume": volume[n], "properties": sorted(props[n])} for n in sorted(volume)]}
+        events: list[JsonValue] = [
+            {"name": n, "volume": volume[n], "properties": [*sorted(props[n])]} for n in sorted(volume)
+        ]
+        return {"events": events}
 
     @tool(mutates=False, description="List saved insights (trends and funnels) and how each is defined.")
     async def list_insights(self, args: Args) -> JsonValue:
@@ -109,10 +112,12 @@ class AnalyticsService(Service):
         for e in self._events():
             if e.get("event") == event and start <= (day := self._day(e)) <= end:
                 buckets[_bucket(day, interval).isoformat()][_split(e, breakdown)] += 1
-        series: list[JsonValue] = [
-            {"period": p, "count": sum(c.values())} | ({"breakdown": dict(sorted(c.items()))} if breakdown else {})
-            for p, c in buckets.items()
-        ]
+        series: list[JsonValue] = []
+        for p, c in buckets.items():
+            point: JsonObject = {"period": p, "count": sum(c.values())}
+            if breakdown:
+                point["breakdown"] = {k: v for k, v in sorted(c.items())}
+            series.append(point)
         total = sum(sum(c.values()) for c in buckets.values())
         return {"event": event, "interval": interval, "series": series, "total": total}
 

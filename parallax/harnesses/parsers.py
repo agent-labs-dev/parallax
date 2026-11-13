@@ -339,7 +339,11 @@ def _hermes_tool_steps(export: str) -> Iterator[Step]:
         calls = message.get("tool_calls") if message.get("role") == "assistant" else None
         for call in calls if isinstance(calls, list) else ():
             function = call.get("function") if isinstance(call, dict) else None
-            if not isinstance(function, dict) or not isinstance(name := function.get("name"), str):
+            if (
+                not isinstance(call, dict)
+                or not isinstance(function, dict)
+                or not isinstance(name := function.get("name"), str)
+            ):
                 raise ParseError(f"hermes tool call without a function name: {str(call)[:200]}")
             raw = function.get("arguments")
             try:

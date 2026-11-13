@@ -157,7 +157,7 @@ def judge_state(
         "final_page_observed": ev.final_page is not None,
         "timeline": timeline,
         "execution": execution,
-        "pages": pages,
+        "pages": [*pages],
     }
 
 

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import contextlib
 import json
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from types import TracebackType
 from typing import Self
 
@@ -72,7 +72,7 @@ class WorldClient:
         return not result.is_error, _value(result)
 
     @contextlib.asynccontextmanager
-    async def _use(self) -> AsyncIterator[ClientSession]:
+    async def _use(self) -> AsyncGenerator[ClientSession]:
         if self._session is not None:
             yield self._session
             return
@@ -80,7 +80,7 @@ class WorldClient:
             yield session
 
     @contextlib.asynccontextmanager
-    async def _open(self) -> AsyncIterator[ClientSession]:
+    async def _open(self) -> AsyncGenerator[ClientSession]:
         headers = {"Authorization": f"Bearer {self._token}"}
         http = httpx2.AsyncClient(
             headers=headers, transport=self._transport, timeout=MCP_TIMEOUT, follow_redirects=True

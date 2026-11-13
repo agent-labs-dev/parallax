@@ -155,9 +155,12 @@ async def test_seeded_app_through_cua_mcp(
                 assert outcome.error is None, outcome
                 if outcome.exit != check.exit:
                     failures.add(check.id)
-            elif isinstance(check, FileCheck) and check.unchanged:
-                if (dest / check.path).read_bytes() != (task.path / "environment/files" / check.path).read_bytes():
-                    failures.add(check.id)
+            elif (
+                isinstance(check, FileCheck)
+                and check.unchanged
+                and (dest / check.path).read_bytes() != (task.path / "environment/files" / check.path).read_bytes()
+            ):
+                failures.add(check.id)
         assert failures == expected_failures
     finally:
         await box.close()

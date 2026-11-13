@@ -13,7 +13,7 @@ import hashlib
 import json
 import logging
 import os
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Generator, Iterator, Sequence
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
@@ -97,7 +97,7 @@ class StableIds(IdGenerator):
         self._span: ContextVar[int | None] = ContextVar("parallax_span_id", default=None)
 
     @contextmanager
-    def fixed(self, trace_id: str, span_id: str) -> Iterator[None]:
+    def fixed(self, trace_id: str, span_id: str) -> Generator[None]:
         trace_token, span_token = self._trace.set(int(trace_id, 16)), self._span.set(int(span_id, 16))
         try:
             yield

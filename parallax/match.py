@@ -27,7 +27,7 @@ class Missing(Enum):
 
 
 MISSING = Missing.MISSING
-Value = JsonValue | Missing
+type Value = JsonValue | Missing
 
 _QUOTES = str.maketrans({"‘": "'", "’": "'", "‚": "'", "‛": "'", "′": "'",
                          "“": '"', "”": '"', "„": '"', "‟": '"', "″": '"'})  # fmt: skip
