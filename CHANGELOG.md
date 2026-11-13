@@ -6,6 +6,32 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev21] - 2026-11-13
+
+### Added
+
+- A `source=NAME` selection filter loads that task source and selects its tasks
+  by id.
+- `Capability.CREDENTIALS` and `Capability.AUTHORIZATION`: a task that needs a
+  protected site login or authorized irreversible steps is NA on a harness that
+  lacks them, before any spend. `browser-use-cloud` declares `CREDENTIALS` on
+  its V4 API.
+- `TaskRecord.secrets` maps secret aliases to environment variables. Values are
+  read at trial start and never stored; a missing variable makes the trial
+  INVALID. `browser-use-cloud` sends them as secret bindings allowed only on the
+  start host, local workers never see the variables, evidence shows
+  `<secret>ALIAS</secret>` in place of each value, and the final-page
+  screenshot is omitted.
+- `TaskRecord.answer_schema` is sent to the V4 API as structured output and
+  shown to the judge; a structured answer is recorded whole.
+- A prompt's `{today}` becomes the run's UTC date at trial start and is
+  recorded in the trial's details. The task hash covers the template.
+
+### Fixed
+
+- A browser cost component billed in several lines reports their sum, unknown
+  when any line is.
+
 ## [2.0.0.dev20] - 2026-11-13
 
 ### Added
@@ -133,7 +159,8 @@ All notable changes to Parallax are recorded here. The format follows
 
 The release procedure is in [the dev16 release plan](docs/release-dev16.md).
 
-[Unreleased]: https://github.com/agent-labs-dev/parallax/compare/v2.0.0.dev20...HEAD
+[Unreleased]: https://github.com/agent-labs-dev/parallax/compare/v2.0.0.dev21...HEAD
+[2.0.0.dev21]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev21
 [2.0.0.dev20]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev20
 [2.0.0.dev19]: https://pypi.org/project/parallax-evals/2.0.0.dev19/
 [2.0.0.dev18]: https://pypi.org/project/parallax-evals/2.0.0.dev18/

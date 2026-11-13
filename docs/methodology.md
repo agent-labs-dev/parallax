@@ -264,7 +264,7 @@ A human moves a flagged task by editing `task.toml` and bumping the task
 This section assesses Parallax against the Agentic Benchmark Checklist (Zhu et
 al., 2025, *Establishing Best Practices for Building Rigorous Agentic
 Benchmarks*). The items are grouped under the checklist's three headings. The
-status is as of `2.0.0.dev20`, before the first pilot:
+status is as of `2.0.0.dev21`, before the first pilot:
 
 - ✅ met by construction and enforced in CI;
 - ◐ designed but not yet exercised or complete;

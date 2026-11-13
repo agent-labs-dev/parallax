@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import importlib
+import json
 import logging
 import os
 import shlex
@@ -18,6 +19,7 @@ import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Mapping
 from typing import Any
+from urllib.parse import urlsplit
 
 import httpx
 from pydantic import BaseModel, ConfigDict
@@ -66,23 +68,22 @@ class BrowserConfig(BaseModel):
     poll_seconds: float = 1.0
 
 
-def _browser_capability() -> frozenset[Capability]:
-    capability = getattr(Capability, "BROWSER", None)
-    return frozenset({capability}) if isinstance(capability, Capability) else frozenset()
-
-
 def _info(
     name: str,
     *,
     pins_model: bool,
+    credentials: bool = False,
     credential_env: tuple[str, ...] = (),
     install: str = "",
     isolation: Isolation = Isolation.DOCKER,
 ) -> HarnessInfo:
+    capabilities = {Capability.BROWSER}
+    if credentials:
+        capabilities.add(Capability.CREDENTIALS)
     return HarnessInfo(
         name=name,
         kind=HarnessKind.OPEN,
-        capabilities=_browser_capability(),
+        capabilities=frozenset(capabilities),
         pins_model=pins_model,
         cost_source=CostSource.HARNESS,
         isolation=isolation,
@@ -115,6 +116,23 @@ def _steps(turn: int, raw: object) -> tuple[Step, ...]:
 
 def _mapping_list(raw: object) -> list[dict[str, Any]]:
     return [dict(item) for item in raw if isinstance(item, Mapping)] if isinstance(raw, list) else []
+
+
+def _answer_text(value: object, *, structured: bool) -> str | None:
+    """A run's answer as text. A structured answer (the task declared a schema) is serialised whole; an unstructured
+    one may arrive wrapped as `{"text": ...}` or `{"answer": ...}`, and only then is the wrapper unwrapped."""
+    if isinstance(value, str):
+        return value
+    if value is None:
+        return None
+    if isinstance(value, Mapping) and not structured:
+        nested = value.get("text") or value.get("answer")
+        if nested is not None:
+            return _answer_text(nested, structured=False)
+    try:
+        return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+    except TypeError:
+        return None
 
 
 def _usage(raw: object, model: str | None) -> tuple[Usage, ...]:
@@ -222,6 +240,11 @@ class BrowserHarness(ABC):
         self._cost: dict[str, float | None] = {}
         self._details: dict[str, Any] = {"observer": self.config.observer}
         self._start_url: str | None = None
+        self._start_host: str | None = None
+        self._task_secrets: dict[str, str] = {}
+        self._secret_values: dict[str, str] = {}
+        self._secret_bindings: list[dict[str, Any]] = []
+        self._answer_schema: dict[str, Any] | None = None
         self._site_preflight_done = False
         self.trial_invalid: list[str] = []
         self.trial_notes: list[str] = []
@@ -238,9 +261,12 @@ class BrowserHarness(ABC):
 
     def bind_task(self, task: Task) -> None:
         """Remember a source task's start URL so a site outage never becomes an agent failure."""
+        self._task_secrets = dict(task.secrets)
+        self._answer_schema = task.answer_schema
         if task.meta.area is Area.BROWSER:
             value = task.data.get("website", task.data.get("start_url"))
             self._start_url = value if isinstance(value, str) else None
+            self._start_host = urlsplit(self._start_url).hostname if self._start_url is not None else None
 
     async def _site_preflight(self) -> str | None:
         if self._site_preflight_done or self._start_url is None:
@@ -254,6 +280,41 @@ class BrowserHarness(ABC):
         self._clock = AttemptClock(bounded=False)
         self._details["task_id"] = trial.task_id
         self._details["model"] = trial.model
+        self._secret_values = {}
+        self._secret_bindings = []
+        if self._task_secrets and self._start_host is None:
+            raise RuntimeError("task secrets need a start URL with a host")
+        for alias, env_name in self._task_secrets.items():
+            value = os.environ.get(env_name)
+            if not value:
+                raise RuntimeError(f"missing secret environment variable {env_name} for {alias}")
+            self._secret_values[alias] = value
+            self._secret_bindings.append(
+                {
+                    "alias": alias,
+                    "source": {"type": "inline", "value": value},
+                    "allowedDomains": [self._start_host],
+                }
+            )
+
+    def _scrub(self, value: object) -> Any:
+        if isinstance(value, str):
+            for alias, secret in sorted(self._secret_values.items(), key=lambda item: len(item[1]), reverse=True):
+                value = value.replace(secret, f"<secret>{alias}</secret>")
+            return value
+        if isinstance(value, Mapping):
+            return {key: self._scrub(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [self._scrub(item) for item in value]
+        if isinstance(value, tuple):
+            return tuple(self._scrub(item) for item in value)
+        return value
+
+    def _agent_env(self) -> dict[str, str]:
+        """Give browser workers the host environment minus every task-secret variable."""
+        secret_names = set(self._task_secrets.values())
+        env = dict(os.environ) | dict(self.trial.env)
+        return {name: value for name, value in env.items() if name not in secret_names}
 
     async def turn(self, turn: TurnInput) -> TurnOutput:
         began = time.monotonic()
@@ -269,33 +330,36 @@ class BrowserHarness(ABC):
         except Exception as error:
             result = {"status": "error", "answer": None, "error": f"{type(error).__name__}: {error}"}
         status = _normalise_status(result.get("status"))
-        answer = result.get("answer")
-        self._answer = answer if isinstance(answer, str) else None
-        self._steps.extend(_mapping_list(result.get("step_log")))
-        self._citations.extend(_mapping_list(result.get("citations")))
+        answer = self._scrub(result.get("answer"))
+        self._answer = _answer_text(answer, structured=self._answer_schema is not None)
+        self._steps.extend(self._scrub(_mapping_list(result.get("step_log"))))
+        self._citations.extend(self._scrub(_mapping_list(result.get("citations"))))
         if self._clock is not None and status is TurnStatus.COMPLETED:
             self._clock.answered()
         page = result.get("final_page")
         if isinstance(page, Mapping):
-            self._page = dict(page)
+            self._page = self._scrub(dict(page))
+            if self._secret_values and self._page.pop("screenshot_png_b64", None) is not None:
+                # Text replacement cannot reach pixels, and a page can show a bound login; the judge reads its text.
+                self.trial_notes.append("final-page screenshot omitted: the task binds secrets")
         self._cost.update(_known_costs(result.get("cost_lines")))
         self._details.update(
             {
                 "status": str(result.get("status", "error")),
-                "error": result.get("error"),
+                "error": self._scrub(result.get("error")),
                 "steps": len(self._steps),
                 "wall_seconds": round(time.monotonic() - began, 2),
             }
         )
         interruption = _interruption(result)
-        error = interruption or (str(result["error"]) if result.get("error") is not None else None)
+        error = interruption or (self._scrub(str(result["error"])) if result.get("error") is not None else None)
         latency = result.get("latency_ms")
         latency_ms = int(float(latency)) if isinstance(latency, int | float) else None
         return TurnOutput(
             status=status,
             answer=self._answer or "",
             session_id=result.get("session_id"),
-            steps=_steps(turn.index, result.get("step_log")),
+            steps=_steps(turn.index, self._scrub(result.get("step_log"))),
             usage=_usage(result.get("usage"), self.trial.model),
             actual_model=result.get("actual_model") if isinstance(result.get("actual_model"), str) else None,
             latency_ms=latency_ms,
@@ -347,24 +411,31 @@ class BrowserHarness(ABC):
 def _known_costs(raw: object) -> dict[str, float | None]:
     if not isinstance(raw, list):
         return {}
+    # A component may be billed in several lines (one per call or purpose): its cost is their sum, and unknown when
+    # any line's amount is.
     output: dict[str, float | None] = {}
     for item in raw:
         if not isinstance(item, Mapping) or not isinstance(item.get("component"), str):
             continue
-        dollars = item.get("dollars")
-        if dollars is None:
-            output[str(item["component"])] = None
-            continue
+        component = str(item["component"])
         try:
-            output[str(item["component"])] = float(dollars)
+            dollars = float(item["dollars"]) if item.get("dollars") is not None else None
         except (TypeError, ValueError):
             # An unreadable amount is still a charge: unknown, never zero or absent.
-            output[str(item["component"])] = None
+            dollars = None
+        before = output.get(component, 0.0)
+        output[component] = None if dollars is None or before is None else before + dollars
     return output
 
 
 class BrowserHarnessCloud(BrowserHarness):
-    info = _info("browser-use-cloud", pins_model=False, credential_env=("BROWSER_USE_API_KEY",))
+    info = _info("browser-use-cloud", pins_model=False, credentials=True, credential_env=("BROWSER_USE_API_KEY",))
+
+    def __init__(self, *, observer: str | None = None) -> None:
+        super().__init__(observer=observer)
+        if self.config.cloud_api != "v4":
+            # Only the V4 API takes secret bindings, so V3 cannot attempt a task that needs a protected login.
+            self.info = self.info.model_copy(update={"capabilities": self.info.capabilities - {Capability.CREDENTIALS}})
 
     async def execute(self, turn: TurnInput) -> dict[str, Any]:
         client_module = importlib.import_module(f"browser_use_sdk.{self.config.cloud_api}")
@@ -376,7 +447,13 @@ class BrowserHarnessCloud(BrowserHarness):
                 result = await _run_v3(client, turn.text, self.trial.model, agent_started=self._agent_started)
             else:
                 result = await _run_v4(
-                    client, turn.text, self.trial.model, self.config.poll_seconds, agent_started=self._agent_started
+                    client,
+                    turn.text,
+                    self.trial.model,
+                    self.config.poll_seconds,
+                    agent_started=self._agent_started,
+                    output_schema=self._answer_schema,
+                    secret_bindings=self._secret_bindings or None,
                 )
             browser_id = result.get("browser_id")
             if isinstance(browser_id, str):
@@ -416,8 +493,14 @@ async def _run_v4(
     poll: float,
     *,
     agent_started: Callable[[], None] | None = None,
+    output_schema: dict[str, Any] | None = None,
+    secret_bindings: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     request: dict[str, Any] = {"model": model} if model else {}
+    if output_schema is not None:
+        request["output_schema"] = output_schema
+    if secret_bindings is not None:
+        request["secret_bindings"] = secret_bindings
     created: Any | None = None
     run_id: str | None = None
     browser_id: str | None = None
@@ -556,9 +639,11 @@ def _run_result(view: object, events: list[dict[str, Any]]) -> dict[str, Any]:
     status = _status_value(raw.get("status", "error"))
     browser_id = raw.get("browserId") or raw.get("browser_id") or raw.get("browser_session_id")
     dispatch_failed = any(event.get("type") == "run.dispatch_failed" for event in events)
-    answer = raw.get("output") or raw.get("result") or raw.get("finalResult")
-    if isinstance(answer, Mapping):
-        answer = answer.get("text") or answer.get("answer")
+    answer = raw.get("output")
+    if answer is None:
+        answer = raw.get("result")
+    if answer is None:
+        answer = raw.get("finalResult")
     steps = [event for event in events if str(event.get("type", "")).endswith("step")]
     return {
         "status": "done"
@@ -568,7 +653,7 @@ def _run_result(view: object, events: list[dict[str, Any]]) -> dict[str, Any]:
         else "unavailable"
         if dispatch_failed
         else "error",
-        "answer": answer if isinstance(answer, str) else None,
+        "answer": answer,
         "browser_id": browser_id,
         "url": raw.get("url"),
         "step_log": steps,
@@ -603,7 +688,7 @@ class BrowserHarnessOSS(BrowserHarness):
         request = {"goal": turn.text, "model": self.trial.model, "max_steps": None, "timeout": None}
         worker = JsonWorker(
             (sys.executable, "-m", "parallax.harnesses.browser.oss_worker"),
-            env=dict(os.environ) | dict(self.trial.env),
+            env=self._agent_env(),
             cwd=self.trial.home,
         )
         async with worker:
@@ -637,14 +722,10 @@ class BrowserHarnessRunner(BrowserHarness):
                 if configured
                 else (sys.executable, "-m", "parallax.harnesses.browser.browser_harness_worker")
             )
-            worker_env = (
-                dict(os.environ)
-                | dict(self.trial.env)
-                | {
-                    "BU_CDP_WS": browser.cdp_url,
-                    "PARALLAX_BROWSER_CDP_URL": browser.cdp_url,
-                }
-            )
+            worker_env = self._agent_env() | {
+                "BU_CDP_WS": browser.cdp_url,
+                "PARALLAX_BROWSER_CDP_URL": browser.cdp_url,
+            }
             worker = JsonWorker(command, env=worker_env, cwd=self.trial.home)
             async with worker:
                 await worker.send(request)
@@ -672,7 +753,7 @@ class CuaCodexHarness(BrowserHarness):
         }
         worker = JsonWorker(
             (sys.executable, "-m", "parallax.harnesses.browser.cua_worker"),
-            env=dict(os.environ) | dict(self.trial.env),
+            env=self._agent_env(),
             cwd=self.trial.home,
         )
         async with worker:

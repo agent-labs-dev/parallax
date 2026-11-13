@@ -31,8 +31,9 @@ def null_info(mode: NullMode) -> HarnessInfo:
     return HarnessInfo(
         name=f"null-{mode}",
         kind=HarnessKind.CONTROL,
-        # Every capability, so no task is ever NA for a null: the control must run everywhere.
-        capabilities=frozenset(Capability),
+        # Every general capability, so ordinary tasks are never NA for a null control. Protected site logins and
+        # authorization prompts are harness-specific and must not be claimed by a control.
+        capabilities=frozenset(Capability) - {Capability.CREDENTIALS, Capability.AUTHORIZATION},
         pins_model=False,
         cost_source=CostSource.NONE,
         isolation=Isolation.HOST,
