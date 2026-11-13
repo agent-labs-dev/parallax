@@ -22,7 +22,7 @@ import sys
 import time
 from collections.abc import AsyncGenerator, Awaitable, Coroutine, Generator, Mapping, Sequence
 from dataclasses import dataclass, field, replace
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Protocol, assert_never, runtime_checkable
 from zoneinfo import ZoneInfo
@@ -108,7 +108,16 @@ from parallax.models import (
 )
 from parallax.protocols import Harness, TrialCosts, TrialDetails, TrialTiming
 from parallax.semantic import grade_checks, policy_identity, record_grade
-from parallax.task import LITE, load_patch, members, mounted_services, rebind_persona, rebind_value
+from parallax.task import (
+    DATE_PLACEHOLDER,
+    LITE,
+    fill_dates,
+    load_patch,
+    members,
+    mounted_services,
+    rebind_persona,
+    rebind_value,
+)
 from parallax.world.client import ControlClient, ControlError, admin_register
 from parallax.world.core import World, WorldError
 from parallax.world.server import WorldServer
@@ -299,15 +308,6 @@ def redact(text: str, secrets_: Sequence[str] = ()) -> str:
     for pattern in _SECRET_PATTERNS:
         text = pattern.sub(REDACTED, text)
     return text
-
-
-# A prompt's date placeholders: `{today}` is the run's UTC date, `{today+N}` the date N days later.
-DATE_PLACEHOLDER = re.compile(r"\{today(?:\+(\d+))?\}")
-
-
-def fill_dates(text: str, today: date) -> str:
-    """`text` with every date placeholder replaced by its ISO date counted from `today`."""
-    return DATE_PLACEHOLDER.sub(lambda m: (today + timedelta(days=int(m.group(1) or 0))).isoformat(), text)
 
 
 def missing_task_secret_env(task: Task) -> tuple[tuple[str, str], ...]:

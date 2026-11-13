@@ -12,6 +12,7 @@ All notable changes to Parallax are recorded here. The format follows
 
 - A source prompt's `{today+N}` becomes the date N days after the run's UTC
   date, so a task can ask about a future day without its hash changing daily.
+  A record whose offset is more than 366 days ahead is refused at load.
 
 ## [2.0.0.dev21] - 2026-11-13
 

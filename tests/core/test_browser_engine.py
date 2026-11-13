@@ -154,6 +154,8 @@ def test_a_source_task_has_no_world_one_turn_and_its_policys_checks() -> None:
     assert select([*discover([TASKS]), task], "shop", suites={}) == [task]  # the source name selects its tasks
     with pytest.raises(TaskError, match="no-such-policy"):
         task_from_record("shop", RECORD.model_copy(update={"grading": "no-such-policy"}))
+    with pytest.raises(TaskError, match="more than 366 days ahead"):  # an unbounded offset would overflow mid-run
+        task_from_record("shop", RECORD.model_copy(update={"prompt": "Book a flight on {today+999999999}."}))
 
 
 def test_answer_schema_reaches_the_browser_judge_state() -> None:
