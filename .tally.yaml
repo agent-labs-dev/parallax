@@ -13,7 +13,7 @@ keys:
   - id: openrouter-parallax-ci
     service: openrouter
     group: ci
-    owner: cjber
+    owner: agent-labs-dev
     locations:
       - github: OPENROUTER_API_KEY
       - pass: openrouter/parallax-ci
@@ -24,7 +24,7 @@ keys:
   - id: langfuse-secret-key
     service: langfuse
     group: ci
-    owner: cjber
+    owner: agent-labs-dev
     locations:
       - github: LANGFUSE_SECRET_KEY
       - pass: parallax/langfuse/dev/secret-key
@@ -34,7 +34,7 @@ keys:
   - id: parallax-upstream-openai-key
     service: openai
     group: ci
-    owner: cjber
+    owner: agent-labs-dev
     locations:
       - github: PARALLAX_UPSTREAM_OPENAI_KEY
     expires: unknown
@@ -43,7 +43,7 @@ keys:
   - id: parallax-upstream-anthropic-key
     service: anthropic
     group: ci
-    owner: cjber
+    owner: agent-labs-dev
     locations:
       - github: PARALLAX_UPSTREAM_ANTHROPIC_KEY
     expires: unknown
@@ -52,7 +52,7 @@ keys:
   - id: parallax-report-webhook-secret
     service: webhook
     group: ci
-    owner: cjber
+    owner: agent-labs-dev
     locations:
       - github: PARALLAX_REPORT_WEBHOOK_SECRET
     expires: none
