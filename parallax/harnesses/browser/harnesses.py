@@ -118,15 +118,17 @@ def _mapping_list(raw: object) -> list[dict[str, Any]]:
     return [dict(item) for item in raw if isinstance(item, Mapping)] if isinstance(raw, list) else []
 
 
-def _answer_text(value: object) -> str | None:
+def _answer_text(value: object, *, structured: bool) -> str | None:
+    """A run's answer as text. A structured answer (the task declared a schema) is serialised whole; an unstructured
+    one may arrive wrapped as `{"text": ...}` or `{"answer": ...}`, and only then is the wrapper unwrapped."""
     if isinstance(value, str):
         return value
     if value is None:
         return None
-    if isinstance(value, Mapping):
+    if isinstance(value, Mapping) and not structured:
         nested = value.get("text") or value.get("answer")
         if nested is not None:
-            return _answer_text(nested)
+            return _answer_text(nested, structured=False)
     try:
         return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
     except TypeError:
@@ -329,7 +331,7 @@ class BrowserHarness(ABC):
             result = {"status": "error", "answer": None, "error": f"{type(error).__name__}: {error}"}
         status = _normalise_status(result.get("status"))
         answer = self._scrub(result.get("answer"))
-        self._answer = answer if isinstance(answer, str) else _answer_text(answer)
+        self._answer = _answer_text(answer, structured=self._answer_schema is not None)
         self._steps.extend(self._scrub(_mapping_list(result.get("step_log"))))
         self._citations.extend(self._scrub(_mapping_list(result.get("citations"))))
         if self._clock is not None and status is TurnStatus.COMPLETED:
@@ -337,6 +339,9 @@ class BrowserHarness(ABC):
         page = result.get("final_page")
         if isinstance(page, Mapping):
             self._page = self._scrub(dict(page))
+            if self._secret_values and self._page.pop("screenshot_png_b64", None) is not None:
+                # Text replacement cannot reach pixels, and a page can show a bound login; the judge reads its text.
+                self.trial_notes.append("final-page screenshot omitted: the task binds secrets")
         self._cost.update(_known_costs(result.get("cost_lines")))
         self._details.update(
             {
@@ -425,6 +430,12 @@ def _known_costs(raw: object) -> dict[str, float | None]:
 
 class BrowserHarnessCloud(BrowserHarness):
     info = _info("browser-use-cloud", pins_model=False, credentials=True, credential_env=("BROWSER_USE_API_KEY",))
+
+    def __init__(self, *, observer: str | None = None) -> None:
+        super().__init__(observer=observer)
+        if self.config.cloud_api != "v4":
+            # Only the V4 API takes secret bindings, so V3 cannot attempt a task that needs a protected login.
+            self.info = self.info.model_copy(update={"capabilities": self.info.capabilities - {Capability.CREDENTIALS}})
 
     async def execute(self, turn: TurnInput) -> dict[str, Any]:
         client_module = importlib.import_module(f"browser_use_sdk.{self.config.cloud_api}")
@@ -633,7 +644,6 @@ def _run_result(view: object, events: list[dict[str, Any]]) -> dict[str, Any]:
         answer = raw.get("result")
     if answer is None:
         answer = raw.get("finalResult")
-    answer = _answer_text(answer)
     steps = [event for event in events if str(event.get("type", "")).endswith("step")]
     return {
         "status": "done"

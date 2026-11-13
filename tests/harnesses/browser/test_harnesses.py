@@ -281,16 +281,32 @@ async def test_v4_run_declares_structured_output_and_host_scoped_secret_bindings
     }
 
 
-def test_v4_structured_output_is_kept_as_the_answer() -> None:
-    result = _run_result(
-        SimpleNamespace(
-            status=RunStatus.completed,
-            output={"price": "$24.00"},
-            session_id=SESSION_ID,
-        ),
-        [],
+async def test_a_structured_answer_keeps_every_field() -> None:
+    from parallax.harnesses.browser.harnesses import BrowserHarness
+    from parallax.models import Trial
+
+    class Harness(BrowserHarness):
+        info = BrowserHarnessCloud.info
+
+        async def _site_preflight(self) -> str | None:
+            return None
+
+        async def execute(self, _: object) -> dict[str, object]:
+            return {"status": "done", "answer": _run_result(view, [])["answer"]}
+
+    view = SimpleNamespace(
+        status=RunStatus.completed, output={"answer": "$24", "currency": "USD"}, session_id=SESSION_ID
     )
-    assert result["answer"] == '{"price":"$24.00"}'
+    harness = Harness()
+    harness._answer_schema = {"type": "object", "properties": {"answer": {}, "currency": {}}}
+    await harness.start(Trial.model_construct(model=None, task_id="t", env={}), SimpleNamespace())
+    output = await harness.turn(SimpleNamespace(index=1, text="find the price"))
+    assert output.answer == '{"answer":"$24","currency":"USD"}'
+
+
+def test_the_v3_cloud_api_claims_no_protected_login(monkeypatch) -> None:
+    monkeypatch.setenv("PARALLAX_BROWSER_CLOUD_API", "v3")
+    assert BrowserHarnessCloud().info.capabilities == frozenset({Capability.BROWSER})
 
 
 def test_browser_capabilities_are_explicit_about_site_credentials() -> None:
@@ -330,7 +346,12 @@ async def test_browser_evidence_replaces_secret_values_with_named_tags(monkeypat
                 "status": "done",
                 "answer": f"logged in with {secret}",
                 "step_log": [{"action": "type", "value": secret}],
-                "final_page": {"url": "https://shop.example/", "title": "Account", "text": secret},
+                "final_page": {
+                    "url": "https://shop.example/",
+                    "title": "Account",
+                    "text": secret,
+                    "screenshot_png_b64": "iVBORw0KGgo=",
+                },
             }
 
     monkeypatch.setenv("SHOP_PASSWORD", "correct-horse-battery-staple")
@@ -356,6 +377,7 @@ async def test_browser_evidence_replaces_secret_values_with_named_tags(monkeypat
     evidence = harness.trial_metadata["browser"]
     assert isinstance(evidence, dict)
     assert tag in str(evidence) and "correct-horse-battery-staple" not in str(evidence)
+    assert "iVBORw0KGgo=" not in str(evidence)
 
 
 async def test_v3_session_resolves_its_browser_for_evidence_and_costs() -> None:
