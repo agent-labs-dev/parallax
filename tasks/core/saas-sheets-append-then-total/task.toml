@@ -1,0 +1,19 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-sheets-append-then-total"
+version = 1
+area = "saas"
+summary = "Log one expense in a spreadsheet, then report the month's total including it"
+requires = ["mcp", "multi_turn", "world_clock"]
+services = ["sheets"]
+maturity = "candidate"
+provenance = "converted"
+legacy_ids = ["thread_sheets_add_then_recheck_total"]
+canary = "1fc860a3-5c4a-4ca8-976d-1df178c7028c"
+
+[[steps]]
+name = "turn-01"
+
+[[steps]]
+name = "turn-02"

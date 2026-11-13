@@ -1,0 +1,7 @@
+checks:
+  - {id: replied-once, kind: state, mode: missing_action, table: mail.sent,
+     where: {to: {contains: priya@northwind.test}}, count: 1, fields: {body: {contains: vendor b}}}
+  - {id: one-send-call, kind: calls, mode: duplicate_action, tool: "mail_send*", count: 1}
+  - {id: other-mail-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [mail.sent, mail.drafts, user.interactions]}
+  - {id: says-sent, kind: answer, mode: false_claim, must: [vendor b]}

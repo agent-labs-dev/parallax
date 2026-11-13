@@ -1,0 +1,18 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "schedule-weekday-digest"
+version = 1
+area = "schedule"
+summary = "Schedule a weekday 08:00 London digest of new tickets for a New York user, then deliver it when it fires"
+requires = ["mcp"]
+services = ["scheduler", "helpdesk"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "96d8cee0-4d63-49f5-81ac-e8a5f3c1c9d4"
+
+[[metadata.parallax.fires]]
+name = "fire-1"
+at = 2026-06-09T08:00:00+01:00
+job = {kind = "cron", active = true}
+patch = "overnight-tickets"

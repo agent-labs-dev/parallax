@@ -1,0 +1,50 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: mail_search, args: {query: offsite}}
+      - {tool: mail_search, args: {query: final numbers}}
+      - {tool: mail_get, args: {id: m01}}
+      - {tool: mail_get, args: {id: m11}}
+      - {tool: mail_get, args: {id: m12}}
+      - {tool: sheets_list_sheets, args: {}}
+      - {tool: sheets_read, args: {sheet: sh1}}
+      - {tool: chat_read_channel, args: {channel: offsite, limit: 100}}
+      - tool: mail_create_draft
+        args: &draft
+          to: [tom.reyes@fennelandfig.example]
+          subject: "Orbitly offsite 5 Nov: final numbers"
+          body: |-
+            Hi Tom,
+
+            Marta asked me to send our final numbers for the 5 November Orbitly offsite dinner to you. Guests included:
+            - Standard: 53
+            - Vegetarian: 31
+            - Vegan: 16
+            - Gluten-free: 13
+            Total: 113 covers.
+
+            Many thanks,
+            Sam
+      - {tool: mail_list_drafts, args: {}}
+      - {tool: mail_create_draft, args: *draft}
+      - {tool: mail_list_drafts, args: {}}
+    answer: |-
+      I drafted the reply and did not send it, so you can check it first. It goes to Tom Reyes (tom.reyes@fennelandfig.example), because Marta is on leave until 26 October and asked for offsite mail to go to him. My first save of the draft reported success but the draft was not there when I checked, so I saved it again and confirmed it is in your drafts.
+      Final numbers, guests included:
+      - Standard: 53
+      - Vegetarian: 31
+      - Vegan: 16
+      - Gluten-free: 13
+      - Total: 113 covers
+      I took each person's latest form answer (matching emails without regard to case), then applied the changes people sent in #offsite and by email. I left out your "TEST - ignore" row. Nine double-submissions had identical answers, so they changed nothing.
+      These 13 people changed their RSVP:
+      - Gita Shah, Ivo Tran and Jess Ortiz cancelled on the form.
+      - Ben Zhou switched from standard to vegan.
+      - Hana Park switched from vegetarian to gluten-free.
+      - Cara Vance added a guest (vegetarian).
+      - Gus Mora switched from vegetarian to vegan (he re-submitted as Gus.Mora@orbitly.test).
+      - Seb Ito first declined, then said yes (vegetarian).
+      - Dev Ford and Nate Diaz cancelled in Slack.
+      - Bea Khan switched from vegan to gluten-free in Slack.
+      - Gita Quill's guest is no longer coming (Slack).
+      - Milo Lowe emailed you: he and his guest can no longer come.

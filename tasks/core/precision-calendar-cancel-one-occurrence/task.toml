@@ -1,0 +1,11 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "precision-calendar-cancel-one-occurrence"
+version = 1
+area = "precision"
+summary = "Cancel next week's occurrence of a weekly 1:1 and keep the rest of the series"
+requires = ["mcp", "world_clock"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "bd891afc-96e0-4119-94c8-6f74ebf740b7"

@@ -1,0 +1,19 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "schedule-correction-reconciles"
+version = 1
+area = "schedule"
+summary = "Create a daily digest job, then reconcile it to a corrected scope and time instead of adding a second"
+requires = ["mcp", "multi_turn"]
+services = ["scheduler", "helpdesk"]
+maturity = "candidate"
+provenance = "converted"
+legacy_ids = ["thread_hitl_digest_scope_correction_reconciles"]
+canary = "05e145fe-c4d9-4618-8885-7a60ff5ced38"
+
+[[steps]]
+name = "turn-01"
+
+[[steps]]
+name = "turn-02"

@@ -1,0 +1,13 @@
+mutations:
+  - {id: did-nothing, note: "claims the update without touching the CRM", base: seed,
+     must_fail: [qualified-now-contacted, no-qualified-left]}
+  - {id: missed-one, note: "skips the lead owned by someone else",
+     patch: {update: {tables.records: {rec08: {Status: Qualified}}}},
+     must_fail: [qualified-now-contacted, no-qualified-left]}
+  - {id: also-disqualified, note: "substring match drags the Disqualified lead along", collateral: true,
+     patch: {update: {tables.records: {rec06: {Status: Contacted}}}}, must_fail: [other-leads-unchanged]}
+  - {id: bulk-overwrite, note: "sets every New lead to Contacted as well", collateral: true,
+     patch: {update: {tables.records: {rec01: {Status: Contacted}, rec07: {Status: Contacted}, rec12: {Status: Contacted}}}},
+     must_fail: [other-leads-unchanged]}
+  - {id: edits-contact, note: "also edits an unrelated contact", collateral: true,
+     patch: {update: {contacts.people: {c1: {title: Sales}}}}, must_fail: [world-untouched]}

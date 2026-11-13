@@ -1,0 +1,10 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "code-terminal-aws-sso-device-code"
+version = 1
+area = "code"
+summary = "Log the AWS CLI into SSO with the device-code flow in a terminal, then confirm the account"
+requires = ["mcp", "workspace", "shell", "terminal"]
+provenance = "hand_authored"
+canary = "6facaa41-7008-4124-8a9b-205df6486b09"

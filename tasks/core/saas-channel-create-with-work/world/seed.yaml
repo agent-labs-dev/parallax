@@ -1,0 +1,5 @@
+now: 2026-06-03T09:12:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+chat:
+  channels: [{id: general, name: general, members: [alex@northwind.test], topic: General}]
+  messages: [{id: hello, channel: general, author: alex@northwind.test, text: "Welcome", ts: "2026-06-03T09:00:00+01:00", thread_id: null}]

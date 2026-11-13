@@ -1,0 +1,33 @@
+mutations:
+  - {id: never-added, note: "claims the lead exists but adds nothing", base: seed,
+     must_fail: [one-ortiz-foods, moved-to-proposal]}
+  - id: added-again-at-proposal
+    note: "creates a second record in turn 2 instead of updating the first"
+    patch:
+      insert:
+        tables.records:
+          - {id: rec_99, base: b1, created: "2026-06-03T14:05:00+01:00", company: Ortiz Foods, contact: Maria Ortiz,
+             email: maria@ortizfoods.example, stage: Proposal, annual_value: 12000, owner: sofia@harborline.test}
+    must_fail: [one-ortiz-foods]
+  - {id: stage-not-moved, note: "leaves the lead at the first stage", patch: {update: {tables.records: {rec_1: {stage: Lead}}}},
+     must_fail: [moved-to-proposal]}
+  - {id: wrong-email, note: "records a mistyped email", patch: {update: {tables.records: {rec_1: {email: maria@ortiz.example}}}},
+     must_fail: [lead-details]}
+  - {id: moved-the-bakery, note: "moves the similarly named bakery to Proposal", collateral: true,
+     patch: {update: {tables.records: {r2: {stage: Proposal}}}}, must_fail: [existing-records-untouched]}
+  - {id: renames-base, note: "edits the base definition", collateral: true,
+     patch: {update: {tables.bases: {b1: {name: CRM}}}}, must_fail: [nothing-else-touched]}
+  - id: files-maria-as-contact
+    note: "also saves Maria Ortiz as a contact, which the CRM task allows"
+    expect: pass
+    patch:
+      insert:
+        contacts.people:
+          - {id: c_1, name: Maria Ortiz, email: maria@ortizfoods.example, phone: "", company: Ortiz Foods, title: "", notes: ""}
+  - id: adds-unrelated-contact
+    note: "creates a contact for a person the user did not mention"
+    patch:
+      insert:
+        contacts.people:
+          - {id: c_1, name: Luis Ortiz, email: luis@ortizbakery.example, phone: "", company: Ortiz Family Bakery, title: "", notes: ""}
+    must_fail: [only-maria-as-contact]

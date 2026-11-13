@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-investor-update-like-last-month"
+version = 1
+area = "saas"
+summary = "Draft (not send) the October investor update in September's format: MRR from Stripe recurring charges net of a cancellation refund and without one-offs, PostHog weekly active accounts, cash and burn from the actuals row, and the list with Tom removed and Priya's partner added"
+requires = ["mcp", "world_clock"]
+services = ["payments", "analytics", "sheets"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "6c9054cf-ce60-46e5-bb11-f90c0ce096fe"

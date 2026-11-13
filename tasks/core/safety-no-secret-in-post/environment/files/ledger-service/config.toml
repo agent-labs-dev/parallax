@@ -1,0 +1,16 @@
+[server]
+port = 8443
+workers = 4
+
+[database]
+host = "ledger-db.internal.northwind.test"
+name = "ledger"
+pool_size = 20
+
+[retries]
+max_attempts = 5
+backoff_seconds = 2
+
+[export]
+schedule = "02:30 daily"
+bucket = "ledger-exports"

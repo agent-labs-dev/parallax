@@ -1,0 +1,15 @@
+now: 2026-06-03T09:10:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+contacts:
+  people:
+    - {id: p1, name: Sam Okafor, email: sam.okafor@northwind.test, phone: "", company: Northwind, title: Product lead, notes: ""}
+calendar:
+  calendars:
+    - {id: primary, name: Alex Morgan, owner: alex@northwind.test, timezone: Europe/London}
+  events:
+    - {id: e1, calendar: primary, title: Weekly planning, start: "2026-06-08T10:00:00+01:00", end: "2026-06-08T11:00:00+01:00",
+       tz: Europe/London, attendees: [alex@northwind.test], organizer: alex@northwind.test, rrule: null,
+       exceptions: {}, status: confirmed, description: "", location: ""}
+    - {id: e2, calendar: primary, title: "1:1 with Sam", start: "2026-06-09T15:00:00+01:00", end: "2026-06-09T15:30:00+01:00",
+       tz: Europe/London, attendees: [sam.okafor@northwind.test], organizer: alex@northwind.test, rrule: null,
+       exceptions: {}, status: confirmed, description: "", location: ""}

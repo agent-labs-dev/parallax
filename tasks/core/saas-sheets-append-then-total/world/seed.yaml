@@ -1,0 +1,12 @@
+now: 2026-06-04T16:30:00+01:00
+user: {name: Riya Patel, email: riya@fernstudio.test, timezone: Europe/London}
+sheets:
+  sheets:
+    - {id: sh1, title: "Expenses 2026", columns: [date, vendor, category, amount]}
+    - {id: sh2, title: "Mileage 2026", columns: [date, trip, miles]}
+  rows:
+    - {id: r1, sheet: sh1, position: 1, date: "2026-05-12", vendor: Notion, category: Software, amount: 96}
+    - {id: r2, sheet: sh1, position: 2, date: "2026-05-28", vendor: Zoom, category: Software, amount: 120}
+    - {id: r3, sheet: sh1, position: 3, date: "2026-06-01", vendor: AWS, category: Hosting, amount: 280}
+    - {id: r4, sheet: sh1, position: 4, date: "2026-06-02", vendor: Slack, category: Software, amount: 150}
+    - {id: r5, sheet: sh2, position: 1, date: "2026-06-02", trip: "Client visit, Bristol", miles: 118}

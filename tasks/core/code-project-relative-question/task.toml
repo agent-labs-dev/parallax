@@ -1,0 +1,17 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "code-project-relative-question"
+version = 1
+area = "code"
+summary = "Carry the selected project into a relative follow-up and record the retry threshold"
+requires = ['mcp', 'workspace', 'shell', 'multi_turn']
+provenance = "converted"
+legacy_ids = ["working_dir_project_relative_ops"]
+canary = "2eb9493e-2d77-41c5-b53a-11bc34cac0a1"
+
+[[steps]]
+name = "turn-01"
+
+[[steps]]
+name = "turn-02"

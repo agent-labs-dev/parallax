@@ -1,0 +1,25 @@
+checks:
+  - {id: ticket-linked, kind: state, mode: missing_action, table: helpdesk.tickets,
+     where: {conversation: cv1}, count: 1}
+  - {id: chat-points-at-ticket, kind: state, mode: missing_action, table: helpdesk.conversations,
+     where: {id: cv1}, count: 1, fields: {ticket: {regex: "^TKT-"}}}
+  - {id: chat-closed, kind: state, mode: missing_action, table: helpdesk.conversations,
+     where: {id: cv1}, count: 1, fields: {status: closed}}
+  - {id: dana-told-ticket, kind: state, mode: missing_action, table: helpdesk.replies,
+     where: {body: {regex: "TKT-(?!0990\\b)\\d+"}, target: {ne: TKT-0990}}, count: {min: 1},
+     note: "a reply to Dana's chat or to her new ticket that carries the new ticket number"}
+  - {id: old-ticket-not-cited, kind: state, mode: wrong_target, table: helpdesk.replies,
+     where: {body: {contains: TKT-0990}}, count: 0,
+     note: "TKT-0990 is Ravi's unrelated refund ticket; quoting it to Dana sends her to the wrong case"}
+  - {id: no-reply-elsewhere, kind: state, mode: wrong_target, table: helpdesk.replies,
+     where: {target: {any_of: [cv2, cv3, TKT-0990]}}, count: 0}
+  - {id: one-ticket-created, kind: state, mode: duplicate_action, table: helpdesk.tickets,
+     where: {id: {ne: TKT-0990}}, count: 1}
+  - {id: other-chats-untouched, kind: state, mode: collateral_change, table: helpdesk.conversations,
+     where: {id: {any_of: [cv2, cv3]}}, unchanged: true}
+  - {id: old-ticket-untouched, kind: state, mode: collateral_change, table: helpdesk.tickets,
+     where: {id: TKT-0990}, unchanged: true}
+  - {id: nothing-else-touched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [helpdesk.tickets, helpdesk.replies, helpdesk.conversations, user.interactions]}
+  - {id: reply-tone, kind: rubric, mode: wrong_output, gate: false, sees: [diff],
+     items: ["Does the reply to Dana acknowledge the duplicate charge and explain that the billing team will follow up?"]}

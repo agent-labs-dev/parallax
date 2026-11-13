@@ -1,0 +1,37 @@
+mutations:
+  - {id: nothing-done, note: "claims the upgrade without making it", base: seed,
+     must_fail: [pins-v2, runs-on-v2-with-same-output]}
+  - {id: pin-only, note: "bumps the pin but leaves the 1.x call sites", base: seed,
+     files: {requirements.txt: "# Vendored: shopfront/__init__.py puts vendor/<name>-<version> on sys.path from these pins.\ntinyfmt==2.0.0\n"},
+     must_fail: [tests-pass, runs-on-v2-with-same-output]}
+  - id: loses-precision
+    note: "uses format_percent with its new default, so 12.5% becomes 12%"
+    files:
+      shopfront/receipt.py: |
+        import tinyfmt
+
+
+        def receipt_line(name: str, cents: int, qty: int) -> str:
+            return f"{qty} x {name} @ {tinyfmt.format_money(cents)} = {tinyfmt.format_money(cents * qty)}"
+
+
+        def discount_note(fraction: float) -> str:
+            return f"Saved {tinyfmt.format_percent(fraction)}"
+    must_fail: [tests-pass, runs-on-v2-with-same-output]
+  - id: shims-vendored-lib
+    note: "adds the 1.x names back into the vendored 2.0.0 package instead of migrating"
+    collateral: true
+    base: seed
+    files:
+      requirements.txt: "tinyfmt==2.0.0\n"
+      vendor/tinyfmt-2.0.0/tinyfmt/__init__.py: |
+        __version__ = "2.0.0"
+
+
+        def money(cents, symbol="$"):
+            return f"{symbol}{cents / 100:,.2f}"
+
+
+        def pct(fraction):
+            return f"{fraction * 100:.1f}%"
+    must_fail: [vendored-libs-untouched]

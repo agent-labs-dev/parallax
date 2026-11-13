@@ -1,0 +1,47 @@
+# Python and tool caches
+__pycache__/
+*.pyc
+.venv/
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Secrets and local environment (direnv decrypts secrets locally; never committed)
+.env
+.env.*
+# ...except synthetic credentials seeded into a task workspace on purpose
+!tasks/*/*/environment/files/**/.env
+.envrc
+.direnv/
+
+# Run artifacts and fix briefs: written by `parallax run` / `parallax brief`,
+# never a source of truth and never committed.
+/runs/
+/artifacts/
+/briefs/
+
+# Node: the optional pi harness installs its runtime next to pi_runner.mjs.
+# Pi is deliberately not a locked dependency.
+node_modules/
+package.json
+package-lock.json
+
+# Local agent/session metadata, except the checked-in contributor skills
+.agents/*
+!.agents/skills/
+.codex/
+
+.DS_Store
+*.log
+!tests/**/fixtures/**/*.log
+!tasks/**/environment/files/**/*.log
+
+# Sloppatrol patrol scratch output.
+.sloppatrol/runs/
+
+# The private deny list scan_public.py reads; it is never committed.
+scripts/denylist.txt

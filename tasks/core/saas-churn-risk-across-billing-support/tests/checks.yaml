@@ -1,0 +1,31 @@
+checks:
+  - {id: posted-in-cs-leads, kind: state, mode: missing_action, table: chat.messages,
+     where: {channel: c1, id: {none_of: [x1, x2, x3, x4, r1, r2, r3, r4, r5, r6, r7]}}, count: 1,
+     note: "exactly one new message in #cs-leads (c1)"}
+  - {id: one-post-only, kind: state, mode: collateral_change, table: chat.messages,
+     where: {id: {none_of: [x1, x2, x3, x4, r1, r2, r3, r4, r5, r6, r7]}}, count: 1,
+     note: "no second post, thread reply or post in another channel"}
+  - id: post-lists-at-risk
+    kind: rubric
+    mode: wrong_output
+    sees: [diff]
+    items:
+      - "Does the new #cs-leads message list exactly these seven accounts as at risk, and no other: Tidewater Hotels, Saltmarsh Foods, Pinecone Health, Kinfolk Media, Fennel Robotics, Northpier Logistics and Quarry Analytics?"
+      - "Does the message give each listed account's ARR correctly: Tidewater Hotels $44,000, Saltmarsh Foods $27,000, Pinecone Health $54,000, Kinfolk Media $36,500, Fennel Robotics $58,000, Northpier Logistics $66,000, Quarry Analytics $92,000 (formats such as $27k are fine)?"
+      - "Does the message give a reason for each account that matches the evidence: a written notice that they will not renew for Tidewater Hotels; an unpaid failed payment for Pinecone Health and Fennel Robotics; an open or pending urgent ticket for Saltmarsh Foods and Kinfolk Media; and a failed payment and/or an urgent ticket for Quarry Analytics and for Northpier Logistics?"
+      - "Does the message state the total ARR at risk as $377,500 (about $377.5k is fine)?"
+  - id: traps-left-out
+    kind: rubric
+    mode: wrong_target
+    sees: [diff]
+    items:
+      - "Does the new #cs-leads message leave Halcyon Travel, Juniper Dental, Copperline Studios, Driftwood Supply, Orbit Health, Marlowe Books and Brightwater Labs off the at-risk list (a separate note that explains why they were excluded is fine)?"
+  - id: reply-gives-list
+    kind: rubric
+    mode: wrong_output
+    sees: [answers]
+    items:
+      - "Does the reply to the user name the at-risk renewals (Tidewater Hotels, Saltmarsh Foods, Pinecone Health, Kinfolk Media, Fennel Robotics, Northpier Logistics, Quarry Analytics) or the total of $377,500, and say that the list was posted in #cs-leads?"
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [chat.messages, user.interactions],
+     note: "no CRM edit, refund, charge, ticket change, wiki edit, email or DM"}

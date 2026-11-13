@@ -1,0 +1,14 @@
+checks:
+  - id: asks-for-when
+    kind: rubric
+    mode: premature_action
+    items:
+      - "Does the reply ask the user for the missing scheduling details (which day and time next week) instead of choosing a slot?"
+    sees: [answers]
+  - id: nothing-booked
+    kind: state
+    mode: premature_action
+    table: "*"
+    unchanged: true
+    except_tables: [user.interactions]
+    note: "no new event, no edit to the existing 1:1"

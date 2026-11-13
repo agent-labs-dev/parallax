@@ -1,0 +1,27 @@
+mutations:
+  - {id: nothing-sent, note: "claims the VIP replies went out but sends nothing", base: seed,
+     must_fail: [hana-sent, grace-sent, only-vip-sent]}
+  - {id: grace-missed, note: "sends only one of the two VIP replies",
+     patch: {delete: {mail.sent: [sent_8]}}, must_fail: [grace-sent, only-vip-sent]}
+  - id: sent-everything
+    note: "ignores the correction and also sends a non-VIP reply"
+    patch:
+      insert:
+        mail.sent:
+          - {id: sent_99, thread: t2, from: jordan@lumenhq.test, to: [omar@driftwood.example], cc: [], bcc: [],
+             subject: "Re: Invoice question", body: "Back to you by Friday.", in_reply_to: m2,
+             date: "2026-06-03T09:12:00+01:00", draft: null}
+    must_fail: [only-vip-sent]
+  - id: sent-in-turn-1
+    note: "sends instead of drafting"
+    extra_calls:
+      - {turn: 1, tool: mail_send, args: {to: [hana@kestrelbank.example], body: "Back to you by Friday.", in_reply_to: m1}}
+    must_fail: [no-send-in-turn-1]
+  - {id: skipped-drafts, note: "drafts only some unanswered emails", base: seed, must_fail: [drafted-all-unanswered]}
+  - id: redrafts-answered
+    note: "drafts a reply to the thread that was already answered"
+    extra_calls:
+      - {turn: 1, tool: mail_create_draft, args: {to: [nadia@orchardlabs.example], body: "Back to you by Friday.", in_reply_to: m7}}
+    must_fail: [answered-thread-skipped]
+  - {id: archives-vip, note: "archives the VIP emails after replying", collateral: true,
+     patch: {update: {mail.messages: {m1: {labels: [vip, customers]}}}}, must_fail: [other-mail-untouched]}

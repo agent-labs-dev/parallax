@@ -1,0 +1,16 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "conf-fault-then-retry"
+version = 1
+area = "conformance"
+summary = "Post to #conf when the first post attempt hits a server error; exactly one message lands"
+requires = ["mcp"]
+provenance = "hand_authored"
+canary = "dfaab91c-c6f5-41a5-9608-fd7fc8b26576"
+
+[[metadata.parallax.faults]]
+tool = "chat_post_message"
+on_call = 1
+times = 1
+kind = "server_error"

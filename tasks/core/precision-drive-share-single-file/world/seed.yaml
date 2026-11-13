@@ -1,0 +1,28 @@
+now: 2026-06-03T13:00:00+01:00
+user: {name: Alex Kim, email: alex@northwind.test, timezone: Europe/London}
+drive:
+  folders:
+    - {id: fld_q3, name: Q3 Planning, parent: null}
+    - {id: fld_arch, name: Archive, parent: null}
+  files:
+    - {id: f_deck, name: Q3 Strategy Deck, folder: fld_q3, content: "Slides: Q3 goals, market update, roadmap, asks.",
+       owner: alex@northwind.test, created: "2026-05-20T10:00:00+01:00", modified: "2026-06-02T17:30:00+01:00"}
+    - {id: f_budget, name: Q3 Budget, folder: fld_q3, content: "Headcount and spend by team for Q3.",
+       owner: alex@northwind.test, created: "2026-05-18T10:00:00+01:00", modified: "2026-05-30T12:00:00+01:00"}
+    - {id: f_hiring, name: Q3 Hiring Plan, folder: fld_q3, content: "Open roles, salary bands and timelines.",
+       owner: alex@northwind.test, created: "2026-05-19T10:00:00+01:00", modified: "2026-05-29T09:00:00+01:00"}
+    - {id: f_notes, name: Q3 Deck Speaker Notes, folder: fld_q3, content: "Talk track for each slide of the strategy deck.",
+       owner: alex@northwind.test, created: "2026-05-21T10:00:00+01:00", modified: "2026-06-02T18:00:00+01:00"}
+    - {id: f_okrs, name: Q3 OKRs, folder: fld_q3, content: "Objectives and key results for Q3.",
+       owner: alex@northwind.test, created: "2026-05-22T10:00:00+01:00", modified: "2026-05-28T10:00:00+01:00"}
+    - {id: f_q2deck, name: Q2 Strategy Deck, folder: fld_arch, content: "Slides from last quarter.",
+       owner: alex@northwind.test, created: "2026-02-20T10:00:00+00:00", modified: "2026-03-02T10:00:00+00:00"}
+  permissions:
+    - {id: p1, file: f_budget, email: priya@northwind.test, role: editor}
+    - {id: p2, file: f_okrs, email: sam@northwind.test, role: commenter}
+    - {id: p3, file: f_deck, email: priya@northwind.test, role: editor}
+contacts:
+  people:
+    - {id: c1, name: Morgan Blake, email: morgan@northwind.test, company: Northwind, title: Head of Sales}
+    - {id: c2, name: Priya Shah, email: priya@northwind.test, company: Northwind, title: Product Lead}
+    - {id: c3, name: Sam Patel, email: sam@northwind.test, company: Northwind, title: Engineer}

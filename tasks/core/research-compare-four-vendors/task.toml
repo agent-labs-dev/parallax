@@ -1,0 +1,13 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "research-compare-four-vendors"
+version = 2
+area = "research"
+summary = "Compare four wiki vendors on the right price tier and SSO from their own sites"
+requires = ["mcp"]
+services = ["web"]
+maturity = "candidate"
+provenance = "converted"
+legacy_ids = ["delegate_fans_out_independent_research_lanes"]
+canary = "20ec0da4-5a91-4f58-96c1-774bd6204483"

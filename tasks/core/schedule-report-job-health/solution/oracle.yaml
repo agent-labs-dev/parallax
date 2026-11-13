@@ -1,0 +1,19 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: scheduler_list_jobs, args: {}}
+      - {tool: scheduler_list_runs, args: {}}
+    answer: |-
+      Here is the picture from the scheduler's own records, and I have changed nothing.
+
+      Broken:
+      - Invoice chase (weekdays 07:00 London). It worked on Tuesday 2 June, then every run since has failed: Wednesday 3, Thursday 4, Friday 5 and Monday 8 June. Each failure has the same recorded reason - no device was online when the run came due, so the delivery never started - which is why nobody has had a reminder all week.
+
+      Fine:
+      - Weekly pipeline report (Mondays 09:00 London). It succeeded on 18 May, 25 May and 1 June; the next run is due at 09:00 today.
+      - Acme reply watch. It is active but has no runs recorded. The run history alone does not explain why, so I cannot confirm whether the watch is working.
+
+      Nothing to do here:
+      - Quarterly export. The one-off ran successfully on 1 June at 22:00 and is now inactive, so it will not run again.
+
+      The confirmed failure is the invoice chase: something needs a device online at 07:00 before that job can run. The unfired watch would need more evidence to assess. Tell me how you would like to handle it and I will take it from there.

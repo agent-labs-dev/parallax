@@ -1,0 +1,13 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "research-grounded-chart"
+version = 1
+area = "research"
+summary = "Chart monthly signups from a seeded stats page; every plotted value must come from the source"
+requires = ["mcp", "workspace", "shell"]
+services = ["web"]
+maturity = "candidate"
+provenance = "converted"
+legacy_ids = ["openui_trend_question_renders_a_sourced_chart"]
+canary = "55996c01-336a-4f41-9293-f865a1d5d0f9"

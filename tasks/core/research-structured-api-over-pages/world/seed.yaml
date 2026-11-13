@@ -1,0 +1,130 @@
+now: '2026-06-18T15:45:00+01:00'
+user:
+  name: Morgan Reyes
+  email: morgan@quayside.test
+  timezone: Europe/London
+tables:
+  bases:
+  - id: b-postings
+    name: Job postings
+    fields:
+    - title
+    - team
+    - location
+    - posted
+    - status
+  records:
+  - id: rec-01
+    base: b-postings
+    created: '2026-06-15T09:00:00+01:00'
+    title: Senior Data Engineer
+    team: Data
+    location: Remote
+    posted: '2026-06-15'
+    status: Open
+  - id: rec-02
+    base: b-postings
+    created: '2026-06-15T09:00:00+01:00'
+    title: Analytics Engineer
+    team: Data
+    location: Remote
+    posted: '2026-06-15'
+    status: Open
+  - id: rec-03
+    base: b-postings
+    created: '2026-06-16T09:00:00+01:00'
+    title: Data Scientist, Pricing
+    team: Data
+    location: Remote
+    posted: '2026-06-16'
+    status: Open
+  - id: rec-04
+    base: b-postings
+    created: '2026-06-17T09:00:00+01:00'
+    title: Machine Learning Engineer
+    team: Data
+    location: Remote
+    posted: '2026-06-17'
+    status: Open
+  - id: rec-05
+    base: b-postings
+    created: '2026-06-18T09:00:00+01:00'
+    title: Data Platform Lead
+    team: Data
+    location: Remote
+    posted: '2026-06-18'
+    status: Open
+  - id: rec-06
+    base: b-postings
+    created: '2026-06-16T09:00:00+01:00'
+    title: BI Analyst
+    team: Data
+    location: On-site (Leeds)
+    posted: '2026-06-16'
+    status: Open
+  - id: rec-07
+    base: b-postings
+    created: '2026-06-17T09:00:00+01:00'
+    title: Data Engineer (Graduate)
+    team: Data
+    location: On-site (Leeds)
+    posted: '2026-06-17'
+    status: Open
+  - id: rec-08
+    base: b-postings
+    created: '2026-06-15T09:00:00+01:00'
+    title: Backend Engineer
+    team: Engineering
+    location: Remote
+    posted: '2026-06-15'
+    status: Open
+  - id: rec-09
+    base: b-postings
+    created: '2026-06-17T09:00:00+01:00'
+    title: Account Executive
+    team: Sales
+    location: Remote
+    posted: '2026-06-17'
+    status: Open
+  - id: rec-10
+    base: b-postings
+    created: '2026-06-09T09:00:00+01:00'
+    title: Data Analyst
+    team: Data
+    location: Remote
+    posted: '2026-06-09'
+    status: Open
+  - id: rec-11
+    base: b-postings
+    created: '2026-06-08T09:00:00+01:00'
+    title: Staff Data Engineer
+    team: Data
+    location: Remote
+    posted: '2026-06-08'
+    status: Open
+  - id: rec-12
+    base: b-postings
+    created: '2026-05-26T09:00:00+01:00'
+    title: Head of Data
+    team: Data
+    location: Remote
+    posted: '2026-05-26'
+    status: Open
+  - id: rec-13
+    base: b-postings
+    created: '2026-06-10T09:00:00+01:00'
+    title: Product Designer
+    team: Design
+    location: Remote
+    posted: '2026-06-10'
+    status: Open
+web:
+- url: https://careers.quayside.example/jobs
+  title: Careers at Quayside - open roles
+  published: '2026-05-20'
+  text: 'We''re hiring! Data team: 2 remote roles (Head of Data, Data Analyst) and 1 on-site role in Leeds. Engineering:
+    3 remote roles. Sales: 1 remote role.'
+- url: https://careers.quayside.example/blog/growing-the-data-team
+  title: We're growing the data team
+  published: '2026-05-02'
+  text: This quarter we plan to open 4 remote data roles as we build out our pricing and platform work.

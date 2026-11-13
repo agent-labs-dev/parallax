@@ -1,0 +1,36 @@
+now: 2026-06-03T09:12:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+chat:
+  channels:
+    - {id: ch1, name: beacon-launch, topic: "Beacon 2.0 launch", created: "2026-05-11T09:00:00+01:00",
+       members: [alex@northwind.test, priya@northwind.test, sam@northwind.test, lena@pixelpine.example, joss@pixelpine.example]}
+    - {id: ch2, name: general, topic: "", created: "2025-01-06T09:00:00+00:00",
+       members: [alex@northwind.test, priya@northwind.test, sam@northwind.test, marco@northwind.test]}
+  messages:
+    - {id: k1, channel: ch1, author: priya@northwind.test, ts: "2026-06-01T10:00:00+01:00", thread_id: null,
+       text: "Beacon 2.0 launch is locked for Tuesday 16 June. Press embargo lifts 09:00 that day."}
+    - {id: k2, channel: ch1, author: sam@northwind.test, ts: "2026-06-01T11:20:00+01:00", thread_id: null,
+       text: "Pricing stays the same for existing customers; new plans start at 29 GBP per seat."}
+    - {id: k3, channel: ch1, author: lena@pixelpine.example, ts: "2026-06-02T15:05:00+01:00", thread_id: null,
+       text: "Final landing page designs are in review - we'll have them signed off by Friday."}
+    - {id: k4, channel: ch2, author: marco@northwind.test, ts: "2026-06-02T16:00:00+01:00", thread_id: null,
+       text: "Reminder: office closed on Monday for maintenance."}
+contacts:
+  people:
+    - {id: c1, name: Priya Shah, email: priya@northwind.test, company: Northwind, title: Product manager}
+    - {id: c2, name: Sam Okafor, email: sam@northwind.test, company: Northwind, title: Head of Marketing}
+    - {id: c3, name: Lena Vogt, email: lena@pixelpine.example, company: Pixel & Pine, title: Designer, notes: "Contractor (agency) on the Beacon launch"}
+    - {id: c4, name: Joss Carter, email: joss@pixelpine.example, company: Pixel & Pine, title: Copywriter, notes: "Contractor (agency) on the Beacon launch"}
+    - {id: c5, name: Marco Bianchi, email: marco@northwind.test, company: Northwind, title: Data engineer}
+drive:
+  folders:
+    - {id: f1, name: Launch, parent: null}
+    - {id: f2, name: Finance, parent: null}
+  files:
+    - {id: d1, name: "Beacon 1.0 retro", folder: f1, owner: alex@northwind.test, created: "2025-11-20T10:00:00+00:00",
+       modified: "2025-11-20T10:00:00+00:00", content: "What went well and what to change next time."}
+    - {id: d2, name: "Q2 budget", folder: f2, owner: priya@northwind.test, created: "2026-04-01T10:00:00+01:00",
+       modified: "2026-05-30T10:00:00+01:00", content: "Marketing budget for Q2."}
+  permissions:
+    - {id: p1, file: d1, email: priya@northwind.test, role: editor}
+    - {id: p2, file: d2, email: alex@northwind.test, role: viewer}

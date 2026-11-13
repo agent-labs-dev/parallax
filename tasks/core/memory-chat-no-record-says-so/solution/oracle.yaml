@@ -1,0 +1,5 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: chat_read_channel, args: {channel: c1}}
+    answer: "I don't have a record of an agreed Nordic launch timeline. The #project-nordic thread says the date is still to be picked after the board meeting."

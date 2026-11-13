@@ -1,0 +1,42 @@
+checks:
+  - id: larkspur-price
+    kind: answer
+    mode: wrong_output
+    must: [{regex: "larkspur(?:(?!tallyho|quillmark|brisa)[\\s\\S]){0,160}?(?<![\\d.,])290(?![\\d])"}]
+    note: "40 users falls in Larkspur's Team 50 tier; bound to the vendor so a transposed or unattributed figure does not count"
+  - id: tallyho-price
+    kind: answer
+    mode: wrong_output
+    must: [{regex: "tallyho(?:(?!larkspur|quillmark|brisa)[\\s\\S]){0,160}?(?<![\\d.,])345(?![\\d])"}]
+    note: "Tallyho Team (up to 50 seats); bound to the vendor so a transposed or unattributed figure does not count"
+  - id: quillmark-price
+    kind: answer
+    mode: wrong_output
+    must: [{regex: "quillmark(?:(?!larkspur|tallyho|brisa)[\\s\\S]){0,160}?(?<![\\d.,])410(?![\\d])"}]
+    note: "Quillmark Company (up to 60 members); bound to the vendor so a transposed or unattributed figure does not count"
+  - id: brisa-price
+    kind: answer
+    mode: wrong_output
+    must: [{regex: "brisa(?:(?!larkspur|tallyho|quillmark)[\\s\\S]){0,160}?(?<![\\d.,])265(?![\\d])"}]
+    note: "Brisa Standard (up to 50 users); bound to the vendor so a transposed or unattributed figure does not count"
+  - id: sso-caveats
+    kind: answer
+    mode: wrong_output
+    must:
+      - {regex: "quillmark(?:(?!larkspur|tallyho|brisa)[\\s\\S]){0,160}?(add[- ]?on|\\$\\s?60\\b|\\b60\\s?(/|a|per)\\s?mo)"}
+      - {regex: "brisa(?:(?!larkspur|tallyho|quillmark)[\\s\\S]){0,160}?enterprise"}
+    note: "the two SSO caveats: Quillmark's SSO is a paid add-on, Brisa's is Enterprise-only"
+  - {id: only-real-links, kind: answer, mode: fabrication, known_urls_only: true,
+     must: [{regex: "https?://|(?<![\\w@/.-])(?:larkspur|tallyho|quillmark|brisa)\\.example/"}],
+     note: "links must be to pages that exist; a bare larkspur.example/pricing citation counts as a link"}
+  - {id: nothing-changed, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [user.interactions]}
+  - id: sso-facts
+    kind: rubric
+    mode: wrong_output
+    items:
+      - "Does the answer say SAML SSO is included for Larkspur?"
+      - "Does the answer say Tallyho's plan for 40 people includes SAML SSO?"
+      - "Does the answer say Quillmark's SSO is a paid add-on (about $60 a month)?"
+      - "Does the answer say Brisa only offers SAML SSO on its Enterprise plan?"
+    sees: [answers]

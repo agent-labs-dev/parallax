@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Northstar activation review</title>
+  <style>
+    :root { --ink:#10233f; --blue:#276ef1; --mint:#53d8b1; --paper:#f6f8fc; --muted:#637089; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#dde3ee; color:var(--ink); font:18px/1.35 Arial,sans-serif; }
+    section[data-slide] { width:1280px; height:720px; margin:24px auto; padding:72px 84px; background:var(--paper); position:relative; overflow:hidden; }
+    h1 { font-size:64px; max-width:900px; margin:0 0 30px; }
+    h2 { font-size:42px; margin:0 0 28px; }
+    .eyebrow { color:var(--blue); font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
+    .metric { display:inline-block; width:30%; margin-right:2%; padding:28px; background:white; border-top:8px solid var(--mint); }
+    .metric strong { display:block; font-size:48px; }
+    .note { color:var(--muted); }
+    .recommendation { margin-top:40px; padding:30px; color:white; background:var(--ink); border-left:12px solid var(--mint); }
+    footer { position:absolute; bottom:34px; left:84px; color:var(--muted); font-size:14px; }
+  </style>
+</head>
+<body>
+  <section data-slide="1">
+    <p class="eyebrow">Northstar · Q2 product review</p>
+    <h1>Activation improved, but the setup gap still compounds</h1>
+    <p class="note">Decision review · 14 July 2026</p>
+    <footer>Internal planning fixture</footer>
+  </section>
+  <section data-slide="2">
+    <p class="eyebrow">The quarter</p><h2>Momentum is real—and concentrated</h2>
+    <div class="metric"><strong>42%</strong>activation rate<br><span class="note">from 35% in Q1</span></div>
+    <div class="metric"><strong>18 min</strong>median setup<br><span class="note">from 27 minutes</span></div>
+    <div class="metric"><strong>61%</strong>week-4 retention<br><span class="note">activated teams</span></div>
+    <footer>Source: Northstar Q2 product dataset</footer>
+  </section>
+  <section data-slide="3">
+    <p class="eyebrow">Where users stall</p><h2>Three setup barriers explain most failed activations</h2>
+    <p><strong>31%</strong> cannot map their first data source without help. <strong>24%</strong> stop at permissions.
+      <strong>19%</strong> never invite a teammate. Interview evidence suggests terminology, unclear ownership,
+      delayed data availability, security review, missing examples, and uncertainty about the first useful workflow
+      all contribute. Enterprise administrators experience the longest delays, while small teams progress faster.</p>
+    <div class="recommendation"><strong>Recommendation:</strong> create a guided setup path focused on data mapping,
+      permission readiness, and the first shared workflow.</div>
+    <footer>Source: funnel events and 18 onboarding interviews</footer>
+  </section>
+  <section data-slide="4">
+    <p class="eyebrow">Decision</p><h2>Fund a six-week guided-setup pilot</h2>
+    <p>Assign one product designer and two engineers. Measure successful data mapping, time to first shared workflow,
+      and week-4 retention. Keep the existing self-serve path as the control.</p>
+    <div class="recommendation">Approve the pilot by <strong>31 July 2026</strong>; review evidence on 18 September.</div>
+    <footer>Owner: Growth product team</footer>
+  </section>
+  <section data-slide="5">
+    <p class="eyebrow">Guardrails</p><h2>What would change our mind?</h2>
+    <p>Stop if setup time does not improve by at least 20%, support contacts rise by more than 10%, or the pilot causes
+      a measurable permissions-error increase. Do not declare a retention win without the full week-4 window.</p>
+    <footer>Northstar activation review</footer>
+  </section>
+</body>
+</html>

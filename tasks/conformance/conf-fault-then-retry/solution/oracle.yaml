@@ -1,0 +1,7 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: chat_post_message, args: {channel: conf, text: "deploy check-in f96a70 is green"}}
+      - {tool: chat_read_channel, args: {channel: conf}}
+      - {tool: chat_post_message, args: {channel: conf, text: "deploy check-in f96a70 is green"}}
+    answer: "The first attempt hit a server error and nothing was posted, so I retried once. The note is now in #conf."

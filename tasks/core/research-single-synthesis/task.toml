@@ -1,0 +1,13 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "research-single-synthesis"
+version = 1
+area = "research"
+summary = "Weigh three backup providers against stated constraints and recommend the one that fits"
+requires = ["mcp"]
+services = ["web"]
+maturity = "candidate"
+provenance = "converted"
+legacy_ids = ["delegate_join_single_synthesis"]
+canary = "26d537aa-8bae-47db-a743-3943ec303557"

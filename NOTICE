@@ -1,0 +1,8 @@
+Parallax
+Copyright 2026 Agent Labs
+
+Parallax source code is licensed under the MIT License (LICENSE).
+Task data under tasks/ is licensed under Creative Commons Attribution 4.0
+International (LICENSE-DATA). The wheel places this data under parallax/tasks/.
+All shipped task data is Parallax-authored; its provenance and review status
+are in THIRD_PARTY.md, distributed with this notice.

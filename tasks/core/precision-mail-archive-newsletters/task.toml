@@ -1,0 +1,11 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "precision-mail-archive-newsletters"
+version = 1
+area = "precision"
+summary = "Archive the newsletters while receipts from the same sender domain stay in the inbox"
+requires = ["mcp"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "a1e08dbf-8bf0-4fa6-95dd-08265287d061"

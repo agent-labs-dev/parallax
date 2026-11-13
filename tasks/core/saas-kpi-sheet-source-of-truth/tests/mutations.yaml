@@ -1,0 +1,55 @@
+mutations:
+  - {id: nothing-done, note: "claims the column is filled", base: seed, must_fail: [sep-revenue, sep-signups]}
+  - id: finance-revenue
+    note: "copies revenue from the finance export instead of Stripe"
+    patch: {update: {sheets.rows: {k1: {"Sep 2026": 38444}}}}
+    answers:
+      1: "September is filled in: revenue 38,444 (from the finance export), 60 signups, 45.0% activation, 48 tickets. NPS is empty: no September responses."
+    must_fail: [sep-revenue, flags-the-gaps]
+  - id: utc-month
+    note: "bounds the month in UTC, so an August 31 evening charge and ticket count and a September 30 evening charge and ticket do not"
+    patch: {update: {sheets.rows: {k1: {"Sep 2026": 36750}, k4: {"Sep 2026": 47}}}}
+    must_fail: [sep-revenue, sep-tickets]
+  - id: ignores-refunds
+    note: "writes gross September charges"
+    patch: {update: {sheets.rows: {k1: {"Sep 2026": 36099}}}}
+    must_fail: [sep-revenue]
+  - id: first-page-tickets
+    note: "counts only the 50 tickets the helpdesk lists by default"
+    patch: {update: {sheets.rows: {k4: {"Sep 2026": 44}}}}
+    must_fail: [sep-tickets]
+  - id: legacy-activation
+    note: "runs the legacy 30-day activation insight"
+    patch: {update: {sheets.rows: {k3: {"Sep 2026": 58.3}}}}
+    must_fail: [sep-activation]
+  - id: nps-zero
+    note: "writes 0 for a month with no NPS responses"
+    patch: {update: {sheets.rows: {k5: {"Sep 2026": 0}}}}
+    must_fail: [nps-left-empty]
+  - id: nps-from-october
+    note: "scores the October responses as September"
+    patch: {update: {sheets.rows: {k5: {"Sep 2026": 40}}}}
+    answers:
+      1: "Filled in September: revenue $35,259, 60 signups, 45.0% activation, 48 tickets, NPS 40. The finance export says 38,444, but I used Stripe as the KPI sources page says."
+    must_fail: [nps-left-empty, flags-the-gaps]
+  - id: rewrites-august
+    note: "also 'corrects' the August revenue cell"
+    collateral: true
+    patch: {update: {sheets.rows: {k1: {"Aug 2026": 27800}}}}
+    must_fail: [past-months-kept]
+  - id: edits-finance-export
+    note: "also overwrites the finance export to match Stripe"
+    collateral: true
+    patch: {update: {sheets.rows: {f1: {amount_usd: 35259}}}}
+    must_fail: [other-sheets-untouched]
+  - id: silent-on-conflict
+    note: "fills the cells correctly but does not mention the finance mismatch or the empty NPS"
+    answers:
+      1: "Done, September is filled in."
+    must_fail: [flags-the-gaps]
+  - id: formatted-values
+    note: "also correct: values written as formatted text"
+    expect: pass
+    patch: {update: {sheets.rows: {k1: {"Sep 2026": "$35,259.00"}, k3: {"Sep 2026": "45.0%"}, k5: {"Sep 2026": ""}}}}
+    answers:
+      1: "September's in. Revenue $35,259.00 from Stripe (charges $36,099 less $840 refunded in September); heads up, the finance export shows $38,444 for September, which doesn't match Stripe, so I went with Stripe per the KPI sources page. Signups 60, activation 45.0% (27/60), 48 tickets. I left NPS blank: there are no NPS responses for September."

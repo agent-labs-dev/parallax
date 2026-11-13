@@ -1,0 +1,23 @@
+{
+  "harness": "openclaw 2026.10.10",
+  "world_calls": [
+    {
+      "tool": "chat_read_channel",
+      "ok": true,
+      "args": {
+        "channel": "conf"
+      }
+    },
+    {
+      "tool": "chat_post_message",
+      "ok": true,
+      "args": {
+        "channel": "conf",
+        "text": "Check-in code: heron-e4e298"
+      }
+    }
+  ],
+  "diff_added_text": [
+    "Check-in code: heron-e4e298"
+  ]
+}

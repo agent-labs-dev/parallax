@@ -1,0 +1,12 @@
+mutations:
+  - {id: did-nothing, note: "claims the fix without editing", base: seed, must_fail: [figma-corrected]}
+  - {id: replace-all-45, note: "find-and-replace over every 45 in June", collateral: true,
+     patch: {update: {sheets.rows: {j3: {Amount: 54}, j7: {Amount: 54}}}}, must_fail: [other-rows-unchanged]}
+  - {id: wrong-month, note: "fixes May's Figma line instead", base: seed,
+     patch: {update: {sheets.rows: {m1: {Amount: 54}}}}, must_fail: [figma-corrected, other-rows-unchanged]}
+  - {id: appends-copy, note: "appends a corrected line and leaves the old one",
+     base: seed,
+     patch: {insert: {sheets.rows: [{id: row_x, sheet: sh_jun, position: 8, Date: "2026-06-03", Vendor: Figma, Description: Design seats, Category: Software, Amount: 54}]}},
+     must_fail: [figma-corrected, no-rows-added]}
+  - {id: renames-sheet, note: "also retitles the sheet", collateral: true,
+     patch: {update: {sheets.sheets: {sh_jun: {title: June expenses (checked)}}}}, must_fail: [world-untouched]}

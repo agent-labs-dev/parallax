@@ -1,0 +1,17 @@
+now: 2026-06-03T09:00:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+mail:
+  messages:
+    - id: m1
+      thread: t1
+      from: priya.shah@northwind.test
+      to: [alex@northwind.test]
+      cc: []
+      subject: Q3 numbers
+      body: "Hi Alex,\n\nCould you get me the Q3 numbers before Friday? I need them for the board pack.\n\nThanks,\nPriya"
+      date: "2026-06-02T16:40:00+01:00"
+      labels: [inbox]
+contacts:
+  people:
+    - {id: p1, name: Priya Shah, email: priya.shah@northwind.test, phone: "", company: Northwind, title: Finance lead, notes: ""}
+    - {id: p2, name: Sam Okafor, email: sam.okafor@northwind.test, phone: "", company: Northwind, title: Product lead, notes: ""}

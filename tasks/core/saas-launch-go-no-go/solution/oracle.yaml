@@ -1,0 +1,28 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: user_clock_now, args: {}}
+      - {tool: wiki_search, args: {query: Billing v2 launch checklist}}
+      - {tool: wiki_get_page, args: {id: pg-cl}}
+      - {tool: tracker_search_issues, args: {label: billing-v2, limit: 100}}
+      - {tool: tracker_get_issue, args: {id: BIL-412}}
+      - {tool: tracker_get_issue, args: {id: BIL-418}}
+      - {tool: tracker_get_issue, args: {id: BIL-430}}
+      - {tool: tracker_get_issue, args: {id: BIL-436}}
+      - {tool: tracker_search_issues, args: {label: seats-v2}}
+      - {tool: drive_search, args: {folder: Billing v2 launch}}
+      - {tool: drive_get_file, args: {id: doc1}}
+      - {tool: drive_get_file, args: {id: doc4}}
+      - {tool: analytics_trend, args: {event: billing_v2_api_error, date_from: "2026-10-13", date_to: "2026-10-20"}}
+      - {tool: chat_read_channel, args: {channel: launch}}
+      - {tool: chat_post_message, args: {channel: launch, text: "Billing v2 go/no-go for Thu 22 Oct: NO-GO. Blockers: (1) BIL-412 P0 proration double-charge on mid-cycle upgrade: marked resolved, but the fix (#4471) was reverted in prod on 19 Oct, so the bug is live again. (2) BIL-430 P1 tax line missing on Canadian invoices: still in progress. (3) Help Center article 'Upgrading and downgrading plans (Billing v2)' is still DRAFT, waiting on legal. Passing: API errors 4 on Mon 19 Oct (limit 10); support macros done. Not counted: BIL-441 and BIL-447 belong to Seats v2 (5 Nov); BIL-436 is a closed duplicate of BIL-430."}}
+    answer: |-
+      No, it's a no-go for Thursday as things stand. I posted the verdict in #launch. Three checklist items fail:
+      1. BIL-412 (P0, proration double-charge): it's marked resolved, but Tom reverted the fix in prod on 19 Oct because it broke EU invoice PDFs, so the bug is live again.
+      2. BIL-430 (P1, tax line missing on Canadian invoices): still in progress, fix in review.
+      3. The Help Center article "Upgrading and downgrading plans (Billing v2)" is still DRAFT, waiting on legal review.
+
+      Passing: API errors were 4 yesterday (19 Oct), under the limit of 10. The spike of 18 and 22 on 14-15 Oct (59 over the week) is outside the window the checklist uses. Support macros are done.
+      Not blockers: BIL-441 and BIL-447 are Seats v2 issues (5 Nov launch), BIL-436 is a closed duplicate of BIL-430, and the internal support FAQ draft isn't customer-facing.
+
+      I didn't change any issue or doc.

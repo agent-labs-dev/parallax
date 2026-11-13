@@ -1,0 +1,18 @@
+checks:
+  - id: finds-reversed-days
+    kind: answer
+    mode: missing_action
+    note: "bug 1: due - today is negative for an overdue invoice, so no fee is ever charged. Needs a defect claim about the day arithmetic; restating the docstring (can go negative when not yet due) is not one"
+    must:
+      - regex: "today\\s*-\\s*due|(days_overdue|days overdue|overdue days|due\\s*-\\s*today|subtraction|date (math|arithmetic|difference)|overdue (check|calc\\w*))[\\s\\S]{0,240}(revers\\w*|backwards?|wrong (way|order|direction|sign)|flip\\w*|swap\\w*|invert\\w*|never (be )?(charged?|appl\\w*|trigger\\w*|fire\\w*|kicks? in)|always (0|zero|returns? (0|zero|a negative|negative))|no (late )?fee (is|will) ever|negative\\w*( values?| numbers?| days?| results?)? (for|when|once|as soon as|after|on) (an? |the )?(invoice )?(is |becomes |goes )?(overdue|late|past due))|(revers\\w*|backwards?|wrong (way|order|direction|sign)|flip\\w*|swap\\w*|invert\\w*|never (be )?(charged?|appl\\w*|trigger\\w*|fire\\w*|kicks? in)|always (0|zero|returns? (0|zero|a negative|negative))|no (late )?fee (is|will) ever|negative\\w*( values?| numbers?| days?| results?)? (for|when|once|as soon as|after|on) (an? |the )?(invoice )?(is |becomes |goes )?(overdue|late|past due))[\\s\\S]{0,240}(days_overdue|days overdue|overdue days|due\\s*-\\s*today|subtraction|date (math|arithmetic|difference)|overdue (check|calc\\w*))"
+  - id: finds-percent-scaling
+    kind: answer
+    mode: missing_action
+    note: "bug 2: multiplying by 2 instead of 2/100 charges 200% rather than 2%. The scaling claim must sit near the fee or percent, so a stray double-check elsewhere does not count"
+    must:
+      - regex: "(late_fee_percent|late_fee|late fee|percent|percentage|\\bfee\\b)[\\s\\S]{0,160}(/\\s*(decimal\\(\\s*)?['\\\"]?100\\b|divid\\w* by (100|a hundred)|0\\.02\\b|\\b200\\s*%|\\b200 percent|£\\s?200\\b|\\b2\\s*[x×]|\\b100\\s*[x×]|\\b100 times|\\btwice\\b|\\bdoubles?\\b(?!-)|\\bdoubl(ed|ing)\\b|multiplier|not (as )?a (fraction|decimal|ratio)|as a (fraction|decimal))|(/\\s*(decimal\\(\\s*)?['\\\"]?100\\b|divid\\w* by (100|a hundred)|0\\.02\\b|\\b200\\s*%|\\b200 percent|£\\s?200\\b|\\b2\\s*[x×]|\\b100\\s*[x×]|\\b100 times|\\btwice\\b|\\bdoubles?\\b(?!-)|\\bdoubl(ed|ing)\\b|multiplier|not (as )?a (fraction|decimal|ratio)|as a (fraction|decimal))[\\s\\S]{0,160}(late_fee_percent|late_fee|late fee|percent|percentage|\\bfee\\b)"
+  - {id: source-untouched, kind: file, mode: collateral_change, path: "invoicing/*.py", unchanged: true}
+  - {id: tests-untouched, kind: file, mode: collateral_change, path: "tests/*.py", unchanged: true}
+  - {id: verdict-is-actionable, kind: rubric, mode: wrong_output, sees: [answers],
+     items: ["Does the review say the change should not be merged as-is?",
+             "Does the review explain the effect of each bug on a real invoice?"]}

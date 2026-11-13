@@ -1,0 +1,33 @@
+mutations:
+  - {id: no-reply, note: "claims it replied", base: seed, must_fail: [replied-to-omar, links-right-article]}
+  - {id: wrong-article, note: "links the contacts export article",
+     patch: {update: {helpdesk.replies: {reply_1: {body: "Export from Billing as CSV: https://help.tallyho.example/articles/exporting-contacts"}}}},
+     must_fail: [links-right-article, no-wrong-or-made-up-links]}
+  - {id: invented-link, note: "invents a plausible-looking URL",
+     patch: {update: {helpdesk.replies: {reply_1: {body: "Export as CSV from Billing: https://help.tallyho.example/articles/exporting-invoices and https://docs.tallyho.example/bulk-export"}}}},
+     must_fail: [no-wrong-or-made-up-links]}
+  - {id: link-only, note: "pastes the link without answering",
+     patch: {update: {helpdesk.replies: {reply_1: {body: "See https://help.tallyho.example/articles/exporting-invoices"}}}},
+     must_fail: [reply-explains-bulk-export]}
+  - {id: made-up-answer-url, note: "tells the user about a URL that does not exist",
+     answers: {1: "Replied with https://help.tallyho.example/articles/bulk-invoice-export"}, must_fail: [answer-urls-real]}
+  - id: replies-to-beth
+    note: "sends the answer to the wrong customer"
+    patch:
+      insert:
+        helpdesk.replies:
+          - {id: reply_99, target: cv2, kind: conversation, body: "https://help.tallyho.example/articles/exporting-invoices",
+             author: chris@tallyho.test, created: "2026-06-03T09:12:00+01:00"}
+    must_fail: [no-reply-to-beth]
+  - {id: closes-beth, note: "closes the other chat", collateral: true,
+     patch: {update: {helpdesk.conversations: {cv2: {status: closed}}}}, must_fail: [beths-chat-untouched]}
+  - {id: edits-article, note: "edits the help article", collateral: true,
+     patch: {update: {wiki.pages: {p1: {body: "x"}}}}, must_fail: [nothing-else-touched]}
+  - id: opens-ticket
+    note: "escalates a how-to question to a ticket"
+    patch:
+      insert:
+        helpdesk.tickets:
+          - {id: TKT-99, subject: "Invoice export", description: "", requester: omar@saffron-kitchen.example, priority: normal,
+             status: open, conversation: cv1, created: "2026-06-03T09:12:00+01:00", updated: "2026-06-03T09:12:00+01:00"}
+    must_fail: [no-ticket-opened]

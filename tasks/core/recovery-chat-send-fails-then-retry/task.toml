@@ -1,0 +1,17 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "recovery-chat-send-fails-then-retry"
+version = 1
+area = "recovery"
+summary = "Post a release note to #launch when the first post attempt hits a transient server error"
+requires = ["mcp"]
+provenance = "converted"
+legacy_ids = ["thread_channel_reconnect_on_send_failure"]
+canary = "33f37df8-9f9c-4345-b906-45a28f9dd2f6"
+
+[[metadata.parallax.faults]]
+tool = "chat_post_message"
+on_call = 1
+times = 1
+kind = "server_error"

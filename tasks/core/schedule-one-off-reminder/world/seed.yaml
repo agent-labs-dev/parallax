@@ -1,0 +1,9 @@
+now: 2026-06-09T11:20:00-04:00
+user: {name: Morgan Ellery, email: morgan@ellery.test, timezone: America/New_York}
+calendar:
+  calendars:
+    - {id: primary, name: Morgan, owner: morgan@ellery.test, timezone: America/New_York}
+  events:
+    - {id: ev1, calendar: primary, title: "Dentist", start: "2026-06-12T09:30:00-04:00", end: "2026-06-12T10:15:00-04:00",
+       tz: America/New_York, attendees: [], organizer: morgan@ellery.test, rrule: null, exceptions: {},
+       status: confirmed, description: "", location: ""}

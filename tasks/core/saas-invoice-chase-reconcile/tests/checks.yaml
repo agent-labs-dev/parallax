@@ -1,0 +1,42 @@
+checks:
+  - {id: paid-rows-marked, kind: state, mode: missing_action, table: sheets.rows,
+     where: {id: {any_of: [r017, r052, r078, r090, r109]}}, count: 5, fields: {Status: Paid},
+     note: "INV-3017, 3052, 3078, 3090 and 3109 were paid in full in Stripe"}
+  - {id: credit-note-applied, kind: state, mode: missing_action, table: sheets.rows,
+     where: {id: r024}, count: 1, fields: {Status: Credited},
+     note: "INV-3024 is cancelled by credit note CN-0412"}
+  - {id: rest-of-ledger-untouched, kind: state, mode: wrong_target, table: sheets.rows,
+     where: {id: {none_of: [r017, r052, r078, r090, r109, r024]}}, unchanged: true,
+     note: "every other row keeps its seed values: the part-paid INV-3031 and the failed-charge INV-3047 stay Unpaid, and the CN-0412 row is unchanged"}
+  - {id: reconciled-rows-kept, kind: state, mode: collateral_change, table: sheets.rows,
+     where: {id: {any_of: [r017, r052, r078, r090, r109, r024]}}, count: 6,
+     note: "on the reconciled rows only Status changed (a short Note about the payment or credit is also fine); Invoice, Customer, Amount and Due keep their seed values"}
+  - {id: five-drafts, kind: state, mode: missing_action, table: mail.drafts, count: 5,
+     note: "one chaser draft per customer with an invoice more than 30 days overdue"}
+  - id: chasers-right
+    kind: rubric
+    mode: wrong_output
+    sees: [diff]
+    items:
+      - "Is there exactly one draft to each of ap@calderfarms.example, ap@brooklinelegal.example, ap@eastgatemedia.example, ap@fairlightstudios.example and ap@glenrockfreight.example, and no other draft?"
+      - "Does the Calder Farms draft chase INV-3009 for 6,200 (also mentioning the newer INV-3096 is acceptable), the Fairlight Studios draft chase INV-3047 for 3,150, and the Glenrock Freight draft chase both INV-3056 (7,300) and INV-3063 (1,950)?"
+      - "Does the Brookline Legal draft chase INV-3031 for the remaining balance of 4,200, not the full 8,400 as if nothing had been paid?"
+      - "Does the Eastgate Media draft chase INV-3044 for 2,900 and mention that the promised payment date (10 October) has passed?"
+  - id: no-wrong-chasers
+    kind: rubric
+    mode: wrong_target
+    sees: [diff]
+    items:
+      - "Is there no draft to Dunmore Games (promised to pay on 24 October), Alder Dental, Ivybridge Health, Moorfield Energy, Larkspur Travel (already paid), Kingsmere Labs (credited) or Hollins Retail (under 30 days overdue)?"
+  - {id: nothing-sent, kind: state, mode: premature_action, table: mail.sent,
+     where: {id: {none_of: [sent0]}}, count: 0, note: "the chasers stay drafts for Priya to review"}
+  - id: reply-summarises
+    kind: rubric
+    mode: wrong_output
+    sees: [answers]
+    items:
+      - "Does the reply say which invoices were marked paid (INV-3017, 3052, 3078, 3090, 3109) and that INV-3024 was credited, and that chasers were drafted (not sent) for Calder Farms, Brookline Legal, Eastgate Media, Fairlight Studios and Glenrock Freight?"
+      - "Does the reply report what was left without a chaser: Dunmore Games' INV-3038 because of its 24 October promise, and the invoices overdue 30 days or less (INV-3071, INV-3084, INV-3096, INV-3103)?"
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [sheets.rows, mail.drafts, user.interactions],
+     note: "no charge, refund, sent mail, archive or wiki edit"}

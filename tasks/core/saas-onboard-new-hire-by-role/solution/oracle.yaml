@@ -1,0 +1,51 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: mail_search, args: {query: Maya}}
+      - {tool: mail_get, args: {id: m01}}
+      - {tool: mail_get, args: {id: m02}}
+      - {tool: wiki_search, args: {query: onboarding checklist}}
+      - {tool: wiki_get_page, args: {id: w1}}
+      - {tool: wiki_get_page, args: {id: w2}}
+      - {tool: chat_read_channel, args: {channel: people-ops}}
+      - {tool: chat_read_channel, args: {channel: sales}}
+      - {tool: tracker_search_issues, args: {query: CRM seat}}
+      - {tool: contacts_search, args: {query: Priya Shah}}
+      - {tool: contacts_search, args: {query: Revenue Operations}}
+      - {tool: contacts_search, args: {query: Daniel Okoye}}
+      - {tool: drive_list_folders, args: {}}
+      - {tool: drive_search, args: {folder: Sales Playbook, limit: 100}}
+      - {tool: drive_search, args: {folder: Deal Desk, limit: 100}}
+      - {tool: drive_search, args: {folder: Customer Contracts, limit: 100}}
+      - {tool: drive_share, args: {id: d001, emails: [maya.lindqvist@fernway.test], role: editor}}
+      - {tool: drive_share, args: {id: d002, emails: [maya.lindqvist@fernway.test], role: editor}}
+      - {tool: drive_share, args: {id: d003, emails: [maya.lindqvist@fernway.test], role: editor}}
+      - {tool: drive_share, args: {id: d004, emails: [maya.lindqvist@fernway.test], role: editor}}
+      - {tool: drive_share, args: {id: d005, emails: [maya.lindqvist@fernway.test], role: editor}}
+      - {tool: drive_share, args: {id: d006, emails: [maya.lindqvist@fernway.test], role: editor}}
+      - {tool: drive_share, args: {id: d007, emails: [maya.lindqvist@fernway.test], role: editor}}
+      - {tool: drive_share, args: {id: d008, emails: [maya.lindqvist@fernway.test], role: editor}}
+      - {tool: drive_share, args: {id: d009, emails: [maya.lindqvist@fernway.test], role: viewer}}
+      - {tool: drive_share, args: {id: d010, emails: [maya.lindqvist@fernway.test], role: editor}}
+      - {tool: drive_share, args: {id: d011, emails: [maya.lindqvist@fernway.test], role: editor}}
+      - {tool: drive_share, args: {id: d012, emails: [maya.lindqvist@fernway.test], role: editor}}
+      - {tool: drive_share, args: {id: d013, emails: [maya.lindqvist@fernway.test], role: editor}}
+      - {tool: drive_share, args: {id: d014, emails: [maya.lindqvist@fernway.test], role: editor}}
+      - {tool: drive_share, args: {id: d015, emails: [maya.lindqvist@fernway.test], role: viewer}}
+      - {tool: drive_share, args: {id: d016, emails: [maya.lindqvist@fernway.test], role: viewer}}
+      - {tool: drive_share, args: {id: d017, emails: [maya.lindqvist@fernway.test], role: viewer}}
+      - {tool: drive_share, args: {id: d018, emails: [maya.lindqvist@fernway.test], role: viewer}}
+      - {tool: drive_share, args: {id: d019, emails: [maya.lindqvist@fernway.test], role: viewer}}
+      - {tool: drive_share, args: {id: d020, emails: [maya.lindqvist@fernway.test], role: viewer}}
+      - {tool: drive_share, args: {id: d021, emails: [maya.lindqvist@fernway.test], role: viewer}}
+      - {tool: calendar_create_event, args: {title: "Welcome 1:1: Maya Lindqvist and Daniel Okoye", start: "2026-11-02T10:00:00", end: "2026-11-02T10:30:00", tz: America/New_York, attendees: [maya.lindqvist@fernway.test, daniel.okoye@fernway.test]}}
+      - {tool: calendar_create_event, args: {title: "Buddy coffee: Maya Lindqvist and Priya Shah", start: "2026-11-03T14:00:00", end: "2026-11-03T14:30:00", tz: America/New_York, attendees: [maya.lindqvist@fernway.test, priya.shah@fernway.test]}}
+      - {tool: calendar_create_event, args: {title: "CRM walkthrough: Maya Lindqvist", start: "2026-11-04T11:00:00", end: "2026-11-04T12:00:00", tz: America/New_York, attendees: [maya.lindqvist@fernway.test, rosa.martinez@fernway.test]}}
+      - {tool: chat_post_message, args: {channel: sales, text: "Please welcome Maya Lindqvist, who joins us on Monday as an Account Executive! Her manager is @Daniel Okoye and her onboarding buddy is @Priya Shah. Say hi!"}}
+    answer: |-
+      Maya is set up for Monday 2 November. I used the Sales onboarding checklist, because she joins as an Account Executive.
+      - Drive: I shared the 8 files in Sales Playbook and 5 of the 6 files in Deal Desk with her as editor. The Discount approval matrix went as viewer, because Rosa made it view-only for AEs. I shared the 7 files in Customer Contracts as viewer only, which is Legal's rule.
+      - Calendar, in Maya's Boston (Eastern) time as Lena's October rule for remote starters says: Welcome 1:1 with Daniel Okoye, Mon 2 Nov 10:00-10:30 ET (7:00 Pacific). Buddy coffee with Priya Shah, Tue 3 Nov 14:00-14:30 ET. CRM walkthrough with Rosa Martinez, Wed 4 Nov 11:00-12:00 ET.
+      - Linear: Rosa already opened ISS-345 "CRM seat for Maya Lindqvist" (assigned to her, label onboarding), so I did not open a second one.
+      - Slack: I posted a welcome in #sales that tags Daniel and Priya.
+      Her buddy is Priya Shah from Sales, not Tom Becker: Daniel changed it because Tom starts paternity leave. I did not use the engineer Priya Shah.

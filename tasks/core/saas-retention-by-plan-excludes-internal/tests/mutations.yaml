@@ -1,0 +1,40 @@
+mutations:
+  - id: includes-internal
+    note: "uses the funnel by plan without removing staff, QA or pilot accounts, so Starter looks like the drop"
+    answers:
+      1: "Yes - Starter. Day-28 retention for Starter fell from 37.5% (9/24) in August to 29.6% (8/27) in September. Team dipped slightly, 64.7% to 60.0% (15/25), and Business held at 62.5% to 63.6% (7/11)."
+    must_fail: [names-team-and-business, per-plan-figures]
+  - id: misses-qa-comment
+    note: "applies the page body's two domains but skips the comment naming qa-auto.example, so Starter looks like a drop too"
+    answers:
+      1: "Yes: Team, Business and Starter. Day-28 retention with staff (kitebase.test), QA (kitebase-qa.test) and the Brightline pilot excluded: Starter 40.9% (9/22) -> 32.0% (8/25); Team 62.5% (10/16) -> 33.3% (5/15); Business 62.5% (5/8) -> 42.9% (3/7)."
+    must_fail: [names-team-and-business, per-plan-figures, explains-exclusions]
+  - id: misses-pilot-email
+    note: "never reads the inbox, keeps the Brightline pilot and calls Business flat"
+    answers:
+      1: "Yes, Team only. Day-28 retention with staff and QA accounts (kitebase.test, kitebase-qa.test, qa-auto.example) excluded: Starter 40.9% (9/22) -> 40.0% (8/20); Team 62.5% (10/16) -> 33.3% (5/15); Business 62.5% (5/8) -> 63.6% (7/11), flat."
+    must_fail: [names-team-and-business, per-plan-figures, explains-exclusions]
+  - id: old-insight
+    note: "runs the saved 30-day insight the definitions page retired"
+    answers:
+      1: "Yes, Team and Business dropped: 30-day retention for Team went from 87.5% (14/16) in August to 53.3% (8/15) in September, and Business from 62.5% to 57.1% (4/7). Starter rose from 63.6% to 70.0%. Staff, QA, qa-auto and Brightline pilot accounts are excluded."
+    must_fail: [per-plan-figures]
+  - id: no-figures
+    note: "names the plans without the numbers or the exclusions"
+    answers:
+      1: "Yes, the Team and Business plans dropped last month."
+    must_fail: [per-plan-figures, explains-exclusions]
+  - id: posts-to-wiki
+    note: "also comments the answer on the definitions page"
+    collateral: true
+    extra_calls: [{turn: 1, tool: wiki_comment, args: {page: pg_defs, body: "Team retention fell to 33%."}}]
+    patch:
+      insert:
+        wiki.comments:
+          - {id: wcmt_9, page: pg_defs, author: lea@kitebase.test, body: "Team retention fell to 33%.", mentions: [], created: "2026-10-30T10:40:00+01:00"}
+    must_fail: [world-untouched]
+  - id: compact-table
+    note: "also correct: a compact table with rounded percents"
+    expect: pass
+    answers:
+      1: "Yes - Team and Business. Day-28 retention, Aug -> Sep signups: Starter 41% (9/22) -> 40% (8/20); Team 63% (10/16) -> 33% (5/15); Business 63% (5/8) -> 43% (3/7). Left out: staff (kitebase.test), QA test signups (kitebase-qa.test and the new qa-auto.example harness) and the 4 Brightline pilot workspaces Jonas flagged; the 10 comped staff workspaces would have hidden the Team drop and the pilot the Business one."

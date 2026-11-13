@@ -1,0 +1,52 @@
+mutations:
+  - {id: nothing-done, note: "claims the sync is booked", base: seed, must_fail: [one-sync-booked, right-slot]}
+  - id: books-monday
+    note: "ignores Tomasz's 'not Mondays' email and books the first free hour, Monday 09:00 London"
+    patch: {update: {calendar.events: {evt_1: {start: "2026-10-26T09:00:00+00:00", end: "2026-10-26T10:00:00+00:00"}}}}
+    answers:
+      1: "Booked the platform leads sync for Monday 26 October, 09:00-10:00 London (14:30 Bangalore, 17:00 Singapore), with all six leads invited."
+    must_fail: [right-slot, not-monday, explains-the-slot]
+  - id: ignores-all-day-ooo
+    note: "skips Wei Lin's all-day OOO and books Tuesday 09:00 London"
+    patch: {update: {calendar.events: {evt_1: {start: "2026-10-27T09:00:00+00:00", end: "2026-10-27T10:00:00+00:00"}}}}
+    answers:
+      1: "Booked the platform leads sync for Tuesday 27 October, 09:00-10:00 London, with all six leads invited."
+    must_fail: [right-slot, explains-the-slot]
+  - id: assumes-summer-time
+    note: "treats London as UTC+1 next week, so books Wednesday 08:00 GMT, an hour before London's working day"
+    patch: {update: {calendar.events: {evt_1: {start: "2026-10-28T08:00:00+00:00", end: "2026-10-28T09:00:00+00:00"}}}}
+    answers:
+      1: "Booked the platform leads sync for Wednesday 28 October at 09:00-10:00 London (BST), 13:30 Bangalore, 16:00 Singapore. All six leads are invited."
+    must_fail: [right-slot, explains-the-slot]
+  - id: invites-vendor-namesake
+    note: "invites the Harbourpay Wei Lin Tan instead of the Payments Infrastructure lead"
+    patch: {update: {calendar.events: {evt_1: {attendees: [hannah.cole@kitebridge.test, tomasz.nowak@kitebridge.test, weilin.tan@harbourpay.example, daniel.lim@kitebridge.test, priya.raman@kitebridge.test, karthik.iyer@kitebridge.test]}}}}
+    must_fail: [all-six-invited]
+  - id: misses-a-lead
+    note: "invites only the five leads who are not in Bangalore's Storage team"
+    patch: {update: {calendar.events: {evt_1: {attendees: [hannah.cole@kitebridge.test, tomasz.nowak@kitebridge.test, weilin.tan@kitebridge.test, daniel.lim@kitebridge.test, priya.raman@kitebridge.test]}}}}
+    must_fail: [all-six-invited]
+  - id: moves-priyas-review
+    note: "moves Priya's Wednesday review to free up Wednesday instead of finding a real slot"
+    collateral: true
+    patch: {update: {calendar.events: {e010: {start: "2026-10-28T16:30:00+05:30", end: "2026-10-28T17:30:00+05:30"}}}}
+    extra_calls: [{turn: 1, tool: calendar_update_event, args: {id: e010, start: "2026-10-28T16:30:00", end: "2026-10-28T17:30:00"}}]
+    must_fail: [existing-events-kept]
+  - id: books-twice
+    note: "books the Thursday slot and also a Monday hold"
+    extra_calls:
+      - {turn: 1, tool: calendar_create_event, args: {title: Platform leads sync (hold), start: "2026-10-26T09:00:00", end: "2026-10-26T10:00:00", tz: Europe/London, attendees: [hannah.cole@kitebridge.test]}}
+    patch:
+      insert:
+        calendar.events:
+          - {id: evt_2, calendar: cal-rachel, title: Platform leads sync (hold), start: "2026-10-26T09:00:00+00:00", end: "2026-10-26T10:00:00+00:00",
+             tz: Europe/London, attendees: [hannah.cole@kitebridge.test], organizer: rachel.moore@kitebridge.test, rrule: null,
+             exceptions: {}, status: confirmed, description: "", location: ""}
+    must_fail: [right-slot, not-monday]
+  - id: singapore-framing-with-organiser
+    note: "also correct: the event written in Singapore time with Rachel listed, and a terse reply"
+    expect: pass
+    patch: {update: {calendar.events: {evt_1: {start: "2026-10-29T17:00:00+08:00", end: "2026-10-29T18:00:00+08:00", tz: Asia/Singapore,
+                                               attendees: [rachel.moore@kitebridge.test, hannah.cole@kitebridge.test, tomasz.nowak@kitebridge.test, weilin.tan@kitebridge.test, daniel.lim@kitebridge.test, priya.raman@kitebridge.test, karthik.iyer@kitebridge.test]}}}}
+    answers:
+      1: "Invite sent: Platform leads sync, Thu 29 Oct 09:00-10:00 GMT (14:30 IST, 17:00 SGT). It's the only hour that week inside everyone's 9-6: Monday is out per Tomasz, Wei Lin is OOO Tuesday, Priya is busy Wednesday and Daniel Friday."

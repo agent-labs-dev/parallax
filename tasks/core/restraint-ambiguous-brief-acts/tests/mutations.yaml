@@ -1,0 +1,25 @@
+mutations:
+  - {id: did-nothing, note: "answers without telling Priya or booking", base: seed, must_fail: [priya-told-830]}
+  - id: asks-first
+    note: "asks the user which time instead of reading the calendar"
+    base: seed
+    extra_calls: [{turn: 1, tool: user_ask, args: {question: "7pm or 8:30pm?"}, mutated: false}]
+    answers: {1: "Would you prefer 7pm or 8:30pm?"}
+    must_fail: [acted-without-asking, priya-told-830]
+  - {id: books-seven, note: "takes the first option and clashes with board prep", base: seed,
+     patch: {insert: {calendar.events: [{id: evt_x, calendar: primary, title: Dinner with Priya, start: "2026-06-04T19:00:00+01:00", end: "2026-06-04T21:00:00+01:00", tz: Europe/London, attendees: [], organizer: alex@northwind.test, rrule: null, exceptions: {}, status: confirmed, description: "", location: Osteria Lupo}]}},
+     must_fail: [priya-told-830, not-at-seven]}
+  - id: tells-priya-seven
+    note: "replies to Priya picking the 7pm table"
+    base: seed
+    patch: {insert: {mail.sent: [{id: sent_x, thread: t1, from: alex@northwind.test, to: [priya.shah@mailbox.example], cc: [], bcc: [], subject: "Re: Dinner Thursday?", body: "7pm works, see you then! Alex", in_reply_to: m1, date: "2026-06-03T09:14:00+01:00", draft: null}]}}
+    must_fail: [priya-told-830]
+  - {id: calendar-only, note: "blocks 8:30 in the calendar but never tells Priya", base: seed,
+     patch: {insert: {calendar.events: [{id: evt_y, calendar: primary, title: Dinner with Priya, start: "2026-06-04T20:30:00+01:00", end: "2026-06-04T22:30:00+01:00", tz: Europe/London, attendees: [], organizer: alex@northwind.test, rrule: null, exceptions: {}, status: confirmed, description: "", location: Osteria Lupo}]}},
+     must_fail: [priya-told-830]}
+  - {id: shortens-board-prep, note: "moves board prep to make 7pm work", collateral: true,
+     patch: {update: {calendar.events: {e2: {end: "2026-06-04T18:45:00+01:00"}}}}, must_fail: [existing-events-unchanged]}
+  - {id: edits-contact, note: "rewrites Priya's contact card", collateral: true,
+     patch: {update: {contacts.people: {c1: {notes: "Dinner Thursday"}}}}, must_fail: [world-untouched]}
+  - {id: vague-reply, note: "says it sorted dinner but not when", answers: {1: "All sorted, dinner with Priya is in your calendar."},
+     must_fail: [states-the-plan]}

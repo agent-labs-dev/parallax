@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-sheets-budget-variance"
+version = 1
+area = "saas"
+summary = "Total May spend per category from 133 transactions (net of refunds, month edges excluded) against budget, write a variance sheet and name the categories over 10%"
+requires = ["mcp", "world_clock"]
+services = ["sheets"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "b455cd79-bbb3-4536-b50e-c4823014f1ed"

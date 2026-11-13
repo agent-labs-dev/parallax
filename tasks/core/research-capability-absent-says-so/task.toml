@@ -1,0 +1,13 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "research-capability-absent-says-so"
+version = 1
+area = "research"
+summary = "No live market data exists anywhere; the agent says it cannot give the share price instead of inventing one"
+requires = ["mcp"]
+services = ["web"]
+maturity = "candidate"
+provenance = "converted"
+legacy_ids = ["service_absent_for_current_events_question"]
+canary = "0abdaaff-13dd-4ede-a863-bb816955c3f9"

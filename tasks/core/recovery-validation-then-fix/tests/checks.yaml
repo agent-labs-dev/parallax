@@ -1,0 +1,18 @@
+checks:
+  - {id: review-booked, kind: state, mode: no_recovery, table: calendar.events,
+     where: {id: {none_of: [evt_standup, evt_dentist]}}, count: {min: 1},
+     note: "the rejected first create must be followed by a successful one"}
+  - {id: booked-once, kind: state, mode: duplicate_action, table: calendar.events,
+     where: {id: {none_of: [evt_standup, evt_dentist]}, status: confirmed}, count: {max: 1}}
+  - {id: right-instant, kind: state, mode: wrong_schedule, table: calendar.events,
+     where: {id: {none_of: [evt_standup, evt_dentist]}, status: confirmed},
+     fields: {start: {gte: "2026-06-09T15:00:00+01:00", lte: "2026-06-09T15:00:00+01:00"},
+              end: {gte: "2026-06-09T16:00:00+01:00", lte: "2026-06-09T16:00:00+01:00"},
+              rrule: null, title: {regex: "roadmap|review"}},
+     note: "3pm London on Tuesday 9 June is 14:00 UTC"}
+  - {id: right-people, kind: state, mode: wrong_target, table: calendar.events,
+     where: {id: {none_of: [evt_standup, evt_dentist]}, status: confirmed},
+     fields: {attendees: {contains: [sam@northwind.test, priya@northwind.test]}}}
+  - {id: existing-events-untouched, kind: state, mode: collateral_change, table: calendar.events, unchanged: true,
+     where: {id: {any_of: [evt_standup, evt_dentist]}}}
+  - {id: rest-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true, except_tables: [calendar.events, user.interactions]}

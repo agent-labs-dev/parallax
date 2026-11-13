@@ -1,0 +1,19 @@
+checks:
+- id: accurate-comparison
+  kind: rubric
+  mode: wrong_output
+  items:
+  - Does the answer accurately report the 40-person monthly prices and SAML SSO availability
+    for all four vendors, with links to the seeded sources?
+  - Does the answer report every explicitly stated pricing unit and billing cadence
+    for the correct vendor, while leaving unstated terms unknown and distinguishing
+    a quoted monthly price from billing cadence?
+  sees:
+  - answers
+- id: read-only
+  kind: state
+  mode: collateral_change
+  table: '*'
+  unchanged: true
+  except_tables:
+  - user.interactions

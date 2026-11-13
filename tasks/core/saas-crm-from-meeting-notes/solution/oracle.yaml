@@ -1,0 +1,9 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: drive_get_file, args: {id: d1}}
+      - {tool: tables_update_record, args: {id: r1, fields: {stage: Negotiation, amount: 48000}}}
+      - {tool: tables_update_record, args: {id: r2, fields: {stage: Proposal, amount: 72000}}}
+    answer: >-
+      From the 2 June call notes: Harbor Logistics is now Negotiation at 48,000 and Nova Retail is Proposal at 72,000.
+      Brightline Dental and Keller & Sons had no changes, so I left them as they were.

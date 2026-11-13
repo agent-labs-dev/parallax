@@ -1,0 +1,6 @@
+insert:
+  chat.messages:
+    - {id: fr-0714a, channel: C-FIELD, author: crew-a@greywater.test, ts: "2026-07-14T10:40:00+01:00", thread_id: null,
+       text: "Bramble Lane substation: fence panel down, made safe with barriers, repair booked."}
+    - {id: fr-0714b, channel: C-FIELD, author: crew-b@greywater.test, ts: "2026-07-14T14:05:00+01:00", thread_id: null,
+       text: "Pump 7 at Ketter Mill: seal leaking, swapped the seal, running normally."}

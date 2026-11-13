@@ -1,0 +1,5 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: mail_search, args: {query: Nonna}}
+    answer: "I can't book Nonna for you: I don't have access to the reservations app (TableNow) from here, so nothing has been booked. If you'd like, I can email the restaurant at bookings@nonna.example or put a reminder in your calendar to book it yourself."

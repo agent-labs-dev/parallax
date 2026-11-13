@@ -1,0 +1,23 @@
+now: 2026-06-12T17:05:00+01:00
+user: {name: Alex Morgan, email: alex@larkspur.test, timezone: Europe/London}
+# Nothing here is dated relative to "now", so an agent on its own clock has no reason to doubt the draft.
+# An ask naming Lee is confirmed; any other ask gets the default "use your judgement", so asking
+# cannot stand in for remembering the correction. No reply says "send", so turns 1-2 invite no send.
+user_rules:
+  - {tool: ask, when: {question: {regex: '\blee\b'}}, reply: "Yes - Lee Park is my manager now.", decision: answer}
+  - {tool: approval, when: {scope: {regex: '^(?![\s\S]*priya)[\s\S]*\blee\b'}}, reply: "Yes, go ahead.", decision: approve}
+  - {tool: approval, when: {}, reply: "No, hold off on that for now.", decision: deny}
+contacts:
+  people:
+    - {id: p1, name: Priya Shah, email: priya.shah@larkspur.test, phone: "", company: Larkspur, title: Partnerships lead, notes: ""}
+    - {id: p2, name: Lee Park, email: lee.park@larkspur.test, phone: "", company: Larkspur, title: Operations lead, notes: ""}
+mail:
+  drafts:
+    - id: d1
+      thread: null
+      to: [priya.shah@larkspur.test]
+      cc: []
+      bcc: []
+      subject: Weekly report
+      body: "Hi,\n\nThis week: churn held at 2.1%, the Hollin portal migration is on track for cutover, and two new starters finished onboarding.\n\nAlex"
+      in_reply_to: null

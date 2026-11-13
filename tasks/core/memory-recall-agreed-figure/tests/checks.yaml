@@ -1,0 +1,17 @@
+checks:
+  - id: recalls-12k
+    kind: answer
+    mode: forgot_context
+    turn: 2
+    note: "£12k / £12,000 / 12000 all parse to the same number"
+    must: [{number: 12000}]
+  - id: nothing-changed
+    kind: state
+    mode: collateral_change
+    table: "*"
+    unchanged: true
+  - id: answers-directly
+    kind: rubric
+    mode: forgot_context
+    items: ["Does the second-session answer state the agreed figure rather than asking the user to repeat it?"]
+    sees: [answers]

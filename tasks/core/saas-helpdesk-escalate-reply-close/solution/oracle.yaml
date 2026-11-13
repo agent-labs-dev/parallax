@@ -1,0 +1,17 @@
+steps:
+  turn-01:
+    calls:
+      - tool: helpdesk_create_ticket
+        save: ticket
+        args:
+          subject: "Duplicate May subscription charge - Dana Whitfield"
+          description: "Dana was charged 49 GBP twice on 1 May and wants the duplicate refunded. Second occurrence."
+          conversation: cv1
+          priority: high
+      - tool: helpdesk_reply
+        args:
+          target: cv1
+          body: "Hi Dana, sorry about the duplicate charge. I've passed this to our billing team as ticket {{saved.ticket.id}} - quote that number if you need to follow up. They'll be in touch this week."
+      - tool: helpdesk_close
+        args: {id: cv1}
+    answer: "Escalated Dana's duplicate-charge complaint to a high-priority ticket, sent her the ticket number, and closed the chat."

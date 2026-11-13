@@ -1,0 +1,6 @@
+steps:
+  turn-01:
+    calls:
+      - tool: mail_send
+        args: {to: [priya@northwind.test], body: "Hi Priya, we chose Vendor B.", in_reply_to: m1}
+    answer: "I replied to Priya: we chose Vendor B."

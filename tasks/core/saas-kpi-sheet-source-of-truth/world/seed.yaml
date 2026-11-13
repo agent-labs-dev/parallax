@@ -1,0 +1,345 @@
+now: "2026-10-06T09:15:00-04:00"
+user: {name: Dana Whitfield, email: dana@quillstack.test, timezone: America/New_York}
+wiki:
+  pages:
+    - {id: pg_kpi, title: "KPI sources", space: Ops, author: dana@quillstack.test, created: "2026-03-02T10:00:00-05:00", updated: "2026-08-31T16:20:00-04:00", url: "https://wiki.example/pages/pg_kpi", body: "Where each row of the KPI sheet comes from. Fill the new month's column on the first working days of the next month.\n\n- Net revenue (USD): Stripe. Sum of the charges created in the month, minus the refunds issued in the month (by refund date). Use Eastern time for the month boundaries, not UTC. Do NOT use the finance export: it is accrual-based and lags Stripe, so the two never match.\n- New signups: PostHog, count of signed_up events in the month.\n- Activation rate (%): PostHog saved insight \"Activation (7-day)\", run over the month. Percent of the month's signups who reach the last step, one decimal.\n- Support tickets opened: Zendesk, tickets created in the month (any status).\n- NPS: the \"NPS responses\" sheet. NPS = % promoters (9-10) minus % detractors (0-6) among the month's responses, rounded to a whole number. If a month has no responses, leave the cell empty and say so; never write 0.\n\nOnly touch the new month's column. Past months are closed."}
+    - {id: pg_ops, title: "Monthly close checklist", space: Ops, author: lena@quillstack.test, created: "2026-02-10T10:00:00-05:00", updated: "2026-07-01T11:00:00-04:00", url: "https://wiki.example/pages/pg_ops", body: "1. Finance exports the ledger to the \"Finance export\" sheet (recognised revenue, accrual basis).\n2. Ops fills the KPI sheet (see KPI sources).\n3. NPS survey pauses each September for the pricing change and resumes in October."}
+payments:
+  customers:
+    - {id: cus_01, name: "Arbor Labs", email: billing@arbor.example}
+    - {id: cus_02, name: "Bramble Co", email: billing@bramble.example}
+    - {id: cus_03, name: "Cinder Analytics", email: billing@cinder.example}
+    - {id: cus_04, name: "Delta Forge", email: billing@delta.example}
+    - {id: cus_05, name: "Ember Health", email: billing@ember.example}
+    - {id: cus_06, name: "Fjord Media", email: billing@fjord.example}
+    - {id: cus_07, name: "Gable Works", email: billing@gable.example}
+    - {id: cus_08, name: "Harbor Freight Tech", email: billing@harbor.example}
+    - {id: cus_09, name: "Indigo Print", email: billing@indigo.example}
+    - {id: cus_10, name: "Juniper Legal", email: billing@juniper.example}
+    - {id: cus_11, name: "Kestrel Ops", email: billing@kestrel.example}
+    - {id: cus_12, name: "Lumen Retail", email: billing@lumen.example}
+    - {id: cus_13, name: "Marble Studio", email: billing@marble.example}
+    - {id: cus_14, name: "Nimbus Travel", email: billing@nimbus.example}
+    - {id: cus_15, name: "Orchid Foods", email: billing@orchid.example}
+    - {id: cus_16, name: "Pylon Energy", email: billing@pylon.example}
+    - {id: cus_17, name: "Quarry Data", email: billing@quarry.example}
+    - {id: cus_18, name: "Rivet Robotics", email: billing@rivet.example}
+    - {id: cus_19, name: "Sable Systems", email: billing@sable.example}
+    - {id: cus_20, name: "Tundra Gear", email: billing@tundra.example}
+    - {id: cus_21, name: "Umber Design", email: billing@umber.example}
+    - {id: cus_22, name: "Vale Logistics", email: billing@vale.example}
+    - {id: cus_23, name: "Willow Clinics", email: billing@willow.example}
+    - {id: cus_24, name: "Xeno Bio", email: billing@xeno.example}
+    - {id: cus_25, name: "Yarrow Schools", email: billing@yarrow.example}
+    - {id: cus_26, name: "Zephyr Air", email: billing@zephyr.example}
+  charges:
+    - {id: ch_001, customer: cus_10, amount: 29.0, currency: USD, status: succeeded, created: "2026-08-27T18:49:00Z"}
+    - {id: ch_002, customer: cus_25, amount: 1990.0, currency: USD, status: partially_refunded, created: "2026-08-29T16:54:00Z", amount_refunded: 50.0}
+    - {id: ch_003, customer: cus_03, amount: 199.0, currency: USD, status: succeeded, created: "2026-08-30T20:33:00Z"}
+    - {id: ch_081, customer: cus_07, amount: 1990.0, currency: USD, status: succeeded, created: "2026-09-01T02:40:00Z"}
+    - {id: ch_005, customer: cus_11, amount: 29.0, currency: USD, status: succeeded, created: "2026-09-01T14:41:00Z"}
+    - {id: ch_004, customer: cus_18, amount: 79.0, currency: USD, status: succeeded, created: "2026-09-01T16:30:00Z"}
+    - {id: ch_006, customer: cus_01, amount: 199.0, currency: USD, status: succeeded, created: "2026-09-02T13:12:00Z"}
+    - {id: ch_007, customer: cus_01, amount: 1990.0, currency: USD, status: succeeded, created: "2026-09-02T17:39:00Z"}
+    - {id: ch_008, customer: cus_08, amount: 29.0, currency: USD, status: succeeded, created: "2026-09-03T16:36:00Z"}
+    - {id: ch_009, customer: cus_05, amount: 499.0, currency: USD, status: succeeded, created: "2026-09-03T20:02:00Z"}
+    - {id: ch_010, customer: cus_23, amount: 1990.0, currency: USD, status: succeeded, created: "2026-09-04T14:43:00Z"}
+    - {id: ch_011, customer: cus_03, amount: 79.0, currency: USD, status: succeeded, created: "2026-09-04T17:56:00Z"}
+    - {id: ch_014, customer: cus_26, amount: 499.0, currency: USD, status: succeeded, created: "2026-09-05T12:13:00Z"}
+    - {id: ch_012, customer: cus_22, amount: 199.0, currency: USD, status: succeeded, created: "2026-09-05T16:57:00Z"}
+    - {id: ch_013, customer: cus_16, amount: 199.0, currency: USD, status: succeeded, created: "2026-09-05T19:45:00Z"}
+    - {id: ch_016, customer: cus_06, amount: 199.0, currency: USD, status: succeeded, created: "2026-09-06T13:09:00Z"}
+    - {id: ch_015, customer: cus_16, amount: 79.0, currency: USD, status: succeeded, created: "2026-09-06T21:42:00Z"}
+    - {id: ch_019, customer: cus_23, amount: 79.0, currency: USD, status: succeeded, created: "2026-09-07T13:29:00Z"}
+    - {id: ch_018, customer: cus_25, amount: 499.0, currency: USD, status: succeeded, created: "2026-09-07T20:59:00Z"}
+    - {id: ch_017, customer: cus_13, amount: 199.0, currency: USD, status: succeeded, created: "2026-09-07T22:57:00Z"}
+    - {id: ch_020, customer: cus_12, amount: 1990.0, currency: USD, status: succeeded, created: "2026-09-08T12:42:00Z"}
+    - {id: ch_021, customer: cus_16, amount: 79.0, currency: USD, status: succeeded, created: "2026-09-08T15:25:00Z"}
+    - {id: ch_022, customer: cus_26, amount: 29.0, currency: USD, status: succeeded, created: "2026-09-08T21:30:00Z"}
+    - {id: ch_024, customer: cus_25, amount: 790.0, currency: USD, status: succeeded, created: "2026-09-09T12:10:00Z"}
+    - {id: ch_023, customer: cus_16, amount: 1990.0, currency: USD, status: succeeded, created: "2026-09-09T13:23:00Z"}
+    - {id: ch_026, customer: cus_01, amount: 199.0, currency: USD, status: succeeded, created: "2026-09-10T14:16:00Z"}
+    - {id: ch_027, customer: cus_23, amount: 199.0, currency: USD, status: succeeded, created: "2026-09-10T16:07:00Z"}
+    - {id: ch_025, customer: cus_26, amount: 79.0, currency: USD, status: succeeded, created: "2026-09-10T18:21:00Z"}
+    - {id: ch_028, customer: cus_15, amount: 199.0, currency: USD, status: succeeded, created: "2026-09-11T15:59:00Z"}
+    - {id: ch_029, customer: cus_26, amount: 29.0, currency: USD, status: succeeded, created: "2026-09-11T22:24:00Z"}
+    - {id: ch_031, customer: cus_09, amount: 199.0, currency: USD, status: succeeded, created: "2026-09-12T13:19:00Z"}
+    - {id: ch_030, customer: cus_25, amount: 1990.0, currency: USD, status: succeeded, created: "2026-09-12T16:37:00Z"}
+    - {id: ch_032, customer: cus_15, amount: 499.0, currency: USD, status: succeeded, created: "2026-09-12T20:01:00Z"}
+    - {id: ch_033, customer: cus_04, amount: 499.0, currency: USD, status: succeeded, created: "2026-09-13T15:37:00Z"}
+    - {id: ch_035, customer: cus_03, amount: 1990.0, currency: USD, status: succeeded, created: "2026-09-13T21:27:00Z"}
+    - {id: ch_034, customer: cus_13, amount: 79.0, currency: USD, status: succeeded, created: "2026-09-13T22:32:00Z"}
+    - {id: ch_036, customer: cus_25, amount: 499.0, currency: USD, status: succeeded, created: "2026-09-14T13:40:00Z"}
+    - {id: ch_037, customer: cus_08, amount: 199.0, currency: USD, status: succeeded, created: "2026-09-14T21:46:00Z"}
+    - {id: ch_038, customer: cus_11, amount: 790.0, currency: USD, status: succeeded, created: "2026-09-15T16:10:00Z"}
+    - {id: ch_039, customer: cus_05, amount: 199.0, currency: USD, status: succeeded, created: "2026-09-15T17:51:00Z"}
+    - {id: ch_040, customer: cus_13, amount: 790.0, currency: USD, status: succeeded, created: "2026-09-15T22:35:00Z"}
+    - {id: ch_042, customer: cus_04, amount: 79.0, currency: USD, status: succeeded, created: "2026-09-16T17:31:00Z"}
+    - {id: ch_043, customer: cus_19, amount: 1990.0, currency: USD, status: succeeded, created: "2026-09-16T18:04:00Z"}
+    - {id: ch_041, customer: cus_16, amount: 499.0, currency: USD, status: succeeded, created: "2026-09-16T22:07:00Z"}
+    - {id: ch_044, customer: cus_01, amount: 199.0, currency: USD, status: succeeded, created: "2026-09-17T19:37:00Z"}
+    - {id: ch_045, customer: cus_08, amount: 1990.0, currency: USD, status: succeeded, created: "2026-09-17T21:22:00Z"}
+    - {id: ch_047, customer: cus_03, amount: 29.0, currency: USD, status: succeeded, created: "2026-09-18T15:01:00Z"}
+    - {id: ch_046, customer: cus_19, amount: 29.0, currency: USD, status: succeeded, created: "2026-09-18T22:22:00Z"}
+    - {id: ch_048, customer: cus_05, amount: 499.0, currency: USD, status: succeeded, created: "2026-09-19T13:06:00Z"}
+    - {id: ch_049, customer: cus_01, amount: 199.0, currency: USD, status: succeeded, created: "2026-09-19T20:20:00Z"}
+    - {id: ch_052, customer: cus_10, amount: 499.0, currency: USD, status: succeeded, created: "2026-09-20T12:52:00Z"}
+    - {id: ch_050, customer: cus_19, amount: 29.0, currency: USD, status: succeeded, created: "2026-09-20T13:06:00Z"}
+    - {id: ch_051, customer: cus_18, amount: 29.0, currency: USD, status: succeeded, created: "2026-09-20T19:02:00Z"}
+    - {id: ch_053, customer: cus_15, amount: 199.0, currency: USD, status: succeeded, created: "2026-09-21T18:45:00Z"}
+    - {id: ch_054, customer: cus_07, amount: 790.0, currency: USD, status: succeeded, created: "2026-09-21T19:13:00Z"}
+    - {id: ch_055, customer: cus_08, amount: 499.0, currency: USD, status: succeeded, created: "2026-09-22T19:28:00Z"}
+    - {id: ch_056, customer: cus_01, amount: 1990.0, currency: USD, status: succeeded, created: "2026-09-22T20:09:00Z"}
+    - {id: ch_059, customer: cus_14, amount: 199.0, currency: USD, status: succeeded, created: "2026-09-23T12:28:00Z"}
+    - {id: ch_058, customer: cus_16, amount: 79.0, currency: USD, status: succeeded, created: "2026-09-23T15:05:00Z"}
+    - {id: ch_057, customer: cus_07, amount: 199.0, currency: USD, status: succeeded, created: "2026-09-23T16:42:00Z"}
+    - {id: ch_061, customer: cus_07, amount: 199.0, currency: USD, status: succeeded, created: "2026-09-24T17:18:00Z"}
+    - {id: ch_060, customer: cus_03, amount: 790.0, currency: USD, status: refunded, created: "2026-09-24T19:17:00Z", amount_refunded: 790.0}
+    - {id: ch_062, customer: cus_04, amount: 79.0, currency: USD, status: succeeded, created: "2026-09-24T21:01:00Z"}
+    - {id: ch_063, customer: cus_15, amount: 199.0, currency: USD, status: succeeded, created: "2026-09-25T13:04:00Z"}
+    - {id: ch_064, customer: cus_09, amount: 79.0, currency: USD, status: succeeded, created: "2026-09-25T18:02:00Z"}
+    - {id: ch_065, customer: cus_03, amount: 499.0, currency: USD, status: succeeded, created: "2026-09-25T21:07:00Z"}
+    - {id: ch_067, customer: cus_21, amount: 79.0, currency: USD, status: succeeded, created: "2026-09-26T15:10:00Z"}
+    - {id: ch_066, customer: cus_20, amount: 79.0, currency: USD, status: succeeded, created: "2026-09-26T19:02:00Z"}
+    - {id: ch_069, customer: cus_21, amount: 29.0, currency: USD, status: succeeded, created: "2026-09-27T14:22:00Z"}
+    - {id: ch_068, customer: cus_25, amount: 79.0, currency: USD, status: succeeded, created: "2026-09-27T15:10:00Z"}
+    - {id: ch_070, customer: cus_14, amount: 79.0, currency: USD, status: succeeded, created: "2026-09-27T19:19:00Z"}
+    - {id: ch_073, customer: cus_10, amount: 199.0, currency: USD, status: succeeded, created: "2026-09-28T15:13:00Z"}
+    - {id: ch_071, customer: cus_19, amount: 199.0, currency: USD, status: succeeded, created: "2026-09-28T20:09:00Z"}
+    - {id: ch_072, customer: cus_16, amount: 199.0, currency: USD, status: succeeded, created: "2026-09-28T21:57:00Z"}
+    - {id: ch_074, customer: cus_17, amount: 29.0, currency: USD, status: succeeded, created: "2026-09-29T16:44:00Z"}
+    - {id: ch_075, customer: cus_11, amount: 79.0, currency: USD, status: succeeded, created: "2026-09-29T20:15:00Z"}
+    - {id: ch_078, customer: cus_24, amount: 499.0, currency: USD, status: succeeded, created: "2026-09-30T13:47:00Z"}
+    - {id: ch_076, customer: cus_10, amount: 29.0, currency: USD, status: succeeded, created: "2026-09-30T20:57:00Z"}
+    - {id: ch_077, customer: cus_18, amount: 1990.0, currency: USD, status: succeeded, created: "2026-09-30T22:28:00Z"}
+    - {id: ch_082, customer: cus_19, amount: 499.0, currency: USD, status: succeeded, created: "2026-10-01T03:10:00Z"}
+    - {id: ch_079, customer: cus_07, amount: 29.0, currency: USD, status: succeeded, created: "2026-10-03T21:10:00Z"}
+    - {id: ch_080, customer: cus_20, amount: 1990.0, currency: USD, status: succeeded, created: "2026-10-05T19:18:00Z"}
+  refunds:
+    - {id: re_01, charge: ch_002, amount: 50.0, currency: USD, reason: "goodwill credit", created: "2026-09-14T15:05:00Z"}
+    - {id: re_02, charge: ch_060, amount: 790.0, currency: USD, reason: requested_by_customer, created: "2026-09-29T19:30:00Z"}
+analytics:
+  insights:
+    - {id: ins_act7, name: "Activation (7-day)", kind: funnel, steps: [signed_up, project_created], window_days: 7, description: "Signups who create a first project within 7 days. The KPI definition."}
+    - {id: ins_act30, name: "Activation (30-day, legacy)", kind: funnel, steps: [signed_up, project_created], window_days: 30, description: "Old definition, kept for comparison. Not the KPI."}
+    - {id: ins_signups, name: Signups, kind: trend, event: signed_up, interval: week}
+  events:
+    - {id: e001, event: signed_up, person: u001, ts: "2026-08-26T19:21:00Z"}
+    - {id: e002, event: signed_up, person: u002, ts: "2026-08-29T14:06:00Z"}
+    - {id: e003, event: project_created, person: u002, ts: "2026-08-29T19:06:00Z"}
+    - {id: e004, event: signed_up, person: u003, ts: "2026-08-31T01:11:00Z"}
+    - {id: e005, event: project_created, person: u003, ts: "2026-08-31T03:11:00Z"}
+    - {id: e006, event: signed_up, person: u004, ts: "2026-08-31T18:46:00Z"}
+    - {id: e007, event: signed_up, person: u066, ts: "2026-09-01T02:30:00Z"}
+    - {id: e008, event: signed_up, person: u006, ts: "2026-09-01T12:17:00Z"}
+    - {id: e009, event: signed_up, person: u005, ts: "2026-09-01T12:27:00Z"}
+    - {id: e010, event: signed_up, person: u007, ts: "2026-09-02T17:40:00Z"}
+    - {id: e011, event: signed_up, person: u009, ts: "2026-09-02T19:24:00Z"}
+    - {id: e012, event: project_created, person: u009, ts: "2026-09-02T21:24:00Z"}
+    - {id: e013, event: signed_up, person: u008, ts: "2026-09-02T21:30:00Z"}
+    - {id: e014, event: project_created, person: u005, ts: "2026-09-03T17:27:00Z"}
+    - {id: e015, event: signed_up, person: u010, ts: "2026-09-03T18:36:00Z"}
+    - {id: e016, event: signed_up, person: u011, ts: "2026-09-04T22:29:00Z"}
+    - {id: e017, event: project_created, person: u008, ts: "2026-09-04T22:30:00Z"}
+    - {id: e018, event: project_created, person: u007, ts: "2026-09-04T22:40:00Z"}
+    - {id: e019, event: signed_up, person: u013, ts: "2026-09-05T14:30:00Z"}
+    - {id: e020, event: signed_up, person: u012, ts: "2026-09-05T22:16:00Z"}
+    - {id: e021, event: signed_up, person: u016, ts: "2026-09-06T14:18:00Z"}
+    - {id: e022, event: signed_up, person: u015, ts: "2026-09-06T14:51:00Z"}
+    - {id: e023, event: signed_up, person: u014, ts: "2026-09-06T19:42:00Z"}
+    - {id: e024, event: project_created, person: u004, ts: "2026-09-06T20:46:00Z"}
+    - {id: e025, event: signed_up, person: u019, ts: "2026-09-07T11:29:00Z"}
+    - {id: e026, event: project_created, person: u019, ts: "2026-09-07T14:29:00Z"}
+    - {id: e027, event: signed_up, person: u018, ts: "2026-09-07T20:17:00Z"}
+    - {id: e028, event: signed_up, person: u017, ts: "2026-09-08T00:40:00Z"}
+    - {id: e029, event: signed_up, person: u020, ts: "2026-09-08T16:47:00Z"}
+    - {id: e030, event: signed_up, person: u021, ts: "2026-09-08T18:21:00Z"}
+    - {id: e031, event: signed_up, person: u022, ts: "2026-09-08T19:03:00Z"}
+    - {id: e032, event: project_created, person: u020, ts: "2026-09-08T19:47:00Z"}
+    - {id: e033, event: signed_up, person: u023, ts: "2026-09-09T18:50:00Z"}
+    - {id: e034, event: signed_up, person: u024, ts: "2026-09-09T22:39:00Z"}
+    - {id: e035, event: signed_up, person: u025, ts: "2026-09-10T18:20:00Z"}
+    - {id: e036, event: signed_up, person: u026, ts: "2026-09-11T14:54:00Z"}
+    - {id: e037, event: signed_up, person: u028, ts: "2026-09-11T15:14:00Z"}
+    - {id: e038, event: project_created, person: u018, ts: "2026-09-11T21:17:00Z"}
+    - {id: e039, event: signed_up, person: u027, ts: "2026-09-12T01:37:00Z"}
+    - {id: e040, event: signed_up, person: u031, ts: "2026-09-12T12:59:00Z"}
+    - {id: e041, event: signed_up, person: u029, ts: "2026-09-12T15:56:00Z"}
+    - {id: e042, event: signed_up, person: u030, ts: "2026-09-12T19:03:00Z"}
+    - {id: e043, event: project_created, person: u031, ts: "2026-09-13T13:59:00Z"}
+    - {id: e044, event: signed_up, person: u033, ts: "2026-09-13T21:01:00Z"}
+    - {id: e045, event: project_created, person: u011, ts: "2026-09-13T22:29:00Z"}
+    - {id: e046, event: signed_up, person: u032, ts: "2026-09-13T22:47:00Z"}
+    - {id: e047, event: signed_up, person: u034, ts: "2026-09-14T12:30:00Z"}
+    - {id: e048, event: project_created, person: u034, ts: "2026-09-14T14:30:00Z"}
+    - {id: e049, event: signed_up, person: u035, ts: "2026-09-15T14:40:00Z"}
+    - {id: e050, event: project_created, person: u010, ts: "2026-09-15T18:36:00Z"}
+    - {id: e051, event: signed_up, person: u037, ts: "2026-09-15T23:28:00Z"}
+    - {id: e052, event: signed_up, person: u036, ts: "2026-09-16T01:11:00Z"}
+    - {id: e053, event: project_created, person: u032, ts: "2026-09-16T01:47:00Z"}
+    - {id: e054, event: signed_up, person: u040, ts: "2026-09-16T15:14:00Z"}
+    - {id: e055, event: project_created, person: u040, ts: "2026-09-16T18:14:00Z"}
+    - {id: e056, event: signed_up, person: u039, ts: "2026-09-16T20:54:00Z"}
+    - {id: e057, event: signed_up, person: u038, ts: "2026-09-16T23:06:00Z"}
+    - {id: e058, event: project_created, person: u017, ts: "2026-09-17T00:40:00Z"}
+    - {id: e059, event: signed_up, person: u042, ts: "2026-09-17T19:16:00Z"}
+    - {id: e060, event: signed_up, person: u041, ts: "2026-09-17T20:37:00Z"}
+    - {id: e061, event: project_created, person: u033, ts: "2026-09-18T02:01:00Z"}
+    - {id: e062, event: signed_up, person: u043, ts: "2026-09-18T21:57:00Z"}
+    - {id: e063, event: project_created, person: u035, ts: "2026-09-19T16:40:00Z"}
+    - {id: e064, event: signed_up, person: u044, ts: "2026-09-19T21:36:00Z"}
+    - {id: e065, event: project_created, person: u036, ts: "2026-09-20T05:11:00Z"}
+    - {id: e066, event: signed_up, person: u045, ts: "2026-09-20T11:27:00Z"}
+    - {id: e067, event: project_created, person: u006, ts: "2026-09-21T12:17:00Z"}
+    - {id: e068, event: project_created, person: u045, ts: "2026-09-21T12:27:00Z"}
+    - {id: e069, event: signed_up, person: u046, ts: "2026-09-21T17:18:00Z"}
+    - {id: e070, event: project_created, person: u037, ts: "2026-09-22T03:28:00Z"}
+    - {id: e071, event: signed_up, person: u049, ts: "2026-09-22T16:56:00Z"}
+    - {id: e072, event: signed_up, person: u047, ts: "2026-09-22T18:03:00Z"}
+    - {id: e073, event: signed_up, person: u048, ts: "2026-09-22T22:52:00Z"}
+    - {id: e074, event: signed_up, person: u050, ts: "2026-09-23T23:20:00Z"}
+    - {id: e075, event: project_created, person: u029, ts: "2026-09-24T15:56:00Z"}
+    - {id: e076, event: signed_up, person: u051, ts: "2026-09-24T19:55:00Z"}
+    - {id: e077, event: project_created, person: u051, ts: "2026-09-24T20:55:00Z"}
+    - {id: e078, event: signed_up, person: u052, ts: "2026-09-24T21:49:00Z"}
+    - {id: e079, event: signed_up, person: u053, ts: "2026-09-25T14:03:00Z"}
+    - {id: e080, event: project_created, person: u046, ts: "2026-09-25T20:18:00Z"}
+    - {id: e081, event: project_created, person: u012, ts: "2026-09-25T22:16:00Z"}
+    - {id: e082, event: signed_up, person: u055, ts: "2026-09-26T18:18:00Z"}
+    - {id: e083, event: signed_up, person: u054, ts: "2026-09-26T19:10:00Z"}
+    - {id: e084, event: project_created, person: u052, ts: "2026-09-27T01:49:00Z"}
+    - {id: e085, event: signed_up, person: u056, ts: "2026-09-27T23:10:00Z"}
+    - {id: e086, event: project_created, person: u054, ts: "2026-09-28T00:10:00Z"}
+    - {id: e087, event: signed_up, person: u057, ts: "2026-09-28T01:55:00Z"}
+    - {id: e088, event: project_created, person: u047, ts: "2026-09-28T20:03:00Z"}
+    - {id: e089, event: signed_up, person: u058, ts: "2026-09-28T23:57:00Z"}
+    - {id: e090, event: signed_up, person: u059, ts: "2026-09-29T16:13:00Z"}
+    - {id: e091, event: signed_up, person: u060, ts: "2026-09-29T22:42:00Z"}
+    - {id: e092, event: project_created, person: u050, ts: "2026-09-30T00:20:00Z"}
+    - {id: e093, event: project_created, person: u057, ts: "2026-09-30T02:55:00Z"}
+    - {id: e094, event: signed_up, person: u062, ts: "2026-09-30T11:14:00Z"}
+    - {id: e095, event: signed_up, person: u061, ts: "2026-09-30T13:07:00Z"}
+    - {id: e096, event: signed_up, person: u063, ts: "2026-09-30T20:13:00Z"}
+    - {id: e097, event: signed_up, person: u067, ts: "2026-10-01T01:50:00Z"}
+    - {id: e098, event: signed_up, person: u064, ts: "2026-10-02T13:45:00Z"}
+    - {id: e099, event: project_created, person: u067, ts: "2026-10-02T14:00:00Z"}
+    - {id: e100, event: project_created, person: u055, ts: "2026-10-02T22:18:00Z"}
+    - {id: e101, event: signed_up, person: u065, ts: "2026-10-03T20:54:00Z"}
+    - {id: e102, event: project_created, person: u056, ts: "2026-10-04T03:10:00Z"}
+    - {id: e103, event: project_created, person: u063, ts: "2026-10-05T00:13:00Z"}
+    - {id: e104, event: project_created, person: u059, ts: "2026-10-08T16:13:00Z"}
+    - {id: e105, event: project_created, person: u064, ts: "2026-10-14T13:45:00Z"}
+    - {id: e106, event: project_created, person: u061, ts: "2026-10-20T13:07:00Z"}
+helpdesk:
+  tickets:
+    - {id: TKT-2101, subject: "Billing question", requester: willow@users.example, status: solved, created: "2026-08-17T19:15:00Z"}
+    - {id: TKT-2102, subject: "Feature request: tags", requester: rivet@users.example, status: solved, created: "2026-08-18T14:14:00Z"}
+    - {id: TKT-2103, subject: "Billing question", requester: cinder@users.example, status: solved, created: "2026-08-20T13:53:00Z"}
+    - {id: TKT-2104, subject: "SSO setup", requester: pylon@users.example, status: closed, created: "2026-08-25T14:00:00Z"}
+    - {id: TKT-2105, subject: "API rate limit", requester: bramble@users.example, status: solved, created: "2026-08-28T22:18:00Z"}
+    - {id: TKT-2106, subject: "Delete my account", requester: xeno@users.example, status: closed, created: "2026-08-30T13:20:00Z"}
+    - {id: TKT-2107, subject: "Invite not received", requester: tundra@users.example, status: closed, created: "2026-09-01T13:43:00Z"}
+    - {id: TKT-2108, subject: "API rate limit", requester: kestrel@users.example, status: closed, created: "2026-09-01T21:13:00Z"}
+    - {id: TKT-2109, subject: "Webhook failing", requester: juniper@users.example, status: solved, created: "2026-09-02T21:47:00Z"}
+    - {id: TKT-2110, subject: "Billing question", requester: indigo@users.example, status: closed, created: "2026-09-02T22:12:00Z"}
+    - {id: TKT-2111, subject: "Webhook failing", requester: pylon@users.example, status: closed, created: "2026-09-03T22:10:00Z"}
+    - {id: TKT-2112, subject: "Slow dashboard", requester: rivet@users.example, status: solved, created: "2026-09-04T18:30:00Z"}
+    - {id: TKT-2113, subject: "Invoice copy", requester: pylon@users.example, status: closed, created: "2026-09-04T19:20:00Z"}
+    - {id: TKT-2114, subject: "SSO setup", requester: fjord@users.example, status: closed, created: "2026-09-05T20:28:00Z"}
+    - {id: TKT-2115, subject: "Invite not received", requester: bramble@users.example, status: solved, created: "2026-09-06T16:39:00Z"}
+    - {id: TKT-2116, subject: "Slow dashboard", requester: harbor@users.example, status: closed, created: "2026-09-07T23:32:00Z"}
+    - {id: TKT-2117, subject: "Billing question", requester: harbor@users.example, status: closed, created: "2026-09-08T13:15:00Z"}
+    - {id: TKT-2118, subject: "API rate limit", requester: umber@users.example, status: solved, created: "2026-09-08T18:58:00Z"}
+    - {id: TKT-2119, subject: "Password reset loop", requester: umber@users.example, status: closed, created: "2026-09-09T16:24:00Z"}
+    - {id: TKT-2120, subject: "Invite not received", requester: umber@users.example, status: closed, created: "2026-09-09T17:25:00Z"}
+    - {id: TKT-2121, subject: "Integration with Slack", requester: tundra@users.example, status: closed, created: "2026-09-11T00:11:00Z"}
+    - {id: TKT-2122, subject: "Invite not received", requester: fjord@users.example, status: closed, created: "2026-09-11T12:59:00Z"}
+    - {id: TKT-2123, subject: "API rate limit", requester: gable@users.example, status: solved, created: "2026-09-12T11:37:00Z"}
+    - {id: TKT-2124, subject: "Data import stuck", requester: cinder@users.example, status: closed, created: "2026-09-12T14:24:00Z"}
+    - {id: TKT-2125, subject: "Feature request: tags", requester: zephyr@users.example, status: solved, created: "2026-09-13T11:06:00Z"}
+    - {id: TKT-2126, subject: "SSO setup", requester: nimbus@users.example, status: solved, created: "2026-09-13T20:55:00Z"}
+    - {id: TKT-2127, subject: "Change plan", requester: bramble@users.example, status: closed, created: "2026-09-14T23:57:00Z"}
+    - {id: TKT-2128, subject: "API rate limit", requester: marble@users.example, status: solved, created: "2026-09-15T22:56:00Z"}
+    - {id: TKT-2129, subject: "Slow dashboard", requester: tundra@users.example, status: solved, created: "2026-09-16T10:00:00Z"}
+    - {id: TKT-2130, subject: "Slow dashboard", requester: vale@users.example, status: closed, created: "2026-09-16T23:04:00Z"}
+    - {id: TKT-2131, subject: "Webhook failing", requester: tundra@users.example, status: closed, created: "2026-09-17T11:28:00Z"}
+    - {id: TKT-2132, subject: "Integration with Slack", requester: bramble@users.example, status: solved, created: "2026-09-17T18:34:00Z"}
+    - {id: TKT-2133, subject: "Invoice copy", requester: arbor@users.example, status: closed, created: "2026-09-18T14:25:00Z"}
+    - {id: TKT-2134, subject: "Billing question", requester: pylon@users.example, status: solved, created: "2026-09-18T14:44:00Z"}
+    - {id: TKT-2135, subject: "Change plan", requester: harbor@users.example, status: closed, created: "2026-09-19T17:50:00Z"}
+    - {id: TKT-2136, subject: "Feature request: tags", requester: orchid@users.example, status: solved, created: "2026-09-19T20:10:00Z"}
+    - {id: TKT-2137, subject: "Invite not received", requester: kestrel@users.example, status: solved, created: "2026-09-20T16:14:00Z"}
+    - {id: TKT-2138, subject: "Integration with Slack", requester: willow@users.example, status: closed, created: "2026-09-20T18:32:00Z"}
+    - {id: TKT-2139, subject: "Webhook failing", requester: lumen@users.example, status: closed, created: "2026-09-21T20:27:00Z"}
+    - {id: TKT-2140, subject: "API rate limit", requester: arbor@users.example, status: closed, created: "2026-09-22T14:09:00Z"}
+    - {id: TKT-2141, subject: "Data import stuck", requester: juniper@users.example, status: closed, created: "2026-09-23T17:29:00Z"}
+    - {id: TKT-2142, subject: "Billing question", requester: gable@users.example, status: closed, created: "2026-09-24T11:47:00Z"}
+    - {id: TKT-2143, subject: "Webhook failing", requester: orchid@users.example, status: closed, created: "2026-09-24T17:47:00Z"}
+    - {id: TKT-2144, subject: "API rate limit", requester: lumen@users.example, status: solved, created: "2026-09-25T12:50:00Z"}
+    - {id: TKT-2145, subject: "Billing question", requester: bramble@users.example, status: solved, created: "2026-09-25T21:14:00Z"}
+    - {id: TKT-2146, subject: "Data import stuck", requester: ember@users.example, status: open, created: "2026-09-26T13:31:00Z"}
+    - {id: TKT-2147, subject: "Invite not received", requester: harbor@users.example, status: solved, created: "2026-09-26T16:10:00Z"}
+    - {id: TKT-2148, subject: "Change plan", requester: willow@users.example, status: open, created: "2026-09-27T13:48:00Z"}
+    - {id: TKT-2149, subject: "Slow dashboard", requester: rivet@users.example, status: solved, created: "2026-09-28T10:22:00Z"}
+    - {id: TKT-2150, subject: "Invite not received", requester: indigo@users.example, status: solved, created: "2026-09-28T10:35:00Z"}
+    - {id: TKT-2151, subject: "Can't export CSV", requester: quarry@users.example, status: pending, created: "2026-09-29T17:49:00Z"}
+    - {id: TKT-2152, subject: "Can't export CSV", requester: quarry@users.example, status: open, created: "2026-09-30T11:25:00Z"}
+    - {id: TKT-2153, subject: "SSO setup", requester: rivet@users.example, status: solved, created: "2026-09-30T23:13:00Z"}
+    - {id: TKT-2154, subject: "Feature request: tags", requester: xeno@users.example, status: open, created: "2026-10-01T02:45:00Z"}
+    - {id: TKT-2155, subject: "Password reset loop", requester: orchid@users.example, status: open, created: "2026-10-01T14:28:00Z"}
+    - {id: TKT-2156, subject: "API rate limit", requester: vale@users.example, status: open, created: "2026-10-03T11:59:00Z"}
+sheets:
+  sheets:
+    - {id: sh_kpi, title: KPIs, columns: [metric, "Jul 2026", "Aug 2026", "Sep 2026"]}
+    - {id: sh_fin, title: "Finance export Sep 2026", columns: [line, amount_usd, note]}
+    - {id: sh_nps, title: "NPS responses", columns: [date, score]}
+  rows:
+    - {id: k1, sheet: sh_kpi, position: 1, metric: "Net revenue (USD)", Jul 2026: 26940.0, Aug 2026: 27315.0, Sep 2026: null}
+    - {id: k2, sheet: sh_kpi, position: 2, metric: "New signups", Jul 2026: 47, Aug 2026: 44, Sep 2026: null}
+    - {id: k3, sheet: sh_kpi, position: 3, metric: "Activation rate (%)", Jul 2026: 46.8, Aug 2026: 47.7, Sep 2026: null}
+    - {id: k4, sheet: sh_kpi, position: 4, metric: "Support tickets opened", Jul 2026: 39, Aug 2026: 41, Sep 2026: null}
+    - {id: k5, sheet: sh_kpi, position: 5, metric: NPS, Jul 2026: 38, Aug 2026: 50, Sep 2026: null}
+    - {id: f1, sheet: sh_fin, position: 1, line: "Revenue (recognised)", amount_usd: 38444.0, note: "accrual; includes annual plans spread monthly"}
+    - {id: f2, sheet: sh_fin, position: 2, line: "Cost of revenue", amount_usd: 9120.0, note: ""}
+    - {id: f3, sheet: sh_fin, position: 3, line: Payroll, amount_usd: 61200.0, note: ""}
+    - {id: f4, sheet: sh_fin, position: 4, line: "Software & tools", amount_usd: 4380.0, note: ""}
+    - {id: f5, sheet: sh_fin, position: 5, line: Marketing, amount_usd: 7650.0, note: ""}
+    - {id: n01, sheet: sh_nps, position: 1, date: "2026-07-01", score: 10}
+    - {id: n02, sheet: sh_nps, position: 2, date: "2026-07-02", score: 9}
+    - {id: n03, sheet: sh_nps, position: 3, date: "2026-07-04", score: 9}
+    - {id: n04, sheet: sh_nps, position: 4, date: "2026-07-06", score: 8}
+    - {id: n05, sheet: sh_nps, position: 5, date: "2026-07-07", score: 10}
+    - {id: n06, sheet: sh_nps, position: 6, date: "2026-07-09", score: 7}
+    - {id: n07, sheet: sh_nps, position: 7, date: "2026-07-11", score: 6}
+    - {id: n08, sheet: sh_nps, position: 8, date: "2026-07-12", score: 9}
+    - {id: n09, sheet: sh_nps, position: 9, date: "2026-07-14", score: 10}
+    - {id: n10, sheet: sh_nps, position: 10, date: "2026-07-16", score: 3}
+    - {id: n11, sheet: sh_nps, position: 11, date: "2026-07-17", score: 9}
+    - {id: n12, sheet: sh_nps, position: 12, date: "2026-07-19", score: 8}
+    - {id: n13, sheet: sh_nps, position: 13, date: "2026-07-21", score: 10}
+    - {id: n14, sheet: sh_nps, position: 14, date: "2026-07-22", score: 5}
+    - {id: n15, sheet: sh_nps, position: 15, date: "2026-07-24", score: 9}
+    - {id: n16, sheet: sh_nps, position: 16, date: "2026-07-26", score: 7}
+    - {id: n17, sheet: sh_nps, position: 17, date: "2026-08-01", score: 9}
+    - {id: n18, sheet: sh_nps, position: 18, date: "2026-08-02", score: 10}
+    - {id: n19, sheet: sh_nps, position: 19, date: "2026-08-04", score: 10}
+    - {id: n20, sheet: sh_nps, position: 20, date: "2026-08-05", score: 8}
+    - {id: n21, sheet: sh_nps, position: 21, date: "2026-08-07", score: 9}
+    - {id: n22, sheet: sh_nps, position: 22, date: "2026-08-08", score: 6}
+    - {id: n23, sheet: sh_nps, position: 23, date: "2026-08-10", score: 10}
+    - {id: n24, sheet: sh_nps, position: 24, date: "2026-08-11", score: 9}
+    - {id: n25, sheet: sh_nps, position: 25, date: "2026-08-13", score: 7}
+    - {id: n26, sheet: sh_nps, position: 26, date: "2026-08-14", score: 9}
+    - {id: n27, sheet: sh_nps, position: 27, date: "2026-08-16", score: 4}
+    - {id: n28, sheet: sh_nps, position: 28, date: "2026-08-17", score: 10}
+    - {id: n29, sheet: sh_nps, position: 29, date: "2026-08-19", score: 9}
+    - {id: n30, sheet: sh_nps, position: 30, date: "2026-08-20", score: 8}
+    - {id: n31, sheet: sh_nps, position: 31, date: "2026-08-22", score: 10}
+    - {id: n32, sheet: sh_nps, position: 32, date: "2026-08-23", score: 9}
+    - {id: n33, sheet: sh_nps, position: 33, date: "2026-08-25", score: 6}
+    - {id: n34, sheet: sh_nps, position: 34, date: "2026-08-26", score: 10}
+    - {id: n35, sheet: sh_nps, position: 35, date: "2026-10-01", score: 9}
+    - {id: n36, sheet: sh_nps, position: 36, date: "2026-10-01", score: 10}
+    - {id: n37, sheet: sh_nps, position: 37, date: "2026-10-02", score: 6}
+    - {id: n38, sheet: sh_nps, position: 38, date: "2026-10-02", score: 8}
+    - {id: n39, sheet: sh_nps, position: 39, date: "2026-10-03", score: 10}

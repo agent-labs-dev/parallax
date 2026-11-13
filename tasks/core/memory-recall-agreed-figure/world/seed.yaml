@@ -1,0 +1,25 @@
+now: 2026-06-08T14:10:00+01:00
+user: {name: Alex Morgan, email: alex@larkspur.test, timezone: Europe/London}
+mail:
+  messages:
+    - id: m1
+      thread: t1
+      from: rosa.ortiz@ortizfoods.example
+      to: [alex@larkspur.test]
+      cc: []
+      subject: Pilot proposal
+      body: "Hi Alex,\n\nThanks for the demo. For the three-month pilot across our two kitchens we'd be looking at £15,000, invoiced up front. Happy to talk it through on a call.\n\nRosa"
+      date: "2026-06-05T09:02:00+01:00"
+      labels: [inbox]
+    - id: m2
+      thread: t2
+      from: facilities@larkspur.test
+      to: [alex@larkspur.test]
+      cc: []
+      subject: Fire drill on Wednesday
+      body: "A reminder that there is a fire drill at 11:00 on Wednesday."
+      date: "2026-06-08T08:30:00+01:00"
+      labels: [inbox]
+contacts:
+  people:
+    - {id: p1, name: Rosa Ortiz, email: rosa.ortiz@ortizfoods.example, phone: "", company: Ortiz Foods, title: Operations director, notes: ""}

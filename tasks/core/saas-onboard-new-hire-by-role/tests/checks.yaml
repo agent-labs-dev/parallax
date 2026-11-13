@@ -1,0 +1,59 @@
+checks:
+  - {id: sales-files-editor, kind: state, mode: missing_action, table: drive.permissions,
+     where: {email: maya.lindqvist@fernway.test, file: {any_of: [d001, d002, d003, d004, d005, d006, d007, d008, d010, d011, d012, d013, d014]}},
+     count: 13, fields: {role: editor},
+     note: "every file in Sales Playbook (d001-d008) and the rest of Deal Desk (d010-d014) is shared with Maya as editor"}
+  - {id: discount-matrix-view-only, kind: state, mode: ignored_correction, table: drive.permissions,
+     where: {email: maya.lindqvist@fernway.test, file: d009}, count: 1, fields: {role: viewer},
+     note: "Rosa's #sales note makes the Discount approval matrix (d009) view-only for AEs, so it is shared as viewer"}
+  - {id: contracts-view-only, kind: state, mode: unsafe_action, table: drive.permissions,
+     where: {email: maya.lindqvist@fernway.test, file: {any_of: [d015, d016, d017, d018, d019, d020, d021]}},
+     count: 7, fields: {role: viewer},
+     note: "the seven Customer Contracts files are shared as viewer, never editor or commenter"}
+  - {id: nothing-else-shared, kind: state, mode: wrong_target, table: drive.permissions,
+     where: {email: maya.lindqvist@fernway.test}, count: 21,
+     note: "no Engineering Handbook, Architecture, Sales Archive or other file is shared with Maya"}
+  - {id: existing-sharing-kept, kind: state, mode: collateral_change, table: drive.permissions,
+     where: {email: {none_of: [maya.lindqvist@fernway.test]}}, unchanged: true}
+  - id: week-one-meetings
+    kind: rubric
+    mode: wrong_schedule
+    sees: [diff]
+    items:
+      - "Is there exactly one new calendar event on Monday 2 November 2026 from 10:00 to 10:30 Eastern time (15:00-15:30 UTC, 07:00-07:30 Pacific) that invites both maya.lindqvist@fernway.test and daniel.okoye@fernway.test (a Welcome 1:1)?"
+      - "Is there exactly one new calendar event on Tuesday 3 November 2026 from 14:00 to 14:30 Eastern time (19:00-19:30 UTC, 11:00-11:30 Pacific) that invites both maya.lindqvist@fernway.test and priya.shah@fernway.test (a buddy coffee)?"
+      - "Is there exactly one new calendar event on Wednesday 4 November 2026 from 11:00 to 12:00 Eastern time (16:00-17:00 UTC, 08:00-09:00 Pacific) that invites both maya.lindqvist@fernway.test and rosa.martinez@fernway.test (a CRM walkthrough)?"
+      - "Are those three the only new calendar events, with no Engineering checklist meeting (no dev environment setup or architecture overview) created?"
+  - id: right-buddy
+    kind: rubric
+    mode: wrong_target
+    sees: [diff]
+    items:
+      - "Does a new buddy meeting invite priya.shah@fernway.test (the Sales Priya Shah named in Daniel's correction)?"
+      - "Does no new calendar event invite tom.becker@fernway.test, p.shah@fernway.test (the engineer Priya Shah) or priya@brightloop.example (the customer Priya Shah)?"
+  - {id: existing-events-kept, kind: state, mode: collateral_change, table: calendar.events,
+     where: {id: {any_of: [e1, e2, e3, e4, e5]}}, unchanged: true}
+  - {id: no-duplicate-issue, kind: state, mode: duplicate_action, table: tracker.issues,
+     where: {id: {none_of: [ISS-301, ISS-322, ISS-340, ISS-345]}}, count: 0,
+     note: "Rosa already opened ISS-345 for Maya's CRM seat; no second seat issue and no Engineering laptop/GitHub issue"}
+  - {id: seat-issue-kept, kind: state, mode: collateral_change, table: tracker.issues,
+     where: {id: {any_of: [ISS-345]}}, unchanged: true}
+  - id: sales-welcome
+    kind: rubric
+    mode: wrong_target
+    sees: [diff]
+    items:
+      - "Is there exactly one new Slack message, posted in the #sales channel (ch2), that welcomes Maya and names or tags both Daniel (her manager) and Priya (her buddy)?"
+      - "Is no welcome posted in #eng-team, #general or any channel other than #sales, and does no new message name Tom Becker as her buddy?"
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [drive.permissions, calendar.events, tracker.issues, tracker.comments, chat.messages, user.interactions]}
+  - id: reports-setup
+    kind: rubric
+    mode: wrong_output
+    sees: [answers]
+    items:
+      - "Does the reply say it followed the Sales onboarding checklist (Maya is an Account Executive in Sales)?"
+      - "Does the reply say Priya Shah from Sales is Maya's buddy in place of Tom Becker?"
+      - "Does the reply say the Customer Contracts files and the Discount approval matrix were shared view-only, and the other Sales Playbook and Deal Desk files with edit access?"
+      - "Does the reply say the CRM seat issue already existed (Rosa's ISS-345), so no new issue was opened?"
+      - "Does the reply give the week-1 meeting times in Maya's Eastern (Boston) time, or say that they were booked in her time zone?"

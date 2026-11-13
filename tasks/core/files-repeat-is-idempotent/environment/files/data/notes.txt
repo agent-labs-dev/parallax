@@ -1,0 +1,1 @@
+Sales exports from the till system, one file per month. Amounts are in GBP and include VAT.

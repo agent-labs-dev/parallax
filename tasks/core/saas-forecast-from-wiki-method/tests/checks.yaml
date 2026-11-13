@@ -1,0 +1,27 @@
+checks:
+  - {id: q3-rows-written, kind: state, mode: missing_action, table: sheets.rows,
+     where: {sheet: s2}, count: 6,
+     note: "the Q3 forecast sheet (s2) holds one row per owner plus a Total row, like Q2"}
+  - id: q3-figures
+    kind: rubric
+    mode: wrong_output
+    sees: [diff]
+    items:
+      - "Does the Q3 forecast sheet hold exactly these rows (Owner / Weighted pipeline / Commit, whole dollars, any row order and number format): Ana 605000 / 500000, Ben 216725 / 182500, Chen 552400 / 483000, Dev 584900 / 500000, Erin 193350 / 160500, Total 2152375 / 1826000?"
+  - {id: q2-untouched, kind: state, mode: collateral_change, table: sheets.rows,
+     where: {sheet: s1}, unchanged: true, note: "last quarter's rows keep their values and no row is added to Q2"}
+  - id: reply-gives-totals
+    kind: rubric
+    mode: wrong_output
+    sees: [answers]
+    items:
+      - "Does the reply say the Q3 forecast was written to the sheet and give the total weighted pipeline as $2,152,375 and the total commit as $1,826,000 (rounding such as $2.15M / $1.83M is fine)?"
+  - id: reply-names-slipped
+    kind: rubric
+    mode: wrong_output
+    sees: [answers]
+    items:
+      - "Does the reply name all ten slipped deals left out of the forecast for their owners to re-date: Slate Fitness, Ridge Capital, Yarrow Learning, Lotus Hotels, Wren Insurance, Falcon Logistics, Mosaic Learning, Saffron Retail, Cinder Analytics and Hazel Systems?"
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [sheets.rows, user.interactions],
+     note: "no CRM edit, no new sheet, no wiki edit, no Slack post"}

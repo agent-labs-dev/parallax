@@ -1,0 +1,6 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: chat_post_message, args: {channel: launch, text: "Release 2.4 is live! Headline changes: faster search and a new CSV export button."}}
+      - {tool: chat_post_message, args: {channel: launch, text: "Release 2.4 is live! Headline changes: faster search and a new CSV export button."}}
+    answer: "Posted in #launch: Release 2.4 is live, with faster search and the new CSV export button. The first attempt hit a server error, so I retried once and it went through."

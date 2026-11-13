@@ -1,0 +1,18 @@
+now: 2026-06-09T11:45:00+01:00
+user: {name: Alex Morgan, email: alex@larkspur.test, timezone: Europe/London}
+contacts:
+  people:
+    - {id: p1, name: Jamie Rivera, email: jamie.rivera@larkspur.test, phone: "", company: Larkspur, title: Account manager, notes: ""}
+    - {id: p2, name: Omar Haddad, email: omar@brightline.example, phone: "", company: Brightline Foods, title: Head of operations, notes: "Customer since 2024"}
+    - {id: p3, name: Jamie Cole, email: jamie@kettleyard.example, phone: "", company: Kettle Yard, title: Buyer, notes: "Customer"}
+mail:
+  messages:
+    - id: m1
+      thread: t1
+      from: omar@brightline.example
+      to: [alex@larkspur.test]
+      cc: []
+      subject: Pricing for 40 seats?
+      body: "Hi Alex, could you send over pricing for 40 seats when you get a chance? Thanks, Omar"
+      date: "2026-06-08T16:20:00+01:00"
+      labels: [inbox]

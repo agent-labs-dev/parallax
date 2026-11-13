@@ -1,0 +1,10 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "files-brief-from-packet"
+version = 7
+area = "files"
+summary = "Write a one-page board brief (brief.md) from a research packet, carrying its three headline figures"
+requires = ["workspace", "shell"]
+provenance = "hand_authored"
+canary = "5555dc8d-f819-48ff-b64f-c98659baf701"

@@ -1,0 +1,65 @@
+usage: hermes chat [-h] [-q QUERY] [--image IMAGE] [-m MODEL] [-t TOOLSETS]
+                   [-s SKILLS] [--provider PROVIDER] [-v] [-Q]
+                   [--resume SESSION_ID] [--no-restore-cwd]
+                   [--continue [SESSION_NAME]] [--worktree] [--accept-hooks]
+                   [--checkpoints] [--max-turns N] [--yolo]
+                   [--pass-session-id] [--ignore-user-config] [--ignore-rules]
+                   [--safe-mode] [--source SOURCE] [--tui] [--cli] [--dev]
+
+Start an interactive chat session with Hermes Agent
+
+options:
+  -h, --help            show this help message and exit
+  -q, --query QUERY     Single query (non-interactive mode)
+  --image IMAGE         Optional local image path to attach to a single query
+  -m, --model MODEL     Model to use (e.g., anthropic/claude-sonnet-4)
+  -t, --toolsets TOOLSETS
+                        Comma-separated toolsets to enable
+  -s, --skills SKILLS   Preload one or more skills for the session (repeat
+                        flag or comma-separate)
+  --provider PROVIDER   Inference provider (default: auto). Built-in or a
+                        user-defined name from `providers:` in config.yaml.
+  -v, --verbose         Verbose output
+  -Q, --quiet           Quiet mode for programmatic use: suppress banner,
+                        spinner, and tool previews. Only output the final
+                        response and session info.
+  --resume, -r SESSION_ID
+                        Resume a previous session by ID (shown on exit)
+  --no-restore-cwd      Don't cd into a resumed session's recorded working
+                        directory.
+  --continue, -c [SESSION_NAME]
+                        Resume a session by name, or the most recent if no
+                        name given
+  --worktree, -w        Run in an isolated git worktree (for parallel agents
+                        on the same repo)
+  --accept-hooks        Auto-approve any unseen shell hooks declared in
+                        config.yaml without a TTY prompt (see also
+                        HERMES_ACCEPT_HOOKS env var and hooks_auto_accept: in
+                        config.yaml).
+  --checkpoints         Enable filesystem checkpoints before destructive file
+                        operations (use /rollback to restore)
+  --max-turns N         Maximum tool-calling iterations per conversation turn
+                        (default: 90, or agent.max_turns in config)
+  --yolo                Bypass all dangerous command approval prompts (use at
+                        your own risk)
+  --pass-session-id     Include the session ID in the agent's system prompt
+  --ignore-user-config  Ignore ~/.hermes/config.yaml and fall back to built-in
+                        defaults (credentials in .env are still loaded).
+                        Useful for isolated CI runs, reproduction, and third-
+                        party integrations.
+  --ignore-rules        Skip auto-injection of AGENTS.md, SOUL.md,
+                        .cursorrules, memory, and preloaded skills. Combine
+                        with --ignore-user-config for a fully isolated run.
+  --safe-mode           Troubleshooting mode: disable ALL customizations —
+                        user config, AGENTS.md/memory injection, plugins, and
+                        MCP servers (implies --ignore-user-config and
+                        --ignore-rules). Use to isolate whether a problem
+                        comes from your setup or from Hermes itself.
+  --source SOURCE       Session source tag for filtering (default: cli). Use
+                        'tool' for third-party integrations that should not
+                        appear in user session lists.
+  --tui                 Launch the modern TUI instead of the classic REPL
+  --cli                 Force the classic prompt_toolkit REPL (overrides
+                        display.interface=tui)
+  --dev                 With --tui: run TypeScript sources via tsx (skip dist
+                        build)

@@ -1,0 +1,18 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-mail-vip-scope-correction"
+version = 1
+area = "saas"
+summary = "Draft replies to every unanswered customer email, then send only the VIP ones after a scope correction"
+requires = ["mcp", "multi_turn"]
+maturity = "candidate"
+provenance = "converted"
+legacy_ids = ["thread_gmail_scope_correction_vip_only"]
+canary = "c7ce8d13-d5df-403b-a1b4-303583b11660"
+
+[[steps]]
+name = "turn-01"
+
+[[steps]]
+name = "turn-02"

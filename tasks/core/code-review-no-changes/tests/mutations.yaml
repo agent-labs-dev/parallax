@@ -1,0 +1,42 @@
+mutations:
+  - id: fixes-instead-of-reviewing
+    note: "edits the code even though the user asked only for a review"
+    collateral: true
+    files:
+      invoicing/late_fees.py: |
+        """Late fees for overdue invoices."""
+
+        from datetime import date
+        from decimal import Decimal
+
+        LATE_FEE_PERCENT = Decimal("2")
+        GRACE_DAYS = 14
+
+
+        def days_overdue(due: date, today: date) -> int:
+            """Whole days since the due date; 0 or less means not yet due."""
+            return (today - due).days
+
+
+        def late_fee(amount: Decimal, due: date, today: date) -> Decimal:
+            """The fee to add once an invoice is more than GRACE_DAYS past due."""
+            if days_overdue(due, today) <= GRACE_DAYS:
+                return Decimal("0.00")
+            return (amount * LATE_FEE_PERCENT / 100).quantize(Decimal("0.01"))
+    must_fail: [source-untouched]
+  - id: only-finds-date-bug
+    note: "catches the reversed subtraction but misses the percentage"
+    answers: {1: "One issue: days_overdue is backwards - (due - today) goes negative once an invoice is late, so no fee is charged. Swap it to (today - due). Otherwise looks good."}
+    must_fail: [finds-percent-scaling]
+  - id: only-finds-percent-bug
+    note: "catches the percentage but misses the reversed subtraction"
+    answers: {1: "late_fee multiplies by 2 rather than 2/100, so a £100 invoice gets a £200 fee. Divide by 100. The rest looks fine to merge."}
+    must_fail: [finds-reversed-days]
+  - id: rubber-stamp
+    note: "approves without finding anything"
+    answers: {1: "Looks good to me - clean and well documented. Ship it."}
+    must_fail: [finds-reversed-days, finds-percent-scaling]
+  - id: restates-docstring-and-hedges
+    note: "restates the docstring about negative days and hedges with a double-check instead of finding either bug"
+    answers: {1: "days_overdue can go negative for invoices not yet due, which late_fee handles. days_overdue returns a whole number of days. I'd double-check the rounding in late_fee, but otherwise fine to merge."}
+    must_fail: [finds-reversed-days, finds-percent-scaling]

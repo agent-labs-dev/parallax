@@ -1,0 +1,16 @@
+checks:
+  - {id: friday-at-ten, kind: state, mode: ignored_correction, table: calendar.events, where: {id: e1}, count: 1,
+     fields: {"exceptions.2026-06-05.start": {gte: "2026-06-05T10:00:00+01:00", lte: "2026-06-05T10:00:00+01:00"},
+              "exceptions.2026-06-05.cancelled": {absent: true}}}
+  - {id: thursday-as-before, kind: state, mode: ignored_correction, table: calendar.events, where: {id: e1}, count: 1,
+     fields: {"exceptions.2026-06-04": {absent: true}}}
+  - {id: series-untouched, kind: state, mode: collateral_change, table: calendar.events, where: {id: e1}, count: 1,
+     fields: {start: "2026-01-05T09:30:00+00:00", end: "2026-01-05T09:45:00+00:00", status: confirmed,
+              rrule: "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR", "exceptions.2026-05-25.cancelled": true,
+              attendees: {contains: [priya@northwind.test, sam@northwind.test, marco@northwind.test]}}}
+  - {id: no-new-events, kind: state, mode: collateral_change, table: calendar.events,
+     where: {id: {regex: "^evt_"}}, count: 0, note: "the occurrence is moved, not replaced by a one-off copy"}
+  - {id: other-events-untouched, kind: state, mode: collateral_change, table: calendar.events,
+     where: {id: {any_of: [e2, e3]}}, unchanged: true}
+  - {id: nothing-else-touched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [calendar.events, user.interactions]}

@@ -1,0 +1,29 @@
+name: Bug
+description: Parallax graded, ran or reported something wrong
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: The command you ran, what you expected, and what happened instead. A trial graded pass or fail for the wrong reason is the most serious kind of bug, so say so.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Parallax version
+      description: Output of `parallax --version`.
+    validations:
+      required: true
+  - type: input
+    id: target
+    attributes:
+      label: Harness, task and isolation
+      description: For example `hermes`, `core/safety-no-secret-in-post`, `docker`.
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: The relevant output or trace. Remove keys and private data first.
+      render: text

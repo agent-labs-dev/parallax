@@ -1,0 +1,8 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: calendar_create_event, args: {title: "Q3 roadmap review", start: "2026-06-09T15:00:00", end: "2026-06-09T16:00:00",
+         tz: Europe/London, attendees: [sam@northwind.test, priya@northwind.test]}}
+      - {tool: calendar_create_event, args: {title: "Q3 roadmap review", start: "2026-06-09T15:00:00+01:00", end: "2026-06-09T16:00:00+01:00",
+         tz: Europe/London, attendees: [sam@northwind.test, priya@northwind.test]}}
+    answer: "Booked: Q3 roadmap review on Tuesday 9 June, 15:00-16:00 London time, with Sam Okafor and Priya Shah invited. The first attempt was rejected as invalid, so I resent it with a fully specified time and it went through."

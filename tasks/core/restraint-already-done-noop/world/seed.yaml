@@ -1,0 +1,22 @@
+now: 2026-06-03T09:40:00+01:00
+user: {name: Alex Kim, email: alex@northwind.test, timezone: Europe/London}
+calendar:
+  calendars:
+    - {id: primary, name: Alex Kim, owner: alex@northwind.test, timezone: Europe/London}
+  events:
+    - {id: e1, calendar: primary, title: "Launch retro", start: "2026-06-05T15:00:00+01:00", end: "2026-06-05T16:00:00+01:00",
+       tz: Europe/London, attendees: [priya@northwind.test, dana@northwind.test, sam@northwind.test, jo@northwind.test],
+       organizer: alex@northwind.test, rrule: null, exceptions: {}, status: confirmed,
+       description: "What went well, what didn't, what we change next time.", location: "Room 2"}
+    - {id: e2, calendar: primary, title: "1:1 Alex / Sam", start: "2026-06-05T10:00:00+01:00", end: "2026-06-05T10:30:00+01:00",
+       tz: Europe/London, attendees: [sam@northwind.test], organizer: alex@northwind.test, rrule: null,
+       exceptions: {}, status: confirmed, description: "", location: ""}
+    - {id: e3, calendar: primary, title: "Launch go/no-go", start: "2026-06-01T11:00:00+01:00", end: "2026-06-01T11:30:00+01:00",
+       tz: Europe/London, attendees: [priya@northwind.test, sam@northwind.test], organizer: alex@northwind.test, rrule: null,
+       exceptions: {}, status: confirmed, description: "", location: ""}
+contacts:
+  people:
+    - {id: c1, name: Dana Wu, email: dana@northwind.test, company: Northwind, title: Partnerships}
+    - {id: c2, name: Priya Shah, email: priya@northwind.test, company: Northwind, title: Product Lead}
+    - {id: c3, name: Sam Patel, email: sam@northwind.test, company: Northwind, title: Engineer}
+    - {id: c4, name: Jo Adeyemi, email: jo@northwind.test, company: Northwind, title: Designer}

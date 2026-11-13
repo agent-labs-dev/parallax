@@ -1,0 +1,26 @@
+checks:
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [user.interactions],
+     note: "a question: nothing is written anywhere"}
+  - id: names-team-and-business
+    kind: rubric
+    mode: wrong_output
+    sees: [answers]
+    items:
+      - "Does the reply say that retention dropped for the Team plan, from about 62.5% (10 of 16) for August signups to about 33.3% (5 of 15) for September signups?"
+      - "Does the reply say that retention also dropped for the Business plan, from about 62.5% (5 of 8) to about 42.9% (3 of 7)?"
+      - "Does the reply avoid saying that Starter retention dropped? (Starter is about 40.9% to 40.0%, flat.)"
+  - id: per-plan-figures
+    kind: rubric
+    mode: wrong_output
+    sees: [answers]
+    items:
+      - "Does the reply give September day-28 retention for each plan, matching Starter 40.0% (8/20), Team 33.3% (5/15) and Business 42.9% (3/7), with August for comparison (Starter 40.9% 9/22, Team 62.5% 10/16, Business 62.5% 5/8)? Rounding to whole percents is fine. Figures that keep the qa-auto.example test signups (Starter 32.0% 8/25), keep the Brightline pilot (Business 63.6% 7/11), include staff or QA accounts (for example Team 60.0% 15/25 or Starter 29.6% 8/27) or come from the old 30-day insight (for example Team 53.3%, Starter 70.0%) do not count."
+  - id: explains-exclusions
+    kind: rubric
+    mode: wrong_output
+    sees: [answers]
+    items:
+      - "Does the reply say that internal (kitebase.test) and test (kitebase-qa.test) accounts were excluded, or that the ten staff accounts on Team would otherwise hide the Team drop?"
+      - "Does the reply say that the qa-auto.example test signups were excluded (the QA harness domain from the comment on the Metric definitions page)?"
+      - "Does the reply say that the four Brightline pilot workspaces (brightline.example) were excluded, as Jonas asked by email, or that they would otherwise hide the Business drop?"

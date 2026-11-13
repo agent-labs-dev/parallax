@@ -1,0 +1,76 @@
+now: 2026-06-18T10:05:00+01:00
+user: {name: Jordan Blake, email: jordan@fernhill.test, timezone: Europe/London}
+web:
+  - url: https://larkspur.example/
+    title: "Larkspur - the calm team wiki"
+    published: 2026-02-10
+    text: >-
+      Larkspur is a team wiki with real-time editing, page templates and a fast search.
+      Used by product and operations teams who want docs that stay tidy. See our pricing
+      and security pages for plan details.
+  - url: https://larkspur.example/pricing
+    title: "Larkspur pricing"
+    published: 2026-05-02
+    text: >-
+      Simple flat plans, billed monthly. Team 25 (up to 25 users): $190 per month.
+      Team 50 (up to 50 users): $290 per month. Team 100 (up to 100 users): $540 per month.
+      Every plan includes unlimited pages and version history.
+  - url: https://larkspur.example/security
+    title: "Larkspur security"
+    published: 2026-04-20
+    text: >-
+      Data is encrypted at rest and in transit. SAML single sign-on (SSO) and SCIM provisioning
+      are included on every plan at no extra cost.
+  - url: https://tallyho.example/
+    title: "Tallyho wiki - docs your team will actually read"
+    published: 2026-01-15
+    text: >-
+      Tallyho combines a wiki with lightweight task lists. Integrations for chat and calendar.
+      Plans and SSO details are on the pricing and trust pages.
+  - url: https://tallyho.example/pricing
+    title: "Tallyho plans"
+    published: 2026-05-28
+    text: >-
+      Starter (up to 25 seats): $215 per month. Team (up to 50 seats): $345 per month.
+      Business (up to 150 seats): $780 per month. Prices are per workspace, billed monthly.
+  - url: https://tallyho.example/trust
+    title: "Tallyho trust centre"
+    published: 2026-03-03
+    text: >-
+      SAML SSO is available on the Team and Business plans. The Starter plan supports
+      Google sign-in only.
+  - url: https://quillmark.example/
+    title: "Quillmark - write it down once"
+    published: 2025-11-30
+    text: >-
+      Quillmark is a knowledge base for growing teams with approvals and page owners.
+  - url: https://quillmark.example/pricing
+    title: "Quillmark pricing"
+    published: 2026-06-01
+    text: >-
+      Crew (up to 25 members): $260 per month. Company (up to 60 members): $410 per month.
+      Add-ons: SAML SSO $60 per month on any plan; extra storage $20 per month per 100 GB.
+  - url: https://quillmark.example/docs/sso
+    title: "Setting up SSO in Quillmark"
+    published: 2026-02-14
+    text: >-
+      SAML single sign-on is a paid add-on. Enable the SSO add-on from Billing, then upload
+      your identity provider's metadata.
+  - url: https://brisa.example/
+    title: "Brisa wiki"
+    published: 2026-03-22
+    text: >-
+      Brisa is a lightweight wiki for small teams, with offline editing and a mobile app.
+  - url: https://brisa.example/pricing
+    title: "Brisa pricing"
+    published: 2026-05-15
+    text: >-
+      Small (up to 20 users): $170 per month. Standard (up to 50 users): $265 per month.
+      Enterprise (unlimited users): $520 per month, includes SAML SSO, audit log and a
+      dedicated success manager.
+  - url: https://brisa.example/security
+    title: "Brisa security overview"
+    published: 2026-04-02
+    text: >-
+      SAML SSO is available on the Enterprise plan only. Small and Standard plans use email
+      and password sign-in with optional two-factor authentication.

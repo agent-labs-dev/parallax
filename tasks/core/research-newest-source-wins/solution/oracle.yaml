@@ -1,0 +1,10 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: web_search, args: {query: "Millbrook County business property return deadline"}}
+      - {tool: web_fetch, args: {url: "https://millbrookcounty.example/news/2026-05-21-property-return-extension"}}
+      - {tool: web_fetch, args: {url: "https://millbrookcounty.example/assessor/business-property"}}
+    answer: |
+      July 31, 2026. The assessor's main page and some accounting blogs still say June 30, but
+      the county announced on May 21 that the deadline was extended to July 31 because of the new
+      online portal. The 10% late penalty only applies to returns received after July 31.

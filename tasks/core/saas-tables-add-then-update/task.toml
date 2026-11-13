@@ -1,0 +1,19 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-tables-add-then-update"
+version = 2
+area = "saas"
+summary = "Add a CRM lead, then move that same record to a later stage without duplicating it"
+requires = ["mcp", "multi_turn"]
+services = ["tables"]
+maturity = "candidate"
+provenance = "converted"
+legacy_ids = ["thread_airtable_add_then_update"]
+canary = "65a3b8be-5843-4e7b-8a15-1828dd3930aa"
+
+[[steps]]
+name = "turn-01"
+
+[[steps]]
+name = "turn-02"

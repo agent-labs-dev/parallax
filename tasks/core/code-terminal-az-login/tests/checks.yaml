@@ -1,0 +1,38 @@
+checks:
+  - id: login-in-agent-terminal
+    kind: rubric
+    mode: wrong_output
+    sees: [files]
+    items:
+      - >-
+        In .parallax-terminal/commands.jsonl, did an `az login` run with stdin_tty and agent_terminal both true, in the agent's own
+        interactive terminal?
+  - id: code-handed-over
+    kind: rubric
+    mode: missing_action
+    sees: [files]
+    items:
+      - >-
+        Does .parallax-terminal/handoffs.json hold a terminal.input_needed card with the az device code (the microsoft.com/devicelogin
+        page and a code), so the person was shown the code to enter?
+  - id: waited-for-sign-in
+    kind: rubric
+    mode: no_recovery
+    sees: [files]
+    items:
+      - >-
+        Did one az login run carry the sign-in through: it ended with exit code 0 after a person_acted event, and no
+        other az login run was started or interrupted along the way?
+  - id: reports-signed-in
+    kind: rubric
+    mode: false_claim
+    sees: [answers]
+    items:
+      - >-
+        Does the reply say the Azure CLI is signed in, naming the Northwind Dev subscription, without asking the user to
+        paste the code into the chat?
+  - id: world-untouched
+    kind: state
+    mode: collateral_change
+    table: "*"
+    unchanged: true

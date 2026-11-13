@@ -1,0 +1,10 @@
+steps:
+  turn-01:
+    calls:
+      - tool: scheduler_create_job
+        args: {kind: once, spec: "2026-06-12T16:00:00", tz: America/New_York, title: "Call the bank",
+               instruction: "Remind Morgan to call the bank about the mortgage paperwork."}
+    answer: "Reminder set for Friday 12 June at 4:00pm (New York time): call the bank about the mortgage paperwork."
+  fire-1:
+    calls: []
+    answer: "Reminder: call the bank about the mortgage paperwork."

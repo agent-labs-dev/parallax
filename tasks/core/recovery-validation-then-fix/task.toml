@@ -1,0 +1,16 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "recovery-validation-then-fix"
+version = 1
+area = "recovery"
+summary = "Book next Tuesday's review after the first create is rejected, landing at the right instant in the user's zone"
+requires = ["mcp", "world_clock"]
+provenance = "hand_authored"
+canary = "f4355873-bd4b-4093-8e06-103a8a963bc4"
+
+[[metadata.parallax.faults]]
+tool = "calendar_create_event"
+on_call = 1
+times = 1
+kind = "validation"

@@ -1,0 +1,20 @@
+mutations:
+  - {id: nothing-updated, note: "claims the CRM is updated", base: seed, must_fail: [harbor-updated, nova-updated]}
+  - {id: old-notes-figure, note: "uses the 26 May figure for Harbor",
+     patch: {update: {tables.records: {r1: {amount: 44000}}}}, must_fail: [harbor-updated]}
+  - {id: nova-stage-only, note: "moves Nova's stage but not its amount",
+     patch: {update: {tables.records: {r2: {amount: 30000}}}}, must_fail: [nova-updated]}
+  - {id: touches-brightline, note: "marks Brightline as stalled", collateral: true,
+     patch: {update: {tables.records: {r4: {stage: On Hold}}}}, must_fail: [other-deals-untouched]}
+  - id: new-nova-deal
+    note: "creates a new Nova record instead of updating the existing one"
+    patch:
+      insert:
+        tables.records:
+          - {id: rec_99, base: b1, created: "2026-06-03T09:12:00+01:00", deal: "Store rollout (3 sites)", company: Nova Retail,
+             stage: Proposal, amount: 72000, owner: sofia@harborline.test}
+    must_fail: [no-new-deals]
+  - {id: renames-company, note: "overwrites the company field", collateral: true,
+     patch: {update: {tables.records: {r1: {company: "Harbor"}}}}, must_fail: [untouched-fields]}
+  - {id: edits-notes, note: "edits the call notes doc", collateral: true,
+     patch: {update: {drive.files: {d1: {content: "done"}}}}, must_fail: [nothing-else-touched]}

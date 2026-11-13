@@ -1,0 +1,10 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "files-organise-downloads"
+version = 1
+area = "files"
+summary = "Sort a 14-file Downloads folder into per-type subfolders without losing, duplicating or mixing files"
+requires = ["mcp", "workspace", "shell"]
+provenance = "hand_authored"
+canary = "9e6a95bf-d4d1-47be-bdcf-e3af979cfa79"

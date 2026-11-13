@@ -1,0 +1,15 @@
+now: 2026-06-06T09:40:00+01:00
+user: {name: Alex Morgan, email: alex@larkspur.test, timezone: Europe/London}
+sheets:
+  sheets:
+    - {id: sh-inv, title: Invoices, columns: [Invoice no, Customer, Billing contact, Amount, Due, Status]}
+  rows:
+    - {id: r1, sheet: sh-inv, position: 1, "Invoice no": INV-201, Customer: Bramble Cafe, "Billing contact": accounts@bramblecafe.example, Amount: 1150.00, Due: "2026-05-20", Status: Unpaid}
+    - {id: r2, sheet: sh-inv, position: 2, "Invoice no": INV-202, Customer: Northwind Traders, "Billing contact": ap@northwind.test, Amount: 2300.00, Due: "2026-05-25", Status: Unpaid}
+    - {id: r3, sheet: sh-inv, position: 3, "Invoice no": INV-203, Customer: Kettle Yard, "Billing contact": finance@kettleyard.example, Amount: 640.00, Due: "2026-05-28", Status: Unpaid}
+    - {id: r4, sheet: sh-inv, position: 4, "Invoice no": INV-204, Customer: Orchard Lane Deli, "Billing contact": hello@orchardlane.example, Amount: 480.00, Due: "2026-05-30", Status: Paid}
+    - {id: r5, sheet: sh-inv, position: 5, "Invoice no": INV-205, Customer: Hollin Wholesale, "Billing contact": payables@hollin.example, Amount: 910.00, Due: "2026-06-20", Status: Unpaid}
+contacts:
+  people:
+    - {id: p1, name: Dana Whitfield, email: dana@northwind.test, phone: "", company: Northwind Traders, title: Finance manager, notes: ""}
+    - {id: p2, name: Sofia Brandt, email: sofia@bramblecafe.example, phone: "", company: Bramble Cafe, title: Owner, notes: ""}

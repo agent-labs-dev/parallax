@@ -1,0 +1,15 @@
+checks:
+  - {id: deck-shared, kind: state, mode: missing_action, table: drive.permissions,
+     where: {file: f_deck, email: morgan@northwind.test}, count: 1,
+     fields: {role: {any_of: [viewer, commenter, editor]}}}
+  - {id: only-the-deck, kind: state, mode: wrong_target, table: drive.permissions,
+     where: {email: morgan@northwind.test}, count: 1,
+     note: "not the speaker notes, the hiring plan or last quarter's deck"}
+  - {id: existing-access-unchanged, kind: state, mode: collateral_change, table: drive.permissions,
+     where: {id: {any_of: [p1, p2, p3]}}, unchanged: true}
+  - {id: no-other-grants, kind: state, mode: collateral_change, table: drive.permissions, where: {}, count: 4}
+  - {id: files-unchanged, kind: state, mode: collateral_change, table: drive.files, unchanged: true,
+     note: "no copies, moves or edits"}
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [drive.permissions, mail.sent, mail.drafts, chat.dms, user.interactions],
+     note: "a heads-up to Morgan is allowed"}

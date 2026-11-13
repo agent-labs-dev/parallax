@@ -1,0 +1,19 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "schedule-event-driven-watch"
+version = 1
+area = "schedule"
+summary = "'Tell me the moment they reply' is a mail watch job, not a tight polling cron"
+requires = ["mcp"]
+services = ["scheduler"]
+maturity = "candidate"
+provenance = "converted"
+legacy_ids = ["job_realtime_watch_is_event_driven_rather_than_a_tighter_poll"]
+canary = "a00e7547-afab-495c-855b-f7951ec7367e"
+
+[[metadata.parallax.fires]]
+name = "fire-1"
+at = 2026-06-11T14:32:00+01:00
+job = {kind = "watch", active = true}
+patch = "acme-replies"

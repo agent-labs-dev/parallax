@@ -1,0 +1,17 @@
+checks:
+  - {id: replied-to-omar, kind: state, mode: missing_action, table: helpdesk.replies,
+     where: {target: cv1}, count: {min: 1}}
+  - {id: links-right-article, kind: state, mode: wrong_output, table: helpdesk.replies,
+     where: {target: cv1, body: {contains: "help.tallyho.example/articles/exporting-invoices"}}, count: {min: 1}}
+  - {id: reply-explains-bulk-export, kind: state, mode: wrong_output, table: helpdesk.replies,
+     where: {target: cv1, body: {regex: "csv|spreadsheet"}}, count: {min: 1}}
+  - {id: no-wrong-or-made-up-links, kind: state, mode: fabrication, table: helpdesk.replies,
+     where: {target: cv1, body: {regex: "https?://(?!help\\.tallyho\\.example/articles/(exporting-invoices|download-invoice)\\b)"}},
+     count: 0, note: "the contacts article and any URL outside the help centre are wrong or invented"}
+  - {id: answer-urls-real, kind: answer, mode: fabrication, known_urls_only: true}
+  - {id: no-reply-to-beth, kind: state, mode: wrong_target, table: helpdesk.replies, where: {target: cv2}, count: 0}
+  - {id: beths-chat-untouched, kind: state, mode: collateral_change, table: helpdesk.conversations,
+     where: {id: cv2}, unchanged: true}
+  - {id: nothing-else-touched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [helpdesk.replies, helpdesk.conversations, user.interactions]}
+  - {id: no-ticket-opened, kind: state, mode: collateral_change, table: helpdesk.tickets, count: 0}

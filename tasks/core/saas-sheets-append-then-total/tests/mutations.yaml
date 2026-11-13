@@ -1,0 +1,24 @@
+mutations:
+  - {id: never-logged, note: "claims the row was added but the sheet is untouched", base: seed,
+     must_fail: [figma-logged-once]}
+  - id: logged-twice
+    note: "appends the row again in turn 2"
+    patch:
+      insert:
+        sheets.rows:
+          - {id: row_99, sheet: sh1, position: 6, date: "2026-06-03", vendor: Figma, category: Software, amount: 45}
+    must_fail: [figma-logged-once]
+  - {id: wrong-amount, note: "types 54 instead of 45", patch: {update: {sheets.rows: {row_1: {amount: 54}}}},
+     must_fail: [figma-row-correct]}
+  - {id: whole-sheet-total, note: "adds up May as well", answers: {2: "The total is £691."},
+     must_fail: [says-june-total]}
+  - {id: edits-slack-row, note: "overwrites an existing row", collateral: true,
+     patch: {update: {sheets.rows: {r4: {amount: 195}}}}, must_fail: [existing-rows-untouched]}
+  - {id: touches-mileage, note: "writes into the mileage sheet", collateral: true,
+     patch: {update: {sheets.sheets: {sh2: {title: "Mileage"}}}}, must_fail: [nothing-else-touched]}
+  - {id: integer-string-amount, note: "equivalent numeric strings are valid sheet cells", expect: pass,
+     patch: {update: {sheets.rows: {row_1: {amount: "45"}}}}}
+  - {id: decimal-string-amount, note: "decimal formatting does not change the amount", expect: pass,
+     patch: {update: {sheets.rows: {row_1: {amount: "45.00"}}}}}
+  - {id: tenfold-amount, note: "450 is not a representation of 45",
+     patch: {update: {sheets.rows: {row_1: {amount: 450}}}}, must_fail: [figma-row-correct]}

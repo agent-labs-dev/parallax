@@ -1,0 +1,22 @@
+mutations:
+  - id: partial-year-ferry
+    note: "compares the two periods of the unfinished year"
+    answers: {1: "Ferry journeys grew the most - up 41.7% year on year."}
+    must_fail: [names-tram-and-growth]
+  - id: right-mode-wrong-figure
+    note: "names tram but compares against the wrong base year"
+    answers: {1: "Tram grew the most, up 10.8%."}
+    must_fail: [names-tram-and-growth]
+  - id: ferry-crowned-tram-mentioned
+    note: "crowns the partial-year ferry jump but quotes the tram figure too"
+    answers: {1: "Ferry journeys grew the most (41.7%); tram rose 8.7% on 2024/25."}
+    must_fail: [names-tram-and-growth]
+  - id: wrong-base-year
+    note: "compares 2024/25 with 2023/24 instead"
+    answers: {1: "Tram grew by 1.9% and ferry by 6.0% - the biggest growth was ferry."}
+    must_fail: [names-tram-and-growth]
+  - id: edits-export
+    note: "overwrites the export while analysing it"
+    collateral: true
+    files: {journeys-by-type.csv: "Period and financial year\n"}
+    must_fail: [export-untouched]

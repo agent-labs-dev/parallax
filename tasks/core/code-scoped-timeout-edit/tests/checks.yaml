@@ -1,0 +1,26 @@
+checks:
+  - id: billing-timeout-30
+    kind: command
+    mode: missing_action
+    note: "behavioural, so changing the constant or the default argument both pass"
+    run: [python, -c, "from clients.billing import BillingClient; t = BillingClient().timeout; assert t == 30, t; print('billing ok')"]
+    stdout: ["billing ok"]
+  - id: siblings-still-10
+    kind: command
+    mode: wrong_target
+    run:
+      - python
+      - -c
+      - |
+        from clients.inventory import InventoryClient
+        from clients.shipping import ShippingClient
+        got = (ShippingClient().timeout, InventoryClient().timeout)
+        assert got == (10, 10), got
+        print("siblings ok")
+    stdout: ["siblings ok"]
+  - {id: sibling-files-untouched, kind: file, mode: wrong_target, path: "clients/[si]*.py", unchanged: true,
+     note: "shipping.py and inventory.py are byte-identical to the seed"}
+  - {id: base-untouched, kind: file, mode: collateral_change, path: clients/base.py, unchanged: true}
+  - {id: tests-pass, kind: command, mode: broke_build, run: [python, -m, pytest, -q, --color=no, -p, no:cacheprovider, tests],
+     exit: 0, stdout: [{regex: "(?m)^(?!.*\\b(failed|errors?|skipped|xfailed|deselected)\\b).*\\b([2-9]|[1-9]\\d+) passed\\b"}],
+     note: "at least the 2 seeded tests pass and none fail or are skipped; added tests are welcome"}

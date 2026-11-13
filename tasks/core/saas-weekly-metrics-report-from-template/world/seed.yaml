@@ -1,0 +1,337 @@
+now: "2026-10-12T09:20:00-07:00"
+user: {name: Sam Ortega, email: sam@tallyhq.test, timezone: America/Los_Angeles}
+wiki:
+  pages:
+    - {id: pg_metrics, title: Metrics, space: Metrics, parent: null, author: sam@tallyhq.test, created: "2026-01-05T09:00:00-08:00", updated: "2026-09-21T09:00:00-07:00", url: "https://wiki.example/pages/pg_metrics", body: "Home for the weekly metrics reports. One page per week, titled \"Weekly metrics - w/c <Monday>\", under this page."}
+    - {id: pg_w38, title: "Weekly metrics - w/c 21 Sep 2026", space: Metrics, parent: pg_metrics, author: sam@tallyhq.test, created: "2026-09-28T10:02:00-07:00", updated: "2026-09-28T10:02:00-07:00", url: "https://wiki.example/pages/pg_w38", body: "## Headline\nSteady week; the Xero sync launch drove a bump in signups midweek.\n\n## Growth\n- Signups: 41\n- Activation (7-day): 41.5% (17/41)\n- Weekly active users: 198\n\n## Revenue\n- Net new revenue: $7,655.00 (gross $7,954.00, refunds $299.00)\n\n## Support\n- Tickets opened: 24\n\n## Notes\n- Xero sync shipped Wednesday.\n\n---\nHow we compute: the week runs Monday to Sunday, Pacific time. Signups = PostHog signed_up events. Activation = PostHog insight \"Activation (7-day)\" over the week's signups. WAU = PostHog insight \"Weekly active users\" for the week. Net new revenue = Stripe charges created in the week minus refunds issued in the week. Tickets = Zendesk tickets created in the week, any status."}
+    - {id: pg_w39, title: "Weekly metrics - w/c 28 Sep 2026", space: Metrics, parent: pg_metrics, author: sam@tallyhq.test, created: "2026-10-05T09:48:00-07:00", updated: "2026-10-05T09:48:00-07:00", url: "https://wiki.example/pages/pg_w39", body: "## Headline\nRevenue up on two annual upgrades; support volume normal.\n\n## Growth\n- Signups: 38\n- Activation (7-day): 44.7% (17/38)\n- Weekly active users: 211\n\n## Revenue\n- Net new revenue: $8,940.00 (gross $9,310.00, refunds $370.00)\n\n## Support\n- Tickets opened: 27\n\n## Notes\n- Two annual Business upgrades (Fjord Media, Orchid Foods).\n- Refunded a duplicate charge for Lumen Retail.\n\n---\nHow we compute: the week runs Monday to Sunday, Pacific time. Signups = PostHog signed_up events. Activation = PostHog insight \"Activation (7-day)\" over the week's signups. WAU = PostHog insight \"Weekly active users\" for the week. Net new revenue = Stripe charges created in the week minus refunds issued in the week. Tickets = Zendesk tickets created in the week, any status."}
+    - {id: pg_okr, title: "Q4 OKRs", space: Company, parent: null, author: sam@tallyhq.test, created: "2026-10-01T09:00:00-07:00", updated: "2026-10-01T09:00:00-07:00", url: "https://wiki.example/pages/pg_okr", body: "1. Reach 260 weekly active users.\n2. Activation (7-day) above 50%.\n3. Net new revenue of $40k a month."}
+  comments:
+    - {id: wc_01, page: pg_w39, author: dana@tallyhq.test, mentions: [sam@tallyhq.test], created: "2026-10-05T15:30:00-07:00", body: "@Sam from the w/c 5 Oct report on, leave our internal sandbox out of revenue: anything billed to a tallyhq.test address is card testing, not revenue. The footer is out of date on this."}
+analytics:
+  insights:
+    - {id: ins_act7, name: "Activation (7-day)", kind: funnel, steps: [signed_up, invoice_sent], window_days: 7, description: "New signups who send a first invoice within 7 days."}
+    - {id: ins_wau, name: "Weekly active users", kind: trend, event: weekly_active, interval: week, description: "weekly_active fires once per user per week, on their first session that week (Monday-start, Pacific)."}
+    - {id: ins_inv, name: "Invoices sent", kind: trend, event: invoice_sent, interval: day}
+  events:
+    - {id: e001, event: signed_up, person: u004, ts: "2026-10-03T16:25:00Z"}
+    - {id: e002, event: signed_up, person: u002, ts: "2026-10-03T17:40:00Z"}
+    - {id: e003, event: signed_up, person: u003, ts: "2026-10-04T01:54:00Z"}
+    - {id: e004, event: signed_up, person: u001, ts: "2026-10-04T02:23:00Z"}
+    - {id: e005, event: invoice_sent, person: u001, ts: "2026-10-04T07:23:00Z"}
+    - {id: e006, event: signed_up, person: u007, ts: "2026-10-04T14:33:00Z"}
+    - {id: e007, event: signed_up, person: u006, ts: "2026-10-04T19:54:00Z"}
+    - {id: e008, event: invoice_sent, person: u003, ts: "2026-10-04T21:54:00Z"}
+    - {id: e009, event: signed_up, person: u008, ts: "2026-10-05T00:38:00Z"}
+    - {id: e010, event: weekly_active, person: c090, ts: "2026-10-05T04:30:00Z"}
+    - {id: e011, event: signed_up, person: u901, ts: "2026-10-05T05:40:00Z"}
+    - {id: e012, event: signed_up, person: u005, ts: "2026-10-05T05:45:00Z"}
+    - {id: e013, event: weekly_active, person: u028, ts: "2026-10-05T14:24:00Z"}
+    - {id: e014, event: weekly_active, person: u004, ts: "2026-10-05T14:49:00Z"}
+    - {id: e015, event: invoice_sent, person: c002, ts: "2026-10-05T15:00:00Z"}
+    - {id: e016, event: invoice_sent, person: c020, ts: "2026-10-05T15:00:00Z"}
+    - {id: e017, event: invoice_sent, person: c021, ts: "2026-10-05T15:00:00Z"}
+    - {id: e018, event: invoice_sent, person: u006, ts: "2026-10-05T15:54:00Z"}
+    - {id: e019, event: weekly_active, person: c064, ts: "2026-10-05T16:13:00Z"}
+    - {id: e020, event: weekly_active, person: c043, ts: "2026-10-05T16:28:00Z"}
+    - {id: e021, event: signed_up, person: u011, ts: "2026-10-05T16:35:00Z"}
+    - {id: e022, event: weekly_active, person: c032, ts: "2026-10-05T17:47:00Z"}
+    - {id: e023, event: weekly_active, person: c023, ts: "2026-10-05T17:48:00Z"}
+    - {id: e024, event: weekly_active, person: c041, ts: "2026-10-05T18:23:00Z"}
+    - {id: e025, event: signed_up, person: u009, ts: "2026-10-05T19:05:00Z"}
+    - {id: e026, event: weekly_active, person: c006, ts: "2026-10-05T23:22:00Z"}
+    - {id: e027, event: signed_up, person: u013, ts: "2026-10-05T23:59:00Z"}
+    - {id: e028, event: weekly_active, person: c035, ts: "2026-10-06T01:19:00Z"}
+    - {id: e029, event: signed_up, person: u010, ts: "2026-10-06T02:54:00Z"}
+    - {id: e030, event: weekly_active, person: c052, ts: "2026-10-06T03:00:00Z"}
+    - {id: e031, event: weekly_active, person: c046, ts: "2026-10-06T03:14:00Z"}
+    - {id: e032, event: signed_up, person: u012, ts: "2026-10-06T03:15:00Z"}
+    - {id: e033, event: weekly_active, person: c007, ts: "2026-10-06T03:18:00Z"}
+    - {id: e034, event: weekly_active, person: u020, ts: "2026-10-06T03:41:00Z"}
+    - {id: e035, event: weekly_active, person: c042, ts: "2026-10-06T03:55:00Z"}
+    - {id: e036, event: invoice_sent, person: u008, ts: "2026-10-06T06:38:00Z"}
+    - {id: e037, event: weekly_active, person: c028, ts: "2026-10-06T15:04:00Z"}
+    - {id: e038, event: invoice_sent, person: u009, ts: "2026-10-06T15:05:00Z"}
+    - {id: e039, event: weekly_active, person: c009, ts: "2026-10-06T15:46:00Z"}
+    - {id: e040, event: weekly_active, person: c050, ts: "2026-10-06T15:59:00Z"}
+    - {id: e041, event: signed_up, person: u014, ts: "2026-10-06T17:03:00Z"}
+    - {id: e042, event: weekly_active, person: u006, ts: "2026-10-06T17:54:00Z"}
+    - {id: e043, event: weekly_active, person: u012, ts: "2026-10-06T18:12:00Z"}
+    - {id: e044, event: weekly_active, person: c026, ts: "2026-10-06T20:16:00Z"}
+    - {id: e045, event: weekly_active, person: u002, ts: "2026-10-06T20:22:00Z"}
+    - {id: e046, event: weekly_active, person: c044, ts: "2026-10-06T21:18:00Z"}
+    - {id: e047, event: signed_up, person: u016, ts: "2026-10-06T21:54:00Z"}
+    - {id: e048, event: weekly_active, person: c024, ts: "2026-10-06T22:58:00Z"}
+    - {id: e049, event: signed_up, person: u018, ts: "2026-10-07T00:26:00Z"}
+    - {id: e050, event: signed_up, person: u015, ts: "2026-10-07T00:34:00Z"}
+    - {id: e051, event: weekly_active, person: u035, ts: "2026-10-07T00:35:00Z"}
+    - {id: e052, event: weekly_active, person: c030, ts: "2026-10-07T01:13:00Z"}
+    - {id: e053, event: weekly_active, person: c027, ts: "2026-10-07T02:00:00Z"}
+    - {id: e054, event: signed_up, person: u017, ts: "2026-10-07T03:42:00Z"}
+    - {id: e055, event: invoice_sent, person: u014, ts: "2026-10-07T13:03:00Z"}
+    - {id: e056, event: weekly_active, person: c062, ts: "2026-10-07T15:40:00Z"}
+    - {id: e057, event: weekly_active, person: c016, ts: "2026-10-07T17:06:00Z"}
+    - {id: e058, event: weekly_active, person: u037, ts: "2026-10-07T17:17:00Z"}
+    - {id: e059, event: weekly_active, person: c040, ts: "2026-10-07T17:55:00Z"}
+    - {id: e060, event: invoice_sent, person: c044, ts: "2026-10-07T19:00:00Z"}
+    - {id: e061, event: invoice_sent, person: u018, ts: "2026-10-07T20:26:00Z"}
+    - {id: e062, event: weekly_active, person: c011, ts: "2026-10-07T20:51:00Z"}
+    - {id: e063, event: invoice_sent, person: c064, ts: "2026-10-07T21:00:00Z"}
+    - {id: e064, event: weekly_active, person: c029, ts: "2026-10-07T21:10:00Z"}
+    - {id: e065, event: signed_up, person: u022, ts: "2026-10-07T21:29:00Z"}
+    - {id: e066, event: weekly_active, person: u040, ts: "2026-10-07T21:30:00Z"}
+    - {id: e067, event: signed_up, person: u020, ts: "2026-10-07T22:01:00Z"}
+    - {id: e068, event: weekly_active, person: c001, ts: "2026-10-07T22:21:00Z"}
+    - {id: e069, event: weekly_active, person: c019, ts: "2026-10-07T22:46:00Z"}
+    - {id: e070, event: weekly_active, person: c061, ts: "2026-10-07T23:11:00Z"}
+    - {id: e071, event: weekly_active, person: c067, ts: "2026-10-07T23:27:00Z"}
+    - {id: e072, event: weekly_active, person: u016, ts: "2026-10-07T23:35:00Z"}
+    - {id: e073, event: signed_up, person: u024, ts: "2026-10-08T00:05:00Z"}
+    - {id: e074, event: weekly_active, person: c060, ts: "2026-10-08T00:05:00Z"}
+    - {id: e075, event: weekly_active, person: c031, ts: "2026-10-08T00:58:00Z"}
+    - {id: e076, event: invoice_sent, person: c017, ts: "2026-10-08T01:00:00Z"}
+    - {id: e077, event: weekly_active, person: c056, ts: "2026-10-08T01:44:00Z"}
+    - {id: e078, event: weekly_active, person: c012, ts: "2026-10-08T01:56:00Z"}
+    - {id: e079, event: invoice_sent, person: u024, ts: "2026-10-08T02:05:00Z"}
+    - {id: e080, event: weekly_active, person: u007, ts: "2026-10-08T02:07:00Z"}
+    - {id: e081, event: signed_up, person: u021, ts: "2026-10-08T02:12:00Z"}
+    - {id: e082, event: signed_up, person: u025, ts: "2026-10-08T02:41:00Z"}
+    - {id: e083, event: invoice_sent, person: u016, ts: "2026-10-08T03:54:00Z"}
+    - {id: e084, event: invoice_sent, person: u021, ts: "2026-10-08T04:12:00Z"}
+    - {id: e085, event: signed_up, person: u023, ts: "2026-10-08T04:24:00Z"}
+    - {id: e086, event: invoice_sent, person: u025, ts: "2026-10-08T04:41:00Z"}
+    - {id: e087, event: signed_up, person: u019, ts: "2026-10-08T05:39:00Z"}
+    - {id: e088, event: signed_up, person: u027, ts: "2026-10-08T13:53:00Z"}
+    - {id: e089, event: weekly_active, person: c017, ts: "2026-10-08T14:31:00Z"}
+    - {id: e090, event: invoice_sent, person: c019, ts: "2026-10-08T16:00:00Z"}
+    - {id: e091, event: weekly_active, person: u039, ts: "2026-10-08T16:01:00Z"}
+    - {id: e092, event: weekly_active, person: u044, ts: "2026-10-08T16:22:00Z"}
+    - {id: e093, event: signed_up, person: u029, ts: "2026-10-08T16:37:00Z"}
+    - {id: e094, event: weekly_active, person: c045, ts: "2026-10-08T17:19:00Z"}
+    - {id: e095, event: weekly_active, person: c068, ts: "2026-10-08T19:21:00Z"}
+    - {id: e096, event: weekly_active, person: c039, ts: "2026-10-08T20:34:00Z"}
+    - {id: e097, event: invoice_sent, person: c028, ts: "2026-10-08T21:00:00Z"}
+    - {id: e098, event: weekly_active, person: c059, ts: "2026-10-08T21:57:00Z"}
+    - {id: e099, event: weekly_active, person: c020, ts: "2026-10-08T22:34:00Z"}
+    - {id: e100, event: weekly_active, person: c057, ts: "2026-10-08T22:49:00Z"}
+    - {id: e101, event: invoice_sent, person: c063, ts: "2026-10-09T00:00:00Z"}
+    - {id: e102, event: weekly_active, person: c015, ts: "2026-10-09T00:32:00Z"}
+    - {id: e103, event: weekly_active, person: c034, ts: "2026-10-09T00:45:00Z"}
+    - {id: e104, event: weekly_active, person: c065, ts: "2026-10-09T00:50:00Z"}
+    - {id: e105, event: signed_up, person: u028, ts: "2026-10-09T01:25:00Z"}
+    - {id: e106, event: weekly_active, person: c021, ts: "2026-10-09T01:47:00Z"}
+    - {id: e107, event: weekly_active, person: c014, ts: "2026-10-09T01:53:00Z"}
+    - {id: e108, event: weekly_active, person: c013, ts: "2026-10-09T01:55:00Z"}
+    - {id: e109, event: weekly_active, person: c051, ts: "2026-10-09T02:44:00Z"}
+    - {id: e110, event: weekly_active, person: c003, ts: "2026-10-09T03:25:00Z"}
+    - {id: e111, event: weekly_active, person: u003, ts: "2026-10-09T03:33:00Z"}
+    - {id: e112, event: signed_up, person: u026, ts: "2026-10-09T05:20:00Z"}
+    - {id: e113, event: invoice_sent, person: u019, ts: "2026-10-09T11:39:00Z"}
+    - {id: e114, event: weekly_active, person: c058, ts: "2026-10-09T14:03:00Z"}
+    - {id: e115, event: signed_up, person: u030, ts: "2026-10-09T14:35:00Z"}
+    - {id: e116, event: signed_up, person: u032, ts: "2026-10-09T14:54:00Z"}
+    - {id: e117, event: weekly_active, person: c049, ts: "2026-10-09T15:04:00Z"}
+    - {id: e118, event: signed_up, person: u033, ts: "2026-10-09T16:38:00Z"}
+    - {id: e119, event: weekly_active, person: c018, ts: "2026-10-09T17:25:00Z"}
+    - {id: e120, event: weekly_active, person: c010, ts: "2026-10-09T17:27:00Z"}
+    - {id: e121, event: invoice_sent, person: u027, ts: "2026-10-09T19:53:00Z"}
+    - {id: e122, event: signed_up, person: u036, ts: "2026-10-09T20:43:00Z"}
+    - {id: e123, event: signed_up, person: u035, ts: "2026-10-09T20:57:00Z"}
+    - {id: e124, event: weekly_active, person: u023, ts: "2026-10-09T21:23:00Z"}
+    - {id: e125, event: invoice_sent, person: u028, ts: "2026-10-09T21:25:00Z"}
+    - {id: e126, event: signed_up, person: u031, ts: "2026-10-09T22:15:00Z"}
+    - {id: e127, event: weekly_active, person: c038, ts: "2026-10-09T22:26:00Z"}
+    - {id: e128, event: invoice_sent, person: u015, ts: "2026-10-09T22:34:00Z"}
+    - {id: e129, event: weekly_active, person: c053, ts: "2026-10-09T22:55:00Z"}
+    - {id: e130, event: weekly_active, person: u045, ts: "2026-10-10T00:41:00Z"}
+    - {id: e131, event: weekly_active, person: c069, ts: "2026-10-10T00:49:00Z"}
+    - {id: e132, event: weekly_active, person: c063, ts: "2026-10-10T01:45:00Z"}
+    - {id: e133, event: weekly_active, person: u014, ts: "2026-10-10T02:23:00Z"}
+    - {id: e134, event: signed_up, person: u034, ts: "2026-10-10T02:29:00Z"}
+    - {id: e135, event: weekly_active, person: c005, ts: "2026-10-10T02:35:00Z"}
+    - {id: e136, event: weekly_active, person: c036, ts: "2026-10-10T03:26:00Z"}
+    - {id: e137, event: weekly_active, person: c055, ts: "2026-10-10T03:47:00Z"}
+    - {id: e138, event: weekly_active, person: c054, ts: "2026-10-10T03:49:00Z"}
+    - {id: e139, event: invoice_sent, person: c034, ts: "2026-10-10T15:00:00Z"}
+    - {id: e140, event: invoice_sent, person: c051, ts: "2026-10-10T16:00:00Z"}
+    - {id: e141, event: invoice_sent, person: c029, ts: "2026-10-10T17:00:00Z"}
+    - {id: e142, event: signed_up, person: u039, ts: "2026-10-10T18:22:00Z"}
+    - {id: e143, event: signed_up, person: u042, ts: "2026-10-10T18:24:00Z"}
+    - {id: e144, event: signed_up, person: u038, ts: "2026-10-10T18:29:00Z"}
+    - {id: e145, event: invoice_sent, person: c053, ts: "2026-10-10T20:00:00Z"}
+    - {id: e146, event: invoice_sent, person: u020, ts: "2026-10-10T20:01:00Z"}
+    - {id: e147, event: signed_up, person: u040, ts: "2026-10-10T20:22:00Z"}
+    - {id: e148, event: invoice_sent, person: u033, ts: "2026-10-10T22:38:00Z"}
+    - {id: e149, event: invoice_sent, person: u039, ts: "2026-10-10T23:22:00Z"}
+    - {id: e150, event: invoice_sent, person: c037, ts: "2026-10-11T00:00:00Z"}
+    - {id: e151, event: signed_up, person: u037, ts: "2026-10-11T00:15:00Z"}
+    - {id: e152, event: signed_up, person: u041, ts: "2026-10-11T02:37:00Z"}
+    - {id: e153, event: invoice_sent, person: u036, ts: "2026-10-11T02:43:00Z"}
+    - {id: e154, event: invoice_sent, person: c007, ts: "2026-10-11T15:00:00Z"}
+    - {id: e155, event: invoice_sent, person: c060, ts: "2026-10-11T16:00:00Z"}
+    - {id: e156, event: invoice_sent, person: c066, ts: "2026-10-11T17:00:00Z"}
+    - {id: e157, event: invoice_sent, person: c031, ts: "2026-10-11T18:00:00Z"}
+    - {id: e158, event: signed_up, person: u045, ts: "2026-10-11T18:44:00Z"}
+    - {id: e159, event: signed_up, person: u043, ts: "2026-10-11T20:35:00Z"}
+    - {id: e160, event: invoice_sent, person: c038, ts: "2026-10-11T21:00:00Z"}
+    - {id: e161, event: signed_up, person: u046, ts: "2026-10-12T01:13:00Z"}
+    - {id: e162, event: invoice_sent, person: u040, ts: "2026-10-12T02:22:00Z"}
+    - {id: e163, event: weekly_active, person: c091, ts: "2026-10-12T03:45:00Z"}
+    - {id: e164, event: signed_up, person: u902, ts: "2026-10-12T04:15:00Z"}
+    - {id: e165, event: signed_up, person: u044, ts: "2026-10-12T04:32:00Z"}
+    - {id: e166, event: signed_up, person: u903, ts: "2026-10-12T06:05:00Z"}
+payments:
+  customers:
+    - {id: cus_01, name: "Arbor Labs", email: billing@arbor.example}
+    - {id: cus_02, name: "Bramble Co", email: billing@bramble.example}
+    - {id: cus_03, name: "Cinder Analytics", email: billing@cinder.example}
+    - {id: cus_04, name: "Delta Forge", email: billing@delta.example}
+    - {id: cus_05, name: "Ember Health", email: billing@ember.example}
+    - {id: cus_06, name: "Fjord Media", email: billing@fjord.example}
+    - {id: cus_07, name: "Gable Works", email: billing@gable.example}
+    - {id: cus_08, name: "Indigo Print", email: billing@indigo.example}
+    - {id: cus_09, name: "Juniper Legal", email: billing@juniper.example}
+    - {id: cus_10, name: "Kestrel Ops", email: billing@kestrel.example}
+    - {id: cus_11, name: "Lumen Retail", email: billing@lumen.example}
+    - {id: cus_12, name: "Marble Studio", email: billing@marble.example}
+    - {id: cus_13, name: "Nimbus Travel", email: billing@nimbus.example}
+    - {id: cus_14, name: "Orchid Foods", email: billing@orchid.example}
+    - {id: cus_15, name: "Pylon Energy", email: billing@pylon.example}
+    - {id: cus_16, name: "Quarry Data", email: billing@quarry.example}
+    - {id: cus_17, name: "Rivet Robotics", email: billing@rivet.example}
+    - {id: cus_18, name: "Tundra Gear", email: billing@tundra.example}
+    - {id: cus_19, name: "Sandbox (internal)", email: ops@tallyhq.test}
+  charges:
+    - {id: ch_001, customer: cus_03, amount: 990.0, currency: USD, status: succeeded, created: "2026-09-28T20:07:00Z"}
+    - {id: ch_002, customer: cus_09, amount: 490.0, currency: USD, status: succeeded, created: "2026-09-28T20:20:00Z"}
+    - {id: ch_003, customer: cus_17, amount: 99.0, currency: USD, status: succeeded, created: "2026-09-29T00:31:00Z"}
+    - {id: ch_004, customer: cus_02, amount: 99.0, currency: USD, status: succeeded, created: "2026-09-29T15:48:00Z"}
+    - {id: ch_005, customer: cus_17, amount: 99.0, currency: USD, status: succeeded, created: "2026-09-29T17:09:00Z"}
+    - {id: ch_006, customer: cus_07, amount: 99.0, currency: USD, status: succeeded, created: "2026-09-30T15:50:00Z"}
+    - {id: ch_007, customer: cus_01, amount: 99.0, currency: USD, status: succeeded, created: "2026-09-30T17:45:00Z"}
+    - {id: ch_008, customer: cus_04, amount: 249.0, currency: USD, status: partially_refunded, created: "2026-09-30T20:34:00Z", amount_refunded: 120.0}
+    - {id: ch_009, customer: cus_08, amount: 19.0, currency: USD, status: succeeded, created: "2026-09-30T20:43:00Z"}
+    - {id: ch_010, customer: cus_06, amount: 49.0, currency: USD, status: succeeded, created: "2026-10-01T01:49:00Z"}
+    - {id: ch_011, customer: cus_19, amount: 19.0, currency: USD, status: succeeded, created: "2026-10-01T16:47:00Z"}
+    - {id: ch_012, customer: cus_08, amount: 99.0, currency: USD, status: succeeded, created: "2026-10-01T19:07:00Z"}
+    - {id: ch_013, customer: cus_06, amount: 249.0, currency: USD, status: succeeded, created: "2026-10-01T19:09:00Z"}
+    - {id: ch_014, customer: cus_06, amount: 249.0, currency: USD, status: succeeded, created: "2026-10-02T01:11:00Z"}
+    - {id: ch_015, customer: cus_07, amount: 490.0, currency: USD, status: succeeded, created: "2026-10-02T01:24:00Z"}
+    - {id: ch_016, customer: cus_15, amount: 99.0, currency: USD, status: succeeded, created: "2026-10-02T18:30:00Z"}
+    - {id: ch_017, customer: cus_08, amount: 990.0, currency: USD, status: succeeded, created: "2026-10-03T00:43:00Z"}
+    - {id: ch_018, customer: cus_16, amount: 249.0, currency: USD, status: succeeded, created: "2026-10-03T01:54:00Z"}
+    - {id: ch_019, customer: cus_11, amount: 19.0, currency: USD, status: succeeded, created: "2026-10-03T15:27:00Z"}
+    - {id: ch_020, customer: cus_18, amount: 49.0, currency: USD, status: succeeded, created: "2026-10-03T20:31:00Z"}
+    - {id: ch_021, customer: cus_02, amount: 490.0, currency: USD, status: succeeded, created: "2026-10-04T00:25:00Z"}
+    - {id: ch_022, customer: cus_13, amount: 490.0, currency: USD, status: succeeded, created: "2026-10-04T01:20:00Z"}
+    - {id: ch_023, customer: cus_17, amount: 49.0, currency: USD, status: succeeded, created: "2026-10-04T01:34:00Z"}
+    - {id: ch_024, customer: cus_12, amount: 19.0, currency: USD, status: succeeded, created: "2026-10-04T16:21:00Z"}
+    - {id: ch_025, customer: cus_13, amount: 490.0, currency: USD, status: succeeded, created: "2026-10-04T17:23:00Z"}
+    - {id: ch_026, customer: cus_04, amount: 990.0, currency: USD, status: succeeded, created: "2026-10-04T18:15:00Z"}
+    - {id: ch_027, customer: cus_13, amount: 99.0, currency: USD, status: succeeded, created: "2026-10-04T20:22:00Z"}
+    - {id: ch_028, customer: cus_14, amount: 990.0, currency: USD, status: succeeded, created: "2026-10-04T21:15:00Z"}
+    - {id: ch_029, customer: cus_06, amount: 990.0, currency: USD, status: succeeded, created: "2026-10-05T04:30:00Z"}
+    - {id: ch_030, customer: cus_03, amount: 990.0, currency: USD, status: succeeded, created: "2026-10-05T17:28:00Z"}
+    - {id: ch_031, customer: cus_16, amount: 49.0, currency: USD, status: succeeded, created: "2026-10-06T01:45:00Z"}
+    - {id: ch_032, customer: cus_01, amount: 990.0, currency: USD, status: succeeded, created: "2026-10-06T01:56:00Z"}
+    - {id: ch_033, customer: cus_10, amount: 49.0, currency: USD, status: succeeded, created: "2026-10-06T02:19:00Z"}
+    - {id: ch_034, customer: cus_02, amount: 99.0, currency: USD, status: refunded, created: "2026-10-06T16:46:00Z", amount_refunded: 99.0}
+    - {id: ch_035, customer: cus_19, amount: 990.0, currency: USD, status: succeeded, created: "2026-10-06T18:57:00Z"}
+    - {id: ch_036, customer: cus_17, amount: 990.0, currency: USD, status: succeeded, created: "2026-10-07T02:52:00Z"}
+    - {id: ch_037, customer: cus_11, amount: 19.0, currency: USD, status: succeeded, created: "2026-10-07T15:01:00Z"}
+    - {id: ch_038, customer: cus_16, amount: 19.0, currency: USD, status: succeeded, created: "2026-10-07T16:11:00Z"}
+    - {id: ch_039, customer: cus_03, amount: 99.0, currency: USD, status: succeeded, created: "2026-10-07T17:51:00Z"}
+    - {id: ch_040, customer: cus_08, amount: 19.0, currency: USD, status: succeeded, created: "2026-10-08T01:06:00Z"}
+    - {id: ch_041, customer: cus_17, amount: 99.0, currency: USD, status: succeeded, created: "2026-10-08T01:09:00Z"}
+    - {id: ch_042, customer: cus_19, amount: 99.0, currency: USD, status: succeeded, created: "2026-10-08T16:53:00Z"}
+    - {id: ch_043, customer: cus_04, amount: 990.0, currency: USD, status: succeeded, created: "2026-10-08T22:17:00Z"}
+    - {id: ch_044, customer: cus_15, amount: 990.0, currency: USD, status: succeeded, created: "2026-10-08T23:54:00Z"}
+    - {id: ch_045, customer: cus_08, amount: 99.0, currency: USD, status: succeeded, created: "2026-10-09T01:35:00Z"}
+    - {id: ch_046, customer: cus_11, amount: 49.0, currency: USD, status: succeeded, created: "2026-10-09T02:05:00Z"}
+    - {id: ch_047, customer: cus_15, amount: 99.0, currency: USD, status: succeeded, created: "2026-10-09T18:57:00Z"}
+    - {id: ch_048, customer: cus_14, amount: 990.0, currency: USD, status: succeeded, created: "2026-10-09T19:57:00Z"}
+    - {id: ch_049, customer: cus_06, amount: 490.0, currency: USD, status: succeeded, created: "2026-10-09T22:53:00Z"}
+    - {id: ch_050, customer: cus_03, amount: 249.0, currency: USD, status: succeeded, created: "2026-10-09T23:23:00Z"}
+    - {id: ch_051, customer: cus_05, amount: 990.0, currency: USD, status: succeeded, created: "2026-10-10T00:53:00Z"}
+    - {id: ch_052, customer: cus_19, amount: 49.0, currency: USD, status: succeeded, created: "2026-10-10T14:09:00Z"}
+    - {id: ch_053, customer: cus_09, amount: 49.0, currency: USD, status: succeeded, created: "2026-10-10T21:13:00Z"}
+    - {id: ch_054, customer: cus_07, amount: 49.0, currency: USD, status: succeeded, created: "2026-10-10T21:21:00Z"}
+    - {id: ch_055, customer: cus_05, amount: 99.0, currency: USD, status: succeeded, created: "2026-10-10T21:55:00Z"}
+    - {id: ch_056, customer: cus_18, amount: 49.0, currency: USD, status: succeeded, created: "2026-10-11T15:36:00Z"}
+    - {id: ch_057, customer: cus_13, amount: 490.0, currency: USD, status: succeeded, created: "2026-10-11T19:28:00Z"}
+    - {id: ch_058, customer: cus_17, amount: 990.0, currency: USD, status: succeeded, created: "2026-10-12T00:08:00Z"}
+    - {id: ch_059, customer: cus_08, amount: 49.0, currency: USD, status: succeeded, created: "2026-10-12T00:40:00Z"}
+    - {id: ch_060, customer: cus_14, amount: 490.0, currency: USD, status: succeeded, created: "2026-10-12T05:15:00Z"}
+  refunds:
+    - {id: re_01, charge: ch_008, amount: 120.0, currency: USD, reason: "partial credit", created: "2026-10-07T18:10:00Z"}
+    - {id: re_02, charge: ch_034, amount: 99.0, currency: USD, reason: duplicate, created: "2026-10-09T21:00:00Z"}
+helpdesk:
+  tickets:
+    - {id: TKT-4401, subject: "Can't connect bank", requester: delta@users.example, status: solved, created: "2026-09-19T13:34:00Z"}
+    - {id: TKT-4402, subject: "Change billing email", requester: nimbus@users.example, status: solved, created: "2026-09-19T18:58:00Z"}
+    - {id: TKT-4403, subject: "Late fee setup", requester: marble@users.example, status: solved, created: "2026-09-19T20:14:00Z"}
+    - {id: TKT-4404, subject: "Reminder emails not sent", requester: ember@users.example, status: closed, created: "2026-09-20T17:17:00Z"}
+    - {id: TKT-4405, subject: "Reminder emails not sent", requester: cinder@users.example, status: closed, created: "2026-09-21T03:54:00Z"}
+    - {id: TKT-4406, subject: "Card declined", requester: kestrel@users.example, status: solved, created: "2026-09-21T22:50:00Z"}
+    - {id: TKT-4407, subject: "Add a teammate", requester: delta@users.example, status: solved, created: "2026-09-21T23:29:00Z"}
+    - {id: TKT-4408, subject: "Card declined", requester: juniper@users.example, status: closed, created: "2026-09-22T16:26:00Z"}
+    - {id: TKT-4409, subject: "Add a teammate", requester: indigo@users.example, status: closed, created: "2026-09-22T21:25:00Z"}
+    - {id: TKT-4410, subject: "Export to CSV", requester: pylon@users.example, status: solved, created: "2026-09-22T23:59:00Z"}
+    - {id: TKT-4411, subject: "Logo upload fails", requester: lumen@users.example, status: closed, created: "2026-09-23T17:13:00Z"}
+    - {id: TKT-4412, subject: "Late fee setup", requester: indigo@users.example, status: closed, created: "2026-09-23T23:31:00Z"}
+    - {id: TKT-4413, subject: "Invoice PDF blank", requester: pylon@users.example, status: closed, created: "2026-09-24T21:10:00Z"}
+    - {id: TKT-4414, subject: "Xero sync duplicate", requester: tundra@users.example, status: closed, created: "2026-09-25T00:18:00Z"}
+    - {id: TKT-4415, subject: "Can't connect bank", requester: nimbus@users.example, status: closed, created: "2026-09-25T19:45:00Z"}
+    - {id: TKT-4416, subject: "Can't connect bank", requester: lumen@users.example, status: solved, created: "2026-09-26T00:51:00Z"}
+    - {id: TKT-4417, subject: "Logo upload fails", requester: nimbus@users.example, status: closed, created: "2026-09-26T22:12:00Z"}
+    - {id: TKT-4418, subject: "Export to CSV", requester: marble@users.example, status: closed, created: "2026-09-26T23:27:00Z"}
+    - {id: TKT-4419, subject: "Xero sync duplicate", requester: ember@users.example, status: solved, created: "2026-09-27T01:50:00Z"}
+    - {id: TKT-4420, subject: "Recurring invoice skipped", requester: orchid@users.example, status: solved, created: "2026-09-27T16:10:00Z"}
+    - {id: TKT-4421, subject: "Tax rate wrong", requester: delta@users.example, status: closed, created: "2026-09-27T21:53:00Z"}
+    - {id: TKT-4422, subject: "Card declined", requester: arbor@users.example, status: closed, created: "2026-09-28T17:12:00Z"}
+    - {id: TKT-4423, subject: "Recurring invoice skipped", requester: gable@users.example, status: solved, created: "2026-09-28T19:39:00Z"}
+    - {id: TKT-4424, subject: "Late fee setup", requester: kestrel@users.example, status: closed, created: "2026-09-28T23:46:00Z"}
+    - {id: TKT-4425, subject: "Recurring invoice skipped", requester: juniper@users.example, status: solved, created: "2026-09-29T16:15:00Z"}
+    - {id: TKT-4426, subject: "Reminder emails not sent", requester: pylon@users.example, status: closed, created: "2026-09-29T19:01:00Z"}
+    - {id: TKT-4427, subject: "Logo upload fails", requester: kestrel@users.example, status: closed, created: "2026-09-30T02:01:00Z"}
+    - {id: TKT-4428, subject: "Change billing email", requester: indigo@users.example, status: closed, created: "2026-09-30T14:07:00Z"}
+    - {id: TKT-4429, subject: "Add a teammate", requester: cinder@users.example, status: solved, created: "2026-10-01T00:15:00Z"}
+    - {id: TKT-4430, subject: "Tax rate wrong", requester: rivet@users.example, status: solved, created: "2026-10-01T01:31:00Z"}
+    - {id: TKT-4431, subject: "Can't connect bank", requester: quarry@users.example, status: closed, created: "2026-10-01T15:46:00Z"}
+    - {id: TKT-4432, subject: "Add a teammate", requester: gable@users.example, status: solved, created: "2026-10-01T21:20:00Z"}
+    - {id: TKT-4433, subject: "Card declined", requester: gable@users.example, status: solved, created: "2026-10-01T23:09:00Z"}
+    - {id: TKT-4434, subject: "Invoice PDF blank", requester: nimbus@users.example, status: closed, created: "2026-10-02T14:20:00Z"}
+    - {id: TKT-4435, subject: "Reminder emails not sent", requester: tundra@users.example, status: solved, created: "2026-10-02T17:54:00Z"}
+    - {id: TKT-4436, subject: "Xero sync duplicate", requester: nimbus@users.example, status: closed, created: "2026-10-03T13:44:00Z"}
+    - {id: TKT-4437, subject: "[Spam] Guest post offer", requester: bramble@users.example, status: closed, created: "2026-10-03T16:25:00Z"}
+    - {id: TKT-4438, subject: "Reminder emails not sent", requester: orchid@users.example, status: solved, created: "2026-10-04T22:39:00Z"}
+    - {id: TKT-4439, subject: "Late fee setup", requester: indigo@users.example, status: closed, created: "2026-10-05T01:14:00Z"}
+    - {id: TKT-4440, subject: "Late fee setup", requester: fjord@users.example, status: solved, created: "2026-10-05T06:10:00Z"}
+    - {id: TKT-4441, subject: "Xero sync duplicate", requester: marble@users.example, status: open, created: "2026-10-05T15:57:00Z"}
+    - {id: TKT-4442, subject: "Tax rate wrong", requester: gable@users.example, status: pending, created: "2026-10-05T16:34:00Z"}
+    - {id: TKT-4443, subject: "[Spam] Cheap SEO backlinks", requester: cinder@users.example, status: closed, created: "2026-10-05T18:04:00Z"}
+    - {id: TKT-4444, subject: "Export to CSV", requester: delta@users.example, status: solved, created: "2026-10-05T23:15:00Z"}
+    - {id: TKT-4445, subject: "Can't connect bank", requester: tundra@users.example, status: pending, created: "2026-10-07T03:02:00Z"}
+    - {id: TKT-4446, subject: "Automatic reply: Out of office", requester: cinder@users.example, status: solved, created: "2026-10-07T03:24:00Z"}
+    - {id: TKT-4447, subject: "Xero sync duplicate", requester: kestrel@users.example, status: solved, created: "2026-10-07T20:05:00Z"}
+    - {id: TKT-4448, subject: "Card declined", requester: rivet@users.example, status: open, created: "2026-10-07T21:19:00Z"}
+    - {id: TKT-4449, subject: "Reminder emails not sent", requester: bramble@users.example, status: pending, created: "2026-10-07T23:05:00Z"}
+    - {id: TKT-4450, subject: "[Spam] Your crypto payout is waiting", requester: indigo@users.example, status: closed, created: "2026-10-08T18:45:00Z"}
+    - {id: TKT-4451, subject: "Tax rate wrong", requester: fjord@users.example, status: pending, created: "2026-10-08T20:36:00Z"}
+    - {id: TKT-4452, subject: "Logo upload fails", requester: quarry@users.example, status: open, created: "2026-10-09T16:36:00Z"}
+    - {id: TKT-4453, subject: "Late fee setup", requester: rivet@users.example, status: open, created: "2026-10-09T23:52:00Z"}
+    - {id: TKT-4454, subject: "Invoice PDF blank", requester: lumen@users.example, status: solved, created: "2026-10-10T18:54:00Z"}
+    - {id: TKT-4455, subject: "Automatic reply: Out of office until 14 Oct", requester: rivet@users.example, status: open, created: "2026-10-11T03:12:00Z"}
+    - {id: TKT-4456, subject: "Change billing email", requester: cinder@users.example, status: open, created: "2026-10-11T03:43:00Z"}
+    - {id: TKT-4457, subject: "Logo upload fails", requester: fjord@users.example, status: pending, created: "2026-10-11T13:34:00Z"}
+    - {id: TKT-4458, subject: "Logo upload fails", requester: quarry@users.example, status: solved, created: "2026-10-11T14:10:00Z"}
+    - {id: TKT-4459, subject: "[Spam] Guest post offer", requester: fjord@users.example, status: closed, created: "2026-10-11T15:55:00Z"}
+    - {id: TKT-4460, subject: "Recurring invoice skipped", requester: pylon@users.example, status: pending, created: "2026-10-12T00:02:00Z"}
+    - {id: TKT-4461, subject: "Xero sync duplicate", requester: bramble@users.example, status: open, created: "2026-10-12T03:40:00Z"}
+chat:
+  channels:
+    - {id: c_metrics, name: metrics, members: [sam@tallyhq.test, dana@tallyhq.test, rosa@tallyhq.test], topic: "Weekly numbers", created: "2026-01-05T09:00:00-08:00"}
+  messages:
+    - {id: cm1, channel: c_metrics, author: dana@tallyhq.test, text: "Q4 board deck is due 23 Oct, it will pull from the weekly reports.", ts: "2026-10-02T11:00:00-07:00", thread_id: null}
+    - {id: cm2, channel: c_metrics, author: rosa@tallyhq.test, text: "For the weekly report: from this week, Tickets opened leaves out spam ([Spam] subjects) and auto-replies (subjects starting Automatic reply).", ts: "2026-10-06T10:15:00-07:00", thread_id: null}
+    - {id: cm3, channel: c_metrics, author: rosa@tallyhq.test, text: "Correction to Tuesday: keep counting the automatic replies, they come from real customers and we answer them. Only [Spam] tickets are left out.", ts: "2026-10-08T16:40:00-07:00", thread_id: null}

@@ -1,0 +1,13 @@
+now: 2026-06-08T05:30:00-04:00
+user: {name: Casey Duarte, email: casey@harbourline.test, timezone: America/New_York}
+helpdesk:
+  tickets:
+    - {id: HD-2088, subject: "Password reset email never arrives", description: "Customer tried three times.",
+       requester: nina@brightfold.example, priority: normal, status: solved, conversation: null,
+       created: "2026-06-04T15:10:00+01:00", updated: "2026-06-05T09:00:00+01:00"}
+    - {id: HD-2091, subject: "Export to CSV drops the last row", description: "Reproducible on large reports.",
+       requester: ops@kestrelworks.example, priority: high, status: solved, conversation: null,
+       created: "2026-06-05T11:25:00+01:00", updated: "2026-06-06T10:00:00+01:00"}
+    - {id: HD-2093, subject: "Question about annual billing", description: "Wants to switch to annual.",
+       requester: finance@loamhouse.example, priority: low, status: closed, conversation: null,
+       created: "2026-06-06T16:40:00+01:00", updated: "2026-06-07T12:00:00+01:00"}

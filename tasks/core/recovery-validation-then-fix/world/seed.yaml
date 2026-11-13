@@ -1,0 +1,17 @@
+now: 2026-06-03T09:12:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+calendar:
+  calendars:
+    - {id: cal_alex, name: Alex Morgan, owner: alex@northwind.test, timezone: Europe/London}
+  events:
+    - {id: evt_standup, calendar: cal_alex, title: "Team standup", start: "2026-06-01T09:30:00+01:00",
+       end: "2026-06-01T09:45:00+01:00", tz: Europe/London, attendees: [sam@northwind.test, priya@northwind.test],
+       organizer: alex@northwind.test, rrule: "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR", exceptions: {}, status: confirmed,
+       description: "", location: ""}
+    - {id: evt_dentist, calendar: cal_alex, title: "Dentist", start: "2026-06-09T11:00:00+01:00",
+       end: "2026-06-09T11:45:00+01:00", tz: Europe/London, attendees: [], organizer: alex@northwind.test,
+       rrule: null, exceptions: {}, status: confirmed, description: "", location: "Harley Dental"}
+contacts:
+  people:
+    - {id: p1, name: Priya Shah, email: priya@northwind.test, company: Northwind}
+    - {id: p2, name: Sam Okafor, email: sam@northwind.test, company: Northwind}

@@ -1,0 +1,8 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: tables_list_bases, args: {}}
+      - {tool: tables_list_records, args: {base: "Job postings", where: {team: Data, location: Remote}}}
+    answer: |
+      5 remote data roles posted this week (Mon 15 - Thu 18 June): Senior Data Engineer, Analytics
+      Engineer, Data Scientist (Pricing), Machine Learning Engineer and Data Platform Lead.

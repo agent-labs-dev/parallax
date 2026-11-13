@@ -1,0 +1,6 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: sheets_read, args: {sheet: June expenses, query: Figma}}
+      - {tool: sheets_update_cell, args: {row_id: j2, column: Amount, value: 54}}
+    answer: "Fixed: the Figma design seats line on 3 June is now 54 instead of 45. Nothing else on the sheet changed."

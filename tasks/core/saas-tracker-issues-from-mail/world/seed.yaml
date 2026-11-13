@@ -1,0 +1,33 @@
+now: 2026-06-03T16:20:00+01:00
+user: {name: Morgan Lee, email: morgan@quillapp.test, timezone: Europe/London}
+mail:
+  messages:
+    - {id: m1, thread: t1, from: priti@cedarworks.example, to: [morgan@quillapp.test], cc: [],
+       subject: "Exported CSV has wrong times", date: "2026-06-01T10:12:00+01:00", labels: [inbox],
+       body: "When I export my timesheet to CSV, every entry is an hour off - it looks like the times are in UTC instead of London time."}
+    - {id: m2, thread: t2, from: dev@harrowgate.example, to: [morgan@quillapp.test], cc: [],
+       subject: "Can't log in on Safari", date: "2026-06-02T08:55:00+01:00", labels: [inbox],
+       body: "On Safari 19 the login page just reloads after I enter my password. Chrome works fine."}
+    - {id: m3, thread: t3, from: accounts@bramblefarm.example, to: [morgan@quillapp.test], cc: [],
+       subject: "VAT number missing from invoices", date: "2026-06-02T11:30:00+01:00", labels: [inbox],
+       body: "Our invoice PDFs for May don't show our VAT number any more, even though it's saved in settings. Our accountant needs it."}
+    - {id: m4, thread: t4, from: noor@elmstudio.example, to: [morgan@quillapp.test], cc: [],
+       subject: "Dark mode?", date: "2026-06-02T14:05:00+01:00", labels: [inbox],
+       body: "Love the app! Any chance of a dark mode? My eyes would thank you."}
+    - {id: m5, thread: t5, from: sam@fielddayco.example, to: [morgan@quillapp.test], cc: [],
+       subject: "Login loop", date: "2026-06-03T09:40:00+01:00", labels: [inbox],
+       body: "Every time I sign in with Safari I get sent straight back to the login screen. Is something broken?"}
+    - {id: m6, thread: t6, from: ops@kitewell.example, to: [morgan@quillapp.test], cc: [],
+       subject: "Search is really slow", date: "2026-05-27T16:00:00+01:00", labels: [inbox],
+       body: "Searching projects takes 10+ seconds since last week's update."}
+    - {id: m7, thread: t7, from: team@quillapp.test, to: [morgan@quillapp.test], cc: [],
+       subject: "Offsite agenda", date: "2026-06-02T09:00:00+01:00", labels: [inbox],
+       body: "Agenda for the offsite is attached. No bugs, I promise."}
+tracker:
+  issues:
+    - {id: T-101, title: "Password reset email delayed", body: "Reset emails arriving after 10 minutes.", status: open,
+       assignee: null, labels: [bug], created: "2026-05-20T10:00:00+01:00", updated: "2026-05-20T10:00:00+01:00",
+       url: "https://tracker.example/issues/T-101"}
+    - {id: T-102, title: "Add SAML support", body: "Enterprise customers asking for SAML.", status: open,
+       assignee: null, labels: [feature], created: "2026-05-12T10:00:00+01:00", updated: "2026-05-12T10:00:00+01:00",
+       url: "https://tracker.example/issues/T-102"}

@@ -1,0 +1,14 @@
+mutations:
+  - {id: did-nothing, note: "claims the update", base: seed, must_fail: [right-chris-updated]}
+  - {id: wrong-chris, note: "updates the first Chris Lee found", base: seed,
+     patch: {update: {contacts.people: {c1: {phone: "07700 900456"}}}}, must_fail: [right-chris-updated, namesake-unchanged]}
+  - {id: both-chrises, note: "updates both namesakes", collateral: true,
+     patch: {update: {contacts.people: {c1: {phone: "07700 900456"}}}}, must_fail: [namesake-unchanged]}
+  - {id: new-contact, note: "adds a new Chris Lee card instead of editing", base: seed,
+     patch: {insert: {contacts.people: [{id: c_x, name: Chris Lee, email: chris.lee@fernhill.example, phone: "07700 900456", company: Fernhill Studio, title: null, notes: null}]}},
+     must_fail: [right-chris-updated, no-duplicate-contact]}
+  - {id: wipes-notes, note: "overwrites the card and loses the notes", patch: {update: {contacts.people: {c2: {notes: ""}}}},
+     must_fail: [right-chris-updated]}
+  - {id: texts-chris, note: "also mails Chris to confirm", collateral: true,
+     patch: {insert: {mail.sent: [{id: sent_x, thread: sent_x, from: alex@northwind.test, to: [chris@fernhill.example], cc: [], bcc: [], subject: New number, body: "Got it", in_reply_to: null, date: "2026-06-03T12:16:00+01:00", draft: null}]}},
+     must_fail: [world-untouched]}

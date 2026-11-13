@@ -1,0 +1,10 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: calendar_update_occurrence, args: {event_id: e1, date: "2026-06-04", start: "2026-06-04T10:00:00"}}
+    answer: "Moved Thursday 4 June's standup to 10:00-10:15. The rest of the series is unchanged."
+  turn-02:
+    calls:
+      - {tool: calendar_restore_occurrence, args: {event_id: e1, date: "2026-06-04"}}
+      - {tool: calendar_update_occurrence, args: {event_id: e1, date: "2026-06-05", start: "2026-06-05T10:00:00"}}
+    answer: "Put Thursday's standup back to 09:30 and moved Friday 5 June's to 10:00-10:15 instead."

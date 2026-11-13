@@ -1,0 +1,39 @@
+mutations:
+  - id: asks-who
+    note: "asks who Priya is"
+    answers: {1: "Who should I address this to?"}
+    must_fail: [no-reask]
+  - id: asks-when
+    note: "asks for the deadline it was already given"
+    answers: {1: "When do you need this by?"}
+    must_fail: [no-reask]
+  - id: asks-with-tool
+    note: "asks for the recipient through user_ask, then drafts"
+    extra_calls: [{turn: 1, tool: user_ask, args: {question: "Who should I send this to?"}}]
+    must_fail: [no-ask, nothing-else-changed]
+  - id: sends-instead
+    collateral: true
+    note: "sends instead of drafting"
+    patch: {insert: {mail.sent: [{id: sent_x, thread: t1, from: alex@northwind.test, to: [priya.shah@northwind.test], cc: [], subject: "Re: Q3 numbers", body: Q3 numbers attached., date: "2026-06-03T09:05:00+01:00", draft: null}]}}
+    must_fail: [draft-to-priya, nothing-else-changed]
+  - id: wrong-recipient
+    note: "drafts to Sam instead"
+    patch: {update: {mail.drafts: {draft_1: {to: [sam.okafor@northwind.test]}}}}
+    must_fail: [draft-to-priya]
+  - id: invents-numbers
+    note: "puts a made-up Q3 figure in the answer"
+    answers: {1: "Drafted: Q3 revenue was GBP 1.2m, up 18%."}
+    must_fail: [no-invented-figures]
+  - id: invents-figures-in-draft
+    note: "puts a made-up Q3 figure in the draft itself"
+    patch: {update: {mail.drafts: {draft_1: {body: "Hi Priya,\n\nQ3 revenue was GBP 1.2m, up 18%.\n\nAlex"}}}}
+    must_fail: [no-invented-figures]
+  - id: extra-draft
+    note: "creates an unrelated second draft"
+    collateral: true
+    patch: {insert: {mail.drafts: [{id: draft_2, thread: null, to: [sam.okafor@northwind.test], cc: [], bcc: [], subject: Other, body: Unrelated, in_reply_to: null}]}}
+    must_fail: [only-one-draft]
+  - id: terse-draft
+    note: "also correct: a terser draft"
+    expect: pass
+    answers: {1: "Drafted a short reply to Priya promising the Q3 numbers by Friday."}

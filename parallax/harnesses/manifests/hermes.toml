@@ -1,0 +1,42 @@
+# Flags exercised against the pinned source (CLI 0.22.6); historical help is in fixtures/hermes.
+# --ignore-user-config is NOT
+# used: it skips $HERMES_HOME/config.yaml, which is where the meter and the world are configured.
+# The session id arrives on stderr as a `session_id: <id>` line.
+protocol = "cli"
+status_note = "runtime protocol verified (source f0d94882e89ab8d4098b5bb2f166adfb9ee0a0ab, CLI 0.22.6, scripted upstream): both wires, MCP read/write with tool_search off, session carry and memory injection; conf-mcp-echo and conf-two-turn-carry pass. Quiet output exposes the closing message and session ID; tool steps come from `hermes sessions export`."
+parser = "hermes_quiet"
+session = "from_output"
+stdin = "none"
+# After the turn the wrapper prints a marker and `hermes sessions export` for the session: quiet
+# output alone carries no tool steps, and the parser reads this turn's calls from the export.
+argv_first = ["sh", "-c", "err=\"$(mktemp)\"; hermes chat -Q --yolo --source tool \"$@\" 2>\"$err\"; rc=$?; cat \"$err\" >&2; sid=\"$(sed -n 's/^session_id: //p' \"$err\" | tail -n 1)\"; rm -f \"$err\"; if [ -n \"$sid\" ]; then echo \"--- hermes session export ---\"; hermes sessions export - --session-id \"$sid\"; fi; exit $rc", "hermes-turn", "-m", "{model_name}", "-q", "{prompt}"]
+argv_next = ["sh", "-c", "err=\"$(mktemp)\"; hermes chat -Q --yolo --source tool \"$@\" 2>\"$err\"; rc=$?; cat \"$err\" >&2; sid=\"$(sed -n 's/^session_id: //p' \"$err\" | tail -n 1)\"; rm -f \"$err\"; if [ -n \"$sid\" ]; then echo \"--- hermes session export ---\"; hermes sessions export - --session-id \"$sid\"; fi; exit $rc", "hermes-turn", "-m", "{model_name}", "--resume", "{session}",
+  "-q", "{prompt}"]
+
+[info]
+name = "hermes"
+kind = "open"
+capabilities = ["mcp", "workspace", "shell", "multi_turn", "memory"]
+pins_model = true
+cost_source = "metered"
+# The world is mounted over MCP, which hermes only supports with the `mcp` extra. Upstream's wheel/sdist
+# build is guarded (setup.py refuses bdist_wheel outside a Nix build) and the runtime needs Python 3.14,
+# so hermes is installed as an editable source checkout at the pinned commit into a uv-managed Python 3.14
+# venv (the base image stays on Python 3.13). UV_PYTHON_INSTALL_DIR keeps the 3.14 interpreter under
+# /opt, readable by the `agent` user, instead of the default /root/.local/share.
+install = "pip install --no-cache-dir 'uv==0.13.5' && git clone --quiet https://github.com/NousResearch/hermes-agent /opt/hermes && git -C /opt/hermes checkout --quiet f0d94882e89ab8d4098b5bb2f166adfb9ee0a0ab && UV_PYTHON_INSTALL_DIR=/opt/uv-python uv sync --locked --python 3.14.9 --extra mcp --extra anthropic --directory /opt/hermes && ln -s /opt/hermes/.venv/bin/hermes /usr/local/bin/hermes"
+# Read version tags in the immutable root-owned checkout only during this probe.
+version_cmd = ["env", "GIT_CONFIG_COUNT=1", "GIT_CONFIG_KEY_0=safe.directory", "GIT_CONFIG_VALUE_0=/opt/hermes", "hermes", "--version"]
+web_disabled_by = "config"
+source_url = "https://github.com/NousResearch/hermes-agent"
+
+[env]
+HERMES_HOME = "{home}/.hermes"
+
+# Hermes 0.22.6 deferred MCP dispatch sends namespaced tool names to the server.
+# Inline tools through the supported setting until that upstream path is fixed.
+[[config]]
+path = "home:.hermes/config.yaml"
+format = "yaml"
+# tirith's first-run warning otherwise lands on stdout, which is the answer channel.
+content = { model = { default = "{model_name}", provider = "meter-{model_provider}" }, providers = { "meter-openai" = { base_url = "{meter_openai}", api_key = "{meter_key}", api_mode = "chat_completions" }, "meter-anthropic" = { base_url = "{meter_anthropic}", api_key = "{meter_key}", api_mode = "anthropic_messages" } }, agent = { disabled_toolsets = ["web", "browser"] }, tools = { tool_search = { enabled = "off" } }, security = { tirith_enabled = false }, mcp_servers = { world = { url = "{world_url}", headers = { Authorization = "Bearer {world_token}" } } } }

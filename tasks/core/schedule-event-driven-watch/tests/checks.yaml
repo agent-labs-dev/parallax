@@ -1,0 +1,35 @@
+checks:
+  - id: mail-watch-on-acme
+    kind: calls
+    mode: wrong_schedule
+    tool: scheduler_create_job
+    before_turn: 2
+    where:
+      kind: watch
+      spec: {regex: "^mail\\s*:.*(acme|jordan|kell|renewal)"}
+    count: {min: 1}
+    note: "any spelling of the condition works as long as it watches mail from Acme; retiring the watch after it fires (paused or deleted) is fine"
+  - id: no-polling-cron
+    kind: state
+    mode: wrong_schedule
+    table: scheduler.jobs
+    where: {kind: cron}
+    count: 0
+    note: "a poll, at any cadence, is the wrong shape for 'the moment they reply'"
+  - id: tells-user-on-reply
+    kind: answer
+    mode: missing_action
+    turn: 2
+    must: [{regex: "5521|three-year|3-year|happy|accept|agreed|purchase order|(e-?mailed|sent|forwarded|messaged|notified)\\b[^\\n]{0,40}\\b(you|alex)\\b"}]
+    note: "when the watch fires, the user hears what Acme said: in the fire answer, or the answer says it was emailed to them"
+  - id: user-email-carries-reply
+    kind: state
+    mode: missing_action
+    table: mail.sent
+    where: {to: {contains: alex@northwind.test}, date: {gte: "2026-06-11T14:31:00+01:00"}}
+    count: {min: 0}
+    fields:
+      body: {regex: "5521|three-year|3-year|happy|accept|agreed|purchase order"}
+    note: "if the fire notifies Alex by email instead, that email says what Acme replied (a DM cannot reach Alex: they are not a contact)"
+  - {id: rest-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [scheduler.jobs, mail.sent, mail.drafts, chat.dms, user.interactions]}

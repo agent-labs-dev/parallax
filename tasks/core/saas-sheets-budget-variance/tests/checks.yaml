@@ -1,0 +1,20 @@
+checks:
+  - {id: variance-sheet-created, kind: state, mode: missing_action, table: sheets.sheets,
+     where: {title: May variance}, count: 1}
+  - id: variance-figures
+    kind: rubric
+    mode: wrong_output
+    sees: [diff]
+    items:
+      - "Does a new sheet named May variance hold exactly one row for each of the seven categories, with budget, actual and difference matching (to the penny): Software 8000 / 8450 / +450, Travel 5000 / 6120 / +1120, Marketing 12000 / 12900 / +900, Office 1500 / 1640 / +140, Contractors 20000 / 18200 / -1800, Meals 1200 / 1800 / +600, Training 2000 / 0 / -2000? Column names and order, a sign convention stated by the column name, an extra percentage column and number formats may differ."
+  - id: names-over-ten-percent
+    kind: rubric
+    mode: wrong_output
+    sees: [answers]
+    items:
+      - "Does the reply name Travel (about 22% over) and Meals (50% over) as the categories more than 10% over budget, and present no other category as more than 10% over?"
+  - {id: sources-untouched, kind: state, mode: collateral_change, table: sheets.rows,
+     where: {sheet: {any_of: [sh1, sh2]}}, unchanged: true,
+     note: "the Transactions and Budget rows keep their seed values, and none is added or removed"}
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [sheets.sheets, sheets.rows, user.interactions]}

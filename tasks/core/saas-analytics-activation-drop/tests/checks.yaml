@@ -1,0 +1,21 @@
+checks:
+  - {id: posted-in-growth, kind: state, mode: missing_action, table: chat.messages,
+     where: {channel: ch_growth, author: maya@loomly.test}, count: 1}
+  - {id: chat-elsewhere-untouched, kind: state, mode: collateral_change, table: chat.messages,
+     where: {channel: ch_general}, count: 1, unchanged: true}
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [chat.messages, user.interactions]}
+  - id: weekly-figures
+    kind: rubric
+    mode: wrong_output
+    sees: [answers, diff]
+    items:
+      - "Do the reply and the #growth post give signups for the week of 1-7 June as 60 and for 8-14 June as 80?"
+      - "Do they give activation (new signups who created a first project) as 25 of 60, about 42%, for 1-7 June and 27 of 80, about 34%, for 8-14 June? Figures from a plain ratio of all project_created events to signups (40/60 or 42/80) do not count."
+  - id: explains-the-mix
+    kind: rubric
+    mode: wrong_output
+    sees: [answers, diff]
+    items:
+      - "Does the work explain the lower rate by the new partner_launch (Brightwave) source, about 20 signups of which about 2 activated, while organic and paid search activated at an unchanged rate (about 42%)?"
+      - "Does the work avoid claiming that activation got worse for the existing sources, or that a product change such as the onboarding checklist test caused the drop?"

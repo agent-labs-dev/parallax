@@ -1,0 +1,165 @@
+now: 2026-10-21T10:30:00+01:00
+user: {name: Rachel Moore, email: rachel.moore@kitebridge.test, timezone: Europe/London}
+mail:
+  messages:
+    - {id: m01, thread: t-sync, from: rachel.moore@kitebridge.test, to: [hannah.cole@kitebridge.test, tomasz.nowak@kitebridge.test, weilin.tan@kitebridge.test, daniel.lim@kitebridge.test, priya.raman@kitebridge.test, karthik.iyer@kitebridge.test], subject: Platform leads sync, body: Notes from today's leads sync are in the doc. Next one in late October., date: '2026-09-24T10:05:00+01:00', labels: [inbox]}
+    - {id: m02, thread: t-sync, from: tomasz.nowak@kitebridge.test, to: [rachel.moore@kitebridge.test], subject: 'Re: Platform leads sync', body: 'Thanks Rachel. One ask for the next ones: can we keep them off Mondays? The CI release train ships Monday and I''m heads-down all day.', date: '2026-09-24T11:40:00+01:00', labels: [inbox]}
+    - {id: m03, thread: t-sync, from: priya.raman@kitebridge.test, to: [rachel.moore@kitebridge.test], subject: 'Re: Platform leads sync', body: '+1, notes look good. Happy with any day.', date: '2026-09-24T12:02:00+01:00', labels: [inbox]}
+    - {id: m04, thread: m04, from: laura.fenn@kitebridge.test, to: [rachel.moore@kitebridge.test], subject: 'Platform leads: Q4 priorities', body: 'Can the leads sync next week cover the Q4 reliability goals? An hour should do.', date: '2026-10-20T17:10:00+01:00', labels: [inbox]}
+    - {id: m05, thread: m05, from: ollie.hart@kitebridge.test, to: [rachel.moore@kitebridge.test], subject: Pager rota for November, body: November rota is in the SRE sheet., date: '2026-10-08T09:15:00+01:00', labels: [inbox]}
+    - {id: m06, thread: m06, from: sofia.marin@kitebridge.test, to: [rachel.moore@kitebridge.test], subject: Platform roadmap draft, body: Draft roadmap is up for comments., date: '2026-10-09T10:15:00+01:00', labels: [inbox]}
+    - {id: m07, thread: m07, from: noreply@cloudbill.example, to: [rachel.moore@kitebridge.test], subject: Your October invoice, body: Invoice for October usage is ready., date: '2026-10-10T11:15:00+01:00', labels: [inbox]}
+    - {id: m08, thread: m08, from: grace.ong@kitebridge.test, to: [rachel.moore@kitebridge.test], subject: Payments hiring, body: We have two finalists for the payments role., date: '2026-10-11T12:15:00+01:00', labels: [inbox]}
+    - {id: m09, thread: m09, from: daniel.lim@kitebridge.test, to: [rachel.moore@kitebridge.test], subject: Data platform demo moved, body: 'Demo stays on Fridays, 5pm Singapore.', date: '2026-10-12T13:15:00+01:00', labels: [inbox]}
+    - {id: m10, thread: m10, from: hannah.cole@kitebridge.test, to: [rachel.moore@kitebridge.test], subject: Dashboards migration, body: Grafana migration finishes this week., date: '2026-10-13T14:15:00+01:00', labels: [inbox]}
+    - {id: m11, thread: m11, from: karthik.iyer@kitebridge.test, to: [rachel.moore@kitebridge.test], subject: Storage cost review, body: Storage costs are down 12% this quarter., date: '2026-10-14T15:15:00+01:00', labels: [inbox]}
+    - {id: m12, thread: m12, from: ahmed.khan@kitebridge.test, to: [rachel.moore@kitebridge.test], subject: Identity incident notes, body: Postmortem for the SSO outage is drafted., date: '2026-10-15T09:15:00+01:00', labels: [inbox]}
+    - {id: m13, thread: m13, from: newsletter@infraweekly.example, to: [rachel.moore@kitebridge.test], subject: 'Infra Weekly #212', body: Kubernetes 1.36 notes and more., date: '2026-10-16T10:15:00+01:00', labels: [inbox]}
+    - {id: m14, thread: m14, from: weilin.tan@kitebridge.test, to: [rachel.moore@kitebridge.test], subject: Payments infra update, body: Card vault migration is on track for November., date: '2026-10-17T11:15:00+01:00', labels: [inbox]}
+    - {id: m15, thread: m15, from: meera.nair@kitebridge.test, to: [rachel.moore@kitebridge.test], subject: Backup restore test, body: Restore test passed in 41 minutes., date: '2026-10-18T12:15:00+01:00', labels: [inbox]}
+    - {id: m16, thread: m16, from: laura.fenn@kitebridge.test, to: [rachel.moore@kitebridge.test], subject: Offsite dates, body: Engineering offsite is 18-19 November in London., date: '2026-10-19T13:15:00+01:00', labels: [inbox]}
+    - {id: m17, thread: m17, from: junwei.koh@kitebridge.test, to: [rachel.moore@kitebridge.test], subject: Pipeline lag, body: Lag on the events pipeline is back under 2 minutes., date: '2026-10-20T14:15:00+01:00', labels: [inbox]}
+    - {id: m18, thread: m18, from: tomasz.nowak@kitebridge.test, to: [rachel.moore@kitebridge.test], subject: Runner fleet upgrade, body: We upgrade CI runners on Thursday morning., date: '2026-10-21T15:15:00+01:00', labels: [inbox]}
+contacts:
+  people:
+    - {id: c00, name: Rachel Moore, email: rachel.moore@kitebridge.test, company: Kitebridge, title: Head of Platform, notes: Based in London.}
+    - {id: c01, name: Hannah Cole, email: hannah.cole@kitebridge.test, company: Kitebridge, title: 'Platform Lead, Observability', notes: Based in London.}
+    - {id: c02, name: Tomasz Nowak, email: tomasz.nowak@kitebridge.test, company: Kitebridge, title: 'Platform Lead, CI/CD', notes: Based in London.}
+    - {id: c03, name: Wei Lin Tan, email: weilin.tan@kitebridge.test, company: Kitebridge, title: 'Platform Lead, Payments Infrastructure', notes: Based in Singapore.}
+    - {id: c04, name: Daniel Lim, email: daniel.lim@kitebridge.test, company: Kitebridge, title: 'Platform Lead, Data', notes: Based in Singapore.}
+    - {id: c05, name: Priya Raman, email: priya.raman@kitebridge.test, company: Kitebridge, title: 'Platform Lead, Identity', notes: Based in Bangalore.}
+    - {id: c06, name: Karthik Iyer, email: karthik.iyer@kitebridge.test, company: Kitebridge, title: 'Platform Lead, Storage', notes: Based in Bangalore.}
+    - {id: c10, name: Sofia Marin, email: sofia.marin@kitebridge.test, company: Kitebridge, title: 'Product Manager, Platform', notes: Based in London.}
+    - {id: c11, name: Ahmed Khan, email: ahmed.khan@kitebridge.test, company: Kitebridge, title: 'Staff Engineer, Identity', notes: Based in Bangalore.}
+    - {id: c12, name: Grace Ong, email: grace.ong@kitebridge.test, company: Kitebridge, title: 'Engineering Manager, Payments', notes: Based in Singapore.}
+    - {id: c13, name: Ollie Hart, email: ollie.hart@kitebridge.test, company: Kitebridge, title: SRE, notes: Based in London.}
+    - {id: c14, name: Meera Nair, email: meera.nair@kitebridge.test, company: Kitebridge, title: 'Engineer, Storage', notes: Based in Bangalore.}
+    - {id: c15, name: Jun Wei Koh, email: junwei.koh@kitebridge.test, company: Kitebridge, title: Data Engineer, notes: Based in Singapore.}
+    - {id: c16, name: Laura Fenn, email: laura.fenn@kitebridge.test, company: Kitebridge, title: VP Engineering, notes: Based in London.}
+    - {id: c17, name: Wei Lin Tan, email: weilin.tan@harbourpay.example, company: Harbourpay, title: Account Manager, notes: Based in Singapore. Vendor contact.}
+calendar:
+  calendars:
+    - {id: cal-rachel, name: Rachel Moore, owner: rachel.moore@kitebridge.test, timezone: Europe/London}
+    - {id: cal-hannah, name: Hannah Cole, owner: hannah.cole@kitebridge.test, timezone: Europe/London}
+    - {id: cal-tomasz, name: Tomasz Nowak, owner: tomasz.nowak@kitebridge.test, timezone: Europe/London}
+    - {id: cal-weilin, name: Wei Lin Tan, owner: weilin.tan@kitebridge.test, timezone: Asia/Singapore}
+    - {id: cal-daniel, name: Daniel Lim, owner: daniel.lim@kitebridge.test, timezone: Asia/Singapore}
+    - {id: cal-priya, name: Priya Raman, owner: priya.raman@kitebridge.test, timezone: Asia/Kolkata}
+    - {id: cal-karthik, name: Karthik Iyer, owner: karthik.iyer@kitebridge.test, timezone: Asia/Kolkata}
+  events:
+    - {id: e001, calendar: cal-hannah, title: Observability standup, start: '2026-09-07T10:30:00+01:00', end: '2026-09-07T10:45:00+01:00', tz: Europe/London, attendees: [ollie.hart@kitebridge.test], organizer: hannah.cole@kitebridge.test, rrule: 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR'}
+    - {id: e002, calendar: cal-tomasz, title: CI/CD standup, start: '2026-09-07T10:45:00+01:00', end: '2026-09-07T11:00:00+01:00', tz: Europe/London, attendees: [], organizer: tomasz.nowak@kitebridge.test, rrule: 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR'}
+    - {id: e003, calendar: cal-weilin, title: Payments infra standup, start: '2026-09-07T10:00:00+08:00', end: '2026-09-07T10:15:00+08:00', tz: Asia/Singapore, attendees: [], organizer: weilin.tan@kitebridge.test, rrule: 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR'}
+    - {id: e004, calendar: cal-daniel, title: Data platform standup, start: '2026-09-07T10:15:00+08:00', end: '2026-09-07T10:30:00+08:00', tz: Asia/Singapore, attendees: [], organizer: daniel.lim@kitebridge.test, rrule: 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR'}
+    - {id: e005, calendar: cal-priya, title: Identity standup, start: '2026-09-07T11:00:00+05:30', end: '2026-09-07T11:15:00+05:30', tz: Asia/Kolkata, attendees: [], organizer: priya.raman@kitebridge.test, rrule: 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR'}
+    - {id: e006, calendar: cal-karthik, title: Storage standup, start: '2026-09-07T11:30:00+05:30', end: '2026-09-07T11:45:00+05:30', tz: Asia/Kolkata, attendees: [], organizer: karthik.iyer@kitebridge.test, rrule: 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR'}
+    - {id: e007, calendar: cal-rachel, title: Eng leadership weekly, start: '2026-09-08T14:00:00+01:00', end: '2026-09-08T15:00:00+01:00', tz: Europe/London, attendees: [], organizer: rachel.moore@kitebridge.test, rrule: FREQ=WEEKLY;BYDAY=TU}
+    - {id: e008, calendar: cal-daniel, title: Data platform demo, start: '2026-09-11T17:00:00+08:00', end: '2026-09-11T18:00:00+08:00', tz: Asia/Singapore, attendees: [junwei.koh@kitebridge.test], organizer: daniel.lim@kitebridge.test, rrule: FREQ=WEEKLY;BYDAY=FR}
+    - {id: e009, calendar: cal-weilin, title: OOO, start: '2026-10-27T00:00:00+08:00', end: '2026-10-28T00:00:00+08:00', tz: Asia/Singapore, attendees: [], organizer: weilin.tan@kitebridge.test}
+    - {id: e010, calendar: cal-priya, title: Identity roadmap review, start: '2026-10-28T14:30:00+05:30', end: '2026-10-28T15:30:00+05:30', tz: Asia/Kolkata, attendees: [ahmed.khan@kitebridge.test], organizer: priya.raman@kitebridge.test}
+    - {id: e011, calendar: cal-tomasz, title: Release train retro, start: '2026-10-29T08:00:00+00:00', end: '2026-10-29T09:00:00+00:00', tz: Europe/London, attendees: [ollie.hart@kitebridge.test], organizer: tomasz.nowak@kitebridge.test}
+    - {id: e012, calendar: cal-rachel, title: Security review, start: '2026-10-22T16:30:00+01:00', end: '2026-10-22T17:00:00+01:00', tz: Europe/London, attendees: [], organizer: rachel.moore@kitebridge.test}
+    - {id: e013, calendar: cal-hannah, title: Vendor call, start: '2026-10-22T10:30:00+01:00', end: '2026-10-22T11:00:00+01:00', tz: Europe/London, attendees: [], organizer: hannah.cole@kitebridge.test}
+    - {id: e014, calendar: cal-tomasz, title: Incident review, start: '2026-10-22T11:00:00+01:00', end: '2026-10-22T11:30:00+01:00', tz: Europe/London, attendees: [rachel.moore@kitebridge.test], organizer: tomasz.nowak@kitebridge.test}
+    - {id: e015, calendar: cal-weilin, title: '1:1', start: '2026-10-22T16:30:00+08:00', end: '2026-10-22T17:30:00+08:00', tz: Asia/Singapore, attendees: [], organizer: weilin.tan@kitebridge.test}
+    - {id: e016, calendar: cal-daniel, title: Interview, start: '2026-10-22T11:00:00+08:00', end: '2026-10-22T11:30:00+08:00', tz: Asia/Singapore, attendees: [weilin.tan@kitebridge.test], organizer: daniel.lim@kitebridge.test}
+    - {id: e017, calendar: cal-priya, title: Incident review, start: '2026-10-22T15:00:00+05:30', end: '2026-10-22T15:30:00+05:30', tz: Asia/Kolkata, attendees: [karthik.iyer@kitebridge.test], organizer: priya.raman@kitebridge.test}
+    - {id: e018, calendar: cal-karthik, title: Budget review, start: '2026-10-22T15:00:00+05:30', end: '2026-10-22T15:45:00+05:30', tz: Asia/Kolkata, attendees: [], organizer: karthik.iyer@kitebridge.test}
+    - {id: e019, calendar: cal-rachel, title: Interview, start: '2026-10-23T15:30:00+01:00', end: '2026-10-23T16:15:00+01:00', tz: Europe/London, attendees: [], organizer: rachel.moore@kitebridge.test}
+    - {id: e020, calendar: cal-hannah, title: Team lunch, start: '2026-10-23T10:00:00+01:00', end: '2026-10-23T10:45:00+01:00', tz: Europe/London, attendees: [rachel.moore@kitebridge.test], organizer: hannah.cole@kitebridge.test}
+    - {id: e021, calendar: cal-tomasz, title: Vendor call, start: '2026-10-23T11:00:00+01:00', end: '2026-10-23T11:45:00+01:00', tz: Europe/London, attendees: [], organizer: tomasz.nowak@kitebridge.test}
+    - {id: e022, calendar: cal-weilin, title: Capacity planning, start: '2026-10-23T14:30:00+08:00', end: '2026-10-23T15:15:00+08:00', tz: Asia/Singapore, attendees: [], organizer: weilin.tan@kitebridge.test}
+    - {id: e023, calendar: cal-daniel, title: Interview, start: '2026-10-23T10:30:00+08:00', end: '2026-10-23T11:00:00+08:00', tz: Asia/Singapore, attendees: [], organizer: daniel.lim@kitebridge.test}
+    - {id: e024, calendar: cal-priya, title: Focus time, start: '2026-10-23T10:00:00+05:30', end: '2026-10-23T10:30:00+05:30', tz: Asia/Kolkata, attendees: [], organizer: priya.raman@kitebridge.test}
+    - {id: e025, calendar: cal-karthik, title: Incident review, start: '2026-10-23T10:30:00+05:30', end: '2026-10-23T11:00:00+05:30', tz: Asia/Kolkata, attendees: [], organizer: karthik.iyer@kitebridge.test}
+    - {id: e026, calendar: cal-rachel, title: Incident review, start: '2026-10-26T13:00:00+00:00', end: '2026-10-26T13:30:00+00:00', tz: Europe/London, attendees: [], organizer: rachel.moore@kitebridge.test}
+    - {id: e027, calendar: cal-rachel, title: Security review, start: '2026-10-26T14:00:00+00:00', end: '2026-10-26T14:45:00+00:00', tz: Europe/London, attendees: [], organizer: rachel.moore@kitebridge.test}
+    - {id: e028, calendar: cal-hannah, title: Office hours, start: '2026-10-26T13:30:00+00:00', end: '2026-10-26T14:30:00+00:00', tz: Europe/London, attendees: [], organizer: hannah.cole@kitebridge.test}
+    - {id: e029, calendar: cal-hannah, title: Vendor call, start: '2026-10-26T14:30:00+00:00', end: '2026-10-26T15:15:00+00:00', tz: Europe/London, attendees: [], organizer: hannah.cole@kitebridge.test}
+    - {id: e030, calendar: cal-tomasz, title: '1:1', start: '2026-10-26T10:00:00+00:00', end: '2026-10-26T10:45:00+00:00', tz: Europe/London, attendees: [], organizer: tomasz.nowak@kitebridge.test}
+    - {id: e031, calendar: cal-tomasz, title: Capacity planning, start: '2026-10-26T12:30:00+00:00', end: '2026-10-26T13:15:00+00:00', tz: Europe/London, attendees: [rachel.moore@kitebridge.test], organizer: tomasz.nowak@kitebridge.test}
+    - {id: e032, calendar: cal-weilin, title: Customer escalation, start: '2026-10-26T13:00:00+08:00', end: '2026-10-26T14:00:00+08:00', tz: Asia/Singapore, attendees: [], organizer: weilin.tan@kitebridge.test}
+    - {id: e033, calendar: cal-weilin, title: Vendor call, start: '2026-10-26T12:30:00+08:00', end: '2026-10-26T13:00:00+08:00', tz: Asia/Singapore, attendees: [], organizer: weilin.tan@kitebridge.test}
+    - {id: e034, calendar: cal-daniel, title: '1:1', start: '2026-10-26T12:00:00+08:00', end: '2026-10-26T12:30:00+08:00', tz: Asia/Singapore, attendees: [weilin.tan@kitebridge.test], organizer: daniel.lim@kitebridge.test}
+    - {id: e035, calendar: cal-daniel, title: Training, start: '2026-10-26T10:30:00+08:00', end: '2026-10-26T11:00:00+08:00', tz: Asia/Singapore, attendees: [], organizer: daniel.lim@kitebridge.test}
+    - {id: e036, calendar: cal-priya, title: Design review, start: '2026-10-26T12:30:00+05:30', end: '2026-10-26T13:15:00+05:30', tz: Asia/Kolkata, attendees: [karthik.iyer@kitebridge.test], organizer: priya.raman@kitebridge.test}
+    - {id: e037, calendar: cal-priya, title: Roadmap, start: '2026-10-26T17:30:00+05:30', end: '2026-10-26T18:00:00+05:30', tz: Asia/Kolkata, attendees: [], organizer: priya.raman@kitebridge.test}
+    - {id: e038, calendar: cal-karthik, title: Customer escalation, start: '2026-10-26T10:00:00+05:30', end: '2026-10-26T10:30:00+05:30', tz: Asia/Kolkata, attendees: [], organizer: karthik.iyer@kitebridge.test}
+    - {id: e039, calendar: cal-karthik, title: Design review, start: '2026-10-26T10:30:00+05:30', end: '2026-10-26T11:00:00+05:30', tz: Asia/Kolkata, attendees: [priya.raman@kitebridge.test], organizer: karthik.iyer@kitebridge.test}
+    - {id: e040, calendar: cal-rachel, title: Team lunch, start: '2026-10-27T10:00:00+00:00', end: '2026-10-27T11:00:00+00:00', tz: Europe/London, attendees: [], organizer: rachel.moore@kitebridge.test}
+    - {id: e041, calendar: cal-rachel, title: Hiring sync, start: '2026-10-27T11:00:00+00:00', end: '2026-10-27T12:00:00+00:00', tz: Europe/London, attendees: [], organizer: rachel.moore@kitebridge.test}
+    - {id: e042, calendar: cal-hannah, title: Design review, start: '2026-10-27T11:00:00+00:00', end: '2026-10-27T11:30:00+00:00', tz: Europe/London, attendees: [], organizer: hannah.cole@kitebridge.test}
+    - {id: e043, calendar: cal-hannah, title: Security review, start: '2026-10-27T12:00:00+00:00', end: '2026-10-27T12:30:00+00:00', tz: Europe/London, attendees: [], organizer: hannah.cole@kitebridge.test}
+    - {id: e044, calendar: cal-tomasz, title: Planning, start: '2026-10-27T16:00:00+00:00', end: '2026-10-27T16:45:00+00:00', tz: Europe/London, attendees: [], organizer: tomasz.nowak@kitebridge.test}
+    - {id: e045, calendar: cal-tomasz, title: '1:1', start: '2026-10-27T12:00:00+00:00', end: '2026-10-27T12:30:00+00:00', tz: Europe/London, attendees: [hannah.cole@kitebridge.test], organizer: tomasz.nowak@kitebridge.test}
+    - {id: e046, calendar: cal-weilin, title: Security review, start: '2026-10-27T09:30:00+08:00', end: '2026-10-27T10:00:00+08:00', tz: Asia/Singapore, attendees: [], organizer: weilin.tan@kitebridge.test}
+    - {id: e047, calendar: cal-weilin, title: Postmortem, start: '2026-10-27T10:30:00+08:00', end: '2026-10-27T11:00:00+08:00', tz: Asia/Singapore, attendees: [daniel.lim@kitebridge.test], organizer: weilin.tan@kitebridge.test}
+    - {id: e048, calendar: cal-daniel, title: Office hours, start: '2026-10-27T13:00:00+08:00', end: '2026-10-27T13:45:00+08:00', tz: Asia/Singapore, attendees: [], organizer: daniel.lim@kitebridge.test}
+    - {id: e049, calendar: cal-daniel, title: Team lunch, start: '2026-10-27T13:30:00+08:00', end: '2026-10-27T14:00:00+08:00', tz: Asia/Singapore, attendees: [], organizer: daniel.lim@kitebridge.test}
+    - {id: e050, calendar: cal-priya, title: Training, start: '2026-10-27T15:30:00+05:30', end: '2026-10-27T16:00:00+05:30', tz: Asia/Kolkata, attendees: [karthik.iyer@kitebridge.test], organizer: priya.raman@kitebridge.test}
+    - {id: e051, calendar: cal-priya, title: Design review, start: '2026-10-27T09:30:00+05:30', end: '2026-10-27T10:00:00+05:30', tz: Asia/Kolkata, attendees: [], organizer: priya.raman@kitebridge.test}
+    - {id: e052, calendar: cal-karthik, title: Team lunch, start: '2026-10-27T10:30:00+05:30', end: '2026-10-27T11:30:00+05:30', tz: Asia/Kolkata, attendees: [priya.raman@kitebridge.test], organizer: karthik.iyer@kitebridge.test}
+    - {id: e053, calendar: cal-karthik, title: Training, start: '2026-10-27T10:30:00+05:30', end: '2026-10-27T11:00:00+05:30', tz: Asia/Kolkata, attendees: [], organizer: karthik.iyer@kitebridge.test}
+    - {id: e054, calendar: cal-rachel, title: Security review, start: '2026-10-28T11:30:00+00:00', end: '2026-10-28T12:15:00+00:00', tz: Europe/London, attendees: [], organizer: rachel.moore@kitebridge.test}
+    - {id: e055, calendar: cal-rachel, title: Training, start: '2026-10-28T14:00:00+00:00', end: '2026-10-28T14:30:00+00:00', tz: Europe/London, attendees: [], organizer: rachel.moore@kitebridge.test}
+    - {id: e056, calendar: cal-hannah, title: Architecture review, start: '2026-10-28T17:30:00+00:00', end: '2026-10-28T18:00:00+00:00', tz: Europe/London, attendees: [], organizer: hannah.cole@kitebridge.test}
+    - {id: e057, calendar: cal-hannah, title: Office hours, start: '2026-10-28T16:00:00+00:00', end: '2026-10-28T16:45:00+00:00', tz: Europe/London, attendees: [tomasz.nowak@kitebridge.test], organizer: hannah.cole@kitebridge.test}
+    - {id: e058, calendar: cal-tomasz, title: Design review, start: '2026-10-28T11:00:00+00:00', end: '2026-10-28T12:00:00+00:00', tz: Europe/London, attendees: [], organizer: tomasz.nowak@kitebridge.test}
+    - {id: e059, calendar: cal-tomasz, title: Customer escalation, start: '2026-10-28T12:00:00+00:00', end: '2026-10-28T12:30:00+00:00', tz: Europe/London, attendees: [rachel.moore@kitebridge.test], organizer: tomasz.nowak@kitebridge.test}
+    - {id: e060, calendar: cal-weilin, title: Team lunch, start: '2026-10-28T13:00:00+08:00', end: '2026-10-28T14:00:00+08:00', tz: Asia/Singapore, attendees: [daniel.lim@kitebridge.test], organizer: weilin.tan@kitebridge.test}
+    - {id: e061, calendar: cal-weilin, title: Hiring sync, start: '2026-10-28T12:00:00+08:00', end: '2026-10-28T12:30:00+08:00', tz: Asia/Singapore, attendees: [], organizer: weilin.tan@kitebridge.test}
+    - {id: e062, calendar: cal-daniel, title: Focus time, start: '2026-10-28T14:00:00+08:00', end: '2026-10-28T15:00:00+08:00', tz: Asia/Singapore, attendees: [], organizer: daniel.lim@kitebridge.test}
+    - {id: e063, calendar: cal-daniel, title: Design review, start: '2026-10-28T11:00:00+08:00', end: '2026-10-28T11:30:00+08:00', tz: Asia/Singapore, attendees: [], organizer: daniel.lim@kitebridge.test}
+    - {id: e064, calendar: cal-priya, title: Customer escalation, start: '2026-10-28T09:00:00+05:30', end: '2026-10-28T09:45:00+05:30', tz: Asia/Kolkata, attendees: [], organizer: priya.raman@kitebridge.test}
+    - {id: e065, calendar: cal-priya, title: Planning, start: '2026-10-28T16:00:00+05:30', end: '2026-10-28T16:30:00+05:30', tz: Asia/Kolkata, attendees: [], organizer: priya.raman@kitebridge.test}
+    - {id: e066, calendar: cal-karthik, title: '1:1', start: '2026-10-28T16:00:00+05:30', end: '2026-10-28T16:30:00+05:30', tz: Asia/Kolkata, attendees: [priya.raman@kitebridge.test], organizer: karthik.iyer@kitebridge.test}
+    - {id: e067, calendar: cal-karthik, title: Hiring sync, start: '2026-10-28T11:00:00+05:30', end: '2026-10-28T11:45:00+05:30', tz: Asia/Kolkata, attendees: [], organizer: karthik.iyer@kitebridge.test}
+    - {id: e068, calendar: cal-rachel, title: Office hours, start: '2026-10-29T17:30:00+00:00', end: '2026-10-29T18:00:00+00:00', tz: Europe/London, attendees: [], organizer: rachel.moore@kitebridge.test}
+    - {id: e069, calendar: cal-rachel, title: Security review, start: '2026-10-29T16:30:00+00:00', end: '2026-10-29T17:00:00+00:00', tz: Europe/London, attendees: [tomasz.nowak@kitebridge.test], organizer: rachel.moore@kitebridge.test}
+    - {id: e070, calendar: cal-hannah, title: Customer escalation, start: '2026-10-29T10:30:00+00:00', end: '2026-10-29T11:00:00+00:00', tz: Europe/London, attendees: [], organizer: hannah.cole@kitebridge.test}
+    - {id: e071, calendar: cal-hannah, title: Architecture review, start: '2026-10-29T17:30:00+00:00', end: '2026-10-29T18:00:00+00:00', tz: Europe/London, attendees: [], organizer: hannah.cole@kitebridge.test}
+    - {id: e072, calendar: cal-tomasz, title: Customer escalation, start: '2026-10-29T15:30:00+00:00', end: '2026-10-29T16:15:00+00:00', tz: Europe/London, attendees: [hannah.cole@kitebridge.test], organizer: tomasz.nowak@kitebridge.test}
+    - {id: e073, calendar: cal-tomasz, title: Incident review, start: '2026-10-29T12:30:00+00:00', end: '2026-10-29T13:30:00+00:00', tz: Europe/London, attendees: [], organizer: tomasz.nowak@kitebridge.test}
+    - {id: e074, calendar: cal-weilin, title: Budget review, start: '2026-10-29T10:30:00+08:00', end: '2026-10-29T11:15:00+08:00', tz: Asia/Singapore, attendees: [daniel.lim@kitebridge.test], organizer: weilin.tan@kitebridge.test}
+    - {id: e075, calendar: cal-weilin, title: Hiring sync, start: '2026-10-29T14:00:00+08:00', end: '2026-10-29T14:30:00+08:00', tz: Asia/Singapore, attendees: [], organizer: weilin.tan@kitebridge.test}
+    - {id: e076, calendar: cal-daniel, title: Team lunch, start: '2026-10-29T10:30:00+08:00', end: '2026-10-29T11:00:00+08:00', tz: Asia/Singapore, attendees: [], organizer: daniel.lim@kitebridge.test}
+    - {id: e077, calendar: cal-daniel, title: '1:1', start: '2026-10-29T12:30:00+08:00', end: '2026-10-29T13:15:00+08:00', tz: Asia/Singapore, attendees: [weilin.tan@kitebridge.test], organizer: daniel.lim@kitebridge.test}
+    - {id: e078, calendar: cal-priya, title: Office hours, start: '2026-10-29T13:00:00+05:30', end: '2026-10-29T13:30:00+05:30', tz: Asia/Kolkata, attendees: [], organizer: priya.raman@kitebridge.test}
+    - {id: e079, calendar: cal-priya, title: Incident review, start: '2026-10-29T11:30:00+05:30', end: '2026-10-29T12:00:00+05:30', tz: Asia/Kolkata, attendees: [karthik.iyer@kitebridge.test], organizer: priya.raman@kitebridge.test}
+    - {id: e080, calendar: cal-karthik, title: Roadmap, start: '2026-10-29T16:00:00+05:30', end: '2026-10-29T16:45:00+05:30', tz: Asia/Kolkata, attendees: [], organizer: karthik.iyer@kitebridge.test}
+    - {id: e081, calendar: cal-karthik, title: Focus time, start: '2026-10-29T10:30:00+05:30', end: '2026-10-29T11:00:00+05:30', tz: Asia/Kolkata, attendees: [], organizer: karthik.iyer@kitebridge.test}
+    - {id: e082, calendar: cal-rachel, title: Design review, start: '2026-10-30T17:00:00+00:00', end: '2026-10-30T17:30:00+00:00', tz: Europe/London, attendees: [], organizer: rachel.moore@kitebridge.test}
+    - {id: e083, calendar: cal-rachel, title: Architecture review, start: '2026-10-30T12:00:00+00:00', end: '2026-10-30T12:30:00+00:00', tz: Europe/London, attendees: [hannah.cole@kitebridge.test], organizer: rachel.moore@kitebridge.test}
+    - {id: e084, calendar: cal-hannah, title: Customer escalation, start: '2026-10-30T15:30:00+00:00', end: '2026-10-30T16:15:00+00:00', tz: Europe/London, attendees: [], organizer: hannah.cole@kitebridge.test}
+    - {id: e085, calendar: cal-hannah, title: Hiring sync, start: '2026-10-30T13:30:00+00:00', end: '2026-10-30T14:15:00+00:00', tz: Europe/London, attendees: [rachel.moore@kitebridge.test], organizer: hannah.cole@kitebridge.test}
+    - {id: e086, calendar: cal-tomasz, title: Capacity planning, start: '2026-10-30T17:30:00+00:00', end: '2026-10-30T18:00:00+00:00', tz: Europe/London, attendees: [], organizer: tomasz.nowak@kitebridge.test}
+    - {id: e087, calendar: cal-tomasz, title: Architecture review, start: '2026-10-30T15:00:00+00:00', end: '2026-10-30T15:30:00+00:00', tz: Europe/London, attendees: [hannah.cole@kitebridge.test], organizer: tomasz.nowak@kitebridge.test}
+    - {id: e088, calendar: cal-weilin, title: Vendor call, start: '2026-10-30T16:00:00+08:00', end: '2026-10-30T17:00:00+08:00', tz: Asia/Singapore, attendees: [], organizer: weilin.tan@kitebridge.test}
+    - {id: e089, calendar: cal-weilin, title: Security review, start: '2026-10-30T09:00:00+08:00', end: '2026-10-30T09:30:00+08:00', tz: Asia/Singapore, attendees: [daniel.lim@kitebridge.test], organizer: weilin.tan@kitebridge.test}
+    - {id: e090, calendar: cal-daniel, title: Design review, start: '2026-10-30T10:00:00+08:00', end: '2026-10-30T10:30:00+08:00', tz: Asia/Singapore, attendees: [], organizer: daniel.lim@kitebridge.test}
+    - {id: e091, calendar: cal-daniel, title: Roadmap, start: '2026-10-30T10:30:00+08:00', end: '2026-10-30T11:00:00+08:00', tz: Asia/Singapore, attendees: [weilin.tan@kitebridge.test], organizer: daniel.lim@kitebridge.test}
+    - {id: e092, calendar: cal-priya, title: Customer escalation, start: '2026-10-30T14:30:00+05:30', end: '2026-10-30T15:00:00+05:30', tz: Asia/Kolkata, attendees: [], organizer: priya.raman@kitebridge.test}
+    - {id: e093, calendar: cal-priya, title: Design review, start: '2026-10-30T13:00:00+05:30', end: '2026-10-30T13:30:00+05:30', tz: Asia/Kolkata, attendees: [], organizer: priya.raman@kitebridge.test}
+    - {id: e094, calendar: cal-karthik, title: Architecture review, start: '2026-10-30T10:30:00+05:30', end: '2026-10-30T11:00:00+05:30', tz: Asia/Kolkata, attendees: [priya.raman@kitebridge.test], organizer: karthik.iyer@kitebridge.test}
+    - {id: e095, calendar: cal-karthik, title: Team lunch, start: '2026-10-30T16:30:00+05:30', end: '2026-10-30T17:15:00+05:30', tz: Asia/Kolkata, attendees: [], organizer: karthik.iyer@kitebridge.test}
+    - {id: e096, calendar: cal-rachel, title: Security review, start: '2026-11-02T15:00:00+00:00', end: '2026-11-02T15:30:00+00:00', tz: Europe/London, attendees: [tomasz.nowak@kitebridge.test], organizer: rachel.moore@kitebridge.test}
+    - {id: e097, calendar: cal-hannah, title: Security review, start: '2026-11-02T14:00:00+00:00', end: '2026-11-02T14:30:00+00:00', tz: Europe/London, attendees: [rachel.moore@kitebridge.test], organizer: hannah.cole@kitebridge.test}
+    - {id: e098, calendar: cal-tomasz, title: Architecture review, start: '2026-11-02T17:00:00+00:00', end: '2026-11-02T17:45:00+00:00', tz: Europe/London, attendees: [], organizer: tomasz.nowak@kitebridge.test}
+    - {id: e099, calendar: cal-weilin, title: Design review, start: '2026-11-02T13:30:00+08:00', end: '2026-11-02T14:00:00+08:00', tz: Asia/Singapore, attendees: [], organizer: weilin.tan@kitebridge.test}
+    - {id: e100, calendar: cal-daniel, title: Security review, start: '2026-11-02T11:00:00+08:00', end: '2026-11-02T11:30:00+08:00', tz: Asia/Singapore, attendees: [], organizer: daniel.lim@kitebridge.test}
+    - {id: e101, calendar: cal-priya, title: Team lunch, start: '2026-11-02T13:30:00+05:30', end: '2026-11-02T14:00:00+05:30', tz: Asia/Kolkata, attendees: [], organizer: priya.raman@kitebridge.test}
+    - {id: e102, calendar: cal-karthik, title: Design review, start: '2026-11-02T13:30:00+05:30', end: '2026-11-02T14:00:00+05:30', tz: Asia/Kolkata, attendees: [], organizer: karthik.iyer@kitebridge.test}
+    - {id: e103, calendar: cal-rachel, title: Architecture review, start: '2026-11-03T12:00:00+00:00', end: '2026-11-03T13:00:00+00:00', tz: Europe/London, attendees: [], organizer: rachel.moore@kitebridge.test}
+    - {id: e104, calendar: cal-hannah, title: Vendor call, start: '2026-11-03T14:30:00+00:00', end: '2026-11-03T15:15:00+00:00', tz: Europe/London, attendees: [], organizer: hannah.cole@kitebridge.test}
+    - {id: e105, calendar: cal-tomasz, title: '1:1', start: '2026-11-03T17:00:00+00:00', end: '2026-11-03T17:45:00+00:00', tz: Europe/London, attendees: [], organizer: tomasz.nowak@kitebridge.test}
+    - {id: e106, calendar: cal-weilin, title: Architecture review, start: '2026-11-03T12:00:00+08:00', end: '2026-11-03T13:00:00+08:00', tz: Asia/Singapore, attendees: [], organizer: weilin.tan@kitebridge.test}
+    - {id: e107, calendar: cal-daniel, title: Interview, start: '2026-11-03T11:00:00+08:00', end: '2026-11-03T11:30:00+08:00', tz: Asia/Singapore, attendees: [], organizer: daniel.lim@kitebridge.test}
+    - {id: e108, calendar: cal-priya, title: Team lunch, start: '2026-11-03T09:00:00+05:30', end: '2026-11-03T09:30:00+05:30', tz: Asia/Kolkata, attendees: [karthik.iyer@kitebridge.test], organizer: priya.raman@kitebridge.test}
+    - {id: e109, calendar: cal-karthik, title: Architecture review, start: '2026-11-03T09:00:00+05:30', end: '2026-11-03T09:30:00+05:30', tz: Asia/Kolkata, attendees: [priya.raman@kitebridge.test], organizer: karthik.iyer@kitebridge.test}
+chat:
+  channels:
+    - {id: ch1, name: platform-leads, members: [rachel.moore@kitebridge.test, hannah.cole@kitebridge.test, tomasz.nowak@kitebridge.test, weilin.tan@kitebridge.test, daniel.lim@kitebridge.test, priya.raman@kitebridge.test, karthik.iyer@kitebridge.test], topic: 'Platform leads. Syncs are 60 minutes and must sit inside everyone''s 09:00-18:00 local hours.', created: '2025-03-01T09:00:00+00:00'}
+    - {id: ch2, name: platform, members: [], topic: Platform org, created: '2025-03-01T09:00:00+00:00'}
+  messages:
+    - {id: s1, channel: ch1, author: hannah.cole@kitebridge.test, text: 'Can someone book the next leads sync? Last one was 24 Sep.', ts: '2026-10-19T15:20:00+01:00', thread_id: null}
+    - {id: s2, channel: ch2, author: sofia.marin@kitebridge.test, text: Roadmap draft is up., ts: '2026-10-16T10:00:00+01:00', thread_id: null}

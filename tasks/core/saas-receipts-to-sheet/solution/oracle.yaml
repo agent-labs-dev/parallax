@@ -1,0 +1,12 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: sheets_append_row, args: {sheet: sh1, values: {date: "2026-06-03", vendor: Figma, amount: 45, category: Software}}}
+      - {tool: sheets_append_row, args: {sheet: sh1, values: {date: "2026-06-05", vendor: Notion, amount: 96, category: Software}}}
+      - {tool: sheets_append_row, args: {sheet: sh1, values: {date: "2026-06-09", vendor: Uber, amount: 23.4, category: Travel}}}
+      - {tool: sheets_append_row, args: {sheet: sh1, values: {date: "2026-06-12", vendor: Pret A Manger, amount: 8.75, category: Meals}}}
+      - {tool: sheets_append_row, args: {sheet: sh1, values: {date: "2026-06-17", vendor: Trainline, amount: 64.2, category: Travel}}}
+      - {tool: sheets_append_row, args: {sheet: sh1, values: {date: "2026-06-22", vendor: Zoom, amount: 119.9, category: Software}}}
+    answer: >-
+      Added six June receipts to Expenses: Figma £45.00, Notion £96.00, Uber £23.40, Pret £8.75, Trainline £64.20 and
+      Zoom £119.90. I skipped the Adobe receipt (May, already in the sheet) and the Zoom renewal reminder, which isn't a charge.

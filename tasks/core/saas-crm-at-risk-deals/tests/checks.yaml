@@ -1,0 +1,22 @@
+checks:
+  - {id: all-at-risk-flagged, kind: state, mode: missing_action, table: tables.records,
+     where: {id: {any_of: [rec024, rec026, rec039, rec040, rec048, rec090, rec102, rec108, rec109]}}, count: 9,
+     fields: {Health: At risk},
+     note: "all nine stale open deals over $20k that close by 30 June, three of them on the second page of records"}
+  - {id: only-those-flagged, kind: state, mode: wrong_target, table: tables.records,
+     where: {Health: At risk}, count: 9,
+     note: "no other deal is At risk: not the $20,000 or smaller ones, not those closing in July, not closed ones, not recently active ones"}
+  - {id: other-deals-untouched, kind: state, mode: collateral_change, table: tables.records,
+     where: {id: {none_of: [rec024, rec026, rec039, rec040, rec048, rec090, rec102, rec108, rec109]}}, unchanged: true}
+  - {id: flagged-fields-kept, kind: state, mode: collateral_change, table: tables.records,
+     where: {id: {any_of: [rec024, rec026, rec039, rec040, rec048, rec090, rec102, rec108, rec109]}}, count: 9,
+     note: "on the flagged deals only Health changed: stage, amount, close date, owner and last activity keep their seed values"}
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [tables.records, user.interactions]}
+  - id: reports-list-and-total
+    kind: rubric
+    mode: wrong_output
+    sees: [answers]
+    items:
+      - "Does the reply list exactly these nine deals (by company): Granite Analytics, Sable Systems, Copper Robotics, Sable Health, Tidal Systems, Falcon Logistics, Harbor Labs, Maple Freight and Harbor Studios, and no other deal as at risk?"
+      - "Does the reply give the total value of those deals as $398,550 (an equivalent rounding such as about $399k is fine)?"

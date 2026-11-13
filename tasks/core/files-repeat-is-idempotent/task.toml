@@ -1,0 +1,18 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "files-repeat-is-idempotent"
+version = 1
+area = "files"
+summary = "Build a per-month sales summary from data/, then rerun it with a newly attached month without duplicating rows or files"
+requires = ["mcp", "workspace", "shell", "multi_turn"]
+provenance = "converted"
+legacy_ids = ["thread_sandbox_data_folder_idempotent_repeat"]
+canary = "aa355242-c4cd-4cf2-b0a7-615b66ebddff"
+
+[[steps]]
+name = "turn-01"
+
+[[steps]]
+name = "turn-02"
+attachments = [{path = "attachments/sales-2026-06.csv"}]

@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-invoice-chase-reconcile"
+version = 1
+area = "saas"
+summary = "Reconcile a 119-row AR ledger against Stripe (full, part and failed payments, a credit note), then draft one chaser per customer for invoices over 30 days overdue, minding promise-to-pay emails, per the wiki's collections process"
+requires = ["mcp", "world_clock"]
+services = ["sheets", "payments", "wiki"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "51171b40-b3c0-4fd5-9243-d14713903987"

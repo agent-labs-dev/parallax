@@ -1,0 +1,25 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: mail_list_sent, args: {query: update}}
+      - {tool: mail_search, args: {query: update}}
+      - {tool: mail_get, args: {id: m_tom}}
+      - {tool: mail_get, args: {id: m_priya}}
+      - {tool: payments_list_charges, args: {}}
+      - {tool: payments_list_refunds, args: {}}
+      - {tool: analytics_list_insights, args: {}}
+      - {tool: analytics_run_insight, args: {id: ins_wau, date_from: "2026-10-19", date_to: "2026-10-25"}}
+      - {tool: sheets_read, args: {sheet: "Cash & burn"}}
+      - tool: mail_create_draft
+        args:
+          to: [nadia@fernly.test]
+          bcc: [priya@northbeam.example, jo@northbeam.example, alex.kim@halcyonvc.example, mira@angelcircle.example, dev.patel@foundry12.example, lucia@olivegrove.example, sam.osei@redbrickvc.example]
+          subject: "Fernly - October update"
+          body: "Hi all,\n\nHere's Fernly's October update.\n\nHighlights\n- [Nadia: add October highlights]\n\nMetrics (October)\n- MRR: £44,275 (+7.0% MoM)\n- Weekly active accounts (last full week, 19-25 Oct): 56\n- Cash in bank (31 Oct): £1,801,100\n- Net burn: £124,900\n- Runway: 14 months\n\nLowlights\n- [Nadia: add lowlights]\n\nAsks\n- [Nadia: add asks]\n\nThanks,\nNadia\n\nMRR = recurring subscription charges billed in the month, net of refunds; one-off services are excluded. Runway = cash / net burn."
+    answer: |-
+      The October update is saved as a draft, not sent: "Fernly - October update", same layout and Bcc list as September's.
+      - MRR: £44,275, up 7.0% on £41,380. That is October's monthly subscription charges (UK time, so the 00:30 BST charge on 1 October counts) less the refunded Pro cancellation (£1,490); the two one-off services charges (£4,500 and £1,200) are left out.
+      - Weekly active accounts, 19-25 Oct: 56.
+      - Cash at 31 Oct: £1,801,100; net burn £124,900; runway about 14 months (October actuals, not the November forecast).
+      List changes: Tom Reyes asked to come off, so he is removed; Priya asked to add her partner Jo Feld, so jo@northbeam.example is added.
+      Highlights, lowlights and asks are placeholders for you to fill in.

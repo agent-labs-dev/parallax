@@ -1,0 +1,19 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-commission-with-clawback"
+version = 2
+area = "saas"
+summary = "Compute Q3 commissions from 104 CRM deals (two pages), Stripe first-invoice payments, a tiered plan and two Slack amendments (approved quota relief, paid-by-quarter-end in London time), write one row per rep, then update Ravi's row and tier in place after a clawback"
+requires = ["mcp", "multi_turn"]
+services = ["tables", "payments", "sheets", "chat"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "2ef9710d-98a0-4806-90a2-58fd44720f7e"
+
+[[steps]]
+name = "turn-01"
+
+[[steps]]
+name = "turn-02"
+session = "continue"

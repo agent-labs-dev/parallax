@@ -1,0 +1,64 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: mail_search, args: {query: Q3 vendor}}
+      - {tool: mail_get, args: {id: m064}}
+      - {tool: sheets_read, args: {sheet: SaaS vendors}}
+      - {tool: drive_search, args: {query: contract, limit: 100}}
+      - {tool: drive_get_file, args: {id: d01}}
+      - {tool: drive_get_file, args: {id: d02}}
+      - {tool: drive_get_file, args: {id: d03}}
+      - {tool: drive_get_file, args: {id: d05}}
+      - {tool: drive_get_file, args: {id: d06}}
+      - {tool: mail_search, args: {query: receipt, limit: 100}}
+      - {tool: mail_search, args: {query: refund}}
+      - tool: mail_create_draft
+        args:
+          to: [billing@pipewise.example]
+          subject: "Billing dispute: Pipewise seats billed July-September 2026"
+          body: |-
+            Hello Pipewise billing team,
+
+            Our 2026 agreement covers 40 seats at $30.00 per seat per month, and extra seats need a signed order form. We have not signed one. Invoices PIP-4179 (July), PIP-4233 (August) and PIP-4302 (September) each bill 45 seats, $1,350.00 instead of $1,200.00.
+
+            Please refund the $450.00 overcharge for July-September and correct the seat count on future invoices.
+
+            Thank you,
+            Noor Haddad, Quillstone
+      - tool: mail_create_draft
+        args:
+          to: [billing@docuflow.example]
+          subject: "Billing dispute: Docuflow price per seat, August-September 2026"
+          body: |-
+            Hello Docuflow billing team,
+
+            Our 2026 agreement sets the price at €21.00 per seat per month for 25 seats (€525.00 a month). Invoices DOC-4239 (August) and DOC-4303 (September) bill €23.00 per seat, €575.00 each.
+
+            Please refund the €100.00 overcharge.
+
+            Thank you,
+            Noor Haddad, Quillstone
+      - tool: mail_create_draft
+        args:
+          to: [billing@signalwave.example]
+          subject: "Billing dispute: Signalwave August 2026 invoice"
+          body: |-
+            Hello Signalwave billing team,
+
+            Clause 4.2 of our 2026 agreement allows the move to $17.00 per seat from 1 September 2026. Invoice SIG-4246 for August already bills 30 seats at $17.00 ($510.00) instead of $15.00 ($450.00).
+
+            Please refund the $60.00 overcharge for August.
+
+            Thank you,
+            Noor Haddad, Quillstone
+    answer: |-
+      Yes. Three vendors overcharged us in Q3 (July-September), when I compare the receipts with the contracts in Drive:
+      - Pipewise: $450.00 over. They bill 45 seats instead of the contracted 40 at $30, so $150 a month for July, August and September. Marco also flagged this. (June and October show the same problem, but they are outside Q3.)
+      - Docuflow: €100.00 over. They bill €23 per seat instead of €21 for 25 seats in August and September. The USD card amounts move with the exchange rate, so I compared in euros.
+      - Signalwave: $60.00 over. The contract allows $17 per seat only from 1 September, but the August invoice already used $17 for 30 seats.
+      I drafted a dispute to each vendor's billing contact from the vendor list: billing@pipewise.example, billing@docuflow.example and billing@signalwave.example. I did not send them, so Priya can review them first.
+      These vendors look like overcharges but are not:
+      - Chartwell billed 2 extra seats in August and refunded the $90 in September.
+      - The forwarded Pipewise July and Meetly August receipts are copies of the same invoices.
+      - Vaultkey's rise to $9 from August is allowed by its contract.
+      - Brieflane is correct in euros.

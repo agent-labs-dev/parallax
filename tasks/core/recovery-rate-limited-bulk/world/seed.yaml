@@ -1,0 +1,97 @@
+now: '2026-06-03T09:12:00+01:00'
+user:
+  name: Alex Morgan
+  email: alex@northwind.test
+  timezone: Europe/London
+helpdesk:
+  tickets:
+  - id: t_101
+    subject: SSO migration - Brightline Labs
+    description: Moving Brightline Labs to SAML SSO. Waiting on their IdP metadata XML before we can finish setup.
+    requester: ops@brightline.example
+    priority: normal
+    status: open
+    conversation: null
+    created: '2026-05-20T10:00:00+01:00'
+    updated: '2026-05-20T10:00:00+01:00'
+  - id: t_102
+    subject: SSO migration - Cobalt Farms
+    description: Moving Cobalt Farms to SAML SSO. Waiting on their IdP metadata XML before we can finish setup.
+    requester: it@cobaltfarms.example
+    priority: normal
+    status: open
+    conversation: null
+    created: '2026-05-21T10:00:00+01:00'
+    updated: '2026-05-21T10:00:00+01:00'
+  - id: t_103
+    subject: SSO migration - Dovetail Studio
+    description: Moving Dovetail Studio to SAML SSO. Waiting on their IdP metadata XML before we can finish setup.
+    requester: admin@dovetail.example
+    priority: normal
+    status: open
+    conversation: null
+    created: '2026-05-22T10:00:00+01:00'
+    updated: '2026-05-22T10:00:00+01:00'
+  - id: t_104
+    subject: SSO migration - Ember & Oak
+    description: Moving Ember & Oak to SAML SSO. Waiting on their IdP metadata XML before we can finish setup.
+    requester: tech@emberoak.example
+    priority: normal
+    status: open
+    conversation: null
+    created: '2026-05-23T10:00:00+01:00'
+    updated: '2026-05-23T10:00:00+01:00'
+  - id: t_105
+    subject: SSO migration - Fernhill Clinic
+    description: Moving Fernhill Clinic to SAML SSO. Waiting on their IdP metadata XML before we can finish setup.
+    requester: it@fernhill.example
+    priority: normal
+    status: open
+    conversation: null
+    created: '2026-05-24T10:00:00+01:00'
+    updated: '2026-05-24T10:00:00+01:00'
+  - id: t_106
+    subject: SSO migration - Glasswing Travel
+    description: Moving Glasswing Travel to SAML SSO. Waiting on their IdP metadata XML before we can finish setup.
+    requester: sysadmin@glasswing.example
+    priority: normal
+    status: open
+    conversation: null
+    created: '2026-05-25T10:00:00+01:00'
+    updated: '2026-05-25T10:00:00+01:00'
+  - id: t_107
+    subject: CSV export times out on large workspaces
+    description: Exports over 50k rows time out after 60s.
+    requester: data@harbourline.example
+    priority: high
+    status: open
+    conversation: null
+    created: '2026-06-01T09:00:00+01:00'
+    updated: '2026-06-01T09:00:00+01:00'
+  - id: t_108
+    subject: Invoice address change
+    description: Please update our billing address to the new office.
+    requester: finance@cobaltfarms.example
+    priority: low
+    status: open
+    conversation: null
+    created: '2026-06-02T14:00:00+01:00'
+    updated: '2026-06-02T14:00:00+01:00'
+  - id: t_109
+    subject: SSO migration - Juniper Bakery
+    description: Migrated to SAML SSO last week; customer confirmed logins work.
+    requester: owner@juniperbakery.example
+    priority: normal
+    status: solved
+    conversation: null
+    created: '2026-05-12T10:00:00+01:00'
+    updated: '2026-05-29T16:00:00+01:00'
+  - id: t_110
+    subject: Two-factor codes arriving late
+    description: SMS codes arrive after they expire for some users.
+    requester: it@dovetail.example
+    priority: high
+    status: pending
+    conversation: null
+    created: '2026-05-30T11:00:00+01:00'
+    updated: '2026-06-01T12:00:00+01:00'

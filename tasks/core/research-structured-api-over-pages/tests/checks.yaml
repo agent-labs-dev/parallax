@@ -1,0 +1,15 @@
+checks:
+  - id: right-count
+    kind: answer
+    mode: wrong_output
+    must: [{regex: "\\b(5|five)\\b"}]
+    note: "5 remote Data postings from Mon 15 to Thu 18 June; the careers page is a month stale"
+  - {id: nothing-changed, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [user.interactions]}
+  - id: grounded
+    kind: rubric
+    mode: wrong_output
+    items:
+      - "Does the answer give 5 as the number of remote data roles posted this week?"
+      - "Does the answer avoid relying on the careers web page's figures?"
+    sees: [answers]

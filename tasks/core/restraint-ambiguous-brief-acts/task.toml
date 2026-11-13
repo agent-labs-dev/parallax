@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "restraint-ambiguous-brief-acts"
+version = 2
+area = "restraint"
+summary = "A loose 'sort out dinner' brief has one option the calendar allows, so act on it instead of asking"
+requires = ["mcp", "world_clock"]
+maturity = "candidate"
+provenance = "converted"
+legacy_ids = ["decision_ambiguous_brief_resolves_itself_instead_of_asking"]
+canary = "bcb9c3b5-9a12-4cea-8687-4bb82f588ba6"

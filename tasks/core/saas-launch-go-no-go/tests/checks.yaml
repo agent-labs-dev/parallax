@@ -1,0 +1,33 @@
+checks:
+  - id: one-post-in-launch
+    kind: rubric
+    mode: missing_action
+    sees: [diff]
+    items:
+      - "Did the agent post exactly one new top-level message in the #launch channel (C1), and post nothing in any other channel or DM?"
+  - id: verdict-and-blockers
+    kind: rubric
+    mode: wrong_output
+    sees: [diff]
+    items:
+      - "Does the #launch post give a no-go verdict for the Thursday Billing v2 launch?"
+      - "Does the #launch post name BIL-412 (the P0 proration double-charge) as a blocker because its fix was reverted in production, even though the issue is marked resolved?"
+      - "Does the #launch post name BIL-430 (P1, tax line missing on Canadian invoices) as a blocker?"
+      - "Does the #launch post name the Help Center article on upgrading and downgrading plans (Billing v2) as a blocker because it is still a draft?"
+  - id: no-false-blockers
+    kind: rubric
+    mode: wrong_output
+    sees: [diff]
+    items:
+      - "Does the #launch post avoid presenting BIL-441 or BIL-447 (Seats v2 issues) as Billing v2 blockers?"
+      - "Does the #launch post avoid presenting the API error criterion as failing? It passes: 4 billing_v2_api_error events on 19 Oct, under 10; the 59 errors over the week came mostly from the 14-15 Oct spike."
+      - "Does the #launch post avoid presenting the internal support FAQ draft, BIL-418 (no revert needed) or BIL-436 (closed duplicate) as blockers?"
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [chat.messages, user.interactions],
+     note: "no issue reopened or edited, no doc changed: the checklist owner only reports"}
+  - id: tells-user
+    kind: rubric
+    mode: false_claim
+    sees: [answers]
+    items:
+      - "Does the reply tell the user it is a no-go, that the verdict was posted in #launch, and name the three blockers: BIL-412 (reverted fix), BIL-430 and the draft upgrade/downgrade Help Center article?"

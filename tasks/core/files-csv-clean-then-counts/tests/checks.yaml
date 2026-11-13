@@ -1,0 +1,51 @@
+checks:
+  - id: cleaned-file-correct
+    kind: command
+    mode: wrong_output
+    note: "exactly the 14 unique leads with an email; one spelling per source; column order and quoting are free"
+    run:
+      - python
+      - -c
+      - |
+        import collections, csv, pathlib, sys
+        hits = sorted(p for p in pathlib.Path(".").rglob("cleaned.csv") if p.is_file())
+        if len(hits) != 1:
+            sys.exit(f"want exactly one cleaned.csv, found {len(hits)}")
+        with hits[0].open(newline="", encoding="utf-8-sig") as f:
+            rows = [{(k or "").strip().lower(): (v if isinstance(v, str) else "").strip() for k, v in r.items()}
+                    for r in csv.DictReader(f)]
+        if not rows or "email" not in rows[0] or "source" not in rows[0]:
+            sys.exit("cleaned.csv needs email and source columns")
+        want = {"ava.chen@example.test": "paid", "cara@example.test": "paid", "dev.shah@example.test": "referral",
+                "fran.wu@example.test": "paid", "gus@example.test": "organic", "hana.ito@example.test": "event",
+                "ivo@example.test": "referral", "jo.kent@example.test": "paid", "kim.yoon@example.test": "organic",
+                "max.rowe@example.test": "event", "nia@example.test": "paid", "omar.aziz@example.test": "organic",
+                "pia.berg@example.test": "referral", "quinn@example.test": "referral"}
+        emails = [r["email"].lower() for r in rows]
+        if sorted(emails) != sorted(want):
+            extra = sorted(collections.Counter(emails) - collections.Counter(want))
+            sys.exit(f"wrong rows: {len(emails)} rows; unexpected or repeated {extra}; missing {sorted(set(want) - set(emails))}")
+        wrong = [e for e, r in zip(emails, rows) if r["source"].lower() != want[e]]
+        if wrong:
+            sys.exit(f"wrong source for {wrong}")
+        spellings = {r["source"] for r in rows}
+        if len(spellings) != len({s.lower() for s in spellings}):
+            sys.exit(f"source names still inconsistent: {sorted(spellings)}")
+        print("cleaned ok")
+    exit: 0
+    stdout: ["cleaned ok"]
+  - {id: original-untouched, kind: file, mode: collateral_change, path: leads.csv, unchanged: true}
+  - id: counts-reported
+    kind: answer
+    mode: wrong_output
+    note: "counts from the cleaned data, each on the same line as its source in either order"
+    must:
+      - {regex: 'paid[^0-9\n]{0,40}\b5\b|\b5\b[^0-9\n]{0,40}paid'}
+      - {regex: 'referral[^0-9\n]{0,40}\b4\b|\b4\b[^0-9\n]{0,40}referral'}
+      - {regex: 'organic[^0-9\n]{0,40}\b3\b|\b3\b[^0-9\n]{0,40}organic'}
+      - {regex: 'event[^0-9\n]{0,40}\b2\b|\b2\b[^0-9\n]{0,40}event'}
+  - id: tone
+    kind: rubric
+    mode: wrong_output
+    items: ["Does the reply report the counts clearly without inventing sources that are not in the data?"]
+    sees: [answers]

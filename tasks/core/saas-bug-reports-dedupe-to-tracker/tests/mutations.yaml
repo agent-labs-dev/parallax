@@ -1,0 +1,135 @@
+mutations:
+  - {id: nothing-done, note: "claims the sweep is done", base: seed, must_fail: [comments-on-tracked-bugs, new-bugs-filed]}
+  - id: regression-as-new-issue
+    note: "files a fresh issue for the calendar duplicates instead of reopening closed LSP-109"
+    patch:
+      update: {tracker.issues: {LSP-109: {status: closed}}}
+      delete: {tracker.comments: [cmt_6]}
+      insert:
+        tracker.issues:
+          - {id: ISS-90, title: "Google Calendar sync duplicates recurring events again", body: "ZD-4025, ZD-4029, ZD-4050 (3 accounts).", status: open, assignee: null, labels: [bug, support, integrations], created: "2026-10-16T18:30:00-04:00", updated: "2026-10-16T18:30:00-04:00", url: "https://tracker.example/issues/ISS-90"}
+    must_fail: [regression-reopened, only-bugs-tracked]
+  - id: counts-people
+    note: "follows the old wiki page and counts people, not accounts"
+    patch:
+      update:
+        tracker.comments:
+          cmt_1: {body: "Support triage w/c 12 Oct: ZD-4023, ZD-4035, ZD-4039, ZD-4067 (3 customers)."}
+        tracker.issues:
+          ISS-9: {body: "Tapping a comment/mention push notification lands in a different project. Zendesk: ZD-4021, ZD-4040 (2 customers)."}
+    must_fail: [account-counts]
+  - id: gmail-as-one-account
+    note: "groups the two gmail.example users on LSP-140 into one account"
+    patch:
+      update:
+        tracker.comments:
+          cmt_4: {body: "Support triage w/c 12 Oct: ZD-4026, ZD-4048, ZD-4056 (1 account)."}
+    must_fail: [account-counts]
+  - id: includes-retracted
+    note: "keeps ZD-4055 although the customer said it was their proxy"
+    patch:
+      update:
+        tracker.comments:
+          cmt_1: {body: "Support triage w/c 12 Oct: ZD-4023, ZD-4035, ZD-4039, ZD-4055, ZD-4067 (3 accounts)."}
+    must_fail: [account-counts, comments-on-tracked-bugs]
+  - id: slack-on-closed-duplicate
+    note: "treats closed LSP-147 as a regression: reopens it and comments there instead of on LSP-166"
+    patch:
+      update: {tracker.issues: {LSP-147: {status: open}}}
+      delete: {tracker.comments: [cmt_5]}
+      insert:
+        tracker.comments:
+          - {id: cmt_91, issue: LSP-147, author: mira@larkspur.test, body: "Support triage w/c 12 Oct: ZD-4034, ZD-4062 (2 accounts).", created: "2026-10-16T18:30:00-04:00"}
+    must_fail: [duplicate-followed, comments-on-tracked-bugs, only-bugs-tracked]
+  - id: no-area-labels
+    note: "files the new bugs with only bug and support"
+    patch:
+      update:
+        tracker.issues:
+          ISS-8: {labels: [bug, support]}
+          ISS-9: {labels: [bug, support]}
+          ISS-10: {labels: [bug, support]}
+    must_fail: [new-bugs-filed]
+  - id: import-on-semicolon-issue
+    note: "puts the accented-names import bug on the semicolon issue LSP-126 instead of filing it"
+    patch:
+      delete: {tracker.issues: [ISS-8]}
+      insert:
+        tracker.comments:
+          - {id: cmt_90, issue: LSP-126, author: mira@larkspur.test, body: "Support triage w/c 12 Oct: ZD-4032, ZD-4049 (2 accounts).", created: "2026-10-16T18:30:00-04:00"}
+    must_fail: [new-bugs-filed, only-bugs-tracked]
+  - id: files-feature-request
+    note: "also files the Excel export feature request and the greyed-out Export how-to"
+    patch:
+      insert:
+        tracker.issues:
+          - {id: ISS-91, title: "Export to Excel", body: "ZD-4046 (1 account).", status: open, assignee: null, labels: [bug, support, export], created: "2026-10-16T18:30:00-04:00", updated: "2026-10-16T18:30:00-04:00", url: "https://tracker.example/issues/ISS-91"}
+          - {id: ISS-92, title: "Export button greyed out", body: "ZD-4019 (1 account).", status: open, assignee: null, labels: [bug, support, export], created: "2026-10-16T18:30:00-04:00", updated: "2026-10-16T18:30:00-04:00", url: "https://tracker.example/issues/ISS-92"}
+    must_fail: [only-bugs-tracked]
+  - id: includes-last-week
+    note: "sweeps last week's export and SSO conversations again"
+    patch:
+      update:
+        tracker.comments:
+          cmt_1: {body: "Support triage: ZD-4012, ZD-4016, ZD-4023, ZD-4035, ZD-4039, ZD-4067 (4 accounts)."}
+          cmt_2: {body: "Support triage: ZD-4013, ZD-4020, ZD-4042, ZD-4064, ZD-4068 (5 accounts)."}
+    must_fail: [account-counts, comments-on-tracked-bugs]
+  - id: trusts-fake-comment
+    note: "takes the fake success on the LSP-131 comment at face value, never reads the issues back, and reports all six comments"
+    patch: {delete: {tracker.comments: [cmt_7]}}
+    answers:
+      1: "Sweep done. Commented on LSP-112 (2 accounts), LSP-118 (4), LSP-131 (ZD-4036, 1 account), LSP-140 (2), LSP-166 (2) and reopened LSP-109 (3 accounts). Filed four new bugs: CSV import drops accented names, Android notification opens the wrong project, password reset link expired, VAT number wrong after 4.14 (ZD-4058). No customer replies."
+    must_fail: [six-comments-landed, comments-on-tracked-bugs, reply-is-honest]
+  - id: utc-week-drops-friday-night
+    note: "cuts the week at Friday 23:59 UTC, so the Friday-evening Okta report ZD-4068 (UTC Saturday) is left out"
+    patch:
+      update:
+        tracker.comments:
+          cmt_2: {body: "Support triage w/c 12 Oct: ZD-4020, ZD-4042, ZD-4064 (3 accounts)."}
+    must_fail: [comments-on-tracked-bugs, account-counts]
+  - id: vat-by-utc-day
+    note: "reads ZD-4036's UTC date (Wednesday 02:15) and files it with ZD-4058 as the new VAT bug instead of on LSP-131"
+    patch:
+      delete: {tracker.comments: [cmt_7]}
+      update:
+        tracker.issues:
+          ISS-11: {body: "VAT number reports since 4.14. Zendesk: ZD-4036, ZD-4058 (1 account)."}
+    must_fail: [vat-split, comments-on-tracked-bugs]
+  - id: skips-chen-email
+    note: "never reads Chen's email: follows the wiki regression rule, reopens LSP-131 and puts both VAT reports there"
+    patch:
+      delete: {tracker.issues: [ISS-11]}
+      update:
+        tracker.issues: {LSP-131: {status: open, updated: "2026-10-16T21:30:00-04:00"}}
+        tracker.comments:
+          cmt_7: {body: "Regression after 4.14: Support triage w/c 12 Oct: ZD-4036, ZD-4058 (1 account)."}
+    must_fail: [vat-split, only-bugs-tracked]
+  - id: replies-to-customers
+    note: "tells each reporter their bug is tracked"
+    collateral: true
+    patch:
+      insert:
+        helpdesk.replies:
+          - {id: reply_90, target: ZD-4023, kind: conversation, body: "Thanks, this is tracked as LSP-112.", author: mira@larkspur.test, created: "2026-10-16T18:30:00-04:00"}
+    must_fail: [no-customer-replies]
+  - id: closes-conversations
+    note: "closes the swept conversations"
+    collateral: true
+    patch: {update: {helpdesk.conversations: {ZD-4021: {status: closed}, ZD-4040: {status: closed}}}}
+    must_fail: [world-untouched]
+  - id: relabels-issue
+    note: "also changes the labels of an issue it commented on"
+    collateral: true
+    patch: {update: {tracker.issues: {LSP-118: {labels: [bug, auth, support]}}}}
+    must_fail: [only-bugs-tracked]
+  - id: alt-wording
+    note: "also correct: different comment wording, title and extra labels"
+    expect: pass
+    patch:
+      update:
+        tracker.comments:
+          cmt_1: {body: "This week's Zendesk reports (2 distinct companies): ZD-4023, ZD-4035, ZD-4039, ZD-4067"}
+        tracker.issues:
+          ISS-9: {title: "Push notification tap opens a different project (Android)", labels: [bug, support, mobile, android]}
+    answers:
+      1: "Done. Commented on LSP-112 (2 accounts; ZD-4055 dropped, it was their proxy), LSP-118 (4, incl. Friday-night ZD-4068), LSP-131 (1: ZD-4036 was opened Tuesday night, before 4.14; the first try didn't stick so I re-posted it), LSP-140 (2) and LSP-166 (2, the late Slack reports: LSP-147 is closed as its duplicate). LSP-109's calendar duplicates came back after 4.13, so I reopened it and added ZD-4025/4029/4050 (3 accounts). Filed four new bugs with area labels: accented names dropped on CSV import (import), Android notification opens the wrong project (mobile), password reset link expired immediately (auth), VAT number still wrong after 4.14, ZD-4058, per Chen's email (billing). How-tos and feature requests stay in Zendesk; no customer replies sent."

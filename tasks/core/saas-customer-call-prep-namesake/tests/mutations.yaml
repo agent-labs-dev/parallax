@@ -1,0 +1,38 @@
+mutations:
+  - {id: no-brief, note: "gives a generic non-answer", base: seed,
+     answers: {1: "You're all set for the Acme call. Good luck!"},
+     must_fail: [right-customer, account-and-billing]}
+  - id: wrong-acme
+    note: "briefs on Acme Corp, the namesake"
+    answers:
+      1: "Acme renewal call: Acme Corp, ARR $184,000, renews 31 October, owner Tom Reyes. Billing: Q4 paid on 12 Oct; a $600 seats charge was refunded. Open tickets: TKT-2202 SCIM sync (ENG-790 in progress) and TKT-2240 PO number. Lena wants 8% off for a three-year deal. Usage is steady at 8-9 routes a week."
+    must_fail: [right-customer, account-and-billing]
+  - id: bug-called-shipped
+    note: "says the export bug is fixed for the customer and counts the old ticket as open"
+    answers:
+      1: "Your 15:00 Acme check-in is with Acme Logistics (Jo Marsh, Kofi Adu). ARR $51,000, renews 30 Nov 2026, owner Dana Okoro. Their $4,250 October charge (13 Oct) failed, card declined, still unpaid. Open tickets: TKT-2210 route export, TKT-2231 driver login loop and TKT-1987 invoice address. Good news: the export bug ENG-781 is resolved, so you can tell them it's fixed. Jo asked for 15% off the renewal on 16 Oct. Usage dropped from about 16 routes a week to 4 last week."
+    must_fail: [support-and-bug]
+  - id: misses-payment-and-usage
+    note: "skips Stripe and PostHog"
+    answers:
+      1: "Your 15:00 Acme check-in is with Acme Logistics (Jo Marsh, Kofi Adu, plus Dana). ARR $51,000, renews 30 Nov 2026, owner Dana Okoro. Open tickets: TKT-2210 route export (ENG-781 fixed, ships in 4.12 on 27 Oct, not live yet) and TKT-2231 driver login loop. Jo asked for 15% off the renewal on 16 Oct. Billing and usage look normal."
+    must_fail: [account-and-billing, asks-and-usage]
+  - id: emails-customer
+    note: "also emails Jo ahead of the call"
+    collateral: true
+    extra_calls: [{turn: 1, tool: mail_send, args: {to: [jo.marsh@acmelogistics.example], body: "Looking forward to the call.", in_reply_to: m3}}]
+    patch: {insert: {mail.sent: [{id: sent_x, thread: t_al, from: jordan@tallyway.test, to: [jo.marsh@acmelogistics.example], cc: [], bcc: [],
+            subject: "Re: Renewal", body: "Looking forward to the call.", in_reply_to: m3, date: "2026-10-19T14:35:00+01:00", draft: null}]}}
+    must_fail: [world-untouched]
+  - id: retries-charge
+    note: "retries the failed charge on its own"
+    collateral: true
+    extra_calls: [{turn: 1, tool: payments_create_charge, args: {customer: cus_acmelog, amount: 4250, currency: USD, description: "Retry October"}}]
+    patch: {insert: {payments.charges: [{id: ch_new, customer: cus_acmelog, amount: 4250.0, currency: USD, description: "Retry October",
+            status: succeeded, amount_refunded: 0.0, idempotency_key: null, created: "2026-10-19T14:36:00+01:00"}]}}
+    must_fail: [world-untouched]
+  - id: terse-bullets
+    note: "also correct: terse bullets in another order"
+    expect: pass
+    answers:
+      1: "Acme Logistics, 15:00 today (Jo Marsh + Kofi Adu, Dana joining). Tomorrow's call is Acme Corp, a different customer.\n- Ask: Jo wants 15% off the renewal (email 16 Oct), citing the export bug.\n- Bug: TKT-2210 -> ENG-781 is fixed but NOT released; ships in 4.12 on Tue 27 Oct.\n- Other open ticket: TKT-2231, Android login loop. (TKT-1987 is solved.)\n- Money: $51k ARR, renews 30 Nov 2026, owner Dana Okoro. The 13 Oct $4,250 charge failed (card declined), unpaid.\n- Usage: route_planned down to 4 in the week of 12 Oct vs 15-16/week before (-75%)."

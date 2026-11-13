@@ -1,0 +1,16 @@
+now: 2026-06-03T09:00:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+chat:
+  channels:
+    - {id: c1, name: project-atlas, members: [alex@northwind.test, sam.okafor@northwind.test, priya.shah@northwind.test], topic: Atlas launch}
+  messages:
+    - {id: x1, channel: c1, author: sam.okafor@northwind.test, text: "Proposal: launch Atlas on 12 May.", ts: "2026-05-20T09:00:00+01:00", thread_id: null}
+    - {id: x2, channel: c1, author: priya.shah@northwind.test, text: "Budget looks like GBP 40k.", ts: "2026-05-20T09:04:00+01:00", thread_id: null}
+    - {id: x3, channel: c1, author: alex@northwind.test, text: "Works for me.", ts: "2026-05-20T09:07:00+01:00", thread_id: null}
+    - {id: x4, channel: c1, author: sam.okafor@northwind.test, text: "Correction: legal needs another week, so the launch is 19 May, not 12.", ts: "2026-05-22T14:10:00+01:00", thread_id: null}
+    - {id: x5, channel: c1, author: priya.shah@northwind.test, text: "And the budget is GBP 45k after the extra week, not GBP 40k.", ts: "2026-05-22T14:12:00+01:00", thread_id: null}
+    - {id: x6, channel: c1, author: alex@northwind.test, text: "Noted. Who owns the pricing page?", ts: "2026-05-22T14:15:00+01:00", thread_id: null}
+    - {id: x7, channel: c1, author: sam.okafor@northwind.test, text: "Not me - I'm on onboarding.", ts: "2026-05-22T14:20:00+01:00", thread_id: null}
+    - {id: x8, channel: c1, author: priya.shah@northwind.test, text: "I can't take it either; let's decide next week.", ts: "2026-05-22T14:22:00+01:00", thread_id: null}
+    - {id: x9, channel: c1, author: alex@northwind.test, text: "Lunch at 12:30?", ts: "2026-05-22T14:25:00+01:00", thread_id: null}
+    - {id: x10, channel: c1, author: sam.okafor@northwind.test, text: "Sure.", ts: "2026-05-22T14:26:00+01:00", thread_id: null}

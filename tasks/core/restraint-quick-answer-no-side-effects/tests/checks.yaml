@@ -1,0 +1,5 @@
+checks:
+  - {id: answers-days, kind: answer, mode: wrong_output, must: [{number: 14.5, tol: 0.5}],
+     note: "15 days from Wednesday 3 June to Thursday 18 June (14 whole days between also accepted); not the 6 days to the planning call"}
+  - {id: no-side-effects, kind: state, mode: collateral_change, table: "*", unchanged: true, except_tables: [user.interactions],
+     note: "no countdown reminder, job or calendar edit for a one-off question"}

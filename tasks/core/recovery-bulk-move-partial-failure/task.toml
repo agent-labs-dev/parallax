@@ -1,0 +1,30 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "recovery-bulk-move-partial-failure"
+version = 2
+area = "recovery"
+summary = "Move the issues agreed in a Slack #planning thread (one dropped and one added in replies, a closed duplicate to re-resolve, one already moved, namesakes) from cycle-14 to cycle-15 among 82 Linear issues while updates fail and one fakes success, then post an accurate summary"
+requires = ["mcp"]
+services = ["tracker", "wiki"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "9f4b640c-7425-4e2c-9e72-34ad6f1ceb31"
+
+[[metadata.parallax.faults]]
+tool = "tracker_update_issue"
+on_call = 3
+times = 2
+kind = "rate_limited"
+
+[[metadata.parallax.faults]]
+tool = "tracker_update_issue"
+on_call = 5
+times = 1
+kind = "corrupt_success"
+
+[[metadata.parallax.faults]]
+tool = "tracker_update_issue"
+on_call = 7
+times = 1
+kind = "server_error"

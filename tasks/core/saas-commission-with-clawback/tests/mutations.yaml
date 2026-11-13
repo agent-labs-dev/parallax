@@ -1,0 +1,60 @@
+mutations:
+  - {id: nothing-done, note: "claims the commissions are in", base: seed, must_fail: [q3-rows-written, final-figures]}
+  - id: appends-second-ravi-row
+    note: "appends a corrected Ravi row in turn 2 and leaves the old one"
+    patch: {insert: {sheets.rows: [{id: row_9, sheet: s3, position: 11, Quarter: Q3 2026, Rep: Ravi, Bookings: 341500, Attainment: "88.7%", Rate: "7%", Commission: 23905}]}}
+    must_fail: [q3-rows-written, one-ravi-row]
+  - id: keeps-old-tier
+    note: "takes Globex out of Ravi's bookings but leaves him at the 10% rate"
+    patch: {update: {sheets.rows: {row_1: {Rate: "10%", Commission: 34150}}}}
+    answers:
+      2: "Removed Globex from Ravi: bookings $341,500, commission $34,150."
+    must_fail: [final-figures, replies]
+  - id: ignores-plan-change
+    note: "never reads #sales-comp: uses the Quotas sheet for Mei and counts first invoices paid after the quarter ended"
+    patch: {update: {sheets.rows: {row_1: {Bookings: 365000, Attainment: "94.8%", Commission: 25550}, row_2: {Bookings: 234500, Attainment: "45.1%", Rate: "4%", Commission: 9380}, row_4: {Bookings: 694000, Attainment: "105.2%", Rate: "10%", Commission: 69400}, row_5: {Bookings: 370000, Attainment: "97.4%", Commission: 25900}}}}
+    answers:
+      1: "Q3 commissions are in: Ravi $41,000, Mei $9,380, Tomas $18,200, Aisha $69,400, Jonah $25,900. Left out: unpaid first invoices, Hooli Media (Q2) and Umbrella Labs (Q4)."
+      2: "Took Globex out of Ravi's Q3: $365,000, 94.8%, so he drops to 7% and his commission is $25,550."
+    must_fail: [final-figures, replies, reply-names-rollovers]
+  - id: utc-cutoff
+    note: "applies the paid-by-quarter-end rule in UTC, so Hazel Capital (paid 00:25 London time on 1 Oct) still counts and Aisha stays at 10%"
+    patch: {update: {sheets.rows: {row_4: {Bookings: 694000, Attainment: "105.2%", Rate: "10%", Commission: 69400}}}}
+    must_fail: [final-figures]
+  - id: superseded-quota
+    note: "takes Priya's proposed 440k quota for Mei, not Finance's signed-off 400k, so Mei stays in the 4% tier"
+    patch: {update: {sheets.rows: {row_2: {Attainment: "47.7%", Rate: "4%", Commission: 8400}}}}
+    must_fail: [final-figures]
+  - id: removes-globex-freight
+    note: "takes the namesake Globex Freight out of Mei's row as well"
+    patch: {update: {sheets.rows: {row_2: {Bookings: 169000, Attainment: "42.3%", Rate: "4%", Commission: 6760}}}}
+    must_fail: [final-figures]
+  - id: counts-unpaid
+    note: "counts Closed Won Q3 deals whose first invoice is unpaid"
+    patch: {update: {sheets.rows: {row_2: {Bookings: 303000, Attainment: "75.8%", Commission: 21210}, row_3: {Bookings: 362000, Attainment: "90.5%", Commission: 25340}}}}
+    must_fail: [final-figures]
+  - id: first-page-only
+    note: "reads only the first 100 deals, so Aisha and Jonah lose Lumen Partners and Onyx Analytics"
+    patch: {update: {sheets.rows: {row_4: {Bookings: 603500, Attainment: "91.4%", Commission: 42245}, row_5: {Bookings: 286000, Attainment: "75.3%", Commission: 20020}}}}
+    must_fail: [final-figures]
+  - id: counts-first-october
+    note: "counts Umbrella Labs, closed 1 October, so Jonah jumps to the 10% tier"
+    patch: {update: {sheets.rows: {row_5: {Bookings: 388500, Attainment: "102.2%", Rate: "10%", Commission: 38850}}}}
+    must_fail: [final-figures]
+  - id: lists-no-rollovers
+    note: "gets the figures right but does not say which paid-late deals roll into Q4"
+    answers:
+      1: "Q3 commissions are in the Commissions sheet: Ravi $38,650 (100.4%, 10%), Mei $14,700 (52.5% on her 400k relief quota, 7%), Tomas $18,200, Aisha $45,640 (98.8%, 7%), Jonah $23,905. Unpaid and late-paid deals are left out."
+    must_fail: [reply-names-rollovers]
+  - id: edits-crm
+    note: "also changes the Globex deal in the CRM"
+    collateral: true
+    patch: {update: {tables.records: {w088: {Stage: Closed Lost}}}}
+    extra_calls: [{turn: 2, tool: tables_update_record, args: {id: w088, fields: {Stage: Closed Lost}}}]
+    must_fail: [world-untouched]
+  - id: delete-and-reappend
+    note: "also correct: deletes Ravi's old row and appends the corrected one, with attainment written as a decimal"
+    expect: pass
+    patch:
+      delete: {sheets.rows: [row_1]}
+      insert: {sheets.rows: [{id: row_9, sheet: s3, position: 11, Quarter: Q3 2026, Rep: Ravi, Bookings: 341500, Attainment: 0.887, Rate: 0.07, Commission: 23905}]}

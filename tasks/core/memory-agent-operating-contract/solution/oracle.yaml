@@ -1,0 +1,9 @@
+steps:
+  configure:
+    answer: "Roger. Saved: uncertainty before recommendations, brief unless you ask for detail, and no unverified monitoring claims."
+  decision:
+    answer: "Roger. We don't know whether runtime tests, integrations or the deployment checks passed. Lint only checks static issues. Hold the release until those checks and the rollback path are verified."
+  detail:
+    answer: "Roger. Lint catches static problems, such as unused names or inconsistent formatting. It doesn't prove that the program returns correct results, that integrations work with real inputs, or that database changes preserve data. It also doesn't exercise credentials, configuration, rollout health or rollback. Release readiness needs evidence for those behaviors, not just a clean lint result."
+  status:
+    answer: "Roger. I haven't verified any running monitoring, so I can't claim I'm watching anything while you're away. Tell me what you want watched and I can help set it up."

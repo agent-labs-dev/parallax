@@ -1,0 +1,18 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: user_clock_now, args: {}}
+      - {tool: mail_search, args: {label: inbox, limit: 50}}
+      - {tool: chat_list_channels, args: {}}
+      - {tool: chat_read_channel, args: {channel: eng-leads}}
+      - {tool: chat_read_channel, args: {channel: eng}}
+      - {tool: calendar_list_events, args: {start: "2026-06-11T00:00:00+01:00", end: "2026-06-12T00:00:00+01:00"}}
+      - {tool: tracker_search_issues, args: {assignee: sam@orbitly.test}}
+      - {tool: tracker_get_issue, args: {id: ORB-482}}
+    answer: |-
+      Four things need you today, most urgent first:
+      1. Acme escalation, reply due 12:00. Priya asked you to own the update on the failing CSV exports. ORB-482 (P1, yours) is still open with no update since Tuesday. Next step: get a status from whoever is on it and send Acme's VP Ops an update before noon; I can draft it.
+      2. Invoice INV-4471 from Brightside Dev (£8,400), approve by 17:00 or it misses the pay run. Next step: check it and approve it in the finance portal.
+      3. Clash at 15:00: Kim added Q3 planning (15:00-16:30) on top of your 1:1 with Lee (15:00-15:30). Next step: move the 1:1 with Lee; Lee added topics, so a new slot is better than a skip.
+      4. Dana wants your Q3 headcount ask (roles and start months) by end of day, and Q3 planning expects it too. Next step: prepare it before 15:00.
+      Nothing else needs you today: the staging outage on Tuesday is fixed (ORB-479), Marco's ORB-490 review is due before next Wednesday's release cut, and the rest is newsletters and FYIs. I haven't sent or changed anything.

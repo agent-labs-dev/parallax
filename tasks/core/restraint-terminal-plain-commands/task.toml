@@ -1,0 +1,10 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "restraint-terminal-plain-commands"
+version = 1
+area = "restraint"
+summary = "Ordinary commands (disk usage, a package install, a count) run in one-shot shells, not the interactive terminal"
+requires = ["mcp", "workspace", "shell", "terminal"]
+provenance = "hand_authored"
+canary = "e9c58eeb-3d38-4439-9670-daa9594f5d9b"

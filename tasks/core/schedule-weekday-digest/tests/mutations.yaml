@@ -1,0 +1,22 @@
+mutations:
+  - id: nothing-scheduled
+    note: "promises a digest but creates no job, so the fire is missed"
+    base: seed
+    must_fail: [one-weekday-8am-london-job, digest-emailed-on-fire]
+  - id: new-york-time
+    note: "schedules 8am in the user's own zone"
+    patch: {update: {scheduler.jobs: {job_1: {tz: America/New_York}}}}
+    must_fail: [one-weekday-8am-london-job]
+  - id: every-day
+    note: "runs at weekends too"
+    patch: {update: {scheduler.jobs: {job_1: {spec: "0 8 * * *"}}}}
+    must_fail: [one-weekday-8am-london-job]
+  - id: stale-digest
+    note: "digest lists last week's tickets instead"
+    patch: {update: {mail.sent: {sent_2: {body: "HD-2088 Password reset email never arrives; HD-2091 Export to CSV drops the last row"}}}}
+    must_fail: [digest-emailed-on-fire, digest-is-only-new]
+  - id: closes-tickets
+    note: "closes the new tickets while building the digest"
+    collateral: true
+    patch: {update: {helpdesk.tickets: {HD-2106: {status: closed}}}}
+    must_fail: [tickets-untouched]

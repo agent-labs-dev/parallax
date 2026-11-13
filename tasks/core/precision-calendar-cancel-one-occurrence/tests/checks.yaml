@@ -1,0 +1,15 @@
+checks:
+  - {id: occurrence-cancelled, kind: state, mode: missing_action, table: calendar.events,
+     where: {id: e1}, count: 1, fields: {"exceptions.2026-06-09.cancelled": true}}
+  - {id: series-intact, kind: state, mode: collateral_change, table: calendar.events,
+     where: {id: e1}, count: 1,
+     fields: {status: confirmed, rrule: "FREQ=WEEKLY;BYDAY=TU", start: "2026-05-05T14:00:00+01:00",
+              end: "2026-05-05T14:30:00+01:00", attendees: {contains: jo@northwind.test},
+              "exceptions.2026-05-26.cancelled": true, "exceptions.2026-06-02": null,
+              "exceptions.2026-06-16": null, "exceptions.2026-06-23": null},
+     note: "the series, its past exception and the following weeks are kept"}
+  - {id: other-events-unchanged, kind: state, mode: wrong_target, table: calendar.events,
+     where: {id: {none_of: [e1]}}, unchanged: true, note: "the Sam 1:1 on the same afternoon is untouched"}
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [calendar.events, mail.sent, mail.drafts, chat.dms, user.interactions],
+     note: "a courtesy note to Jo is allowed"}

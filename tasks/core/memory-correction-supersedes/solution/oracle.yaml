@@ -1,0 +1,12 @@
+steps:
+  turn-01:
+    calls: []
+    answer: "Noted: your manager is Priya Shah."
+  turn-02:
+    calls: []
+    answer: "Updated: your manager is now Lee Park; Priya has moved to partnerships."
+  turn-03:
+    calls:
+      - {tool: mail_update_draft, args: {id: d1, to: [lee.park@larkspur.test]}}
+      - {tool: mail_send_draft, args: {id: d1}}
+    answer: "The draft was still addressed to Priya, so I changed it to Lee Park and sent the weekly report to him."

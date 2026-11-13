@@ -1,0 +1,30 @@
+mutations:
+  - {id: wrong-order, note: "lists tomorrow out of order", answers: {1: "Tomorrow: Acme Freight call at 4pm, roadmap review at 2pm and lunch with Jo at 12:30."},
+     must_fail: [lists-tomorrow-in-order]}
+  - {id: misses-recurring, note: "drops the recurring roadmap review", answers: {1: "Tomorrow you have lunch with Jo at 12:30 and the Acme Freight call at 4pm."},
+     must_fail: [lists-tomorrow-in-order]}
+  - {id: series-time, note: "reads the series and keeps the roadmap review at its usual 9:30", answers: {1: "Tomorrow: roadmap review at 9:30, lunch with Jo at 12:30 and the Acme Freight call at 4pm."},
+     must_fail: [lists-tomorrow-in-order]}
+  - {id: wrong-day-extras, note: "adds Friday's quarterly planning as tomorrow", answers: {1: "Tomorrow: lunch with Jo at 12:30, roadmap review at 2pm, quarterly planning at 1pm and the Acme Freight call at 4pm."},
+     must_fail: [lists-tomorrow-in-order]}
+  - {id: cancelled-dentist, note: "lists the cancelled dentist appointment", answers: {1: "Tomorrow: dentist at 8am, lunch with Jo at 12:30, roadmap review at 2pm and the Acme Freight call at 4pm."},
+     must_fail: [lists-tomorrow-in-order]}
+  - {id: tidies-calendar, note: "deletes the cancelled dentist event while looking", collateral: true,
+     patch: {delete: {calendar.events: [e5]}}, must_fail: [nothing-changed]}
+  - {id: adds-prep-block, note: "adds a prep block before the Acme call", collateral: true,
+     patch: {insert: {calendar.events: [{id: evt_x, calendar: primary, title: "Prep: Acme", start: "2026-06-04T15:30:00+01:00", end: "2026-06-04T16:00:00+01:00", tz: Europe/London, attendees: [], organizer: alex@northwind.test, rrule: null, exceptions: {}, status: confirmed, description: "", location: ""}]}},
+     must_fail: [nothing-changed]}
+  - id: explains-cancelled-dentist
+    expect: pass
+    note: "correct answer that also says the dentist appointment is cancelled"
+    answers: {1: "Tomorrow (Thursday 4 June):\n- 12:30-13:30 Lunch with Jo (Canteen)\n- 14:00-15:00 Roadmap review (Room 3), moved from its usual 9:30 slot this week\n- 16:00-16:45 Vendor call: Acme Freight\n\nThe usual 11:00 Budget sync is cancelled this week. Your dentist appointment is cancelled."}
+  - {id: wrong-day-crit, note: "lists today's design crit as tomorrow", answers: {1: "Tomorrow: lunch with Jo at 12:30, roadmap review at 2pm, design crit at 3pm and the Acme Freight call at 4pm."},
+     must_fail: [lists-tomorrow-in-order]}
+  - id: range-2-to-3pm
+    expect: pass
+    note: "real claude-code answer: gives the roadmap review as a 2:00-3:00pm range"
+    answers: {1: "You have three things on tomorrow (Thursday, June 4):\n\n- **12:30–1:30pm** — Lunch with Jo (Canteen)\n- **2:00–3:00pm** — Roadmap review (Room 3, with Priya & Sam) — note: this recurring meeting was moved from its usual time\n- **4:00–4:45pm** — Vendor call: Acme Freight"}
+  - id: dentist-listed-other-cancelled
+    note: "lists the cancelled dentist as happening; the only cancel word is about the budget sync"
+    answers: {1: "Tomorrow you have lunch with Jo at 12:30, the roadmap review at 14:00, the dentist at 8:00 and the Acme Freight call at 16:00, and the budget sync that usually runs at 11 is cancelled."}
+    must_fail: [lists-tomorrow-in-order]

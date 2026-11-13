@@ -1,0 +1,11 @@
+insert:
+  helpdesk.tickets:
+    - {id: HD-2104, subject: "Invoice PDF shows the wrong VAT number", description: "Since the June invoice run.",
+       requester: accounts@morrowgate.example, priority: normal, status: open, conversation: null,
+       created: "2026-06-08T13:05:00+01:00", updated: "2026-06-08T13:05:00+01:00"}
+    - {id: HD-2105, subject: "Mobile app crashes on the login screen", description: "Android 15, app 4.2.1.",
+       requester: kai@fernbrook.example, priority: high, status: open, conversation: null,
+       created: "2026-06-08T19:48:00+01:00", updated: "2026-06-08T19:48:00+01:00"}
+    - {id: HD-2106, subject: "Webhook deliveries delayed by an hour", description: "Started around midnight.",
+       requester: dev@orchardline.example, priority: urgent, status: open, conversation: null,
+       created: "2026-06-09T06:52:00+01:00", updated: "2026-06-09T06:52:00+01:00"}

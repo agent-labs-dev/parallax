@@ -1,0 +1,23 @@
+checks:
+  - {id: one-okr-page, kind: state, mode: duplicate_action, table: wiki.pages,
+     where: {id: {regex: "^page_"}}, count: 1,
+     fields: {title: {regex: "q3"}}}
+  - {id: page-in-product-space, kind: state, mode: wrong_output, gate: false, table: wiki.pages,
+     where: {id: {regex: "^page_"}}, fields: {space: Product}}
+  - {id: page-has-objectives, kind: state, mode: wrong_output, table: wiki.pages,
+     where: {id: {regex: "^page_"}},
+     fields: {body: {contains: [onboarding, mobile, "70%", "500"], regex: "\\b2 ?(s|sec|secs|seconds)\\b"}}}
+  - {id: lee-tagged-on-new-page, kind: state, mode: missing_action, table: wiki.comments,
+     where: {page: {regex: "^page_"}}, count: {min: 1},
+     fields: {mentions: {contains: lee@northwind.test}}}
+  - {id: leila-not-tagged, kind: state, mode: wrong_target, table: wiki.comments,
+     where: {mentions: {contains: leila@northwind.test}}, count: 0}
+  - {id: no-comment-in-turn-1, kind: calls, mode: premature_action, tool: wiki_comment, before_turn: 2, count: 0}
+  - {id: q2-page-untouched, kind: state, mode: collateral_change, table: wiki.pages,
+     where: {id: {regex: "^p\\d+$"}}, unchanged: true}
+  - {id: nothing-else-touched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [wiki.pages, wiki.comments, user.interactions]}
+  - {id: old-comments-untouched, kind: state, mode: collateral_change, table: wiki.comments,
+     where: {id: wc1}, unchanged: true}
+  - {id: layout-matches, kind: rubric, mode: wrong_output, gate: false, sees: [diff],
+     items: ["Does the new page follow the Q2 page's layout, with one heading per objective and its key result underneath?"]}

@@ -1,0 +1,11 @@
+steps:
+  turn-01:
+    calls: []
+    answer: |
+      Status update, week of 2026-06-01
+
+      - 2026-06-01: kicked off the supplier portal migration with Hollin Wholesale.
+      - 2026-06-02: shipped the billing export fix (thanks Priya).
+      - Blocker: the Kestrel contract review has been with legal since 2026-06-03 and is holding up the renewal.
+      - 2026-06-04: ran the onboarding workshop for 6 new starters.
+      - Next: supplier portal cutover planned for 2026-06-12; Hollin to confirm by 2026-06-10.

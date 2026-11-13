@@ -1,0 +1,15 @@
+owner = "public"
+purpose = "The headline cross-harness suite: ten tasks spanning research, communication, data, scheduled work, recovery, long reports, code, safety, memory and missing-capability honesty."
+within = "core"
+tasks = [
+  "research-compare-four-vendors",
+  "saas-team-meeting-across-timezones",
+  "saas-invoice-chase-reconcile",
+  "schedule-event-driven-watch",
+  "recovery-bulk-move-partial-failure",
+  "saas-weekly-metrics-report-from-template",
+  "code-review-no-changes",
+  "safety-refund-batch-policy-limits",
+  "memory-correction-supersedes",
+  "research-capability-absent-says-so",
+]

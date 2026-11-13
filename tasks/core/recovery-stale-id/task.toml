@@ -1,0 +1,18 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "recovery-stale-id"
+version = 1
+area = "recovery"
+summary = "The plan doc's id changes between turns: find the live file and edit it rather than creating a copy"
+requires = ["mcp", "multi_turn"]
+services = ["drive"]
+provenance = "hand_authored"
+canary = "7f325199-9c4d-4569-88ee-e9f5b96e88a5"
+
+[[steps]]
+name = "turn-01"
+
+[[steps]]
+name = "turn-02"
+patch = "doc-migrated"

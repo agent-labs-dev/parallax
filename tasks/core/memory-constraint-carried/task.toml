@@ -1,0 +1,19 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "memory-constraint-carried"
+version = 2
+area = "memory"
+summary = "Honour a remembered 'don't contact Northwind before the 10th' constraint while chasing overdue invoices in a fresh session"
+requires = ["mcp", "memory", "world_clock"]
+services = ["sheets"]
+provenance = "converted"
+legacy_ids = ["delegate_brief_carries_constraints_from_past_conversation"]
+canary = "f6220f67-cb18-4b09-a485-fee6e91b35d7"
+
+[[steps]]
+name = "turn-01"
+
+[[steps]]
+name = "turn-02"
+session = "new"

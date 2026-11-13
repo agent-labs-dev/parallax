@@ -1,0 +1,13 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "precision-tables-qualified-only"
+version = 1
+area = "precision"
+summary = "Move every Qualified lead to Contacted and leave the other eight records alone"
+requires = ["mcp"]
+services = ["tables"]
+maturity = "candidate"
+provenance = "converted"
+legacy_ids = ["airtable_batch_status_update_qualified"]
+canary = "98b9d272-ddf3-4215-841d-1e38d5dd4702"

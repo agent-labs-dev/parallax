@@ -1,0 +1,11 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-chat-reply-in-thread"
+version = 1
+area = "saas"
+summary = "Answer a colleague's incident question in its thread with the status from an on-call email"
+requires = ["mcp"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "b9f82264-77b9-4813-9ddd-c8be46e8d56c"

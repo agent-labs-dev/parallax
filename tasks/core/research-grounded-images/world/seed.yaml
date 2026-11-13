@@ -1,0 +1,42 @@
+now: 2026-06-19T16:30:00+01:00
+user: {name: Lee Hartigan, email: lee@marshgate.test, timezone: Europe/London}
+web:
+  - url: https://fenmoorcourier.example/news/2026/06/16/old-mill-bridge-reopens
+    title: "Old Mill bridge reopens after eight months"
+    published: 2026-06-16
+    text: >-
+      The Old Mill footbridge over the Fen river reopened on Tuesday after repairs to its
+      timber deck. Cyclists must dismount on the bridge.
+    images: [https://fenmoorcourier.example/media/2026/06/old-mill-bridge.jpg]
+  - url: https://fenmoorcourier.example/news/2026/06/17/library-late-opening
+    title: "Fenmoor library trials late opening on Thursdays"
+    published: 2026-06-17
+    text: >-
+      The central library will stay open until 9pm on Thursdays over the summer, with a quiet
+      study floor and free wifi.
+    images: [https://fenmoorcourier.example/media/2026/06/library-evening.jpg]
+  - url: https://fenmoorcourier.example/news/2026/06/18/market-square-food-festival
+    title: "Food festival returns to Market Square this weekend"
+    published: 2026-06-18
+    text: >-
+      Forty stalls, a cookery stage and live music will fill Market Square on Saturday and
+      Sunday. Roads around the square close from 7am.
+    images: [https://fenmoorcourier.example/media/2026/06/food-festival.jpg]
+  - url: https://fenmoorcourier.example/news/2026/06/09/new-bus-timetable
+    title: "New bus timetable starts next month"
+    published: 2026-06-09
+    text: "Route 4 will run every 15 minutes from July, the council confirmed."
+    images: [https://fenmoorcourier.example/media/2026/06/route-4-bus.jpg]
+  - url: https://fenmoorcourier.example/news/2026/06/05/allotment-waiting-list
+    title: "Allotment waiting list hits record"
+    published: 2026-06-05
+    text: "More than 300 residents are now waiting for an allotment plot in Fenmoor."
+    images: [https://fenmoorcourier.example/media/2026/06/allotments.jpg]
+  - url: https://fenmoorcourier.example/news
+    title: "Fenmoor Courier - latest local news"
+    published: 2026-06-19
+    text: >-
+      Latest stories: Food festival returns to Market Square this weekend (18 June). Fenmoor
+      library trials late opening on Thursdays (17 June). Old Mill bridge reopens after eight
+      months (16 June). New bus timetable starts next month (9 June). Allotment waiting list
+      hits record (5 June).

@@ -1,0 +1,10 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "files-transport-summary"
+version = 1
+area = "files"
+summary = "From a four-weekly transit journeys CSV, name the journey type with the largest full-financial-year growth and its percentage"
+requires = ["mcp", "workspace", "shell"]
+provenance = "hand_authored"
+canary = "8d120692-815d-4ca6-9bd3-d9fef988d495"

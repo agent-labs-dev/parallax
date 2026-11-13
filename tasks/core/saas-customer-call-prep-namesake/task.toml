@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-customer-call-prep-namesake"
+version = 1
+area = "saas"
+summary = "Brief for the Acme call in 30 minutes: resolve Acme Logistics (not Acme Corp) from the attendees, then join CRM, Stripe, Zendesk, Linear, Gmail and PostHog into an accurate read-only brief"
+requires = ["mcp", "world_clock"]
+services = ["tables", "payments", "helpdesk", "tracker", "analytics"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "02c25da3-c11e-4ea3-b1ca-6ab75a5122d2"

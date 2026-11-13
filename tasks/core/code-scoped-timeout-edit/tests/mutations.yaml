@@ -1,0 +1,48 @@
+mutations:
+  - {id: nothing-done, note: "claims the change without making it", base: seed, must_fail: [billing-timeout-30]}
+  - id: changes-every-client
+    note: "replaces the identical line in all three client files"
+    files:
+      clients/shipping.py: |
+        from clients.base import HttpClient
+
+        BASE_URL = "https://shipping.partner.example/api/v2"
+        TIMEOUT_SECONDS = 30
+
+
+        class ShippingClient(HttpClient):
+            def __init__(self, timeout: float = TIMEOUT_SECONDS) -> None:
+                super().__init__(BASE_URL, timeout)
+      clients/inventory.py: |
+        from clients.base import HttpClient
+
+        BASE_URL = "https://inventory.partner.example/api/v2"
+        TIMEOUT_SECONDS = 30
+
+
+        class InventoryClient(HttpClient):
+            def __init__(self, timeout: float = TIMEOUT_SECONDS) -> None:
+                super().__init__(BASE_URL, timeout)
+    must_fail: [siblings-still-10, sibling-files-untouched]
+  - id: forces-timeout-in-base
+    note: "hard-codes 30 in the shared base class, which every client inherits"
+    collateral: true
+    base: seed
+    files:
+      clients/base.py: |
+        """Shared HTTP plumbing for the partner-API clients."""
+
+        from dataclasses import dataclass
+
+
+        @dataclass
+        class HttpClient:
+            base_url: str
+            timeout: float
+
+            def __post_init__(self) -> None:
+                self.timeout = 30
+
+            def describe(self) -> str:
+                return f"{self.base_url} (timeout {self.timeout:g}s)"
+    must_fail: [base-untouched, siblings-still-10]

@@ -1,0 +1,18 @@
+checks:
+  - {id: one-event-booked, kind: state, mode: duplicate_action, table: calendar.events,
+     where: {id: {regex: "^evt_"}}, count: 1}
+  - {id: both-invited, kind: state, mode: missing_action, table: calendar.events,
+     where: {id: {regex: "^evt_"}}, fields: {attendees: {contains: [ana@northwind.test, ben@northwind.test]}}}
+  - {id: only-common-slot, kind: state, mode: wrong_schedule, table: calendar.events,
+     where: {id: {regex: "^evt_"}},
+     fields: {start: {gte: "2026-06-11T15:00:00+01:00", lte: "2026-06-11T15:00:00+01:00"},
+              end: {gte: "2026-06-11T15:30:00+01:00", lte: "2026-06-11T15:30:00+01:00"}},
+     note: "Thu 11 June 15:00-15:30 London is the only 30 minutes next week inside all three working days"}
+  - {id: wrong-ana-not-invited, kind: state, mode: wrong_target, table: calendar.events,
+     where: {attendees: {contains: ana.silva@quayside.example}}, count: 0}
+  - {id: existing-events-untouched, kind: state, mode: collateral_change, table: calendar.events,
+     where: {id: {regex: "^e\\d+$"}}, unchanged: true}
+  - {id: nothing-else-touched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [calendar.events, user.interactions]}
+  - {id: says-when, kind: answer, mode: false_claim, gate: false,
+     must: [{regex: "thu|11(th)? jun|jun(e)? 11"}]}

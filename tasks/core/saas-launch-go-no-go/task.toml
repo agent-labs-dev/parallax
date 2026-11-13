@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-launch-go-no-go"
+version = 1
+area = "saas"
+summary = "Run the Billing v2 go/no-go against the Notion checklist across 65 Linear issues (a resolved P0 whose fix was reverted, P1s from another launch), Drive help docs (one still DRAFT) and PostHog errors (7-day spike vs yesterday), then post a no-go with the exact blockers to #launch and change nothing else"
+requires = ["mcp", "world_clock"]
+services = ["tracker", "drive", "analytics", "wiki"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "23d7d751-39ae-4be2-ae31-4d2f3816e568"

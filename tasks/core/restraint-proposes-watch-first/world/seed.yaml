@@ -1,0 +1,20 @@
+now: 2026-06-03T09:30:00+01:00
+user: {name: Alex Kim, email: alex@northwind.test, timezone: Europe/London}
+user_rules:
+  - {tool: ask, when: {question: {regex: "watch|alert|notif|heads[- ]up|let you know|flag|ping you|tell you|digest|summary|rule|filter"}}, reply: "Yes, set that up."}
+mail:
+  messages:
+    - {id: m1, thread: t1, from: accounts@paperstack.example, to: [alex@northwind.test], cc: [],
+       subject: "Invoice INV-3381 from Paperstack", body: "Please find attached invoice INV-3381 for 240.00 GBP, due 17 June.",
+       date: "2026-06-02T07:12:00+01:00", labels: [inbox]}
+    - {id: m2, thread: t2, from: news@brightcart.example, to: [alex@northwind.test], cc: [],
+       subject: "BrightCart Weekly", body: "This week's newsletter.", date: "2026-06-02T07:00:00+01:00", labels: [inbox]}
+    - {id: m3, thread: t3, from: billing@cloudhost.example, to: [alex@northwind.test], cc: [],
+       subject: "Your June invoice is ready", body: "Invoice CH-0602 for 45.00 GBP is available. Payment due 30 June.",
+       date: "2026-06-01T02:00:00+01:00", labels: [inbox]}
+    - {id: m4, thread: t4, from: priya@northwind.test, to: [alex@northwind.test], cc: [],
+       subject: "Q3 planning doc", body: "Can you look over the doc before Thursday?", date: "2026-06-02T15:45:00+01:00", labels: [inbox]}
+scheduler:
+  jobs:
+    - {id: job_digest, kind: cron, spec: "0 8 * * 1", tz: Europe/London, title: "Monday inbox digest",
+       instruction: "Summarise last week's unread mail", active: true, created: "2026-04-01T09:00:00+01:00"}

@@ -1,0 +1,9 @@
+checks:
+  # The code exists only in Dana's seeded message, so a correct post and answer prove a tool RESULT reached the model.
+  - {id: posted-once, kind: state, mode: missing_action, table: chat.messages,
+     where: {channel: ch-conf, author: robin@harbourline.test, text: {contains: heron-e4e298}}, count: 1}
+  - {id: says-code, kind: answer, mode: false_claim, must: [heron-e4e298], turn: -1}
+  - {id: no-code-elsewhere, kind: state, mode: wrong_target, table: chat.messages,
+     where: {channel: {ne: ch-conf}}, count: 2}
+  - {id: rest-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [chat.messages, user.interactions]}

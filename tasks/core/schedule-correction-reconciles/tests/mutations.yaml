@@ -1,0 +1,23 @@
+mutations:
+  - id: second-job
+    note: "creates a new urgent-only job and leaves the 8am one running"
+    patch: {insert: {scheduler.jobs: [{id: job_x, kind: cron, spec: "0 8 * * *", tz: Europe/London, title: "Open tickets digest", instruction: "Email Rowan all open helpdesk tickets.", active: true, created: "2026-06-10T16:21:00+01:00"}]}}
+    must_fail: [one-digest-job]
+  - id: kept-8am
+    note: "narrows the scope but forgets the new time"
+    patch: {update: {scheduler.jobs: {job_1: {spec: "0 8 * * *"}}}}
+    must_fail: [digest-reconciled]
+  - id: kept-scope
+    note: "moves the time but still digests every open ticket"
+    patch: {update: {scheduler.jobs: {job_1: {instruction: "Email rowan@pinecrest.test all open helpdesk tickets."}}}}
+    must_fail: [digest-reconciled]
+  - id: paused-sla
+    note: "pauses the unrelated weekly SLA job while tidying up"
+    collateral: true
+    patch: {update: {scheduler.jobs: {job-weekly-sla: {active: false}}}}
+    must_fail: [sla-job-untouched]
+  - id: skipped-first-request
+    note: "ignores the 8am request and only creates the corrected job at turn 2"
+    base: seed
+    patch: {insert: {scheduler.jobs: [{id: job_9, kind: cron, spec: "0 9 * * *", tz: Europe/London, title: "Urgent tickets digest", instruction: "Email rowan@pinecrest.test the open urgent helpdesk tickets.", active: true, created: "2026-06-10T16:22:00+01:00"}]}}
+    must_fail: [first-request-acted-on]

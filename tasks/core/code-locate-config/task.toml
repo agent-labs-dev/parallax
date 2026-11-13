@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "code-locate-config"
+version = 1
+area = "code"
+summary = "Find where the effective retry limit is configured, past a stale comment and a test override"
+requires = ["mcp", "workspace", "shell"]
+maturity = "candidate"
+provenance = "converted"
+legacy_ids = ["sandbox_bash_multistep"]
+canary = "9ba892a6-ba5f-44b0-be2b-a1941f47e87b"

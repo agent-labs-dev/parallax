@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-helpdesk-answer-from-wiki"
+version = 1
+area = "saas"
+summary = "Answer a customer's support question from the right help article and link it without inventing URLs"
+requires = ["mcp"]
+services = ["helpdesk", "wiki"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "af917bf4-b5b7-4d7f-a0b7-be3026fcdb49"

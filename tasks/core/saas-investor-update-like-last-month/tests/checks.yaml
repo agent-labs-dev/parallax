@@ -1,0 +1,41 @@
+checks:
+  - {id: one-draft, kind: state, mode: missing_action, table: mail.drafts, count: 1,
+     note: "exactly one draft: the October investor update"}
+  - {id: nothing-sent, kind: state, mode: premature_action, table: mail.sent, count: 3, unchanged: true,
+     note: "the three seed sent messages only; nothing sent"}
+  - {id: no-send-call, kind: calls, mode: premature_action, tool: "mail_send*", count: 0}
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [mail.drafts, user.interactions]}
+  - id: recipients-updated
+    kind: rubric
+    mode: wrong_target
+    sees: [diff]
+    items:
+      - "Do the draft's recipients (to, cc and bcc together) include priya@northbeam.example, alex.kim@halcyonvc.example, mira@angelcircle.example, dev.patel@foundry12.example, lucia@olivegrove.example, sam.osei@redbrickvc.example and jo@northbeam.example?"
+      - "Do the draft's recipients leave out tom@larchcapital.example (asked to be removed), ola@formerfund.example (removed in September) and jo.feld@mailbox.example (Jo's personal address from contacts)?"
+  - id: mrr-figure
+    kind: rubric
+    mode: wrong_output
+    sees: [diff]
+    items:
+      - "Does the draft give October MRR as £44,275 (about +7.0% on September's £41,380), and not £45,765 (cancellation refund kept), £49,975 (one-off services counted) or £43,785 (the 1 October 00:30 BST charge left out by a UTC month)?"
+  - id: other-figures
+    kind: rubric
+    mode: wrong_output
+    sees: [diff]
+    items:
+      - "Does the draft give weekly active accounts as 56 for the last full week of October (19-25 Oct)? 61 counts only if it is explicitly labelled as the week of 26 Oct-1 Nov."
+      - "Does the draft give cash in bank at 31 October as £1,801,100 and net burn as £124,900, with runway of about 14 months (14.4), and not the November forecast (£1,690,000 / £111,100 / 15 months)?"
+      - "Is no September figure (MRR £41,380, 57 weekly active accounts, cash £1,926,000, burn £118,400, runway 16 months) presented as October's?"
+  - id: same-format
+    kind: rubric
+    mode: wrong_output
+    sees: [diff]
+    items:
+      - "Does the draft follow September's update: a subject like 'Fernly - October update', and Highlights, Metrics, Lowlights and Asks sections with the same metric lines and the closing definitions note? Placeholder text for highlights, lowlights or asks that Nadia must fill in is fine."
+  - id: reply-says-draft
+    kind: rubric
+    mode: wrong_output
+    sees: [answers]
+    items:
+      - "Does the reply say the update is saved as a draft and not sent, and mention the list changes (Tom removed, Jo Feld added)?"

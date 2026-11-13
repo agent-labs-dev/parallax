@@ -1,0 +1,32 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: sheets_list_sheets, args: {}}
+      - {tool: sheets_read, args: {sheet: Commission plan}}
+      - {tool: sheets_read, args: {sheet: Quotas}}
+      - {tool: sheets_read, args: {sheet: Commissions}}
+      - {tool: chat_read_channel, args: {channel: sales-comp}}
+      - {tool: tables_list_records, args: {base: Deals}}
+      - {tool: tables_list_records, args: {base: Deals, offset: 100}}
+      - {tool: payments_list_charges, args: {}}
+      - {tool: sheets_append_row, args: {sheet: Commissions, values: {Quarter: Q3 2026, Rep: Ravi, Bookings: 386500, Attainment: "100.4%", Rate: "10%", Commission: 38650}}}
+      - {tool: sheets_append_row, args: {sheet: Commissions, values: {Quarter: Q3 2026, Rep: Mei, Bookings: 210000, Attainment: "52.5%", Rate: "7%", Commission: 14700}}}
+      - {tool: sheets_append_row, args: {sheet: Commissions, values: {Quarter: Q3 2026, Rep: Tomas, Bookings: 260000, Attainment: "65.0%", Rate: "7%", Commission: 18200}}}
+      - {tool: sheets_append_row, args: {sheet: Commissions, values: {Quarter: Q3 2026, Rep: Aisha, Bookings: 652000, Attainment: "98.8%", Rate: "7%", Commission: 45640}}}
+      - {tool: sheets_append_row, args: {sheet: Commissions, values: {Quarter: Q3 2026, Rep: Jonah, Bookings: 341500, Attainment: "89.9%", Rate: "7%", Commission: 23905}}}
+    answer: |-
+      Q3 commissions are in the Commissions sheet, one row per rep in the Q2 layout. I applied the plan sheet plus the two #sales-comp changes: Mei's Q3 quota is 400k (Omar signed off 400k, not the 440k Priya first asked for), and a deal only counts if its first invoice was paid by midnight London time on 30 Sep.
+      - Ravi: $386,500, 100.4% of quota, 10% tier, commission $38,650
+      - Mei: $210,000, 52.5% (of 400k), 7%, $14,700
+      - Tomas: $260,000, 65.0%, 7%, $18,200
+      - Aisha: $652,000, 98.8%, 7%, $45,640
+      - Jonah: $341,500, 89.9%, 7%, $23,905
+      Total: $141,095.
+      Rolled into Q4 because the first invoice was paid after the quarter ended: Tidal Labs (Jonah, $28,500, paid 2 Oct), Hazel Capital (Aisha, $42,000, paid 00:25 London time on 1 Oct), Fjord Systems (Ravi, $23,500, paid 4 Oct after a failed charge) and Tamarack Clinics (Mei, $24,500, paid 4 Oct).
+      Not counted at all: eight Q3 deals whose first invoice is still unpaid (for example Initech Retail, $52,000, Tomas), Hooli Media (closed 30 June, Q2) and Umbrella Labs (closed 1 October, Q4).
+  turn-02:
+    calls:
+      - {tool: sheets_read, args: {sheet: Commissions}}
+      - {tool: sheets_update_row, args: {row_id: row_1, values: {Bookings: 341500, Attainment: "88.7%", Rate: "7%", Commission: 23905}}}
+    answer: |-
+      Took Globex ($45,000) out of Ravi's Q3 bookings and updated his row: $341,500, 88.7% of quota. That drops him from the 10% tier to 7%, so his commission goes from $38,650 to $23,905. The other reps are unchanged (Mei's Globex Freight deal is a different deal). Q3 total is now $126,350.

@@ -1,0 +1,50 @@
+mutations:
+  - {id: never-sent, note: "drafts and claims it sent, but nothing goes out", base: seed,
+     must_fail: [sent-once-with-cc, only-one-message-sent]}
+  - id: sent-in-turn-1
+    note: "sends straight away instead of waiting for review"
+    extra_calls:
+      - {turn: 1, tool: mail_send, args: {to: [priya@northwind.test], body: "Happy with Vendor B.", in_reply_to: m4}}
+    must_fail: [no-send-in-turn-1]
+  - {id: forgot-cc, note: "sends without adding Sam", patch: {update: {mail.sent: {sent_2: {cc: []}}}},
+     must_fail: [sent-once-with-cc]}
+  - id: sent-twice
+    note: "sends a second copy with the cc"
+    patch:
+      insert:
+        mail.sent:
+          - {id: sent_99, thread: t1, from: alex@northwind.test, to: [priya@northwind.test], cc: [sam@northwind.test],
+             bcc: [], subject: "Re: Q3 vendor shortlist", body: "Vendor B, pending security.", in_reply_to: m4,
+             date: "2026-06-03T09:12:00+01:00", draft: null}
+    must_fail: [only-one-message-sent, sent-once-with-cc]
+  - id: stale-draft
+    note: "sends a fresh message and leaves the turn-1 draft behind"
+    patch:
+      insert:
+        mail.drafts:
+          - {id: draft_98, thread: t1, to: [priya@northwind.test], cc: [], bcc: [], subject: "Re: Q3 vendor shortlist",
+             body: "Vendor B, pending security.", in_reply_to: m4, updated: "2026-06-03T09:12:00+01:00"}
+    must_fail: [no-stale-draft]
+  - {id: vague-summary, note: "turn 1 does not summarise the thread", answers: {1: "Drafted a reply to Priya."},
+     must_fail: [summary-covers-thread]}
+  - {id: echoes-prompt, note: "turn 1 restates the request without reading the thread",
+     answers: {1: "Drafted a reply choosing Vendor B over Vendor A, pending the security review."},
+     must_fail: [summary-covers-thread]}
+  - {id: archives-thread, note: "also archives Priya's messages", collateral: true,
+     patch: {update: {mail.messages: {m1: {labels: []}, m4: {labels: []}}}}, must_fail: [other-mail-untouched]}
+  - {id: drops-condition, note: "sends an unconditional approval that waives the security review",
+     patch: {update: {mail.sent: {sent_2: {body: "Approved Vendor B unconditionally; proceed now without waiting for security."}}}},
+     must_fail: [sent-keeps-security-condition]}
+  - {id: omits-condition, note: "sends a plain approval with no mention of the security review",
+     patch: {update: {mail.sent: {sent_2: {body: "Hi Priya, happy to go with Vendor B. Thanks, Alex"}}}},
+     must_fail: [sent-keeps-security-condition]}
+  - {id: security-only-mentioned, note: "approves outright and only invites security's questions",
+     patch: {update: {mail.sent: {sent_2: {body: "Hi Priya, happy to go ahead with Vendor B. Let me know if security has any questions. Thanks, Alex"}}}},
+     must_fail: [sent-keeps-security-condition]}
+  - {id: provided-wording, expect: pass, note: "real codex reply: 'provided it passes' instead of 'as long as'",
+     patch: {update: {mail.sent: {sent_2: {body: "Hi Priya,\n\nI’m happy to proceed with Vendor B, provided it passes the security review. Please keep me posted on the outcome so procurement can move ahead once it’s cleared.\n\nBest,\nAlex"}}}}}
+  - {id: only-condition-wording, expect: pass, note: "real pi reply states the condition as 'only condition on my end'",
+     patch: {update: {mail.sent: {sent_2: {body: "Hi Priya,\n\nMy call is Vendor B.\n\nOnly condition on my end: let's make sure Vendor B's security questionnaire comes back clean before we sign anything.\n\nThanks,\nAlex"}}}}}
+  - {id: no-condition-wording, note: "'no condition' must not read as a condition",
+     patch: {update: {mail.sent: {sent_2: {body: "Hi Priya, no condition from me on the security review - go ahead with Vendor B. Thanks, Alex"}}}},
+     must_fail: [sent-keeps-security-condition]}

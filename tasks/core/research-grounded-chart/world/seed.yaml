@@ -1,0 +1,16 @@
+now: 2026-07-02T10:15:00+01:00
+user: {name: Dana Ilves, email: dana@brindle.test, timezone: Europe/London}
+web:
+  - url: https://brindle.example/open/stats
+    title: "Brindle open stats"
+    published: 2026-07-01
+    text: >-
+      We publish our growth numbers every month. New signups by month in 2026: January 1,284;
+      February 1,512; March 1,907; April 2,315; May 2,088; June 2,746. Website visitors by month
+      in 2026: January 41,200; February 44,950; March 52,300; April 58,100; May 55,400; June 63,800.
+  - url: https://brindle.example/blog/june-update
+    title: "June update: a record month"
+    published: 2026-07-01
+    text: >-
+      June was our best month yet for signups, beating April's record. Thanks to everyone who
+      shared Brindle with a friend.

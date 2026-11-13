@@ -1,0 +1,10 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "mini-mail"
+version = 1
+area = "saas"
+summary = "Reply to Priya's shortlist question with the chosen vendor"
+requires = ["mcp"]
+provenance = "hand_authored"
+canary = "3f2b8c1e-9a4d-4e7b-8c21-5d6f7a8b9c0d"

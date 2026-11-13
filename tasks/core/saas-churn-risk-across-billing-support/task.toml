@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-churn-risk-across-billing-support"
+version = 3
+area = "saas"
+summary = "Find renewals at risk by joining a 115-account CRM (two pages) with Stripe failed charges from this UK month (legal names, join on domain, a UTC month-edge failure), Zendesk urgent tickets and emailed notices per the wiki rule, with renewal dates amended by #renewals and a wire payment Finance confirmed by email, and post the list with ARR to #cs-leads"
+requires = ["mcp", "world_clock"]
+services = ["tables", "payments", "helpdesk", "wiki"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "6c35388d-9940-44d8-8b86-55f9a6afedbf"

@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-crm-from-meeting-notes"
+version = 1
+area = "saas"
+summary = "Update deal stages and amounts in a CRM base from yesterday's pipeline call notes, leaving other deals alone"
+requires = ["mcp", "world_clock"]
+services = ["drive", "tables"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "c7d0a4eb-2738-43b7-b811-6ad511d2c461"

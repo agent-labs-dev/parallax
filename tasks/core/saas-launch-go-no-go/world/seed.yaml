@@ -1,0 +1,191 @@
+now: 2026-10-20T10:00:00-07:00
+user: {name: Rhea Kim, email: rhea@ledgerly.test, timezone: America/Los_Angeles}
+chat:
+  channels:
+    - {id: C1, name: launch, members: [rhea@ledgerly.test, tom@ledgerly.test, mei@ledgerly.test, nina@ledgerly.test, kenji@ledgerly.test, raj@ledgerly.test], topic: "Launch coordination"}
+    - {id: C2, name: billing-eng, members: [rhea@ledgerly.test, tom@ledgerly.test, mei@ledgerly.test, ivan@ledgerly.test], topic: "Billing engineering"}
+  messages:
+    - {id: m1, channel: C1, author: rhea@ledgerly.test, ts: "2026-10-12T10:00:00-07:00", thread_id: null, text: "Billing v2 ships Thursday 22 Oct. I'll run the go/no-go against the checklist on Tuesday and post the verdict here."}
+    - {id: m2, channel: C1, author: tom@ledgerly.test, ts: "2026-10-15T16:20:00-07:00", thread_id: null, text: "BIL-412 (proration double-charge) fixed and deployed! That was the last P0."}
+    - {id: m3, channel: C1, author: nina@ledgerly.test, ts: "2026-10-16T10:05:00-07:00", thread_id: null, text: "Invoice and payment methods articles are live. Upgrade/downgrade article is with legal."}
+    - {id: m4, channel: C2, author: ivan@ledgerly.test, ts: "2026-10-15T09:00:00-07:00", thread_id: null, text: "API error spike on 14-15 Oct was the proration retry bug, mitigated Friday."}
+    - {id: m5, channel: C1, author: raj@ledgerly.test, ts: "2026-10-19T11:00:00-07:00", thread_id: null, text: "Seats v2 still on track for 5 Nov."}
+tracker:
+  issues:
+    - {id: BIL-401, title: "Avatar upload limits", status: closed, labels: [P3]}
+    - {id: BIL-402, title: "Session timeout warning", status: closed, labels: [P3], assignee: ivan@ledgerly.test}
+    - {id: BIL-403, title: "Receipt email for zero-amount invoices", status: closed, labels: [launch, billing-v2, P1]}
+    - {id: BIL-404, title: "Audit log retention setting", status: in_progress, labels: [P2], assignee: ivan@ledgerly.test}
+    - {id: BIL-405, title: "Billing contact role for finance users", status: in_progress, labels: [launch, billing-v2, P3]}
+    - {id: BIL-406, title: "Usage meter lag over 5 minutes", status: closed, labels: [launch, billing-v2, P1], assignee: mei@ledgerly.test}
+    - {id: BIL-407, title: "Docs site search ranking", status: closed, labels: [P3]}
+    - {id: BIL-408, title: "Calendar widget timezone", status: in_progress, labels: [P2]}
+    - {id: BIL-409, title: "Billing audit log entries", status: closed, labels: [launch, billing-v2, P3], assignee: ivan@ledgerly.test}
+    - {id: BIL-410, title: "Annual-to-monthly downgrade timing", status: closed, labels: [launch, billing-v2, P2]}
+    - {id: BIL-411, title: "Reduce cold start of reports", status: open, labels: [P2], assignee: sara@ledgerly.test}
+    - {id: BIL-412, title: "Proration double-charges on mid-cycle upgrade", status: resolved, labels: [launch, billing-v2, P0], assignee: tom@ledgerly.test}
+    - {id: BIL-413, title: "Card expiry reminder email", status: closed, labels: [launch, billing-v2, P0]}
+    - {id: BIL-414, title: "Status page automation", status: in_progress, labels: [P2], assignee: ivan@ledgerly.test}
+    - {id: BIL-415, title: "Invoice search by amount", status: open, labels: [launch, billing-v2, P3], assignee: ivan@ledgerly.test}
+    - {id: BIL-416, title: "Invoice PDF logo upload", status: in_progress, labels: [launch, billing-v2, P3], assignee: mei@ledgerly.test}
+    - {id: BIL-417, title: "Metered add-on pricing table", status: open, labels: [launch, billing-v2, P2]}
+    - {id: BIL-418, title: "Invoice webhook retries flood the queue", status: resolved, labels: [launch, billing-v2, P1], assignee: mei@ledgerly.test}
+    - {id: BIL-419, title: "Export invoices as CSV", status: open, labels: [launch, billing-v2, P2], assignee: ivan@ledgerly.test}
+    - {id: BIL-420, title: "Slack app scopes update", status: closed, labels: [P2], assignee: sara@ledgerly.test}
+    - {id: BIL-421, title: "Workspace export timeout", status: open, labels: [P3], assignee: sara@ledgerly.test}
+    - {id: BIL-422, title: "SEPA mandate re-confirmation", status: resolved, labels: [launch, billing-v2, P2], assignee: tom@ledgerly.test}
+    - {id: BIL-423, title: "SAML metadata refresh", status: open, labels: [P3]}
+    - {id: BIL-424, title: "Seat-based to usage-based migration report", status: resolved, labels: [launch, billing-v2, P1], assignee: ivan@ledgerly.test}
+    - {id: BIL-425, title: "Invoice PDF footer misaligned on A4", status: open, labels: [launch, billing-v2, P2], assignee: mei@ledgerly.test}
+    - {id: BIL-426, title: "API rate limit headers", status: closed, labels: [P3], assignee: ivan@ledgerly.test}
+    - {id: BIL-427, title: "Dark mode contrast fixes", status: in_progress, labels: [P3], assignee: ivan@ledgerly.test}
+    - {id: BIL-428, title: "Tax ID validation for EU VAT", status: resolved, labels: [launch, billing-v2, P2], assignee: mei@ledgerly.test}
+    - {id: BIL-429, title: "Mobile push token refresh", status: in_progress, labels: [P3], assignee: sara@ledgerly.test}
+    - {id: BIL-430, title: "Tax line missing on invoices for Canadian customers", status: in_progress, labels: [launch, billing-v2, P1], assignee: tom@ledgerly.test}
+    - {id: BIL-431, title: "Onboarding checklist tweaks", status: closed, labels: [P2]}
+    - {id: BIL-432, title: "Search index rebuild job", status: in_progress, labels: [P3], assignee: sara@ledgerly.test}
+    - {id: BIL-433, title: "Invoice number sequence per entity", status: closed, labels: [launch, billing-v2, P1], assignee: tom@ledgerly.test}
+    - {id: BIL-434, title: "Plan picker loading spinner", status: open, labels: [launch, billing-v2, P3]}
+    - {id: BIL-435, title: "Billing v2 onboarding tour", status: open, labels: [launch, billing-v2, P3]}
+    - {id: BIL-436, title: "Canadian invoices have no GST/HST line", status: closed, labels: [launch, billing-v2, P1], assignee: mei@ledgerly.test}
+    - {id: BIL-437, title: "Guest seats pricing page", status: resolved, labels: [launch, seats-v2, P3], assignee: raj@ledgerly.test}
+    - {id: BIL-438, title: "Credit note PDF layout", status: open, labels: [launch, billing-v2, P3]}
+    - {id: BIL-439, title: "Migration script for legacy plans", status: open, labels: [launch, billing-v2, P3]}
+    - {id: BIL-440, title: "Plan comparison page copy", status: resolved, labels: [launch, billing-v2, P1], assignee: ivan@ledgerly.test}
+    - {id: BIL-441, title: "Billing page shows wrong seat count for annual plans", status: open, labels: [launch, seats-v2, P1], assignee: raj@ledgerly.test}
+    - {id: BIL-442, title: "Retry schedule for card declines", status: open, labels: [launch, billing-v2, P3]}
+    - {id: BIL-443, title: "Seat limit warning email", status: open, labels: [launch, seats-v2, P2], assignee: raj@ledgerly.test}
+    - {id: BIL-444, title: "Failed payment banner dismiss state", status: closed, labels: [launch, billing-v2, P0], assignee: mei@ledgerly.test}
+    - {id: BIL-445, title: "Billing history pagination", status: open, labels: [launch, billing-v2, P2]}
+    - {id: BIL-446, title: "Sandbox test clocks", status: open, labels: [launch, billing-v2, P3]}
+    - {id: BIL-447, title: "Seat invites fail for SSO-only workspaces", status: in_progress, labels: [launch, seats-v2, P0], assignee: raj@ledgerly.test}
+    - {id: BIL-448, title: "Coupon stacking rules for annual plans", status: open, labels: [launch, billing-v2, P2], assignee: tom@ledgerly.test}
+    - {id: BIL-449, title: "Stripe Tax fallback rates", status: closed, labels: [launch, billing-v2, P0], assignee: ivan@ledgerly.test}
+    - {id: BIL-450, title: "Bulk seat removal", status: open, labels: [launch, seats-v2, P3], assignee: raj@ledgerly.test}
+    - {id: BIL-451, title: "Refund flow shows old plan name", status: open, labels: [launch, billing-v2, P3]}
+    - {id: BIL-452, title: "Late fee configuration", status: closed, labels: [launch, billing-v2, P1], assignee: mei@ledgerly.test}
+    - {id: BIL-453, title: "Grace period after failed payment", status: in_progress, labels: [launch, billing-v2, P2], assignee: mei@ledgerly.test}
+    - {id: BIL-454, title: "Billing settings permissions for admins", status: resolved, labels: [launch, billing-v2, P2], assignee: ivan@ledgerly.test}
+    - {id: BIL-455, title: "Dunning email copy for failed renewals", status: closed, labels: [launch, billing-v2, P1], assignee: tom@ledgerly.test}
+    - {id: BIL-456, title: "Plan change confirmation modal", status: closed, labels: [launch, billing-v2, P2], assignee: ivan@ledgerly.test}
+    - {id: BIL-457, title: "Quote-to-invoice conversion", status: in_progress, labels: [launch, billing-v2, P2], assignee: mei@ledgerly.test}
+    - {id: BIL-458, title: "Trial-to-paid conversion event", status: open, labels: [launch, billing-v2, P3]}
+    - {id: BIL-459, title: "Annual discount badge on checkout", status: closed, labels: [launch, billing-v2, P1], assignee: tom@ledgerly.test}
+    - {id: BIL-460, title: "Currency rounding on JPY invoices", status: in_progress, labels: [launch, billing-v2, P2]}
+    - {id: BIL-461, title: "Invoice memo field", status: resolved, labels: [launch, billing-v2, P3], assignee: tom@ledgerly.test}
+    - {id: BIL-462, title: "Proration preview tooltip", status: open, labels: [launch, billing-v2, P3]}
+    - {id: BIL-463, title: "Webhook signature docs link", status: closed, labels: [launch, billing-v2, P1], assignee: tom@ledgerly.test}
+    - {id: BIL-464, title: "Dunning pause for enterprise accounts", status: open, labels: [launch, billing-v2, P3]}
+    - {id: BIL-465, title: "Prepaid credits balance widget", status: resolved, labels: [launch, billing-v2, P1]}
+  comments:
+    - {id: c1, issue: BIL-412, author: tom@ledgerly.test, body: "Fix merged in #4471 and deployed to prod. Marking resolved.", created: "2026-10-15T16:10:00-07:00"}
+    - {id: c2, issue: BIL-412, author: mei@ledgerly.test, body: "Verified on staging, upgrades now charge once.", created: "2026-10-16T09:30:00-07:00"}
+    - {id: c3, issue: BIL-412, author: tom@ledgerly.test, body: "Heads up: we reverted #4471 in prod last night. It broke invoice PDFs for EU accounts. The double-charge on mid-cycle upgrades is back until we re-land a new fix.", created: "2026-10-19T08:45:00-07:00"}
+    - {id: c4, issue: BIL-418, author: ivan@ledgerly.test, body: "Alert fired again, considered reverting the retry change, but it was a false positive from a load test. No revert needed; fix verified in prod.", created: "2026-10-17T11:00:00-07:00"}
+    - {id: c5, issue: BIL-436, author: mei@ledgerly.test, body: "Duplicate of BIL-430, closing.", created: "2026-10-14T10:00:00-07:00"}
+    - {id: c6, issue: BIL-430, author: tom@ledgerly.test, body: "Root cause found in tax rate lookup for CA provinces; fix in review.", created: "2026-10-19T15:20:00-07:00"}
+    - {id: c7, issue: BIL-441, author: raj@ledgerly.test, body: "Seats v2 launch is 5 Nov; this one is on our list for that.", created: "2026-10-16T12:00:00-07:00"}
+drive:
+  folders:
+    - {id: f1, name: "Billing v2 launch", parent: null}
+    - {id: f2, name: Archive, parent: null}
+  files:
+    - {id: doc1, name: "Help Center: Upgrading and downgrading plans (Billing v2)", folder: f1, owner: nina@ledgerly.test, modified: "2026-10-19T17:05:00-07:00", content: "Status: DRAFT - waiting on legal review of the proration wording. Do not publish.\n\nWhen you upgrade mid-cycle, we charge the prorated difference..."}
+    - {id: doc2, name: "Help Center: Reading your new invoice (Billing v2)", folder: f1, owner: nina@ledgerly.test, modified: "2026-10-16T10:00:00-07:00", content: "Status: Published (16 Oct)\n\nYour invoice now shows each plan change on its own line..."}
+    - {id: doc3, name: "Help Center: Payment methods (Billing v2)", folder: f1, owner: nina@ledgerly.test, modified: "2026-10-15T10:00:00-07:00", content: "Status: Published (15 Oct)\n\nYou can pay by card, ACH or SEPA debit..."}
+    - {id: doc4, name: "Internal FAQ: Billing v2 for support agents", folder: f1, owner: kenji@ledgerly.test, modified: "2026-10-19T09:00:00-07:00", content: "Status: DRAFT (internal only, not customer-facing)\n\nQ: A customer was charged twice on upgrade..."}
+    - {id: doc5, name: "Billing v2 launch plan", folder: f1, owner: rhea@ledgerly.test, modified: "2026-10-12T10:00:00-07:00", content: "Launch Thursday 22 Oct, 09:00 PT. Go/no-go check on Tuesday 20 Oct against the Notion checklist; verdict goes to #launch."}
+    - {id: doc6, name: "Help Center: Upgrading plans (Billing v1)", folder: f2, owner: nina@ledgerly.test, modified: "2026-03-02T10:00:00-07:00", content: "Status: Published (2 Mar)\n\nLegacy billing: upgrades take effect at the next renewal."}
+analytics:
+  events:
+    - {id: ev63, event: billing_v2_checkout_completed, person: acct35, ts: "2026-10-13T06:40:00-07:00"}
+    - {id: ev62, event: billing_v2_checkout_completed, person: acct6, ts: "2026-10-13T06:53:00-07:00"}
+    - {id: ev1, event: billing_v2_api_error, person: acct11, ts: "2026-10-13T07:33:00-07:00", properties: {endpoint: "/proration"}}
+    - {id: ev3, event: billing_v2_api_error, person: acct2, ts: "2026-10-13T11:57:00-07:00", properties: {endpoint: "/proration"}}
+    - {id: ev61, event: billing_v2_checkout_completed, person: acct31, ts: "2026-10-13T12:07:00-07:00"}
+    - {id: ev2, event: billing_v2_api_error, person: acct6, ts: "2026-10-13T18:48:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev64, event: billing_v2_checkout_completed, person: acct1, ts: "2026-10-14T00:26:00-07:00"}
+    - {id: ev15, event: billing_v2_api_error, person: acct12, ts: "2026-10-14T02:30:00-07:00", properties: {endpoint: "/proration"}}
+    - {id: ev14, event: billing_v2_api_error, person: acct21, ts: "2026-10-14T02:46:00-07:00", properties: {endpoint: "/proration"}}
+    - {id: ev20, event: billing_v2_api_error, person: acct25, ts: "2026-10-14T03:13:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev10, event: billing_v2_api_error, person: acct18, ts: "2026-10-14T04:44:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev16, event: billing_v2_api_error, person: acct1, ts: "2026-10-14T05:12:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev65, event: billing_v2_checkout_completed, person: acct11, ts: "2026-10-14T05:20:00-07:00"}
+    - {id: ev21, event: billing_v2_api_error, person: acct31, ts: "2026-10-14T05:59:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev13, event: billing_v2_api_error, person: acct29, ts: "2026-10-14T09:31:00-07:00", properties: {endpoint: "/proration"}}
+    - {id: ev9, event: billing_v2_api_error, person: acct36, ts: "2026-10-14T09:39:00-07:00", properties: {endpoint: "/proration"}}
+    - {id: ev12, event: billing_v2_api_error, person: acct31, ts: "2026-10-14T10:34:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev17, event: billing_v2_api_error, person: acct32, ts: "2026-10-14T11:18:00-07:00", properties: {endpoint: "/subscriptions"}}
+    - {id: ev66, event: billing_v2_checkout_completed, person: acct22, ts: "2026-10-14T12:31:00-07:00"}
+    - {id: ev5, event: billing_v2_api_error, person: acct20, ts: "2026-10-14T13:33:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev8, event: billing_v2_api_error, person: acct13, ts: "2026-10-14T15:13:00-07:00", properties: {endpoint: "/subscriptions"}}
+    - {id: ev4, event: billing_v2_api_error, person: acct20, ts: "2026-10-14T15:56:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev11, event: billing_v2_api_error, person: acct34, ts: "2026-10-14T16:15:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev7, event: billing_v2_api_error, person: acct39, ts: "2026-10-14T18:57:00-07:00", properties: {endpoint: "/subscriptions"}}
+    - {id: ev18, event: billing_v2_api_error, person: acct37, ts: "2026-10-14T19:34:00-07:00", properties: {endpoint: "/subscriptions"}}
+    - {id: ev19, event: billing_v2_api_error, person: acct27, ts: "2026-10-14T20:50:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev6, event: billing_v2_api_error, person: acct38, ts: "2026-10-14T22:54:00-07:00", properties: {endpoint: "/subscriptions"}}
+    - {id: ev25, event: billing_v2_api_error, person: acct38, ts: "2026-10-15T00:12:00-07:00", properties: {endpoint: "/proration"}}
+    - {id: ev32, event: billing_v2_api_error, person: acct36, ts: "2026-10-15T00:24:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev23, event: billing_v2_api_error, person: acct6, ts: "2026-10-15T02:42:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev69, event: billing_v2_checkout_completed, person: acct33, ts: "2026-10-15T03:46:00-07:00"}
+    - {id: ev37, event: billing_v2_api_error, person: acct21, ts: "2026-10-15T06:45:00-07:00", properties: {endpoint: "/subscriptions"}}
+    - {id: ev30, event: billing_v2_api_error, person: acct18, ts: "2026-10-15T06:46:00-07:00", properties: {endpoint: "/proration"}}
+    - {id: ev34, event: billing_v2_api_error, person: acct4, ts: "2026-10-15T07:28:00-07:00", properties: {endpoint: "/proration"}}
+    - {id: ev41, event: billing_v2_api_error, person: acct19, ts: "2026-10-15T07:45:00-07:00", properties: {endpoint: "/subscriptions"}}
+    - {id: ev28, event: billing_v2_api_error, person: acct29, ts: "2026-10-15T08:59:00-07:00", properties: {endpoint: "/proration"}}
+    - {id: ev33, event: billing_v2_api_error, person: acct8, ts: "2026-10-15T11:45:00-07:00", properties: {endpoint: "/proration"}}
+    - {id: ev67, event: billing_v2_checkout_completed, person: acct29, ts: "2026-10-15T12:21:00-07:00"}
+    - {id: ev68, event: billing_v2_checkout_completed, person: acct34, ts: "2026-10-15T12:43:00-07:00"}
+    - {id: ev35, event: billing_v2_api_error, person: acct7, ts: "2026-10-15T13:26:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev24, event: billing_v2_api_error, person: acct31, ts: "2026-10-15T13:46:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev26, event: billing_v2_api_error, person: acct7, ts: "2026-10-15T14:27:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev38, event: billing_v2_api_error, person: acct22, ts: "2026-10-15T14:35:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev39, event: billing_v2_api_error, person: acct33, ts: "2026-10-15T15:35:00-07:00", properties: {endpoint: "/proration"}}
+    - {id: ev27, event: billing_v2_api_error, person: acct18, ts: "2026-10-15T15:38:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev31, event: billing_v2_api_error, person: acct31, ts: "2026-10-15T16:02:00-07:00", properties: {endpoint: "/subscriptions"}}
+    - {id: ev42, event: billing_v2_api_error, person: acct32, ts: "2026-10-15T19:08:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev43, event: billing_v2_api_error, person: acct18, ts: "2026-10-15T19:21:00-07:00", properties: {endpoint: "/subscriptions"}}
+    - {id: ev29, event: billing_v2_api_error, person: acct27, ts: "2026-10-15T19:40:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev22, event: billing_v2_api_error, person: acct38, ts: "2026-10-15T21:47:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev40, event: billing_v2_api_error, person: acct36, ts: "2026-10-15T22:12:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev36, event: billing_v2_api_error, person: acct30, ts: "2026-10-15T23:29:00-07:00", properties: {endpoint: "/proration"}}
+    - {id: ev51, event: billing_v2_api_error, person: acct29, ts: "2026-10-16T05:20:00-07:00", properties: {endpoint: "/proration"}}
+    - {id: ev50, event: billing_v2_api_error, person: acct40, ts: "2026-10-16T07:37:00-07:00", properties: {endpoint: "/subscriptions"}}
+    - {id: ev52, event: billing_v2_api_error, person: acct37, ts: "2026-10-16T08:12:00-07:00", properties: {endpoint: "/proration"}}
+    - {id: ev47, event: billing_v2_api_error, person: acct2, ts: "2026-10-16T09:19:00-07:00", properties: {endpoint: "/subscriptions"}}
+    - {id: ev46, event: billing_v2_api_error, person: acct33, ts: "2026-10-16T09:22:00-07:00", properties: {endpoint: "/proration"}}
+    - {id: ev72, event: billing_v2_checkout_completed, person: acct15, ts: "2026-10-16T10:20:00-07:00"}
+    - {id: ev48, event: billing_v2_api_error, person: acct1, ts: "2026-10-16T10:33:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev71, event: billing_v2_checkout_completed, person: acct34, ts: "2026-10-16T14:17:00-07:00"}
+    - {id: ev45, event: billing_v2_api_error, person: acct23, ts: "2026-10-16T14:26:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev49, event: billing_v2_api_error, person: acct17, ts: "2026-10-16T18:30:00-07:00", properties: {endpoint: "/proration"}}
+    - {id: ev70, event: billing_v2_checkout_completed, person: acct19, ts: "2026-10-16T18:54:00-07:00"}
+    - {id: ev44, event: billing_v2_api_error, person: acct30, ts: "2026-10-16T20:03:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev75, event: billing_v2_checkout_completed, person: acct34, ts: "2026-10-17T08:14:00-07:00"}
+    - {id: ev73, event: billing_v2_checkout_completed, person: acct6, ts: "2026-10-17T10:31:00-07:00"}
+    - {id: ev53, event: billing_v2_api_error, person: acct19, ts: "2026-10-17T18:14:00-07:00", properties: {endpoint: "/proration"}}
+    - {id: ev74, event: billing_v2_checkout_completed, person: acct39, ts: "2026-10-17T18:21:00-07:00"}
+    - {id: ev54, event: billing_v2_api_error, person: acct19, ts: "2026-10-17T19:56:00-07:00", properties: {endpoint: "/subscriptions"}}
+    - {id: ev77, event: billing_v2_checkout_completed, person: acct3, ts: "2026-10-18T06:41:00-07:00"}
+    - {id: ev55, event: billing_v2_api_error, person: acct26, ts: "2026-10-18T15:32:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev76, event: billing_v2_checkout_completed, person: acct3, ts: "2026-10-18T21:57:00-07:00"}
+    - {id: ev78, event: billing_v2_checkout_completed, person: acct37, ts: "2026-10-18T23:32:00-07:00"}
+    - {id: ev80, event: billing_v2_checkout_completed, person: acct3, ts: "2026-10-19T01:11:00-07:00"}
+    - {id: ev79, event: billing_v2_checkout_completed, person: acct15, ts: "2026-10-19T01:27:00-07:00"}
+    - {id: ev81, event: billing_v2_checkout_completed, person: acct4, ts: "2026-10-19T03:26:00-07:00"}
+    - {id: ev57, event: billing_v2_api_error, person: acct4, ts: "2026-10-19T06:21:00-07:00", properties: {endpoint: "/proration"}}
+    - {id: ev59, event: billing_v2_api_error, person: acct2, ts: "2026-10-19T10:09:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev56, event: billing_v2_api_error, person: acct35, ts: "2026-10-19T21:05:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev58, event: billing_v2_api_error, person: acct12, ts: "2026-10-19T23:29:00-07:00", properties: {endpoint: "/subscriptions"}}
+    - {id: ev82, event: billing_v2_checkout_completed, person: acct19, ts: "2026-10-20T05:17:00-07:00"}
+    - {id: ev83, event: billing_v2_checkout_completed, person: acct28, ts: "2026-10-20T05:44:00-07:00"}
+    - {id: ev60, event: billing_v2_api_error, person: acct37, ts: "2026-10-20T06:13:00-07:00", properties: {endpoint: "/invoices"}}
+    - {id: ev84, event: billing_v2_checkout_completed, person: acct35, ts: "2026-10-20T07:03:00-07:00"}
+  insights:
+    - {id: ins1, name: "Billing v2 API errors (weekly)", kind: trend, event: billing_v2_api_error, interval: week, description: "Weekly error volume for the Billing v2 API"}
+    - {id: ins2, name: "Billing v2 checkouts", kind: trend, event: billing_v2_checkout_completed, interval: day}
+wiki:
+  pages:
+    - {id: pg-cl, title: "Billing v2 launch checklist", space: Product, body: "Go/no-go criteria for Billing v2 (launch Thursday 22 Oct). It is a go only if every line holds at the go/no-go check.\n\n1. No open P0 or P1 issue for Billing v2 in Linear (labels billing-v2 and P0 or P1). An issue counts as open until its fix is live in production.\n2. Every customer-facing Help Center article for Billing v2 is published: its doc in Drive, folder 'Billing v2 launch', says 'Status: Published'.\n3. API errors: fewer than 10 billing_v2_api_error events in PostHog on the last full day before the check (PT).\n4. Support macros ready. Done (Kenji, 14 Oct).\n\nPost the verdict in #launch with each blocker, if any. The checklist owner does not change issues or docs as part of the check."}
+    - {id: pg-seats, title: "Seats v2 launch checklist", space: Product, body: "Launch 5 Nov. No open P0/P1 issues labelled seats-v2."}

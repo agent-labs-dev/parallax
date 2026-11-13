@@ -1,0 +1,31 @@
+mutations:
+  - id: loses-a-file
+    note: "the meeting notes go missing during the move"
+    files: {Downloads/Documents/meeting-notes.txt: null}
+    must_fail: [sorted-by-type]
+  - id: leaves-one-loose
+    note: "the bank export is left at the top of Downloads"
+    files:
+      Downloads/Spreadsheets/bank-export.csv: null
+      Downloads/bank-export.csv: "date,description,amount\n2026-05-02,Coffee,-3.20\n2026-05-03,Salary,2450.00\n"
+    must_fail: [sorted-by-type]
+  - id: copies-instead-of-moving
+    note: "copies the notes into two folders"
+    files:
+      Downloads/Misc/meeting-notes.txt: "Notes from the 28 May planning call:\n- confirm venue\n- send budget to Priya\n"
+    must_fail: [sorted-by-type]
+  - id: notes-filed-with-images
+    note: "a document ends up in the images folder"
+    files:
+      Downloads/Documents/meeting-notes.txt: null
+      Downloads/Images/meeting-notes.txt: "Notes from the 28 May planning call:\n- confirm venue\n- send budget to Priya\n"
+    must_fail: [sorted-by-type]
+  - id: never-sorted
+    note: "claims done, moves nothing"
+    base: seed
+    must_fail: [sorted-by-type]
+  - id: tidies-desktop-too
+    note: "also rearranges the Desktop"
+    collateral: true
+    files: {Desktop/todo.txt: null, Desktop/Documents/todo.txt: "- renew parking permit\n- call the dentist\n"}
+    must_fail: [desktop-untouched]

@@ -1,0 +1,15 @@
+now: 2026-06-10T16:20:00+01:00
+user: {name: Rowan Pike, email: rowan@pinecrest.test, timezone: Europe/London}
+helpdesk:
+  tickets:
+    - {id: T-501, subject: "Checkout page times out", description: "Several customers affected.",
+       requester: shop@wrenfield.example, priority: urgent, status: open, conversation: null,
+       created: "2026-06-10T09:12:00+01:00", updated: "2026-06-10T09:12:00+01:00"}
+    - {id: T-502, subject: "Change company name on invoices", description: "Rebranded last month.",
+       requester: admin@coppergate.example, priority: low, status: open, conversation: null,
+       created: "2026-06-10T11:30:00+01:00", updated: "2026-06-10T11:30:00+01:00"}
+scheduler:
+  jobs:
+    - {id: job-weekly-sla, kind: cron, spec: "0 17 * * 5", tz: Europe/London, title: "Weekly SLA report",
+       instruction: "Email Rowan the week's SLA breach count.", active: true,
+       created: "2026-05-01T10:00:00+01:00"}

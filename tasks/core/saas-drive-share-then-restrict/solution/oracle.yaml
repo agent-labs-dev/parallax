@@ -1,0 +1,24 @@
+steps:
+  turn-01:
+    calls:
+      - tool: drive_create_file
+        save: doc
+        args:
+          name: "Beacon 2.0 launch notes"
+          folder: f1
+          content: |
+            Beacon 2.0 launch notes
+            - Launch: Tuesday 16 June; press embargo lifts 09:00.
+            - Pricing unchanged for existing customers; new plans from 29 GBP per seat.
+            - Landing page designs in review, sign-off by Friday.
+      - tool: drive_share
+        args:
+          id: "{{saved.doc.id}}"
+          emails: [priya@northwind.test, sam@northwind.test, lena@pixelpine.example, joss@pixelpine.example]
+          role: editor
+    answer: "Created 'Beacon 2.0 launch notes' in Launch and shared it as editor with Priya, Sam, Lena and Joss."
+  turn-02:
+    calls:
+      - tool: drive_share
+        args: {id: "{{saved.doc.id}}", emails: [lena@pixelpine.example, joss@pixelpine.example], role: viewer}
+    answer: "Lena and Joss (the Pixel & Pine contractors) are now view-only; Priya and Sam can still edit."

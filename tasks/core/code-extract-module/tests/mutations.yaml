@@ -1,0 +1,32 @@
+mutations:
+  - {id: nothing-done, note: "claims the move without making it", base: seed,
+     must_fail: [parsers-module-works, old-file-deleted, no-stale-imports]}
+  - id: leaves-shim
+    note: "creates parsers.py but keeps utils.py as a re-export shim"
+    files:
+      ingest/utils.py: |
+        from ingest.parsers import parse_amount, parse_date  # noqa: F401
+    must_fail: [old-file-deleted, parsers-module-works]
+  - id: misses-summary-importer
+    note: "rewires loader.py but leaves summary.py on the deleted module"
+    files:
+      ingest/summary.py: |
+        from decimal import Decimal
+
+        from ingest import utils
+
+
+        def net_total(amounts: list[str]) -> Decimal:
+            return sum((utils.parse_amount(a) for a in amounts), Decimal("0"))
+    must_fail: [tests-pass, no-stale-imports, parsers-module-works]
+  - id: rewrites-tests
+    note: "edits the tests to import the new module directly"
+    collateral: true
+    files:
+      tests/test_ingest.py: |
+        from ingest.parsers import parse_amount
+
+
+        def test_amount():
+            assert parse_amount("1.00") == 1
+    must_fail: [seeded-tests-kept]

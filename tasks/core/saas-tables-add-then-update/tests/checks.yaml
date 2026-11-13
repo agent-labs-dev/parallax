@@ -1,0 +1,16 @@
+checks:
+  - {id: one-ortiz-foods, kind: state, mode: duplicate_action, table: tables.records,
+     where: {company: {contains: ortiz foods}}, count: 1}
+  - {id: moved-to-proposal, kind: state, mode: missing_action, table: tables.records,
+     where: {company: {contains: ortiz foods}}, fields: {stage: proposal}}
+  - {id: lead-details, kind: state, mode: wrong_output, table: tables.records,
+     where: {company: {contains: ortiz foods}},
+     fields: {base: b1, email: maria@ortizfoods.example, contact: {contains: maria}, annual_value: {number: 12000}}}
+  - {id: existing-records-untouched, kind: state, mode: wrong_target, table: tables.records,
+     where: {id: {regex: "^r\\d+$"}}, unchanged: true,
+     note: "the bakery and the logistics partner share the surname and must not be edited"}
+  - {id: only-maria-as-contact, kind: state, mode: collateral_change, table: contacts.people,
+     where: {name: {regex: "^(?!.*maria ortiz)"}}, count: 0,
+     note: "the seed has no contacts; a contact for Maria Ortiz is fair CRM upkeep, any other contact is not"}
+  - {id: nothing-else-touched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [tables.records, contacts.people, user.interactions]}

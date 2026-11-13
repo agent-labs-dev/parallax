@@ -1,0 +1,19 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-wiki-draft-then-comment"
+version = 1
+area = "saas"
+summary = "Draft an OKR wiki page from an email, then tag a reviewer on that same page"
+requires = ["mcp", "multi_turn"]
+services = ["wiki"]
+maturity = "candidate"
+provenance = "converted"
+legacy_ids = ["thread_confluence_draft_then_comment"]
+canary = "99831d38-af66-4261-be6e-6616ea69a52e"
+
+[[steps]]
+name = "turn-01"
+
+[[steps]]
+name = "turn-02"

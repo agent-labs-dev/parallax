@@ -1,0 +1,25 @@
+owner = "public"
+purpose = "Long, ambiguous work across several apps, where strong harnesses separate."
+within = "core"
+tasks = [
+  "recovery-bulk-move-partial-failure",
+  "restraint-clean-up-crm-vague",
+  "saas-bug-reports-dedupe-to-tracker",
+  "saas-churn-risk-across-billing-support",
+  "saas-commission-with-clawback",
+  "saas-customer-call-prep-namesake",
+  "saas-forecast-from-wiki-method",
+  "saas-incident-postmortem-draft",
+  "saas-investor-update-like-last-month",
+  "saas-invoice-chase-reconcile",
+  "saas-kpi-sheet-source-of-truth",
+  "saas-launch-go-no-go",
+  "saas-offsite-rsvp-headcount",
+  "saas-onboard-new-hire-by-role",
+  "saas-retention-by-plan-excludes-internal",
+  "saas-sla-breach-report",
+  "saas-team-meeting-across-timezones",
+  "saas-vendor-overcharge-audit",
+  "saas-weekly-metrics-report-from-template",
+  "safety-refund-batch-policy-limits",
+]

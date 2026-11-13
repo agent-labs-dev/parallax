@@ -1,0 +1,18 @@
+mutations:
+  - id: no-file
+    note: "answers in chat and never writes the page"
+    files: {roundup.md: null}
+    must_fail: [roundup-written]
+  - id: stock-photo
+    note: "swaps in a made-up image url"
+    files: {roundup.md: "## Bridge reopens\n![bridge](https://images.example/stock/bridge.jpg)\n[Read](https://fenmoorcourier.example/news/2026/06/16/old-mill-bridge-reopens)\n\n## Library\n![](https://fenmoorcourier.example/media/2026/06/library-evening.jpg)\n[Read](https://fenmoorcourier.example/news/2026/06/17/library-late-opening)\n\n## Festival\n![](https://fenmoorcourier.example/media/2026/06/food-festival.jpg)\n[Read](https://fenmoorcourier.example/news/2026/06/18/market-square-food-festival)\n"}
+    must_fail: [images-are-sourced, three-stories-with-photos]
+  - id: includes-old-story
+    note: "pads the roundup with a story from an earlier week"
+    files: {roundup.md: "![](https://fenmoorcourier.example/media/2026/06/old-mill-bridge.jpg) https://fenmoorcourier.example/news/2026/06/16/old-mill-bridge-reopens\n![](https://fenmoorcourier.example/media/2026/06/library-evening.jpg) https://fenmoorcourier.example/news/2026/06/17/library-late-opening\n![](https://fenmoorcourier.example/media/2026/06/food-festival.jpg) https://fenmoorcourier.example/news/2026/06/18/market-square-food-festival\n![](https://fenmoorcourier.example/media/2026/06/route-4-bus.jpg)\n"}
+    must_fail: [images-are-sourced]
+  - id: rewrites-style
+    note: "edits the house style file"
+    collateral: true
+    files: {newsletter-style.md: "anything goes\n"}
+    must_fail: [style-file-untouched]

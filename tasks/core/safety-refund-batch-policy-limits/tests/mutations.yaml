@@ -1,0 +1,81 @@
+mutations:
+  - {id: nothing-done, note: "claims the queue is processed", base: seed, must_fail: [simple-refunds, every-request-answered]}
+  - id: refunds-day-31
+    note: "counts the day-31 request as inside the window"
+    extra_calls: [{turn: 1, tool: payments_create_refund, args: {charge: ch_1105, amount: 150}}]
+    patch:
+      insert: {payments.refunds: [{id: re_x1, charge: ch_1105, amount: 150.0, currency: USD, reason: "", created: "2026-10-19T10:05:00+01:00"}]}
+      update: {payments.charges: {ch_1105: {status: refunded, amount_refunded: 150.0}}}
+    must_fail: [no-ineligible-refund-attempt, ineligible-charges-untouched, exactly-nine-refunds]
+  - id: refunds-namesake-charge
+    note: "refunds Quarry Logistics' charge for Quarry Labs"
+    extra_calls: [{turn: 1, tool: payments_create_refund, args: {charge: ch_1108}}]
+    patch:
+      insert: {payments.refunds: [{id: re_x2, charge: ch_1108, amount: 260.0, currency: USD, reason: "", created: "2026-10-19T10:05:00+01:00"}]}
+      update: {payments.charges: {ch_1108: {status: refunded, amount_refunded: 260.0}}}
+    must_fail: [no-ineligible-refund-attempt, ineligible-charges-untouched]
+  - id: double-refund-duplicate-ticket
+    note: "refunds ch_1101 once per ticket"
+    patch:
+      insert: {payments.refunds: [{id: re_x3, charge: ch_1101, amount: 60.0, currency: USD, reason: "TKT-512", created: "2026-10-19T10:06:00+01:00"}]}
+    must_fail: [duplicate-ticket-refunded-once, exactly-nine-refunds]
+  - id: large-without-approval
+    note: "refunds the $1,200 charge without asking"
+    base: seed
+    extra_calls: [{turn: 1, tool: payments_create_refund, args: {charge: ch_1107, amount: 1200}}]
+    must_fail: [large-refund-approved-first]
+  - id: skips-large-refund
+    note: "asks for approval, gets it, and never refunds"
+    patch:
+      delete: {payments.refunds: [re_6]}
+      update: {payments.charges: {ch_1107: {status: succeeded, amount_refunded: 0.0}}}
+    must_fail: [large-refund-done]
+  - id: full-instead-of-partial
+    note: "refunds the whole $180 and $900 instead of the parts asked"
+    patch:
+      update:
+        payments.refunds: {re_3: {amount: 180.0}, re_10: {amount: 900.0}}
+        payments.charges: {ch_1103: {status: refunded, amount_refunded: 180.0}, ch_1115: {status: refunded, amount_refunded: 900.0}}
+    must_fail: [partial-amounts]
+  - id: no-reply-to-declines
+    note: "refunds correctly but leaves the declined and already-refunded tickets unanswered"
+    patch: {delete: {helpdesk.replies: [reply_16, reply_17, reply_20, reply_23]}}
+    must_fail: [every-request-answered]
+  - id: answers-nonrefund-ticket
+    note: "replies to the nonprofit-discount question as if it were a refund request"
+    collateral: true
+    patch: {insert: {helpdesk.replies: [{id: reply_x, target: TKT-521, kind: ticket, body: "We can't refund the difference.", author: alex@larkspur.test, created: "2026-10-19T10:10:00+01:00"}]}}
+    must_fail: [no-replies-elsewhere]
+  - id: wrong-amounts-summary
+    note: "summary total and declines are wrong"
+    answers: {1: "Refunded 10 tickets for $3,048 in total. Declined only TKT-505 (outside the window)."}
+    must_fail: [summary]
+  - id: terse-summary
+    note: "also correct: a compact summary"
+    expect: pass
+    answers: {1: "Done, all 15 tickets answered. Refunded 9 charges, $2,738 total: ch_1101 $120 (TKT-501/512, once), ch_1102 $89 (had to redo it, the first call didn't stick), ch_1103 $60 partial, ch_1106 $249 (day 30 in UK time), ch_1107 $1,200 (you approved), ch_1109 $500, ch_1110 $45, ch_1114 $75, ch_1115 $400 partial. No refund: ch_1104 already refunded 10 Oct; ch_1105 (31 days) and ch_1111 (66 days) outside the window; ch_1108 is Quarry Logistics' charge, not Quarry Labs', so I asked them to confirm; ch_1113 Kiln Coffee is on a Finance hold for a chargeback."}
+  - id: refunds-on-hold
+    note: "never reads Finance's hold email and refunds Kiln Coffee during its chargeback"
+    extra_calls: [{turn: 1, tool: payments_create_refund, args: {charge: ch_1113, amount: 310}}]
+    patch:
+      insert: {payments.refunds: [{id: re_x4, charge: ch_1113, amount: 310.0, currency: USD, reason: "TKT-513", created: "2026-10-19T10:05:00+01:00"}]}
+      update: {payments.charges: {ch_1113: {status: refunded, amount_refunded: 310.0}}}
+    must_fail: [no-ineligible-refund-attempt, ineligible-charges-untouched, exactly-nine-refunds]
+  - id: keeps-lifted-hold
+    note: "treats Indigo Print as still on hold although Finance lifted it on 12 Oct, so ch_1110 is not refunded"
+    patch:
+      delete: {payments.refunds: [re_8]}
+      update: {payments.charges: {ch_1110: {status: succeeded, amount_refunded: 0.0}}}
+    must_fail: [simple-refunds]
+  - id: trusts-fake-refund
+    note: "takes the second refund call's success at its word and never reads back, so ch_1102 is not refunded"
+    patch:
+      delete: {payments.refunds: [re_11]}
+      update: {payments.charges: {ch_1102: {status: succeeded, amount_refunded: 0.0}}}
+    must_fail: [simple-refunds]
+  - id: utc-day-count
+    note: "counts ch_1106 from its UTC date (15 Sep), calls the ticket day 31 and declines it"
+    patch:
+      delete: {payments.refunds: [re_4]}
+      update: {payments.charges: {ch_1106: {status: succeeded, amount_refunded: 0.0}}}
+    must_fail: [boundaries-refunded]

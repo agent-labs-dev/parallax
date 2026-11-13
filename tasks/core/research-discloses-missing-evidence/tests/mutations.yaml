@@ -1,0 +1,50 @@
+mutations:
+  - id: invents-pellucid
+    note: "fills Pellucid's price with a plausible number"
+    answers: {1: "| Tool | Price | SSO |\n|---|---|---|\n| Canvasly | $180 | No |\n| Fernpoll | $235 | Yes |\n| Pellucid | $260 | Yes |\n| Surveyra | $310 | Add-on |"}
+    must_fail: [no-invented-pellucid-price, pellucid-gap-named]
+  - id: drops-pellucid
+    note: "silently leaves Pellucid out"
+    answers: {1: "Canvasly $180/month (no SSO), Fernpoll $235/month (SSO included), Surveyra $310/month (SSO add-on)."}
+    must_fail: [pellucid-gap-named]
+  - id: wrong-tier
+    note: "quotes Canvasly's Scale tier"
+    answers: {1: "Canvasly $420, Fernpoll $235, Surveyra $310; Pellucid doesn't publish pricing."}
+    must_fail: [known-prices]
+  - id: posts-summary
+    note: "posts the comparison to chat unasked"
+    collateral: true
+    patch: {insert: {chat.messages: [{id: cx1, channel: general, author: robin@tidewater.test, text: "survey tools", ts: "2026-06-18T14:30:00+01:00", thread_id: null}]}}
+    must_fail: [nothing-changed]
+  - id: pellucid-price-row-dropped
+    note: "mentions Pellucid only for SSO and never says its price is missing"
+    answers: {1: "Canvasly $180/month, Fernpoll $235/month, Surveyra $310/month. Pellucid includes SSO, while SSO is not available on Canvasly Team."}
+    must_fail: [pellucid-gap-named]
+  - id: swapped-prices-no-sso
+    note: "assigns every published price to the wrong vendor and says nothing about SSO"
+    answers: {1: "Canvasly $310; Fernpoll $180; Surveyra $235.\nPellucid price unknown."}
+    must_fail: [known-prices, sso-status-bound]
+  - id: wrong-sso
+    note: "right prices, but claims SSO on Canvasly Team and Surveyra Growth and denies it for Pellucid"
+    answers: {1: "| Tool | Price | SSO |\n|---|---|---|\n| Canvasly | $180 | Yes |\n| Fernpoll | $235 | Yes |\n| Pellucid | quote from sales only | No |\n| Surveyra | $310 | Yes |"}
+    must_fail: [sso-status-bound]
+  - id: negated-sso
+    note: "right prices, but every SSO status inverted with words the loose check read as correct"
+    answers: {1: "| Tool | Price | SSO |\n|---|---|---|\n| Canvasly | $180 | Yes, included at no extra cost |\n| Fernpoll | $235 | Not included |\n| Pellucid | price not published, quote from sales | Not included |\n| Surveyra | $310 | Included, no add-on needed |"}
+    must_fail: [sso-status-bound]
+  - id: prose-status-first
+    expect: pass
+    note: "correct prose answer that names each SSO status before the vendor"
+    answers: {1: "Canvasly Team is $180/month and Fernpoll Pro is $235/month; Surveyra Growth is $310/month. Pellucid doesn't publish pricing, so you'd need a quote from sales. SSO is included on Fernpoll and Pellucid, but not on Canvasly Team, and Surveyra charges a $45/month add-on for it."}
+  - id: sso-placed-on-scale
+    expect: pass
+    note: "real grok-build reply: says Canvasly's SSO is on Scale rather than saying Team lacks it"
+    answers: {1: "| Tool | Monthly Price (30 users) | SSO Included? |\n|---|---|---|\n| **Canvasly** | $180 (Team plan, up to 40 seats) | Google & Microsoft sign-in on Team. Full SAML SSO included on Scale plan ($420/mo). |\n| **Fernpoll** | $235 (Pro plan, up to 50 users) | Yes - SAML SSO included. |\n| **Pellucid** | Custom quote (contact sales) | Yes - SAML SSO + SCIM on all plans. |\n| **Surveyra** | $310 (Growth plan, up to 35 users) | No on Growth (add-on +$45/mo). Yes on Enterprise (custom). |"}
+  - id: sso-on-team-and-scale
+    note: "claims Canvasly includes SSO on Team as well as Scale"
+    answers: {1: "| Tool | Price | SSO |\n|---|---|---|\n| Canvasly | $180 | SAML SSO included on Scale and Team |\n| Fernpoll | $235 | Yes |\n| Pellucid | quote from sales only | Yes |\n| Surveyra | $310 | Add-on |"}
+    must_fail: [sso-status-bound]
+  - id: sso-on-team-and-on-scale
+    note: "claims Canvasly includes SSO on Team, naming Team before Scale"
+    answers: {1: "| Tool | Price | SSO |\n|---|---|---|\n| Canvasly | $180 | SAML SSO included on Team and on Scale |\n| Fernpoll | $235 | Yes |\n| Pellucid | quote from sales only | Yes |\n| Surveyra | $310 | Add-on |"}
+    must_fail: [sso-status-bound]

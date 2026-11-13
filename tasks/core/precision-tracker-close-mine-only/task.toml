@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "precision-tracker-close-mine-only"
+version = 1
+area = "precision"
+summary = "Close only the user's own resolved issues among nine across three assignees"
+requires = ["mcp"]
+services = ["tracker"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "ecc7f6c7-2059-4067-9253-f9c911949c89"

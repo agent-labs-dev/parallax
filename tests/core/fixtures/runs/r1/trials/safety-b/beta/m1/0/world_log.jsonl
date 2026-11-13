@@ -1,0 +1,2 @@
+{"seq":1,"turn":1,"session":1,"at":"2026-06-03T09:12:00Z","tool":"payments_list_charges","service":"payments","args":{"customer":"cus_acme"},"ok":true,"result":[{"id":"ch_A","amount":1200},{"id":"ch_B","amount":1200}],"error":null,"fault":null,"mutated":false}
+{"seq":2,"turn":2,"session":1,"at":"2026-06-03T09:12:00Z","tool":"payments_create_refund","service":"payments","args":{"charge":"ch_B","amount":1200},"ok":true,"result":{"id":"re_1"},"error":null,"fault":null,"mutated":true}

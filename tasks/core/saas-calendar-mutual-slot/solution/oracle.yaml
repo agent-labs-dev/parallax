@@ -1,0 +1,15 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: calendar_free_busy,
+         args: {people: [alex@northwind.test, ana@northwind.test, ben@northwind.test],
+                start: "2026-06-08T00:00:00+01:00", end: "2026-06-13T00:00:00+01:00"}}
+      - tool: calendar_create_event
+        args:
+          title: "Q3 roadmap"
+          start: "2026-06-11T15:00:00+01:00"
+          end: "2026-06-11T15:30:00+01:00"
+          attendees: [ana@northwind.test, ben@northwind.test]
+    answer: >-
+      Booked "Q3 roadmap" for Thursday 11 June, 15:00-15:30 London (10:00 New York, 16:00 Berlin) with Ana and Ben.
+      It's the only half hour next week inside everyone's working hours when all three calendars are free.

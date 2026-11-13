@@ -1,0 +1,14 @@
+mutations:
+  - id: reads-the-email
+    note: "no memory, so it reports the figure from Rosa's email"
+    answers: {2: "Ortiz Foods proposed £15,000 for the pilot, invoiced up front."}
+    must_fail: [recalls-12k]
+  - id: asks-back
+    note: "cannot recall and asks the user"
+    answers: {2: "I don't have a record of that - what did you agree?"}
+    must_fail: [recalls-12k]
+  - id: emails-rosa
+    note: "emails Rosa to ask"
+    collateral: true
+    patch: {insert: {mail.sent: [{id: sent_x, thread: t1, from: alex@larkspur.test, to: [rosa.ortiz@ortizfoods.example], cc: [], bcc: [], subject: "Re: Pilot proposal", body: "What did we agree?", in_reply_to: m1, date: "2026-06-08T14:11:00+01:00", draft: null}]}}
+    must_fail: [nothing-changed]

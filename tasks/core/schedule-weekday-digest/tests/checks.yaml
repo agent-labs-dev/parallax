@@ -1,0 +1,32 @@
+checks:
+  - id: one-weekday-8am-london-job
+    kind: state
+    mode: wrong_schedule
+    table: scheduler.jobs
+    where: {active: true}
+    count: 1
+    fields:
+      kind: cron
+      tz: Europe/London
+      spec: {regex: "^0{1,2} 0?8 \\* \\* (1-5|mon-fri|1,2,3,4,5|mon,tue,wed,thu,fri)$"}
+    note: "08:00 Monday-Friday evaluated in London time, not the user's New York zone"
+  - id: digest-emailed-on-fire
+    kind: state
+    mode: missing_action
+    table: mail.sent
+    where: {to: {contains: casey@harbourline.test}, date: {gte: "2026-06-09T08:00:00+01:00"}}
+    count: {min: 1, max: 1}
+    fields:
+      body: {regex: "^(?=[\\s\\S]*(hd-2104|vat number))(?=[\\s\\S]*(hd-2105|crash))(?=[\\s\\S]*(hd-2106|webhook))"}
+    note: "the Tuesday fire emails one digest listing the three tickets that arrived since Monday morning"
+  - id: digest-is-only-new
+    kind: state
+    mode: wrong_output
+    table: mail.sent
+    where: {date: {gte: "2026-06-09T08:00:00+01:00"}}
+    count: {min: 0}
+    fields:
+      body: {regex: "^(?![\\s\\S]*(hd-2088|hd-2091|hd-2093|password reset|export to csv|annual billing))"}
+    note: "last week's already-solved tickets are not new"
+  - {id: tickets-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [scheduler.jobs, mail.sent, mail.drafts, user.interactions]}

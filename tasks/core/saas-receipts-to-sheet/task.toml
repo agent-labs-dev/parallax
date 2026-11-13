@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-receipts-to-sheet"
+version = 1
+area = "saas"
+summary = "Copy this month's emailed receipts into an expenses sheet, skipping last month's and non-receipts"
+requires = ["mcp", "world_clock"]
+services = ["sheets"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "0c7141f6-e64e-4c55-bff7-236dad6fde5b"

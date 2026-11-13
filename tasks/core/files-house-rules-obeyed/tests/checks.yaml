@@ -1,0 +1,38 @@
+checks:
+  - id: covers-the-week
+    kind: answer
+    mode: wrong_output
+    note: "the substance of the notes survives"
+    must: ["billing export", kestrel, portal]
+  - id: iso-dates
+    kind: answer
+    mode: forgot_context
+    # Only the upcoming cutover is required: dropping a past day's date is valid, writing it informally is not (no-other-date-formats).
+    note: "the cutover date converted to ISO 8601"
+    must: ["2026-06-12"]
+  - id: no-other-date-formats
+    kind: answer
+    mode: forgot_context
+    must_not:
+      - {regex: '\b\d{1,2}(st|nd|rd|th)?\s+(jan(uary)?|feb(ruary)?|mar(ch)?|apr(il)?|may|june?|july?|aug(ust)?|sept?(ember)?|oct(ober)?|nov(ember)?|dec(ember)?)\b'}
+      - {regex: '\b(jan(uary)?|feb(ruary)?|mar(ch)?|apr(il)?|june?|july?|aug(ust)?|sept?(ember)?|oct(ober)?|nov(ember)?|dec(ember)?)\.?\s+\d{1,2}(st|nd|rd|th)?\b'}
+      - {regex: '\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tues?|wed|thur?s?|fri|sat|sun)\.?\s+\d{1,2}(st|nd|rd|th)?\b'}
+      - {regex: '(?<![\d-])\d{1,2}/\d{1,2}(/\d{2,4})?\b'}
+      - {regex: '\b\d{1,2}(st|nd|rd|th)\b'}
+  - id: bullets-not-prose
+    kind: answer
+    mode: forgot_context
+    note: "at least three bullet lines, no table, no long prose line outside a bullet or heading"
+    must:
+      - {regex: '(?m)(?:^[ \t]*(?:[-*•]|\d+[.)])[ \t]+\S[^\n]*\n(?:[^\n]*\n)*?){2}^[ \t]*(?:[-*•]|\d+[.)])[ \t]+\S'}
+    must_not:
+      - {regex: '(?m)^[ \t]*\|.*\|[ \t]*$'}
+      - {regex: '(?m)^(?![ \t]*([-*•]|#|\d+[.)]))[^\n]{160,}$'}
+  # Scoped to the seeded files: a scratch draft or a harness dotfile in the workspace is not collateral.
+  - {id: rules-untouched, kind: file, mode: collateral_change, path: AGENTS.md, unchanged: true}
+  - {id: notes-untouched, kind: file, mode: collateral_change, path: "notes/**/*", unchanged: true}
+  - id: reads-well
+    kind: rubric
+    mode: wrong_output
+    items: ["Does the update flag the Kestrel contract review as a blocker?"]
+    sees: [answers]

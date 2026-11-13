@@ -1,0 +1,17 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "recovery-rate-limited-bulk"
+version = 1
+area = "recovery"
+summary = "Set six SSO-migration tickets to pending while the helpdesk rate-limits part of the batch"
+requires = ["mcp"]
+services = ["helpdesk"]
+provenance = "hand_authored"
+canary = "9e6c40ef-4b7e-4cf5-9a8d-8a0fc1d6cac8"
+
+[[metadata.parallax.faults]]
+tool = "helpdesk_set_status"
+on_call = 3
+times = 2
+kind = "rate_limited"

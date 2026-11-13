@@ -1,0 +1,12 @@
+checks:
+  - {id: right-chris-updated, kind: state, mode: missing_action, table: contacts.people,
+     where: {id: c2}, count: 1,
+     fields: {phone: {regex: '^(\+44[\s-]*(\(0\))?[\s-]*|0)7700[\s-]*900[\s-]*456$'}, name: Chris Lee,
+              email: chris@fernhill.example, company: Fernhill Studio, title: Creative Director,
+              notes: {contains: "after 10am"}},
+     note: "any UK formatting of the number; the rest of the card is kept"}
+  - {id: namesake-unchanged, kind: state, mode: wrong_target, table: contacts.people,
+     where: {id: {none_of: [c2]}}, unchanged: true, note: "the Quayside Chris Lee and Christine Leeds keep their numbers"}
+  - {id: no-duplicate-contact, kind: state, mode: duplicate_action, table: contacts.people, where: {}, count: 4}
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [contacts.people, user.interactions]}

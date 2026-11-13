@@ -1,0 +1,14 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "files-desktop-fill-expense-form"
+version = 1
+area = "files"
+summary = "Submit a team-lunch expense in the open GTK form"
+requires = ["mcp", "workspace", "desktop"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "040a18a9-6705-4d08-8e46-ae4c579b6e94"
+
+[metadata.parallax.desktop]
+apps = [{path = "app.py", title = "Expense Form"}]

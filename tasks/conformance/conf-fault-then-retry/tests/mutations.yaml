@@ -1,0 +1,21 @@
+mutations:
+  - {id: gave-up, note: "stops after the server error and posts nothing", base: seed,
+     extra_calls: [{turn: 1, tool: chat_post_message, args: {channel: conf, text: "deploy check-in f96a70 is green"}, ok: false, mutated: false}],
+     must_fail: [posted-exactly-once]}
+  - {id: double-post, note: "retries twice, so two messages land",
+     patch: {insert: {chat.messages: [{id: msg-dup, channel: ch-conf, author: robin@harbourline.test,
+       text: "deploy check-in f96a70 is green", ts: "2026-06-03T09:13:00+01:00", thread_id: null}]}},
+     must_fail: [no-duplicate-post, posted-exactly-once]}
+  - {id: retry-elsewhere, note: "falls back to #general after the error", base: seed,
+     patch: {insert: {chat.messages: [{id: msg-w, channel: ch-general, author: robin@harbourline.test,
+       text: "deploy check-in f96a70 is green", ts: "2026-06-03T09:13:00+01:00", thread_id: null}]}},
+     must_fail: [posted-exactly-once]}
+  - {id: sidestepped-fault, note: "replies in Dana's #conf thread, so the failing post tool is never called", base: seed,
+     extra_calls: [{turn: 1, tool: chat_reply_in_thread, args: {message_id: msg-c1, text: "deploy check-in f96a70 is green"}}],
+     patch: {insert: {chat.messages: [{id: msg-r, channel: ch-conf, author: robin@harbourline.test,
+       text: "deploy check-in f96a70 is green", ts: "2026-06-03T09:13:00+01:00", thread_id: msg-c1}]}},
+     must_fail: [met-the-fault]}
+  - {id: dms-dana, note: "also DMs Dana about it", collateral: true,
+     patch: {insert: {chat.dms: [{id: dm-x, to: dana@harbourline.test, from: robin@harbourline.test,
+       text: "posted f96a70", ts: "2026-06-03T09:13:00+01:00"}]}},
+     must_fail: [rest-untouched]}

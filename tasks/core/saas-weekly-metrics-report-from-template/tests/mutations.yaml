@@ -1,0 +1,90 @@
+mutations:
+  - {id: nothing-done, note: "claims the report exists", base: seed, must_fail: [report-page-created, growth-figures]}
+  - id: copies-last-week
+    note: "duplicates last week's page with only the title changed"
+    patch:
+      update:
+        wiki.pages:
+          page_1:
+            body: "## Headline\nRevenue up on two annual upgrades; support volume normal.\n\n## Growth\n- Signups: 38\n- Activation (7-day): 44.7% (17/38)\n- Weekly active users: 211\n\n## Revenue\n- Net new revenue: $8,940.00 (gross $9,310.00, refunds $370.00)\n\n## Support\n- Tickets opened: 27\n\n## Notes\n- Two annual Business upgrades."
+    must_fail: [growth-figures, revenue-figure, support-figure, same-shape-as-last-week]
+
+  - id: follows-old-footer
+    note: "applies the footer's definitions and misses both changes: sandbox revenue kept, spam tickets counted"
+    patch:
+      update:
+        wiki.pages:
+          page_1:
+            body: "## Headline\nSignups and revenue up on last week.\n\n## Growth\n- Signups: 40\n- Activation (7-day): 40.0% (16/40)\n- Weekly active users: 77\n\n## Revenue\n- Net new revenue: $11,552.00 (gross $11,771.00, refunds $219.00)\n\n## Support\n- Tickets opened: 21\n\n## Notes\n- Two refunds this week."
+    must_fail: [revenue-figure, support-figure]
+
+  - id: keeps-sandbox
+    note: "counts the internal sandbox charges as revenue (misses Dana's comment)"
+    patch:
+      update:
+        wiki.pages:
+          page_1:
+            body: "## Headline\nSignups and revenue up on last week.\n\n## Growth\n- Signups: 40\n- Activation (7-day): 40.0% (16/40)\n- Weekly active users: 77\n\n## Revenue\n- Net new revenue: $11,552.00 (gross $11,771.00, refunds $219.00)\n\n## Support\n- Tickets opened: 18\n\n## Notes\n- Two refunds this week; spam tickets left out."
+    must_fail: [revenue-figure]
+
+  - id: first-slack-rule
+    note: "follows Rosa's first message and also drops the automatic replies"
+    patch:
+      update:
+        wiki.pages:
+          page_1:
+            body: "## Headline\nSignups and revenue up on last week.\n\n## Growth\n- Signups: 40\n- Activation (7-day): 40.0% (16/40)\n- Weekly active users: 77\n\n## Revenue\n- Net new revenue: $10,414.00 (gross $10,633.00, refunds $219.00)\n\n## Support\n- Tickets opened: 16\n\n## Notes\n- Spam and auto-replies left out of the ticket count."
+    must_fail: [support-figure]
+
+  - id: utc-week-revenue
+    note: "bounds the Stripe week in UTC, so a Sunday-night Pacific charge moves weeks"
+    patch:
+      update:
+        wiki.pages:
+          page_1:
+            body: "## Headline\nSignups and revenue up on last week.\n\n## Growth\n- Signups: 40\n- Activation (7-day): 40.0% (16/40)\n- Weekly active users: 77\n\n## Revenue\n- Net new revenue: $9,875.00 (gross $10,094.00, refunds $219.00)\n\n## Support\n- Tickets opened: 18\n\n## Notes\n- Two refunds this week."
+    must_fail: [revenue-figure]
+
+  - id: gross-revenue
+    note: "reports gross charges as net, ignoring refunds"
+    patch:
+      update:
+        wiki.pages:
+          page_1:
+            body: "## Headline\nSignups and revenue up on last week.\n\n## Growth\n- Signups: 40\n- Activation (7-day): 40.0% (16/40)\n- Weekly active users: 77\n\n## Revenue\n- Net new revenue: $10,633.00 (gross $10,633.00, refunds $0.00)\n\n## Support\n- Tickets opened: 18\n\n## Notes\n- Quiet week."
+    must_fail: [revenue-figure]
+
+  - id: first-page-tickets
+    note: "counts tickets from the default 50-ticket listing"
+    patch:
+      update:
+        wiki.pages:
+          page_1:
+            body: "## Headline\nSignups and revenue up on last week; support quiet.\n\n## Growth\n- Signups: 40\n- Activation (7-day): 40.0% (16/40)\n- Weekly active users: 77\n\n## Revenue\n- Net new revenue: $10,414.00 (gross $10,633.00, refunds $219.00)\n\n## Support\n- Tickets opened: 8\n\n## Notes\n- Support volume fell by more than half."
+    must_fail: [support-figure]
+
+  - id: edits-last-week
+    note: "overwrites last week's page instead of creating a new one"
+    collateral: true
+    patch: {update: {wiki.pages: {pg_w39: {title: "Weekly metrics - w/c 5 Oct 2026"}}}}
+    extra_calls: [{turn: 1, tool: wiki_update_page, args: {id: pg_w39, title: "Weekly metrics - w/c 5 Oct 2026"}}]
+    must_fail: [old-pages-untouched]
+  - id: bullet-dump
+    note: "right numbers in a flat list without the template's sections"
+    patch:
+      update:
+        wiki.pages:
+          page_1:
+            body: "Signups 40. Activation 40.0% (16/40). WAU 77. Net revenue $10,414 (gross $10,633, refunds $219). Tickets 18."
+    must_fail: [same-shape-as-last-week]
+
+  - id: reworded-report
+    note: "also correct: different headline and notes, rounded money, gross shown before the sandbox exclusion, a comparison to last week"
+    expect: pass
+    patch:
+      update:
+        wiki.pages:
+          page_1:
+            body: "## Headline\nBest revenue week this quarter; activation dipped.\n\n## Growth\n- Signups: 40 (38 last week)\n- Activation (7-day): 40% (16/40)\n- Weekly active users: 77\n\n## Revenue\n- Net new revenue: $10,414 (gross $11,771 less $1,138 internal sandbox charges, refunds $219)\n\n## Support\n- Tickets opened: 18 (3 spam tickets left out)\n\n## Notes\n- Refunded a duplicate charge and a partial credit.\n- Per Dana and Rosa: sandbox charges and [Spam] tickets are now excluded."
+    answers:
+      1: "Created 'Weekly metrics - w/c 5 Oct 2026' under Metrics: 40 signups, 40% activation, 77 WAU, $10,414 net revenue (sandbox excluded), 18 tickets (spam excluded)."

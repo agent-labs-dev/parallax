@@ -1,0 +1,6 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: contacts_search, args: {query: Chris Lee}}
+      - {tool: contacts_update, args: {id: c2, phone: "+44 7700 900456"}}
+    answer: "Updated Chris Lee at Fernhill Studio: his mobile is now +44 7700 900456. The other Chris Lee (Quayside Bikes) is unchanged."

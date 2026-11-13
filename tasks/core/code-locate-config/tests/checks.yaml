@@ -1,0 +1,9 @@
+checks:
+  - {id: names-the-file, kind: answer, mode: wrong_target, must: ["defaults.toml"],
+     note: "the effective value lives in the TOML file, not in the comment or the test"}
+  - {id: gives-the-value, kind: answer, mode: wrong_output, must: [{number: 5}]}
+  - {id: code-untouched, kind: file, mode: collateral_change, path: "dispatch/**/*.py", unchanged: true}
+  - {id: config-untouched, kind: file, mode: collateral_change, path: "dispatch/config/*", unchanged: true}
+  - {id: tests-untouched, kind: file, mode: collateral_change, path: "tests/*.py", unchanged: true}
+  - {id: flags-stale-comment, kind: rubric, mode: wrong_output, sees: [answers],
+     items: ["Does the answer point out that the comment claiming 3 attempts is out of date?"]}

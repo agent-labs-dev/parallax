@@ -1,0 +1,30 @@
+checks:
+  - id: once-at-friday-4pm-new-york
+    kind: calls
+    mode: wrong_schedule
+    tool: scheduler_create_job
+    before_turn: 2
+    where:
+      kind: once
+      spec: {gte: "2026-06-12T20:00:00+00:00", lte: "2026-06-12T20:00:00+00:00"}
+      instruction: {regex: "bank"}
+    count: {min: 1}
+    note: "Friday 12 June 16:00 in America/New_York is 20:00 UTC; a naive spec is read in the user's New York time zone"
+  - id: job-left-is-the-reminder
+    kind: state
+    mode: wrong_schedule
+    table: scheduler.jobs
+    count: {max: 1}
+    fields:
+      kind: once
+      spec: {gte: "2026-06-12T20:00:00+00:00", lte: "2026-06-12T20:00:00+00:00"}
+      instruction: {regex: "bank"}
+    note: "retiring the reminder after it fired (paused or deleted) is fine; a job still there is the one-off at 20:00 UTC"
+  - id: reminded-on-fire
+    kind: answer
+    mode: missing_action
+    turn: 2
+    must: [{regex: "bank"}]
+    note: "when it fires the user is reminded what to do"
+  - {id: calendar-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [scheduler.jobs, mail.sent, mail.drafts, chat.dms, user.interactions]}

@@ -1,0 +1,43 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: chat_read_channel, args: {channel: planning}}
+      - {tool: wiki_search, args: {query: cycles}}
+      - {tool: wiki_get_page, args: {id: pg_cycles}}
+      - {tool: tracker_search_issues, args: {label: cycle-14, limit: 100}}
+      - {tool: tracker_get_issue, args: {id: ENG-433}}
+      - {tool: tracker_get_issue, args: {id: ENG-458}}
+      - {tool: tracker_search_issues, args: {query: Okta}}
+      - {tool: tracker_update_issue, args: {id: ENG-412, labels: [feature, admin, cycle-15]}}
+      - {tool: tracker_update_issue, args: {id: ENG-427, labels: [feature, reports, cycle-15]}}
+      - {tool: tracker_update_issue, args: {id: ENG-482, labels: [feature, sso, cycle-15]}}
+      - {tool: tracker_update_issue, args: {id: ENG-482, labels: [feature, sso, cycle-15]}}
+      - {tool: tracker_update_issue, args: {id: ENG-482, labels: [feature, sso, cycle-15]}}
+      - {tool: tracker_update_issue, args: {id: ENG-441, labels: [bug, api, cycle-15]}}
+      - {tool: tracker_update_issue, args: {id: ENG-452, labels: [feature, growth, cycle-15]}}
+      - {tool: tracker_update_issue, args: {id: ENG-452, labels: [feature, growth, cycle-15]}}
+      - {tool: tracker_update_issue, args: {id: ENG-466, labels: [feature, integrations, cycle-15]}}
+      - {tool: tracker_update_issue, args: {id: ENG-481, labels: [feature, sso, cycle-15]}}
+      - {tool: tracker_search_issues, args: {label: cycle-15, limit: 100}}
+      - {tool: tracker_get_issue, args: {id: ENG-482}}
+      - {tool: tracker_update_issue, args: {id: ENG-482, labels: [feature, sso, cycle-15]}}
+      - {tool: tracker_get_issue, args: {id: ENG-482}}
+      - tool: chat_post_message
+        args:
+          channel: planning
+          text: |-
+            Moved from cycle 14 to cycle 15, as agreed in the thread:
+            - ENG-412 Bulk invite via CSV
+            - ENG-427 Dark mode for reports
+            - ENG-441 Webhook retry backoff
+            - ENG-452 Onboarding checklist v2
+            - ENG-466 Slack notifications for mentions
+            - ENG-481 Okta SCIM group push (Wren's late add)
+            - ENG-482 SAML group sync v2 (ENG-433 was closed as its duplicate, so the work moved with ENG-482)
+            ENG-458 Usage alerts email was already in cycle 15. Audit log export (ENG-447) stays in cycle 14, per Lena's update.
+    answer: |-
+      Done. I moved seven issues from cycle-14 to cycle-15 (other labels kept): ENG-412 Bulk invite via CSV, ENG-427 Dark mode for reports, ENG-441 Webhook retry backoff, ENG-452 Onboarding checklist v2, ENG-466 Slack notifications for mentions, ENG-481 Okta SCIM group push (added later in the thread) and ENG-482 SAML group sync v2.
+
+      ENG-433 SAML group sync is closed as a duplicate of ENG-482, so I moved ENG-482 and left the closed issue alone. ENG-458 Usage alerts email was already in cycle 15. Audit log export (ENG-447) stays in cycle 14, as Lena agreed.
+
+      Linear rate-limited the ENG-482 update twice, then returned a success that did not stick, and returned a server error once on ENG-452. I retried both, re-checked, and all seven now show cycle-15. I did not touch the similarly named Dark mode for dashboards, Webhook retry backoff docs or the old Okta SCIM provisioning. I posted the list in #planning.

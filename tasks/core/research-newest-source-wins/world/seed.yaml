@@ -1,0 +1,23 @@
+now: 2026-06-18T09:30:00-04:00
+user: {name: Casey Duarte, email: casey@lanternbakery.test, timezone: America/New_York}
+web:
+  - url: https://millbrookcounty.example/assessor/business-property
+    title: "Business personal property return - Millbrook County Assessor"
+    published: 2026-01-12
+    text: >-
+      Every business owning equipment or furniture in Millbrook County must file a business
+      personal property return each year. The 2026 return is due June 30, 2026. Returns filed
+      after the deadline incur a 10% penalty.
+  - url: https://millbrookcounty.example/news/2026-05-21-property-return-extension
+    title: "Business property return deadline extended to July 31"
+    published: 2026-05-21
+    text: >-
+      Because of the move to the new online filing portal, the Millbrook County Assessor has
+      extended the 2026 business personal property return deadline from June 30 to July 31,
+      2026. The late-filing penalty applies only to returns received after July 31.
+  - url: https://ledgerwise-accounting.example/blog/millbrook-deadlines
+    title: "Millbrook County tax dates for small businesses"
+    published: 2026-02-03
+    text: >-
+      Mark your calendar: the Millbrook County business property return is due on June 30.
+      Sales tax returns are due on the 20th of each month.

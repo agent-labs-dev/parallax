@@ -1,0 +1,16 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "conf-two-turn-carry"
+version = 2
+area = "conformance"
+summary = "Turn 1 gives a booking reference; turn 2 in the same conversation asks for it back"
+requires = ["mcp", "multi_turn"]
+provenance = "hand_authored"
+canary = "b1651940-3bf1-40ab-81eb-ef15f5094e32"
+
+[[steps]]
+name = "turn-01"
+
+[[steps]]
+name = "turn-02"

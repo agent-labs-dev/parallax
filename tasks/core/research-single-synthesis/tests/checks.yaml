@@ -1,0 +1,29 @@
+checks:
+  - id: recommends-harbrook
+    kind: answer
+    mode: wrong_output
+    must:
+      - {regex: "(recommend\\w*|suggest\\w*|go with|go for|\\buse|choose|pick|opt for|select|best (fit|choice|option|bet)|verdict|winner|answer|i['’]d go|i would go)\\W[^\\n.]{0,40}harbrook|harbrook[^\\n.]{0,40}(\\bis|\\bas|['’]s)\\s+(the|my|our|your)\\s+(\\w+\\s+)?(recommendation|pick|choice|best|winner|only|one|bet)|harbrook\\W{0,4}it is|harbrook[^\\n]{0,80}(where i['’]d land|i['’]d (go|pick|choose|recommend|suggest))"}
+    note: "Harbrook is the only provider meeting both constraints"
+  - id: gives-the-reasons
+    kind: answer
+    mode: wrong_output
+    must:
+      - {regex: "\\beu\\b|europe|frankfurt|dublin"}
+      - 740
+    note: "the two seeded reasons: EU region, and $740 is under the $800 cap"
+  - id: no-wrong-recommendation
+    kind: answer
+    mode: wrong_output
+    must_not:
+      - {regex: "(?<!n't )(?<!not )(?<!never )(?<!n’t )(recommend|suggest|go with|go for|choose|pick|opt for)\\s+(keelbox|stowline)\\b"}
+  - {id: nothing-changed, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [user.interactions]}
+  - id: one-synthesis
+    kind: rubric
+    mode: wrong_output
+    items:
+      - "Does the answer explain that Keelbox fails the EU requirement?"
+      - "Does the answer explain that Stowline is over the $800 budget?"
+      - "Does the answer give one clear recommendation rather than several separate conclusions?"
+    sees: [answers]

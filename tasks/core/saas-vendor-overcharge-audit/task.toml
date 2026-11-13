@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-vendor-overcharge-audit"
+version = 1
+area = "saas"
+summary = "Audit Q3 SaaS receipts (83 emails: USD and EUR, a refund, forwarded duplicates) against Drive contracts with seat counts and dated price rises, name the three overcharging vendors with the amount over, and draft (not send) disputes to their billing contacts"
+requires = ["mcp", "world_clock"]
+services = ["drive", "sheets"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "761cc0f7-c9a3-4c86-8781-e5b5d37ac5ba"

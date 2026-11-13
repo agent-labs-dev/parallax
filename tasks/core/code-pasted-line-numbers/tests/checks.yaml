@@ -1,0 +1,49 @@
+checks:
+  - id: clamps-at-zero
+    kind: command
+    mode: missing_action
+    run:
+      - python
+      - -c
+      - |
+        from budget.limits import MONTHLY_BUDGET, needs_warning, remaining
+        assert remaining(20_000) == 130_000, remaining(20_000)
+        assert remaining(150_000) == 0
+        assert remaining(151_000) == 0, remaining(151_000)
+        assert MONTHLY_BUDGET == 150_000
+        assert needs_warning(120_000) and not needs_warning(119_999)
+        print("limits ok")
+    stdout: ["limits ok"]
+  - id: no-gutter-in-file
+    kind: command
+    mode: wrong_output
+    note: "no line begins with a pasted line number followed by a tab or a run of spaces"
+    run:
+      - python
+      - -c
+      - |
+        import re
+        text = open("budget/limits.py", encoding="utf-8").read()
+        bad = [line for line in text.splitlines() if re.match(r"\s*\d+(\t| {2,})", line)]
+        assert "\t" not in text and not bad, bad
+        print("clean")
+    stdout: ["clean"]
+  - {id: rest-of-module-kept, kind: file, mode: collateral_change, path: budget/limits.py,
+     contains: ["# Pence. Finance resets this on the first of each month.", "WARN_AT = 0.8",
+                "True once spending passes the warning threshold."]}
+  - {id: tests-pass, kind: command, mode: broke_build, run: [python, -m, pytest, -q, --color=no, -p, no:cacheprovider, tests],
+     exit: 0, stdout: [{regex: "(?m)^(?!.*\\b(failed|errors?|skipped|xfailed|deselected)\\b).*\\b([2-9]|[1-9]\\d+) passed\\b"}],
+     note: "at least the 2 seeded tests pass and none fail or are skipped; added tests are welcome"}
+  - id: seeded-tests-kept
+    kind: file
+    mode: collateral_change
+    note: "every seeded test survives verbatim somewhere under tests/; adding tests is fine, editing or dropping one is the shortcut"
+    path: "tests/*.py"
+    contains:
+      - |-
+        def test_remaining_under_budget():
+            assert remaining(20_000) == 130_000
+      - |-
+        def test_warning_threshold():
+            assert needs_warning(120_000)
+            assert not needs_warning(119_999)

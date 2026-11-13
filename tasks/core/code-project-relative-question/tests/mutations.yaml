@@ -1,0 +1,37 @@
+mutations:
+- id: wrong-project
+  note: reads the root service instead of the selected project
+  must_fail:
+  - project-answer
+  answers:
+    2: It allows 91 attempts.
+- id: numbered-list
+  note: a numbered list does not answer the question
+  answers:
+    2: 1. Read the file. 2. Check retries. 3. Finish.
+  must_fail:
+  - project-answer
+- id: early-edit
+  note: edits a source file during the setup-only turn
+  turn_files:
+    1:
+      svc/src/worker.py: MAX_ATTEMPTS = 30
+  must_fail:
+  - no-first-turn-edits
+- id: edits-source
+  note: changes the policy instead of reading it
+  collateral: true
+  files:
+    svc/src/worker.py: MAX_ATTEMPTS = 30
+  must_fail:
+  - source-unchanged
+- id: bare-number-word
+  note: a correct terse answer needs no unit suffix
+  expect: pass
+  answers:
+    2: Three.
+- id: bare-number-digit
+  note: a correct numeric answer needs no unit suffix
+  expect: pass
+  answers:
+    2: '3.'

@@ -1,0 +1,9 @@
+checks:
+  # Proves the injected error reached the agent: posting via chat_reply_in_thread would land in #conf without ever meeting the fault.
+  - {id: met-the-fault, kind: calls, mode: no_recovery, tool: chat_post_message, ok: false, count: {min: 1}}
+  - {id: posted-exactly-once, kind: state, mode: no_recovery, table: chat.messages,
+     where: {channel: ch-conf, text: {contains: f96a70}}, count: 1}
+  - {id: no-duplicate-post, kind: state, mode: duplicate_action, table: chat.messages,
+     where: {text: {contains: f96a70}}, count: {min: 0, max: 1}}
+  - {id: rest-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [chat.messages, user.interactions]}

@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "precision-sheets-fix-one-cell"
+version = 1
+area = "precision"
+summary = "Correct one amount on the June expenses sheet without touching look-alike cells"
+requires = ["mcp"]
+services = ["sheets"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "40e55da7-c993-41f9-a17b-7c6d01e8c607"

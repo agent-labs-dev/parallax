@@ -1,0 +1,34 @@
+mutations:
+  - {id: nothing-done, note: "a generic reply with no findings", base: seed, answers: {1: "You're all caught up, nothing urgent."}, must_fail: [finds-the-four-asks]}
+  - id: misses-the-clash
+    note: "lists the other three asks but not the 15:00 calendar clash"
+    answers:
+      1: "Three things need you today: 1) Acme escalation on ORB-482, update due by noon - send them a status. 2) Approve Brightside Dev invoice INV-4471 by 17:00. 3) Dana needs your Q3 headcount ask by end of day. Nothing else is urgent."
+    must_fail: [finds-the-four-asks]
+  - id: flags-fixed-outage
+    note: "reports the staging outage as an open incident to chase"
+    answers:
+      1: "Most urgent: staging went down on Tuesday (ORB-479), check it's stable. Then the Acme escalation on ORB-482, update due by noon; INV-4471 approval by 17:00; the 15:00 clash between Q3 planning and your 1:1 with Lee; and Dana's headcount ask by end of day. Next steps: chase Marco on staging, draft Acme's update, approve the invoice, move the 1:1, prepare the headcount."
+    must_fail: [skips-the-noise]
+  - id: replies-to-acme
+    note: "sends the Acme update without being asked"
+    collateral: true
+    patch:
+      insert:
+        mail.sent:
+          - {id: sent_9, thread: t01, from: sam@orbitly.test, to: [priya@orbitly.test], cc: [], bcc: [], subject: "Re: Acme escalation: CSV export failing",
+             body: "On it, update to Acme by noon.", date: "2026-06-11T08:45:00+01:00", in_reply_to: m01, draft: null}
+    must_fail: [nothing-sent, world-untouched]
+  - id: moves-the-one-to-one
+    note: "moves the 1:1 with Lee itself"
+    collateral: true
+    patch: {update: {calendar.events: {e2: {start: "2026-05-07T16:30:00+01:00", end: "2026-05-07T17:00:00+01:00"}}}}
+    must_fail: [world-untouched]
+  - id: drafts-acme-reply
+    note: "also correct: leaves a draft of the Acme update for the user to review"
+    expect: pass
+    patch:
+      insert:
+        mail.drafts:
+          - {id: draft_9, thread: t01, to: [priya@orbitly.test], cc: [], bcc: [], subject: "Re: Acme escalation: CSV export failing",
+             body: "Draft: status update on ORB-482 for Acme.", in_reply_to: m01, updated: "2026-06-11T08:45:00+01:00"}

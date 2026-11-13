@@ -1,0 +1,11 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "restraint-already-done-noop"
+version = 1
+area = "restraint"
+summary = "Dana is already on Friday's retro invite, so change nothing and say so"
+requires = ["mcp", "world_clock"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "4fef7034-5862-495b-bb18-799822c1e9eb"

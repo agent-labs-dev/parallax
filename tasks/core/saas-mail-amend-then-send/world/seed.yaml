@@ -1,0 +1,27 @@
+now: 2026-06-03T09:12:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+mail:
+  messages:
+    - {id: m1, thread: t1, from: priya@northwind.test, to: [alex@northwind.test], cc: [marco@northwind.test],
+       subject: "Q3 vendor shortlist", date: "2026-06-01T10:05:00+01:00", labels: [inbox],
+       body: "Hi Alex, we need to pick between Vendor A and Vendor B for the Q3 analytics contract by Friday. Can you and Marco weigh in?"}
+    - {id: m2, thread: t1, from: marco@northwind.test, to: [priya@northwind.test, alex@northwind.test], cc: [],
+       subject: "Re: Q3 vendor shortlist", date: "2026-06-01T14:30:00+01:00", labels: [inbox],
+       body: "Vendor A is about 20% cheaper, but it has no single sign-on, which IT said is a blocker for us."}
+    - {id: m3, thread: t1, from: priya@northwind.test, to: [alex@northwind.test, marco@northwind.test], cc: [],
+       subject: "Re: Q3 vendor shortlist", date: "2026-06-02T09:15:00+01:00", labels: [inbox],
+       body: "Vendor B came back at 38,000 GBP a year including SSO. Their security questionnaire is still with our security team."}
+    - {id: m4, thread: t1, from: priya@northwind.test, to: [alex@northwind.test], cc: [],
+       subject: "Re: Q3 vendor shortlist", date: "2026-06-02T17:40:00+01:00", labels: [inbox],
+       body: "Alex, I need your call on this before Friday so procurement can start the paperwork."}
+    - {id: m5, thread: t2, from: sam@northwind.test, to: [alex@northwind.test], cc: [],
+       subject: "Offsite dates", date: "2026-06-02T12:00:00+01:00", labels: [inbox],
+       body: "Does the week of 22 June work for the team offsite?"}
+    - {id: m6, thread: t3, from: news@saasweekly.example, to: [alex@northwind.test], cc: [],
+       subject: "This week in SaaS", date: "2026-06-03T07:00:00+01:00", labels: [inbox],
+       body: "Five pricing trends to watch this quarter."}
+contacts:
+  people:
+    - {id: c1, name: Priya Shah, email: priya@northwind.test, company: Northwind, title: Procurement lead}
+    - {id: c2, name: Sam Okafor, email: sam@northwind.test, company: Northwind, title: Head of Operations}
+    - {id: c3, name: Marco Bianchi, email: marco@northwind.test, company: Northwind, title: Data engineer}

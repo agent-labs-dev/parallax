@@ -1,0 +1,44 @@
+now: 2026-06-03T08:05:00+01:00
+user: {name: Alex Kim, email: alex@northwind.test, timezone: Europe/London}
+mail:
+  messages:
+    - {id: n1, thread: tn1, from: news@brightcart.example, to: [alex@northwind.test], cc: [],
+       subject: "BrightCart Weekly: summer picks and new arrivals",
+       body: "This week's newsletter: ten summer picks, a guide to picnic kit, and what's new in the shop.\n\nYou are receiving the BrightCart Weekly newsletter because you subscribed. Unsubscribe any time.",
+       date: "2026-06-02T07:00:00+01:00", labels: [inbox]}
+    - {id: r1, thread: tr1, from: orders@brightcart.example, to: [alex@northwind.test], cc: [],
+       subject: "Your BrightCart receipt for order BC-20418",
+       body: "Thanks for your order. Receipt for order BC-20418: 1 x desk lamp, 38.00 GBP, paid by card ending 4471. Keep this email for returns.",
+       date: "2026-06-01T18:22:00+01:00", labels: [inbox]}
+    - {id: n2, thread: tn2, from: news@brightcart.example, to: [alex@northwind.test], cc: [],
+       subject: "BrightCart Weekly: the home office edit",
+       body: "In this newsletter: our home office edit, three desk setups, and reader favourites.\n\nYou are receiving the BrightCart Weekly newsletter because you subscribed. Unsubscribe any time.",
+       date: "2026-05-26T07:00:00+01:00", labels: [inbox]}
+    - {id: r2, thread: tr2, from: orders@brightcart.example, to: [alex@northwind.test], cc: [],
+       subject: "Your BrightCart receipt for order BC-20377",
+       body: "Thanks for your order. Receipt for order BC-20377: 2 x notebook, 12.50 GBP, paid by card ending 4471.",
+       date: "2026-05-24T12:10:00+01:00", labels: [inbox]}
+    - {id: n3, thread: tn3, from: digest@fieldnotes.example, to: [alex@northwind.test], cc: [],
+       subject: "Field Notes Digest #112",
+       body: "The Field Notes Digest, our fortnightly newsletter: five essays on design, one long read, and links from readers.\n\nManage your newsletter subscription or unsubscribe here.",
+       date: "2026-06-01T06:30:00+01:00", labels: [inbox]}
+    - {id: n4, thread: tn4, from: hello@tuesdaybrief.example, to: [alex@northwind.test], cc: [],
+       subject: "The Tuesday Brief: five things in product this week",
+       body: "Welcome to this week's Tuesday Brief newsletter. Five things worth knowing in product management.\n\nYou're getting this newsletter because you signed up at tuesdaybrief.example. Unsubscribe.",
+       date: "2026-06-02T06:00:00+01:00", labels: [inbox]}
+    - {id: w1, thread: tw1, from: priya@northwind.test, to: [alex@northwind.test], cc: [],
+       subject: "Q3 planning doc",
+       body: "Hi Alex, can you look over the Q3 planning doc before Thursday? Thanks, Priya",
+       date: "2026-06-02T15:45:00+01:00", labels: [inbox]}
+    - {id: w2, thread: tw2, from: billing@harbourbank.example, to: [alex@northwind.test], cc: [],
+       subject: "Your May statement is ready",
+       body: "Your May account statement is now available to view in online banking.",
+       date: "2026-06-01T09:00:00+01:00", labels: [inbox]}
+    - {id: w3, thread: tw3, from: sam@northwind.test, to: [alex@northwind.test], cc: [],
+       subject: "Offsite dates",
+       body: "Offsite is confirmed for 18-19 June. Can you tell me your dietary requirements?",
+       date: "2026-05-29T17:02:00+01:00", labels: [inbox, important]}
+    - {id: o1, thread: to1, from: news@brightcart.example, to: [alex@northwind.test], cc: [],
+       subject: "BrightCart Weekly: spring clear-out",
+       body: "Last month's newsletter. Unsubscribe any time.",
+       date: "2026-05-05T07:00:00+01:00", labels: []}

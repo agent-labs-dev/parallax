@@ -1,0 +1,325 @@
+now: "2026-10-30T10:30:00+01:00"
+user: {name: Lea Hoffmann, email: lea@kitebase.test, timezone: Europe/Berlin}
+wiki:
+  pages:
+    - {id: pg_defs, title: "Metric definitions", space: Data, author: lea@kitebase.test, created: "2026-02-02T10:00:00+01:00", updated: "2026-08-12T15:40:00+02:00", url: "https://wiki.example/pages/pg_defs", body: "Definitions we report against. If a dashboard disagrees with this page, this page wins.\n\n## Retention (day 28)\nThe share of a month's signups who are still using Kitebase after their trial: they start a session after their 14-day trial ends and within 28 days of signing up. A signup belongs to the calendar month (Berlin time) of its signed_up event and to the plan it signed up on (the plan property of signed_up); later upgrades or downgrades do not move it.\nPostHog: funnel signed_up -> trial_ended -> session_started, 28-day window.\nThe saved insight \"Retention (30-day)\" is the old definition (any session within 30 days). Do not use it.\n\n## Who counts\nExclude internal accounts and test accounts from every customer metric.\n- Internal: anyone signing up with our own domain, kitebase.test. Staff get comped Team workspaces.\n- Test: QA throwaway signups on kitebase-qa.test. QA always creates them on Starter.\n- One-off exclusions (pilots, migrations) are agreed with Lea by email; check for them before reporting a month.\n\n## Activation\nA signup who invites a teammate within 7 days."}
+    - {id: pg_onb, title: "September hiring and onboarding", space: People, author: lea@kitebase.test, created: "2026-09-01T09:00:00+02:00", updated: "2026-09-20T09:00:00+02:00", url: "https://wiki.example/pages/pg_onb", body: "Ten new starters in September. Each sets up their own Kitebase workspace in week one to learn the product."}
+  comments:
+    - {id: wc1, page: pg_defs, author: tomas@kitebase.test, mentions: [lea@kitebase.test], created: "2026-09-03T11:05:00+02:00", body: "Heads-up for Who counts: since 1 September QA's new automated harness signs up on qa-auto.example (always Starter), not kitebase-qa.test. Please treat qa-auto.example as a test domain too."}
+mail:
+  messages:
+    - {id: m1, thread: t1, from: jonas@kitebase.test, to: [lea@kitebase.test], cc: [], labels: [inbox], date: "2026-10-05T16:12:00+02:00", subject: "Brightline pilot accounts", body: "Hi Lea, for your September numbers: the four Brightline workspaces (brightline.example, Business plan) were set up by my team for their paid pilot, and the pilot contract makes their admins log in every week. Please keep them out of the retention numbers, they are not self-serve customers. Thanks, Jonas"}
+    - {id: m2, thread: t2, from: noreply@posthog.example, to: [lea@kitebase.test], cc: [], labels: [inbox], date: "2026-10-01T08:00:00+02:00", subject: "Your weekly PostHog digest", body: "Signups last week: 14. Top event: session_started."}
+    - {id: m3, thread: t3, from: ana@kitebase.test, to: [lea@kitebase.test], cc: [], labels: [inbox], date: "2026-10-28T09:30:00+01:00", subject: "Board deck timing", body: "Can I have the October KPI slide by 6 Nov? No rush before then."}
+analytics:
+  insights:
+    - {id: ins_ret30, name: "Retention (30-day)", kind: funnel, steps: [signed_up, session_started], window_days: 30, description: "Signups with any session within 30 days."}
+    - {id: ins_signups, name: "Signups by plan", kind: trend, event: signed_up, interval: week}
+  events:
+    - {id: e001, event: signed_up, person: u088, ts: "2026-08-01T13:29:00Z", properties: {plan: team, email_domain: kitebase.test}}
+    - {id: e002, event: signed_up, person: u022, ts: "2026-08-02T11:48:00Z", properties: {plan: starter, email_domain: grove.example}}
+    - {id: e003, event: signed_up, person: u040, ts: "2026-08-02T18:39:00Z", properties: {plan: business, email_domain: dune.example}}
+    - {id: e004, event: signed_up, person: u039, ts: "2026-08-04T06:14:00Z", properties: {plan: business, email_domain: helix.example}}
+    - {id: e005, event: signed_up, person: u004, ts: "2026-08-05T10:55:00Z", properties: {plan: starter, email_domain: grove.example}}
+    - {id: e006, event: signed_up, person: u019, ts: "2026-08-06T06:46:00Z", properties: {plan: starter, email_domain: acme.example}}
+    - {id: e007, event: signed_up, person: u032, ts: "2026-08-07T16:11:00Z", properties: {plan: team, email_domain: dune.example}}
+    - {id: e008, event: signed_up, person: u007, ts: "2026-08-07T20:44:00Z", properties: {plan: starter, email_domain: koi.example}}
+    - {id: e009, event: signed_up, person: u042, ts: "2026-08-10T08:17:00Z", properties: {plan: business, email_domain: birch.example}}
+    - {id: e010, event: signed_up, person: u025, ts: "2026-08-10T19:43:00Z", properties: {plan: team, email_domain: ion.example}}
+    - {id: e011, event: signed_up, person: u100, ts: "2026-08-10T20:06:00Z", properties: {plan: starter, email_domain: kitebase-qa.test}}
+    - {id: e012, event: signed_up, person: u008, ts: "2026-08-12T15:40:00Z", properties: {plan: starter, email_domain: koi.example}}
+    - {id: e013, event: signed_up, person: u011, ts: "2026-08-14T06:42:00Z", properties: {plan: starter, email_domain: loom.example}}
+    - {id: e014, event: signed_up, person: u031, ts: "2026-08-14T17:45:00Z", properties: {plan: team, email_domain: koi.example}}
+    - {id: e015, event: signed_up, person: u030, ts: "2026-08-14T20:38:00Z", properties: {plan: team, email_domain: helix.example}}
+    - {id: e016, event: signed_up, person: u038, ts: "2026-08-15T12:27:00Z", properties: {plan: team, email_domain: acme.example}}
+    - {id: e017, event: trial_ended, person: u088, ts: "2026-08-15T13:29:00Z"}
+    - {id: e018, event: signed_up, person: u028, ts: "2026-08-16T07:07:00Z", properties: {plan: team, email_domain: dune.example}}
+    - {id: e019, event: signed_up, person: u006, ts: "2026-08-16T07:23:00Z", properties: {plan: starter, email_domain: fable.example}}
+    - {id: e020, event: trial_ended, person: u022, ts: "2026-08-16T11:48:00Z"}
+    - {id: e021, event: signed_up, person: u024, ts: "2026-08-16T14:25:00Z", properties: {plan: team, email_domain: loom.example}}
+    - {id: e022, event: trial_ended, person: u040, ts: "2026-08-16T18:39:00Z"}
+    - {id: e023, event: signed_up, person: u027, ts: "2026-08-16T19:40:00Z", properties: {plan: team, email_domain: loom.example}}
+    - {id: e024, event: signed_up, person: u021, ts: "2026-08-17T15:08:00Z", properties: {plan: starter, email_domain: helix.example}}
+    - {id: e025, event: signed_up, person: u029, ts: "2026-08-17T15:13:00Z", properties: {plan: team, email_domain: loom.example}}
+    - {id: e026, event: signed_up, person: u023, ts: "2026-08-17T20:03:00Z", properties: {plan: team, email_domain: jade.example}}
+    - {id: e027, event: trial_ended, person: u039, ts: "2026-08-18T06:14:00Z"}
+    - {id: e028, event: signed_up, person: u009, ts: "2026-08-18T08:44:00Z", properties: {plan: starter, email_domain: fable.example}}
+    - {id: e029, event: trial_ended, person: u004, ts: "2026-08-19T10:55:00Z"}
+    - {id: e030, event: signed_up, person: u020, ts: "2026-08-19T12:23:00Z", properties: {plan: starter, email_domain: koi.example}}
+    - {id: e031, event: signed_up, person: u026, ts: "2026-08-19T18:36:00Z", properties: {plan: team, email_domain: elm.example}}
+    - {id: e032, event: trial_ended, person: u019, ts: "2026-08-20T06:46:00Z"}
+    - {id: e033, event: signed_up, person: u044, ts: "2026-08-20T07:20:00Z", properties: {plan: business, email_domain: fable.example}}
+    - {id: e034, event: signed_up, person: u015, ts: "2026-08-20T14:35:00Z", properties: {plan: starter, email_domain: dune.example}}
+    - {id: e035, event: signed_up, person: u010, ts: "2026-08-20T19:59:00Z", properties: {plan: starter, email_domain: dune.example}}
+    - {id: e036, event: signed_up, person: u035, ts: "2026-08-21T10:43:00Z", properties: {plan: team, email_domain: grove.example}}
+    - {id: e037, event: session_started, person: u004, ts: "2026-08-21T13:55:00Z"}
+    - {id: e038, event: signed_up, person: u037, ts: "2026-08-21T15:06:00Z", properties: {plan: team, email_domain: birch.example}}
+    - {id: e039, event: trial_ended, person: u032, ts: "2026-08-21T16:11:00Z"}
+    - {id: e040, event: trial_ended, person: u007, ts: "2026-08-21T20:44:00Z"}
+    - {id: e041, event: session_started, person: u088, ts: "2026-08-22T16:29:00Z"}
+    - {id: e042, event: signed_up, person: u012, ts: "2026-08-23T08:02:00Z", properties: {plan: starter, email_domain: jade.example}}
+    - {id: e043, event: session_started, person: u037, ts: "2026-08-23T17:06:00Z"}
+    - {id: e044, event: signed_up, person: u033, ts: "2026-08-23T19:47:00Z", properties: {plan: team, email_domain: ion.example}}
+    - {id: e045, event: signed_up, person: u041, ts: "2026-08-24T06:59:00Z", properties: {plan: business, email_domain: elm.example}}
+    - {id: e046, event: trial_ended, person: u042, ts: "2026-08-24T08:17:00Z"}
+    - {id: e047, event: signed_up, person: u003, ts: "2026-08-24T13:35:00Z", properties: {plan: starter, email_domain: ion.example}}
+    - {id: e048, event: session_started, person: u038, ts: "2026-08-24T14:27:00Z"}
+    - {id: e049, event: signed_up, person: u014, ts: "2026-08-24T16:02:00Z", properties: {plan: starter, email_domain: cobalt.example}}
+    - {id: e050, event: signed_up, person: u013, ts: "2026-08-24T18:20:00Z", properties: {plan: starter, email_domain: dune.example}}
+    - {id: e051, event: trial_ended, person: u025, ts: "2026-08-24T19:43:00Z"}
+    - {id: e052, event: trial_ended, person: u100, ts: "2026-08-24T20:06:00Z"}
+    - {id: e053, event: signed_up, person: u034, ts: "2026-08-25T07:35:00Z", properties: {plan: team, email_domain: acme.example}}
+    - {id: e054, event: signed_up, person: u017, ts: "2026-08-25T13:43:00Z", properties: {plan: starter, email_domain: helix.example}}
+    - {id: e055, event: session_started, person: u040, ts: "2026-08-25T21:39:00Z"}
+    - {id: e056, event: session_started, person: u033, ts: "2026-08-25T21:47:00Z"}
+    - {id: e057, event: signed_up, person: u001, ts: "2026-08-26T07:53:00Z", properties: {plan: starter, email_domain: acme.example}}
+    - {id: e058, event: trial_ended, person: u008, ts: "2026-08-26T15:40:00Z"}
+    - {id: e059, event: signed_up, person: u043, ts: "2026-08-26T17:38:00Z", properties: {plan: business, email_domain: elm.example}}
+    - {id: e060, event: session_started, person: u032, ts: "2026-08-26T19:11:00Z"}
+    - {id: e061, event: session_started, person: u039, ts: "2026-08-27T09:14:00Z"}
+    - {id: e062, event: trial_ended, person: u011, ts: "2026-08-28T06:42:00Z"}
+    - {id: e063, event: signed_up, person: u036, ts: "2026-08-28T08:11:00Z", properties: {plan: team, email_domain: ion.example}}
+    - {id: e064, event: signed_up, person: u045, ts: "2026-08-28T08:59:00Z", properties: {plan: business, email_domain: birch.example}}
+    - {id: e065, event: signed_up, person: u016, ts: "2026-08-28T14:29:00Z", properties: {plan: starter, email_domain: cobalt.example}}
+    - {id: e066, event: trial_ended, person: u031, ts: "2026-08-28T17:45:00Z"}
+    - {id: e067, event: trial_ended, person: u030, ts: "2026-08-28T20:38:00Z"}
+    - {id: e068, event: session_started, person: u025, ts: "2026-08-28T22:43:00Z"}
+    - {id: e069, event: session_started, person: u007, ts: "2026-08-28T23:44:00Z"}
+    - {id: e070, event: signed_up, person: u099, ts: "2026-08-29T06:53:00Z", properties: {plan: starter, email_domain: kitebase-qa.test}}
+    - {id: e071, event: trial_ended, person: u038, ts: "2026-08-29T12:27:00Z"}
+    - {id: e072, event: session_started, person: u030, ts: "2026-08-29T23:38:00Z"}
+    - {id: e073, event: trial_ended, person: u028, ts: "2026-08-30T07:07:00Z"}
+    - {id: e074, event: trial_ended, person: u006, ts: "2026-08-30T07:23:00Z"}
+    - {id: e075, event: session_started, person: u036, ts: "2026-08-30T10:11:00Z"}
+    - {id: e076, event: trial_ended, person: u024, ts: "2026-08-30T14:25:00Z"}
+    - {id: e077, event: trial_ended, person: u027, ts: "2026-08-30T19:40:00Z"}
+    - {id: e078, event: signed_up, person: u018, ts: "2026-08-30T19:53:00Z", properties: {plan: starter, email_domain: fable.example}}
+    - {id: e079, event: session_started, person: u031, ts: "2026-08-30T20:45:00Z"}
+    - {id: e080, event: signed_up, person: u046, ts: "2026-08-31T05:14:00Z", properties: {plan: business, email_domain: dune.example}}
+    - {id: e081, event: signed_up, person: u002, ts: "2026-08-31T09:05:00Z", properties: {plan: starter, email_domain: cobalt.example}}
+    - {id: e082, event: trial_ended, person: u021, ts: "2026-08-31T15:08:00Z"}
+    - {id: e083, event: trial_ended, person: u029, ts: "2026-08-31T15:13:00Z"}
+    - {id: e084, event: signed_up, person: u005, ts: "2026-08-31T17:18:00Z", properties: {plan: starter, email_domain: jade.example}}
+    - {id: e085, event: trial_ended, person: u023, ts: "2026-08-31T20:03:00Z"}
+    - {id: e086, event: signed_up, person: u112, ts: "2026-08-31T22:20:00Z", properties: {plan: business, email_domain: koi.example}}
+    - {id: e087, event: trial_ended, person: u009, ts: "2026-09-01T08:44:00Z"}
+    - {id: e088, event: session_started, person: u042, ts: "2026-09-01T11:17:00Z"}
+    - {id: e089, event: signed_up, person: u068, ts: "2026-09-01T12:12:00Z", properties: {plan: team, email_domain: helix.example}}
+    - {id: e090, event: session_started, person: u016, ts: "2026-09-01T16:29:00Z"}
+    - {id: e091, event: session_started, person: u029, ts: "2026-09-01T18:13:00Z"}
+    - {id: e092, event: session_started, person: u008, ts: "2026-09-01T18:40:00Z"}
+    - {id: e093, event: signed_up, person: u080, ts: "2026-09-02T05:38:00Z", properties: {plan: team, email_domain: helix.example}}
+    - {id: e094, event: signed_up, person: u102, ts: "2026-09-02T06:04:00Z", properties: {plan: starter, email_domain: kitebase-qa.test}}
+    - {id: e095, event: signed_up, person: u089, ts: "2026-09-02T08:42:00Z", properties: {plan: team, email_domain: kitebase.test}}
+    - {id: e096, event: signed_up, person: u079, ts: "2026-09-02T10:40:00Z", properties: {plan: team, email_domain: elm.example}}
+    - {id: e097, event: trial_ended, person: u020, ts: "2026-09-02T12:23:00Z"}
+    - {id: e098, event: session_started, person: u014, ts: "2026-09-02T18:02:00Z"}
+    - {id: e099, event: trial_ended, person: u026, ts: "2026-09-02T18:36:00Z"}
+    - {id: e100, event: session_started, person: u013, ts: "2026-09-02T20:20:00Z"}
+    - {id: e101, event: signed_up, person: u081, ts: "2026-09-02T20:27:00Z", properties: {plan: team, email_domain: elm.example}}
+    - {id: e102, event: trial_ended, person: u044, ts: "2026-09-03T07:20:00Z"}
+    - {id: e103, event: signed_up, person: u070, ts: "2026-09-03T12:23:00Z", properties: {plan: team, email_domain: koi.example}}
+    - {id: e104, event: trial_ended, person: u015, ts: "2026-09-03T14:35:00Z"}
+    - {id: e105, event: session_started, person: u024, ts: "2026-09-03T17:25:00Z"}
+    - {id: e106, event: trial_ended, person: u010, ts: "2026-09-03T19:59:00Z"}
+    - {id: e107, event: signed_up, person: u054, ts: "2026-09-04T10:21:00Z", properties: {plan: starter, email_domain: helix.example}}
+    - {id: e108, event: trial_ended, person: u035, ts: "2026-09-04T10:43:00Z"}
+    - {id: e109, event: trial_ended, person: u037, ts: "2026-09-04T15:06:00Z"}
+    - {id: e110, event: signed_up, person: u110, ts: "2026-09-04T18:13:00Z", properties: {plan: business, email_domain: brightline.example}}
+    - {id: e111, event: signed_up, person: u047, ts: "2026-09-05T07:14:00Z", properties: {plan: starter, email_domain: loom.example}}
+    - {id: e112, event: signed_up, person: u074, ts: "2026-09-05T08:30:00Z", properties: {plan: team, email_domain: elm.example}}
+    - {id: e113, event: trial_ended, person: u012, ts: "2026-09-06T08:02:00Z"}
+    - {id: e114, event: trial_ended, person: u033, ts: "2026-09-06T19:47:00Z"}
+    - {id: e115, event: trial_ended, person: u041, ts: "2026-09-07T06:59:00Z"}
+    - {id: e116, event: signed_up, person: u069, ts: "2026-09-07T09:10:00Z", properties: {plan: team, email_domain: cobalt.example}}
+    - {id: e117, event: session_started, person: u028, ts: "2026-09-07T10:07:00Z"}
+    - {id: e118, event: trial_ended, person: u003, ts: "2026-09-07T13:35:00Z"}
+    - {id: e119, event: trial_ended, person: u014, ts: "2026-09-07T16:02:00Z"}
+    - {id: e120, event: signed_up, person: u076, ts: "2026-09-07T16:58:00Z", properties: {plan: team, email_domain: acme.example}}
+    - {id: e121, event: trial_ended, person: u013, ts: "2026-09-07T18:20:00Z"}
+    - {id: e122, event: session_started, person: u023, ts: "2026-09-07T23:03:00Z"}
+    - {id: e123, event: signed_up, person: u055, ts: "2026-09-08T06:44:00Z", properties: {plan: starter, email_domain: acme.example}}
+    - {id: e124, event: trial_ended, person: u034, ts: "2026-09-08T07:35:00Z"}
+    - {id: e125, event: signed_up, person: u108, ts: "2026-09-08T12:02:00Z", properties: {plan: business, email_domain: brightline.example}}
+    - {id: e126, event: trial_ended, person: u017, ts: "2026-09-08T13:43:00Z"}
+    - {id: e127, event: session_started, person: u027, ts: "2026-09-08T22:40:00Z"}
+    - {id: e128, event: trial_ended, person: u001, ts: "2026-09-09T07:53:00Z"}
+    - {id: e129, event: session_started, person: u006, ts: "2026-09-09T10:23:00Z"}
+    - {id: e130, event: signed_up, person: u087, ts: "2026-09-09T12:28:00Z", properties: {plan: business, email_domain: koi.example}}
+    - {id: e131, event: signed_up, person: u063, ts: "2026-09-09T14:34:00Z", properties: {plan: starter, email_domain: cobalt.example}}
+    - {id: e132, event: trial_ended, person: u043, ts: "2026-09-09T17:38:00Z"}
+    - {id: e133, event: session_started, person: u026, ts: "2026-09-09T21:36:00Z"}
+    - {id: e134, event: session_started, person: u102, ts: "2026-09-10T08:04:00Z"}
+    - {id: e135, event: signed_up, person: u090, ts: "2026-09-10T11:31:00Z", properties: {plan: team, email_domain: kitebase.test}}
+    - {id: e136, event: signed_up, person: u094, ts: "2026-09-10T13:06:00Z", properties: {plan: team, email_domain: kitebase.test}}
+    - {id: e137, event: signed_up, person: u109, ts: "2026-09-11T06:01:00Z", properties: {plan: business, email_domain: brightline.example}}
+    - {id: e138, event: signed_up, person: u075, ts: "2026-09-11T06:12:00Z", properties: {plan: team, email_domain: birch.example}}
+    - {id: e139, event: trial_ended, person: u036, ts: "2026-09-11T08:11:00Z"}
+    - {id: e140, event: trial_ended, person: u045, ts: "2026-09-11T08:59:00Z"}
+    - {id: e141, event: session_started, person: u009, ts: "2026-09-11T11:44:00Z"}
+    - {id: e142, event: signed_up, person: u095, ts: "2026-09-11T11:50:00Z", properties: {plan: team, email_domain: kitebase.test}}
+    - {id: e143, event: trial_ended, person: u016, ts: "2026-09-11T14:29:00Z"}
+    - {id: e144, event: signed_up, person: u067, ts: "2026-09-11T16:30:00Z", properties: {plan: team, email_domain: koi.example}}
+    - {id: e145, event: trial_ended, person: u099, ts: "2026-09-12T06:53:00Z"}
+    - {id: e146, event: signed_up, person: u082, ts: "2026-09-12T07:39:00Z", properties: {plan: business, email_domain: grove.example}}
+    - {id: e147, event: session_started, person: u011, ts: "2026-09-12T11:42:00Z"}
+    - {id: e148, event: session_started, person: u003, ts: "2026-09-12T16:35:00Z"}
+    - {id: e149, event: signed_up, person: u053, ts: "2026-09-12T19:29:00Z", properties: {plan: starter, email_domain: koi.example}}
+    - {id: e150, event: signed_up, person: u064, ts: "2026-09-13T06:57:00Z", properties: {plan: starter, email_domain: loom.example}}
+    - {id: e151, event: trial_ended, person: u018, ts: "2026-09-13T19:53:00Z"}
+    - {id: e152, event: trial_ended, person: u046, ts: "2026-09-14T05:14:00Z"}
+    - {id: e153, event: signed_up, person: u101, ts: "2026-09-14T05:21:00Z", properties: {plan: starter, email_domain: kitebase-qa.test}}
+    - {id: e154, event: plan_changed, person: u047, ts: "2026-09-14T07:14:00Z", properties: {from: starter, to: team}}
+    - {id: e155, event: trial_ended, person: u002, ts: "2026-09-14T09:05:00Z"}
+    - {id: e156, event: signed_up, person: u073, ts: "2026-09-14T10:50:00Z", properties: {plan: team, email_domain: fable.example}}
+    - {id: e157, event: signed_up, person: u084, ts: "2026-09-14T15:27:00Z", properties: {plan: business, email_domain: birch.example}}
+    - {id: e158, event: trial_ended, person: u005, ts: "2026-09-14T17:18:00Z"}
+    - {id: e159, event: signed_up, person: u071, ts: "2026-09-14T18:42:00Z", properties: {plan: team, email_domain: jade.example}}
+    - {id: e160, event: signed_up, person: u107, ts: "2026-09-14T20:12:00Z", properties: {plan: starter, email_domain: qa-auto.example}}
+    - {id: e161, event: session_started, person: u043, ts: "2026-09-14T20:38:00Z"}
+    - {id: e162, event: trial_ended, person: u112, ts: "2026-09-14T22:20:00Z"}
+    - {id: e163, event: signed_up, person: u091, ts: "2026-09-15T10:00:00Z", properties: {plan: team, email_domain: kitebase.test}}
+    - {id: e164, event: trial_ended, person: u068, ts: "2026-09-15T12:12:00Z"}
+    - {id: e165, event: trial_ended, person: u080, ts: "2026-09-16T05:38:00Z"}
+    - {id: e166, event: trial_ended, person: u102, ts: "2026-09-16T06:04:00Z"}
+    - {id: e167, event: trial_ended, person: u089, ts: "2026-09-16T08:42:00Z"}
+    - {id: e168, event: session_started, person: u055, ts: "2026-09-16T08:44:00Z"}
+    - {id: e169, event: session_started, person: u064, ts: "2026-09-16T08:57:00Z"}
+    - {id: e170, event: signed_up, person: u052, ts: "2026-09-16T10:29:00Z", properties: {plan: starter, email_domain: acme.example}}
+    - {id: e171, event: trial_ended, person: u079, ts: "2026-09-16T10:40:00Z"}
+    - {id: e172, event: signed_up, person: u078, ts: "2026-09-16T20:27:00Z", properties: {plan: team, email_domain: loom.example}}
+    - {id: e173, event: trial_ended, person: u081, ts: "2026-09-16T20:27:00Z"}
+    - {id: e174, event: signed_up, person: u086, ts: "2026-09-17T11:43:00Z", properties: {plan: business, email_domain: cobalt.example}}
+    - {id: e175, event: session_started, person: u002, ts: "2026-09-17T12:05:00Z"}
+    - {id: e176, event: trial_ended, person: u070, ts: "2026-09-17T12:23:00Z"}
+    - {id: e177, event: session_started, person: u041, ts: "2026-09-18T09:59:00Z"}
+    - {id: e178, event: trial_ended, person: u054, ts: "2026-09-18T10:21:00Z"}
+    - {id: e179, event: session_started, person: u001, ts: "2026-09-18T10:53:00Z"}
+    - {id: e180, event: signed_up, person: u105, ts: "2026-09-18T11:10:00Z", properties: {plan: starter, email_domain: qa-auto.example}}
+    - {id: e181, event: trial_ended, person: u110, ts: "2026-09-18T18:13:00Z"}
+    - {id: e182, event: session_started, person: u010, ts: "2026-09-19T00:59:00Z"}
+    - {id: e183, event: trial_ended, person: u047, ts: "2026-09-19T07:14:00Z"}
+    - {id: e184, event: trial_ended, person: u074, ts: "2026-09-19T08:30:00Z"}
+    - {id: e185, event: signed_up, person: u077, ts: "2026-09-19T10:20:00Z", properties: {plan: team, email_domain: jade.example}}
+    - {id: e186, event: signed_up, person: u062, ts: "2026-09-19T16:41:00Z", properties: {plan: starter, email_domain: fable.example}}
+    - {id: e187, event: signed_up, person: u111, ts: "2026-09-19T17:38:00Z", properties: {plan: business, email_domain: brightline.example}}
+    - {id: e188, event: session_started, person: u110, ts: "2026-09-19T21:13:00Z"}
+    - {id: e189, event: signed_up, person: u065, ts: "2026-09-20T06:44:00Z", properties: {plan: starter, email_domain: ion.example}}
+    - {id: e190, event: session_started, person: u070, ts: "2026-09-20T15:23:00Z"}
+    - {id: e191, event: signed_up, person: u098, ts: "2026-09-20T16:59:00Z", properties: {plan: team, email_domain: kitebase.test}}
+    - {id: e192, event: session_started, person: u062, ts: "2026-09-20T18:41:00Z"}
+    - {id: e193, event: session_started, person: u112, ts: "2026-09-20T22:20:00Z"}
+    - {id: e194, event: trial_ended, person: u069, ts: "2026-09-21T09:10:00Z"}
+    - {id: e195, event: session_started, person: u068, ts: "2026-09-21T15:12:00Z"}
+    - {id: e196, event: trial_ended, person: u076, ts: "2026-09-21T16:58:00Z"}
+    - {id: e197, event: session_started, person: u033, ts: "2026-09-22T00:47:00Z"}
+    - {id: e198, event: trial_ended, person: u055, ts: "2026-09-22T06:44:00Z"}
+    - {id: e199, event: signed_up, person: u072, ts: "2026-09-22T09:54:00Z", properties: {plan: team, email_domain: elm.example}}
+    - {id: e200, event: session_started, person: u047, ts: "2026-09-22T10:14:00Z"}
+    - {id: e201, event: session_started, person: u089, ts: "2026-09-22T11:42:00Z"}
+    - {id: e202, event: trial_ended, person: u108, ts: "2026-09-22T12:02:00Z"}
+    - {id: e203, event: session_started, person: u005, ts: "2026-09-22T20:18:00Z"}
+    - {id: e204, event: signed_up, person: u049, ts: "2026-09-23T05:12:00Z", properties: {plan: starter, email_domain: birch.example}}
+    - {id: e205, event: signed_up, person: u093, ts: "2026-09-23T07:55:00Z", properties: {plan: team, email_domain: kitebase.test}}
+    - {id: e206, event: trial_ended, person: u087, ts: "2026-09-23T12:28:00Z"}
+    - {id: e207, event: trial_ended, person: u063, ts: "2026-09-23T14:34:00Z"}
+    - {id: e208, event: signed_up, person: u060, ts: "2026-09-23T20:03:00Z", properties: {plan: starter, email_domain: grove.example}}
+    - {id: e209, event: signed_up, person: u092, ts: "2026-09-24T06:53:00Z", properties: {plan: team, email_domain: kitebase.test}}
+    - {id: e210, event: signed_up, person: u103, ts: "2026-09-24T08:07:00Z", properties: {plan: starter, email_domain: qa-auto.example}}
+    - {id: e211, event: signed_up, person: u048, ts: "2026-09-24T08:14:00Z", properties: {plan: starter, email_domain: dune.example}}
+    - {id: e212, event: trial_ended, person: u090, ts: "2026-09-24T11:31:00Z"}
+    - {id: e213, event: trial_ended, person: u094, ts: "2026-09-24T13:06:00Z"}
+    - {id: e214, event: session_started, person: u105, ts: "2026-09-24T13:10:00Z"}
+    - {id: e215, event: signed_up, person: u106, ts: "2026-09-24T20:10:00Z", properties: {plan: starter, email_domain: qa-auto.example}}
+    - {id: e216, event: trial_ended, person: u109, ts: "2026-09-25T06:01:00Z"}
+    - {id: e217, event: trial_ended, person: u075, ts: "2026-09-25T06:12:00Z"}
+    - {id: e218, event: signed_up, person: u097, ts: "2026-09-25T11:45:00Z", properties: {plan: team, email_domain: kitebase.test}}
+    - {id: e219, event: trial_ended, person: u095, ts: "2026-09-25T11:50:00Z"}
+    - {id: e220, event: signed_up, person: u096, ts: "2026-09-25T14:34:00Z", properties: {plan: team, email_domain: kitebase.test}}
+    - {id: e221, event: trial_ended, person: u067, ts: "2026-09-25T16:30:00Z"}
+    - {id: e222, event: signed_up, person: u083, ts: "2026-09-26T07:36:00Z", properties: {plan: business, email_domain: fable.example}}
+    - {id: e223, event: trial_ended, person: u082, ts: "2026-09-26T07:39:00Z"}
+    - {id: e224, event: session_started, person: u069, ts: "2026-09-26T12:10:00Z"}
+    - {id: e225, event: trial_ended, person: u053, ts: "2026-09-26T19:29:00Z"}
+    - {id: e226, event: session_started, person: u067, ts: "2026-09-26T19:30:00Z"}
+    - {id: e227, event: signed_up, person: u066, ts: "2026-09-26T20:18:00Z", properties: {plan: starter, email_domain: loom.example}}
+    - {id: e228, event: signed_up, person: u085, ts: "2026-09-27T06:18:00Z", properties: {plan: business, email_domain: fable.example}}
+    - {id: e229, event: trial_ended, person: u064, ts: "2026-09-27T06:57:00Z"}
+    - {id: e230, event: signed_up, person: u061, ts: "2026-09-27T12:54:00Z", properties: {plan: starter, email_domain: koi.example}}
+    - {id: e231, event: session_started, person: u054, ts: "2026-09-27T13:21:00Z"}
+    - {id: e232, event: signed_up, person: u051, ts: "2026-09-27T14:28:00Z", properties: {plan: starter, email_domain: koi.example}}
+    - {id: e233, event: session_started, person: u060, ts: "2026-09-27T22:03:00Z"}
+    - {id: e234, event: session_started, person: u106, ts: "2026-09-27T22:10:00Z"}
+    - {id: e235, event: trial_ended, person: u101, ts: "2026-09-28T05:21:00Z"}
+    - {id: e236, event: signed_up, person: u059, ts: "2026-09-28T07:58:00Z", properties: {plan: starter, email_domain: dune.example}}
+    - {id: e237, event: signed_up, person: u058, ts: "2026-09-28T08:26:00Z", properties: {plan: starter, email_domain: elm.example}}
+    - {id: e238, event: trial_ended, person: u073, ts: "2026-09-28T10:50:00Z"}
+    - {id: e239, event: signed_up, person: u104, ts: "2026-09-28T12:40:00Z", properties: {plan: starter, email_domain: qa-auto.example}}
+    - {id: e240, event: trial_ended, person: u084, ts: "2026-09-28T15:27:00Z"}
+    - {id: e241, event: trial_ended, person: u071, ts: "2026-09-28T18:42:00Z"}
+    - {id: e242, event: signed_up, person: u050, ts: "2026-09-28T19:20:00Z", properties: {plan: starter, email_domain: koi.example}}
+    - {id: e243, event: trial_ended, person: u107, ts: "2026-09-28T20:12:00Z"}
+    - {id: e244, event: session_started, person: u066, ts: "2026-09-28T22:18:00Z"}
+    - {id: e245, event: trial_ended, person: u091, ts: "2026-09-29T10:00:00Z"}
+    - {id: e246, event: session_started, person: u108, ts: "2026-09-29T15:02:00Z"}
+    - {id: e247, event: signed_up, person: u057, ts: "2026-09-30T06:26:00Z", properties: {plan: starter, email_domain: loom.example}}
+    - {id: e248, event: session_started, person: u109, ts: "2026-09-30T09:01:00Z"}
+    - {id: e249, event: trial_ended, person: u052, ts: "2026-09-30T10:29:00Z"}
+    - {id: e250, event: signed_up, person: u056, ts: "2026-09-30T12:38:00Z", properties: {plan: starter, email_domain: grove.example}}
+    - {id: e251, event: trial_ended, person: u078, ts: "2026-09-30T20:27:00Z"}
+    - {id: e252, event: trial_ended, person: u086, ts: "2026-10-01T11:43:00Z"}
+    - {id: e253, event: plan_changed, person: u049, ts: "2026-10-02T05:12:00Z", properties: {from: starter, to: team}}
+    - {id: e254, event: session_started, person: u082, ts: "2026-10-02T10:39:00Z"}
+    - {id: e255, event: trial_ended, person: u105, ts: "2026-10-02T11:10:00Z"}
+    - {id: e256, event: session_started, person: u090, ts: "2026-10-02T14:31:00Z"}
+    - {id: e257, event: plan_changed, person: u048, ts: "2026-10-03T08:14:00Z", properties: {from: starter, to: team}}
+    - {id: e258, event: trial_ended, person: u077, ts: "2026-10-03T10:20:00Z"}
+    - {id: e259, event: trial_ended, person: u062, ts: "2026-10-03T16:41:00Z"}
+    - {id: e260, event: trial_ended, person: u111, ts: "2026-10-03T17:38:00Z"}
+    - {id: e261, event: session_started, person: u053, ts: "2026-10-03T22:29:00Z"}
+    - {id: e262, event: trial_ended, person: u065, ts: "2026-10-04T06:44:00Z"}
+    - {id: e263, event: session_started, person: u091, ts: "2026-10-04T13:00:00Z"}
+    - {id: e264, event: session_started, person: u074, ts: "2026-10-04T13:30:00Z"}
+    - {id: e265, event: trial_ended, person: u098, ts: "2026-10-04T16:59:00Z"}
+    - {id: e266, event: session_started, person: u052, ts: "2026-10-05T13:29:00Z"}
+    - {id: e267, event: session_started, person: u095, ts: "2026-10-05T14:50:00Z"}
+    - {id: e268, event: trial_ended, person: u072, ts: "2026-10-06T09:54:00Z"}
+    - {id: e269, event: session_started, person: u094, ts: "2026-10-06T16:06:00Z"}
+    - {id: e270, event: trial_ended, person: u049, ts: "2026-10-07T05:12:00Z"}
+    - {id: e271, event: trial_ended, person: u093, ts: "2026-10-07T07:55:00Z"}
+    - {id: e272, event: session_started, person: u055, ts: "2026-10-07T11:44:00Z"}
+    - {id: e273, event: trial_ended, person: u060, ts: "2026-10-07T20:03:00Z"}
+    - {id: e274, event: trial_ended, person: u092, ts: "2026-10-08T06:53:00Z"}
+    - {id: e275, event: trial_ended, person: u103, ts: "2026-10-08T08:07:00Z"}
+    - {id: e276, event: trial_ended, person: u048, ts: "2026-10-08T08:14:00Z"}
+    - {id: e277, event: session_started, person: u056, ts: "2026-10-08T14:38:00Z"}
+    - {id: e278, event: trial_ended, person: u106, ts: "2026-10-08T20:10:00Z"}
+    - {id: e279, event: session_started, person: u071, ts: "2026-10-08T21:42:00Z"}
+    - {id: e280, event: trial_ended, person: u097, ts: "2026-10-09T11:45:00Z"}
+    - {id: e281, event: trial_ended, person: u096, ts: "2026-10-09T14:34:00Z"}
+    - {id: e282, event: trial_ended, person: u083, ts: "2026-10-10T07:36:00Z"}
+    - {id: e283, event: trial_ended, person: u066, ts: "2026-10-10T20:18:00Z"}
+    - {id: e284, event: session_started, person: u111, ts: "2026-10-10T20:38:00Z"}
+    - {id: e285, event: trial_ended, person: u085, ts: "2026-10-11T06:18:00Z"}
+    - {id: e286, event: trial_ended, person: u061, ts: "2026-10-11T12:54:00Z"}
+    - {id: e287, event: trial_ended, person: u051, ts: "2026-10-11T14:28:00Z"}
+    - {id: e288, event: session_started, person: u098, ts: "2026-10-11T19:59:00Z"}
+    - {id: e289, event: trial_ended, person: u059, ts: "2026-10-12T07:58:00Z"}
+    - {id: e290, event: trial_ended, person: u058, ts: "2026-10-12T08:26:00Z"}
+    - {id: e291, event: trial_ended, person: u104, ts: "2026-10-12T12:40:00Z"}
+    - {id: e292, event: trial_ended, person: u050, ts: "2026-10-12T19:20:00Z"}
+    - {id: e293, event: session_started, person: u093, ts: "2026-10-13T10:55:00Z"}
+    - {id: e294, event: session_started, person: u097, ts: "2026-10-13T14:45:00Z"}
+    - {id: e295, event: session_started, person: u073, ts: "2026-10-13T15:50:00Z"}
+    - {id: e296, event: session_started, person: u084, ts: "2026-10-13T20:27:00Z"}
+    - {id: e297, event: trial_ended, person: u057, ts: "2026-10-14T06:26:00Z"}
+    - {id: e298, event: trial_ended, person: u056, ts: "2026-10-14T12:38:00Z"}
+    - {id: e299, event: session_started, person: u049, ts: "2026-10-16T08:12:00Z"}
+    - {id: e300, event: session_started, person: u092, ts: "2026-10-17T09:53:00Z"}
+    - {id: e301, event: session_started, person: u096, ts: "2026-10-18T17:34:00Z"}
+    - {id: e302, event: session_started, person: u048, ts: "2026-10-20T11:14:00Z"}
+    - {id: e303, event: session_started, person: u083, ts: "2026-10-21T10:36:00Z"}
+    - {id: e304, event: session_started, person: u072, ts: "2026-10-21T14:54:00Z"}
+    - {id: e305, event: session_started, person: u051, ts: "2026-10-22T17:28:00Z"}
+    - {id: e306, event: session_started, person: u050, ts: "2026-10-24T22:20:00Z"}
+    - {id: e307, event: session_started, person: u056, ts: "2026-10-29T18:38:00Z"}

@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-weekly-metrics-report-from-template"
+version = 2
+area = "saas"
+summary = "Write this week's Notion metrics report in last week's format for 5-11 Oct (Pacific), from PostHog, Stripe net of refunds and Zendesk past the first 50 tickets, applying two definition changes the template footer does not show (sandbox revenue in a page comment, spam tickets in Slack with a later correction)"
+requires = ["mcp", "world_clock"]
+services = ["wiki", "analytics", "payments", "helpdesk"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "2bb747bb-467b-43ca-ad8b-5fe89baa9bf7"

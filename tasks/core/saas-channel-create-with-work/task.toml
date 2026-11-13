@@ -1,0 +1,11 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-channel-create-with-work"
+version = 1
+area = "saas"
+summary = "Create the requested channel and start its work there"
+requires = ['mcp']
+provenance = "converted"
+legacy_ids = ["channel_work_lands_in_the_named_other_channel"]
+canary = "a330c61d-b9ce-4bb5-b1e8-99b043dab59e"

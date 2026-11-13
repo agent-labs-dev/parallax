@@ -1,0 +1,29 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: user_clock_now, args: {}}
+      - {tool: wiki_search, args: {query: Weekly metrics}}
+      - {tool: wiki_get_page, args: {id: pg_w39}}
+      - {tool: chat_list_channels, args: {}}
+      - {tool: chat_read_channel, args: {channel: metrics}}
+      - {tool: analytics_list_insights, args: {}}
+      - {tool: analytics_trend, args: {event: signed_up, date_from: "2026-10-05", date_to: "2026-10-11"}}
+      - {tool: analytics_run_insight, args: {id: ins_act7, date_from: "2026-10-05", date_to: "2026-10-11"}}
+      - {tool: analytics_run_insight, args: {id: ins_wau, date_from: "2026-10-05", date_to: "2026-10-11"}}
+      - {tool: payments_list_charges, args: {}}
+      - {tool: payments_list_refunds, args: {}}
+      - {tool: payments_list_customers, args: {}}
+      - {tool: helpdesk_list_tickets, args: {limit: 100}}
+      - tool: wiki_create_page
+        args:
+          title: "Weekly metrics - w/c 5 Oct 2026"
+          space: Metrics
+          parent: pg_metrics
+          body: "## Headline\nRevenue up again, led by annual plans; activation slipped to 40%.\n\n## Growth\n- Signups: 40\n- Activation (7-day): 40.0% (16/40)\n- Weekly active users: 77\n\n## Revenue\n- Net new revenue: $10,414.00 (gross $10,633.00, refunds $219.00)\n\n## Support\n- Tickets opened: 18\n\n## Notes\n- Refunds: a duplicate $99 charge (ch_034) and a $120 partial credit on a 30 Sep charge (ch_008).\n- Revenue leaves out $1,138 of card tests on the internal sandbox (ops@tallyhq.test), per Dana.\n- Tickets leave out 3 [Spam] tickets; automatic replies still count, per Rosa.\n- Sunday-night signups have not had their full 7 days to activate yet.\n\n---\nHow we compute: the week runs Monday to Sunday, Pacific time. Signups = PostHog signed_up events. Activation = PostHog insight \"Activation (7-day)\" over the week's signups. WAU = PostHog insight \"Weekly active users\" for the week. Net new revenue = Stripe charges created in the week, except those billed to a tallyhq.test address, minus refunds issued in the week. Tickets = Zendesk tickets created in the week, any status, except [Spam] tickets."
+    answer: |-
+      Done: "Weekly metrics - w/c 5 Oct 2026" is up in Notion under Metrics (https://wiki.example/pages/page_1), same sections as last week, covering Monday 5 to Sunday 11 October, Pacific time.
+      - Signups: 40
+      - Activation (7-day): 40.0% (16/40)
+      - Weekly active users: 77
+      - Net new revenue: $10,414.00 (gross $10,633.00 less $219.00 refunded; $1,138 of internal sandbox charges left out, per Dana's comment)
+      - Tickets opened: 18 (3 spam tickets left out; automatic replies still count, per Rosa's correction in #metrics)

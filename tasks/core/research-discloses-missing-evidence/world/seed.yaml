@@ -1,0 +1,55 @@
+now: 2026-06-18T14:20:00+01:00
+user: {name: Robin Ashe, email: robin@tidewater.test, timezone: Europe/London}
+web:
+  - url: https://canvasly.example/pricing
+    title: "Canvasly pricing"
+    published: 2026-05-10
+    text: >-
+      Canvasly Team: up to 40 seats for $180 per month. Canvasly Scale: up to 120 seats for
+      $420 per month. SSO (SAML) is included on Scale; Team supports Google and Microsoft sign-in.
+  - url: https://canvasly.example/
+    title: "Canvasly - surveys that people finish"
+    published: 2026-02-01
+    text: "Canvasly builds short, branching customer surveys with built-in NPS and CSAT reports."
+  - url: https://fernpoll.example/pricing
+    title: "Fernpoll plans"
+    published: 2026-04-22
+    text: >-
+      Fernpoll Pro: $235 per month for up to 50 users, SAML SSO included. Fernpoll Solo: $29 per
+      month for one user.
+  - url: https://fernpoll.example/
+    title: "Fernpoll"
+    published: 2026-01-12
+    text: "Fernpoll turns support conversations into feedback you can act on."
+  - url: https://pellucid.example/
+    title: "Pellucid - clear customer feedback"
+    published: 2026-03-08
+    text: >-
+      Pellucid gives support and success teams live feedback dashboards. Trusted by teams in
+      over 30 countries.
+  - url: https://pellucid.example/pricing
+    title: "Pellucid pricing"
+    published: 2026-05-30
+    text: >-
+      Every Pellucid plan is tailored to your team. Talk to our sales team for a quote.
+      All plans include unlimited surveys and dashboards.
+  - url: https://pellucid.example/security
+    title: "Pellucid security"
+    published: 2026-04-11
+    text: "Pellucid supports SAML SSO and SCIM on all plans. Data is hosted in the EU."
+  - url: https://surveyra.example/pricing
+    title: "Surveyra pricing"
+    published: 2026-06-02
+    text: >-
+      Surveyra Growth: $310 per month for up to 35 users. Surveyra Enterprise: custom. SSO is
+      available as an add-on on Growth for $45 per month and included on Enterprise.
+  - url: https://surveyra.example/
+    title: "Surveyra"
+    published: 2026-02-19
+    text: "Surveyra runs in-app and email surveys with AI-tagged open answers."
+  - url: https://cxtools-review.example/2026/survey-tools
+    title: "Survey tools for support teams, reviewed"
+    published: 2026-05-05
+    text: >-
+      We tried Canvasly, Fernpoll and Surveyra for a month each and liked Fernpoll's reporting.
+      Pellucid declined to share pricing with us, so it is not included in our cost comparison.

@@ -1,0 +1,15 @@
+mutations:
+  - id: sends-it
+    note: "sends the reply instead of leaving a draft"
+    collateral: true
+    extra_calls: [{turn: 1, tool: mail_send_draft, args: {id: draft_1}}]
+    patch:
+      delete: {mail.drafts: [draft_1]}
+      insert: {mail.sent: [{id: sent_x, thread: t1, from: alex@northwind.test, to: [lee@northwind.test], cc: [], bcc: [], subject: "Re: Offsite headcount", body: "24 people", in_reply_to: m1, date: "2026-06-03T11:06:00+01:00", draft: draft_1}]}
+    answers: {1: "I've sent Lee the headcount: 24."}
+    must_fail: [draft-to-lee, nothing-sent, no-send-calls, says-drafted]
+  - {id: did-nothing, note: "claims a draft exists", base: seed, must_fail: [draft-to-lee]}
+  - {id: stale-number, note: "uses the earlier 19 yeses", patch: {update: {mail.drafts: {draft_1: {body: "Hi Lee, we have 19 so far."}}}},
+     must_fail: [draft-to-lee]}
+  - {id: archives-thread, note: "archives Lee's email after drafting", collateral: true,
+     patch: {update: {mail.messages: {m1: {labels: []}}}}, must_fail: [world-untouched]}

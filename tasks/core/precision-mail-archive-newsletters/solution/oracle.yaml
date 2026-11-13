@@ -1,0 +1,6 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: mail_search, args: {query: newsletter, label: inbox}}
+      - {tool: mail_archive, args: {ids: [n1, n2, n3, n4]}}
+    answer: "Archived four newsletters: two BrightCart Weekly issues, the Field Notes Digest and The Tuesday Brief. I left the BrightCart order receipts and everything else in your inbox."

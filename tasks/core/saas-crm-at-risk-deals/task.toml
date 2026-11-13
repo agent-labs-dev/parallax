@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-crm-at-risk-deals"
+version = 1
+area = "saas"
+summary = "Find the stale open deals over $20k closing this quarter across two pages of a 120-deal CRM, flag them At risk and total them"
+requires = ["mcp", "world_clock"]
+services = ["tables"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "4581adac-d8a2-459b-b0af-a5690a93b31a"

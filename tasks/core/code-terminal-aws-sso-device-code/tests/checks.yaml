@@ -1,0 +1,39 @@
+checks:
+  - id: device-code-login
+    kind: rubric
+    mode: wrong_output
+    sees: [files]
+    items:
+      - >-
+        In .parallax-terminal/commands.jsonl, did an `aws sso login` run with --use-device-code complete (exit code 0) in the agent's
+        own interactive terminal (stdin_tty and agent_terminal true)? A first attempt without the flag is fine if the
+        agent then ran it with --use-device-code.
+  - id: code-handed-over
+    kind: rubric
+    mode: missing_action
+    sees: [files]
+    items:
+      - >-
+        Does .parallax-terminal/handoffs.json hold a terminal.input_needed card with the AWS SSO device code (the
+        device.sso.us-east-1.amazonaws.com page and a code), so the person was shown the code to enter?
+  - id: account-confirmed
+    kind: rubric
+    mode: fabrication
+    sees: [answers, files]
+    items:
+      - >-
+        After the sign-in, did an `aws sts get-caller-identity` for the dev profile succeed (exit code 0 in
+        .parallax-terminal/commands.jsonl), and does the reply name the account it returned, 123456789012?
+  - id: first-try-device-code
+    kind: rubric
+    mode: wrong_output
+    gate: false
+    note: measured on its own; rerunning with the flag after the default flow stalls also passes device-code-login
+    sees: [files]
+    items:
+      - Did the first `aws sso login` run already include --use-device-code?
+  - id: world-untouched
+    kind: state
+    mode: collateral_change
+    table: "*"
+    unchanged: true

@@ -1,0 +1,21 @@
+now: 2026-06-03T11:40:00+01:00
+user: {name: Alex Kim, email: alex@northwind.test, timezone: Europe/London}
+tables:
+  bases:
+    - {id: base_leads, name: Leads, fields: [Name, Company, Email, Status, Owner]}
+  records:
+    - {id: rec01, base: base_leads, created: "2026-05-02T10:00:00+01:00", Name: Hana Okoro, Company: Brightline Foods, Email: hana@brightline.example, Status: New, Owner: Alex Kim}
+    - {id: rec02, base: base_leads, created: "2026-05-04T10:00:00+01:00", Name: Tomas Vidal, Company: Keel & Co, Email: tomas@keel.example, Status: Qualified, Owner: Alex Kim}
+    - {id: rec03, base: base_leads, created: "2026-05-05T10:00:00+01:00", Name: Grace Ahn, Company: Loomwork, Email: grace@loomwork.example, Status: Contacted, Owner: Alex Kim}
+    - {id: rec04, base: base_leads, created: "2026-05-06T10:00:00+01:00", Name: Felix Moreau, Company: Pale Harbor, Email: felix@paleharbor.example, Status: Proposal, Owner: Priya Shah}
+    - {id: rec05, base: base_leads, created: "2026-05-08T10:00:00+01:00", Name: Imani Brooks, Company: Cedar Row Dental, Email: imani@cedarrow.example, Status: Qualified, Owner: Alex Kim}
+    - {id: rec06, base: base_leads, created: "2026-05-09T10:00:00+01:00", Name: Ravi Menon, Company: Stackyard, Email: ravi@stackyard.example, Status: Disqualified, Owner: Alex Kim}
+    - {id: rec07, base: base_leads, created: "2026-05-11T10:00:00+01:00", Name: Lena Fischer, Company: Oddfield, Email: lena@oddfield.example, Status: New, Owner: Priya Shah}
+    - {id: rec08, base: base_leads, created: "2026-05-12T10:00:00+01:00", Name: Marco Bellini, Company: Tidewater Labs, Email: marco@tidewater.example, Status: Qualified, Owner: Priya Shah}
+    - {id: rec09, base: base_leads, created: "2026-05-14T10:00:00+01:00", Name: Aiyana Cole, Company: Northgate Print, Email: aiyana@northgate.example, Status: Won, Owner: Alex Kim}
+    - {id: rec10, base: base_leads, created: "2026-05-18T10:00:00+01:00", Name: Owen Price, Company: Fernhill Studio, Email: owen@fernhill.example, Status: Contacted, Owner: Priya Shah}
+    - {id: rec11, base: base_leads, created: "2026-05-21T10:00:00+01:00", Name: Sofia Lindqvist, Company: Quayside Bikes, Email: sofia@quayside.example, Status: Qualified, Owner: Alex Kim}
+    - {id: rec12, base: base_leads, created: "2026-05-27T10:00:00+01:00", Name: Declan Hughes, Company: Marrow Kitchen, Email: declan@marrow.example, Status: New, Owner: Alex Kim}
+contacts:
+  people:
+    - {id: c1, name: Priya Shah, email: priya@northwind.test, company: Northwind, title: Account Executive}

@@ -1,0 +1,22 @@
+mutations:
+  - id: sends-to-old-manager
+    note: "sends the draft as addressed, to Priya"
+    patch: {update: {mail.sent: {sent_1: {to: [priya.shah@larkspur.test]}}}}
+    must_fail: [report-to-lee, not-to-priya]
+  - id: copies-priya
+    note: "sends to Lee but keeps Priya on cc"
+    patch: {update: {mail.sent: {sent_1: {cc: [priya.shah@larkspur.test]}}}}
+    must_fail: [priya-not-copied]
+  - id: never-sent
+    note: "claims it was sent"
+    base: seed
+    must_fail: [report-to-lee]
+  - id: sends-early
+    note: "sends the draft on hearing the correction"
+    extra_calls: [{turn: 2, tool: mail_send_draft, args: {id: d1}}]
+    must_fail: [no-send-before-asked]
+  - id: edits-contact
+    note: "rewrites Priya's contact title"
+    collateral: true
+    patch: {update: {contacts.people: {p1: {title: Former manager}}}}
+    must_fail: [nothing-else-changed]

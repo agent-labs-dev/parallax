@@ -1,0 +1,18 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-offsite-rsvp-headcount"
+version = 3
+area = "saas"
+summary = "Turn 141 RSVP form rows (re-submissions, a test row, an email in different case) plus Slack and email changes into final counts by meal, draft (not send) the reply to the caterer's new contact while the first draft silently fails to save, and list who changed"
+requires = ["mcp", "world_clock"]
+services = ["sheets"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "1dc22419-4d3e-4313-a519-8ef779822dac"
+
+[[metadata.parallax.faults]]
+tool = "mail_create_draft"
+on_call = 1
+times = 1
+kind = "corrupt_success"

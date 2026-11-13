@@ -1,0 +1,19 @@
+now: 2026-06-03T08:50:00+01:00
+user: {name: Alex Kim, email: alex@northwind.test, timezone: Europe/London}
+calendar:
+  calendars:
+    - {id: primary, name: Alex Kim, owner: alex@northwind.test, timezone: Europe/London}
+  events:
+    - {id: e1, calendar: primary, title: "Offsite planning call", start: "2026-06-09T11:00:00+01:00", end: "2026-06-09T11:30:00+01:00",
+       tz: Europe/London, attendees: [sam@northwind.test, lee@northwind.test], organizer: sam@northwind.test, rrule: null,
+       exceptions: {}, status: confirmed, description: "Agenda and logistics for the team offsite", location: ""}
+    - {id: e2, calendar: primary, title: "Team offsite, Lisbon", start: "2026-06-18T09:00:00+01:00", end: "2026-06-19T17:00:00+01:00",
+       tz: Europe/London, attendees: [sam@northwind.test, lee@northwind.test, priya@northwind.test], organizer: sam@northwind.test, rrule: null,
+       exceptions: {}, status: confirmed, description: "Two days of planning and team time", location: "Lisbon"}
+    - {id: e3, calendar: primary, title: "Standup", start: "2026-06-01T09:30:00+01:00", end: "2026-06-01T09:45:00+01:00",
+       tz: Europe/London, attendees: [sam@northwind.test], organizer: sam@northwind.test, rrule: "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR",
+       exceptions: {}, status: confirmed, description: "", location: ""}
+scheduler:
+  jobs:
+    - {id: job_1, kind: cron, spec: "0 8 * * 1", tz: Europe/London, title: "Monday inbox digest", instruction: "Summarise unread mail",
+       active: true, created: "2026-04-01T09:00:00+01:00"}

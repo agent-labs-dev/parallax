@@ -1,0 +1,35 @@
+now: 2026-06-03T09:12:00+01:00
+user: {name: Jordan Reyes, email: jordan@lumenhq.test, timezone: Europe/London}
+mail:
+  labels:
+    - {id: l1, name: vip}
+    - {id: l2, name: customers}
+  messages:
+    - {id: m1, thread: t1, from: hana@kestrelbank.example, to: [jordan@lumenhq.test], cc: [],
+       subject: "Renewal blocked on SSO bug", date: "2026-06-02T15:20:00+01:00", labels: [inbox, vip, customers],
+       body: "Our renewal is on hold until the SSO login bug is fixed. Can you give me a timeline?"}
+    - {id: m2, thread: t2, from: omar@driftwood.example, to: [jordan@lumenhq.test], cc: [],
+       subject: "Invoice question", date: "2026-06-02T11:02:00+01:00", labels: [inbox, customers],
+       body: "Our May invoice seems to include two extra seats. Could you check?"}
+    - {id: m3, thread: t3, from: grace@pinecone-health.example, to: [jordan@lumenhq.test], cc: [],
+       subject: "Data export timing out", date: "2026-06-01T17:45:00+01:00", labels: [inbox, vip, customers],
+       body: "Our weekly export has timed out three times this week. This is urgent for our board pack."}
+    - {id: m4, thread: t4, from: lucas@brightpath.example, to: [jordan@lumenhq.test], cc: [],
+       subject: "Feature request: custom fields", date: "2026-06-01T09:30:00+01:00", labels: [inbox, customers],
+       body: "Any plans to support custom fields on contacts?"}
+    - {id: m5, thread: t5, from: ines@quarry-co.example, to: [jordan@lumenhq.test], cc: [],
+       subject: "Training session", date: "2026-05-29T14:10:00+01:00", labels: [inbox, customers],
+       body: "Could we book a training session for our new starters next month?"}
+    - {id: m6, thread: t6, from: tom@saltmarsh.example, to: [jordan@lumenhq.test], cc: [],
+       subject: "API rate limits", date: "2026-05-28T16:00:00+01:00", labels: [inbox, customers],
+       body: "We keep hitting 429s on the reporting API. Is there a higher tier?"}
+    - {id: m7, thread: t7, from: nadia@orchardlabs.example, to: [jordan@lumenhq.test], cc: [],
+       subject: "Onboarding call", date: "2026-05-27T10:00:00+01:00", labels: [inbox, vip, customers],
+       body: "Can we move our onboarding call to next Tuesday?"}
+    - {id: m8, thread: t7, from: jordan@lumenhq.test, to: [nadia@orchardlabs.example], cc: [],
+       subject: "Re: Onboarding call", date: "2026-05-27T11:30:00+01:00", labels: [sent],
+       body: "Tuesday works - I've moved the invite."}
+  sent:
+    - {id: s1, thread: t7, from: jordan@lumenhq.test, to: [nadia@orchardlabs.example], cc: [], bcc: [],
+       subject: "Re: Onboarding call", in_reply_to: m7, date: "2026-05-27T11:30:00+01:00", draft: null,
+       body: "Tuesday works - I've moved the invite."}

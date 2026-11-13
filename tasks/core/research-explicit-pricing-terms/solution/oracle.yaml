@@ -1,0 +1,51 @@
+steps:
+  turn-01:
+    calls:
+    - tool: web_fetch
+      args:
+        url: https://larkspur.example/pricing
+    - tool: web_fetch
+      args:
+        url: https://larkspur.example/security
+    - tool: web_fetch
+      args:
+        url: https://tallyho.example/pricing
+    - tool: web_fetch
+      args:
+        url: https://tallyho.example/trust
+    - tool: web_fetch
+      args:
+        url: https://quillmark.example/pricing
+    - tool: web_fetch
+      args:
+        url: https://brisa.example/pricing
+    - tool: web_fetch
+      args:
+        url: https://brisa.example/security
+    answer: 'For 40 people:
+
+
+      | Vendor | Plan | Price / month | SAML SSO |
+
+      |---|---|---|---|
+
+      | Larkspur | Team 50 | $290 | Included on every plan |
+
+      | Tallyho | Team (50 seats) | $345 | Included on Team |
+
+      | Quillmark | Company (60) | $410 | Paid add-on, +$60/month |
+
+      | Brisa | Standard (50) | $265 | Enterprise only ($520/month) |
+
+
+      Sources: https://larkspur.example/pricing, https://larkspur.example/security,
+
+      https://tallyho.example/pricing, https://tallyho.example/trust,
+
+      https://quillmark.example/pricing, https://brisa.example/pricing, https://brisa.example/security
+
+
+      Pricing terms: All four vendors explicitly state per-workspace prices, billed
+      monthly.
+
+      '

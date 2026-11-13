@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "error": {
+    "type": "cli_error",
+    "message": "The selected model was not found by the provider. Check the model id or choose a different model."
+  }
+}
+

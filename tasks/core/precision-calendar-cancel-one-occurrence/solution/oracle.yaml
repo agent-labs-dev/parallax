@@ -1,0 +1,6 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: calendar_list_events, args: {start: "2026-06-08T00:00:00+01:00", end: "2026-06-13T00:00:00+01:00", query: Jo}}
+      - {tool: calendar_cancel_occurrence, args: {event_id: e1, date: "2026-06-09"}}
+    answer: "Cancelled your 1:1 with Jo on Tuesday 9 June. The weekly series carries on as normal from the 16th."

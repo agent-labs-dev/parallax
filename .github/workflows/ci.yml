@@ -1,0 +1,250 @@
+name: ci
+
+# Offline by construction: no secrets, no API keys, no network beyond package installs.
+# Semantic controls require Jev/LLM credentials and run separately; this gate validates task structure only.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push supersedes a PR run; main runs always finish, since they seed the caches PRs restore.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  UV_PYTHON: "3.13"
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      UV_CACHE_DIR: /tmp/uv-cache
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          enable-cache: false
+      # setup-uv's own cache key has no fallback; this one falls back to the newest entry when uv.lock changes.
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: uv-cache
+        with:
+          path: ${{ env.UV_CACHE_DIR }}
+          key: uv-full-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+          restore-keys: uv-full-${{ runner.os }}-
+      - run: uv sync --locked
+      # Only this job saves, and it saves before its checks so a lint failure still keeps the build.
+      # `--ci` drops wheels PyPI can serve again and keeps the ones uv compiled.
+      - if: steps.uv-cache.outputs.cache-hit != 'true'
+        run: |
+          uv cache prune --ci
+          rm -rf "$UV_CACHE_DIR/git-v0"
+      - if: steps.uv-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.UV_CACHE_DIR }}
+          key: ${{ steps.uv-cache.outputs.cache-primary-key }}
+      - run: uv run ruff format --check parallax tests/core tests/world tests/harnesses scripts/scan_public.py ci/rules/run.py ci/rules/checks
+      - run: uv run ruff check --output-format=github parallax tests/core tests/world tests/harnesses scripts/scan_public.py ci/rules/run.py ci/rules/checks
+      - run: uv run ty check --error-on-warning parallax
+      # Task fixtures, staged copies and spikes are not this repository's scripts.
+      - run: git ls-files -z -- '*.sh' ':!:tasks' | xargs -0r uvx --from shellcheck-py==0.11.0.1 shellcheck --severity=warning
+      - name: Every relative link in the docs resolves
+        run: |
+          python3 - <<'EOF'
+          import re
+          import sys
+          from pathlib import Path
+
+          LINK = re.compile(r"(?<!!)\[[^\]]*\]\(([^)\s]+)\)|<img[^>]*\ssrc=\"([^\"]+)\"")
+          FENCE = re.compile(r"^```.*?^```", re.S | re.M)
+
+
+          def slug(heading: str) -> str:
+              text = re.sub(r"[^\w\- ]", "", heading.strip().lower().replace("`", ""))
+              return text.replace(" ", "-")
+
+
+          def anchors(path: Path) -> set[str]:
+              text = FENCE.sub("", path.read_text(encoding="utf-8"))
+              return {slug(m) for m in re.findall(r"^#{1,6}\s+(.+?)\s*#*$", text, re.M)}
+
+
+          files = [Path("README.md"), *sorted(Path("docs").glob("*.md")), Path("review/drafts/README.md"),
+                   Path("calibration/README.md"), Path(".agents/skills/task-authoring/SKILL.md")]
+          bad = []
+          for f in files:
+              body = FENCE.sub("", f.read_text(encoding="utf-8"))
+              for m in LINK.finditer(body):
+                  target = m.group(1) or m.group(2)
+                  if re.match(r"^[a-z][a-z0-9+.-]*:", target):
+                      continue
+                  rel, _, frag = target.partition("#")
+                  dest = (f.parent / rel).resolve() if rel else f.resolve()
+                  if not dest.exists():
+                      bad.append(f"{f}: {target} (missing {rel})")
+                  elif frag and dest.suffix == ".md" and frag not in anchors(dest):
+                      bad.append(f"{f}: {target} (no heading #{frag})")
+          print("\n".join(bad) or f"{len(files)} files: every relative link resolves")
+          sys.exit(1 if bad else 0)
+          EOF
+
+  # Two shards whose union is every testpath: one takes tests/core, the other everything else, so a new
+  # test directory lands in the second shard rather than in neither.
+  test-shard:
+    name: test (${{ matrix.shard.name }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      UV_CACHE_DIR: /tmp/uv-cache
+    strategy:
+      fail-fast: false
+      matrix:
+        shard:
+          - name: core
+            args: tests/core
+          # `--ignore` cannot drop a directory named in testpaths; `--ignore-glob` can.
+          - name: rest
+            args: --ignore-glob=tests/core/*
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          enable-cache: false
+      # The lint job's cache, restore only; see there.
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: uv-cache
+        with:
+          path: ${{ env.UV_CACHE_DIR }}
+          key: uv-full-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+          restore-keys: uv-full-${{ runner.os }}-
+      # docker-marked tests skip themselves when no daemon answers.
+      - run: uv sync --locked
+      - env:
+          SHARD_ARGS: ${{ matrix.shard.args }}
+        # The arguments split on spaces and are never globbed: pytest expands its own patterns.
+        run: |
+          set -f
+          # shellcheck disable=SC2086
+          uv run pytest -q -n auto --dist worksteal $SHARD_ARGS
+
+  # One stable `test` check for required-check settings, whatever the shard layout.
+  test:
+    name: test
+    if: always()
+    needs: test-shard
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - run: test "$RESULT" = success
+        env:
+          RESULT: ${{ needs.test-shard.result }}
+
+  controls:
+    name: controls
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Task schemas and evidence contracts (no quality grading)
+        run: uv run parallax check core conformance --lint-only
+
+
+  public-scan:
+    name: public-scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      # The private checkout exports its allowlist and scans the result; the exported public repo has
+      # no export script and scans itself. The wheel and docker context are scanned too: they are what ships.
+      - name: Export dry run and scan
+        env:
+          # The private deny list (people, hosts, customers) lives in this secret rather than the tree; forks and
+          # pull requests from them have no secret and scan with the built-in rules, saying so.
+          PUBLIC_SCAN_DENYLIST: ${{ secrets.PUBLIC_SCAN_DENYLIST }}
+        run: |
+          if [ -n "$PUBLIC_SCAN_DENYLIST" ]; then
+            printf '%s\n' "$PUBLIC_SCAN_DENYLIST" > scripts/denylist.txt
+          fi
+          if [ -f scripts/export_public.sh ]; then
+            scripts/export_public.sh --no-commit "$RUNNER_TEMP/export"
+            root="$RUNNER_TEMP/export"
+          else
+            root=.
+          fi
+          uv run python scripts/scan_public.py "$root" --wheel --docker-context
+
+  rules:
+    name: repository rules
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          enable-cache: false
+      # The repo's own rules in ci/rules (see its run.py): stdlib only, so no project install.
+      - run: uv run --no-project python ci/rules/run.py --test
+      - run: uv run --no-project python ci/rules/run.py
+
+  workflows:
+    name: workflows
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          enable-cache: false
+      - name: Check workflow syntax
+        run: uvx --from actionlint-py==1.7.12.24 actionlint -color
+      - name: Check workflow security
+        run: uvx zizmor==1.30.1 --offline --pedantic .github/workflows
+
+  secrets:
+    name: secrets
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Scan repository history
+        env:
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          curl --fail --silent --show-error --location \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \
+            --output "$RUNNER_TEMP/gitleaks.tar.gz"
+          printf '%s  %s\n' "$GITLEAKS_SHA256" "$RUNNER_TEMP/gitleaks.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
+          "$RUNNER_TEMP/gitleaks" git --redact --no-banner --log-opts="--all" .

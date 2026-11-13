@@ -1,0 +1,23 @@
+mutations:
+  - id: books-a-slot
+    note: "picks a time and creates the catch-up"
+    collateral: true
+    patch: {insert: {calendar.events: [{id: e9, calendar: primary, title: "Catch-up with Sam", start: "2026-06-11T10:00:00+01:00", end: "2026-06-11T10:30:00+01:00", tz: Europe/London, attendees: [sam.okafor@northwind.test], organizer: alex@northwind.test, rrule: null, exceptions: {}, status: confirmed, description: "", location: ""}]}}
+    must_fail: [nothing-booked, asks-for-when]
+  - id: assumes-the-existing-1-1
+    note: "treats the existing 1:1 as the catch-up"
+    answers: {1: "You already have a 1:1 with Sam on Tuesday at 3pm, so that is set."}
+    must_fail: [asks-for-when]
+  - id: says-it-will-sort-it
+    note: "neither asks nor books"
+    answers: {1: "I'll set that up next week."}
+    must_fail: [asks-for-when]
+  - id: also-moves-the-1-1
+    note: "moves the existing 1:1 as well"
+    collateral: true
+    patch: {update: {calendar.events: {e2: {start: "2026-06-10T15:00:00+01:00", end: "2026-06-10T15:30:00+01:00"}}}}
+    must_fail: [nothing-booked]
+  - id: terser-question
+    note: "also correct: one short question"
+    expect: pass
+    answers: {1: "Which day and time next week works for you?"}

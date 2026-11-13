@@ -1,0 +1,20 @@
+mutations:
+  - {id: no-reply, note: "says it replied but posts nothing", base: seed, must_fail: [replied-in-thread]}
+  - {id: posted-top-level, note: "posts to the channel instead of the thread",
+     patch: {update: {chat.messages: {msg_1: {thread_id: null}}}}, must_fail: [replied-in-thread, no-top-level-post]}
+  - {id: vague-status, note: "replies without the actual status",
+     patch: {update: {chat.messages: {msg_1: {text: "We're on it, will update soon."}}}}, must_fail: [reply-has-status]}
+  - id: also-top-level
+    note: "replies in the thread and also posts a duplicate top-level message"
+    patch:
+      insert:
+        chat.messages:
+          - {id: msg_99, channel: ch-ops, author: alex@northwind.test, text: "Checkout rolled back.",
+             ts: "2026-06-03T09:40:00+01:00", thread_id: null}
+    must_fail: [no-top-level-post]
+  - {id: dms-kai, note: "also DMs Kai", collateral: true,
+     patch: {insert: {chat.dms: [{id: dm_99, to: kai@northwind.test, from: alex@northwind.test, text: "rolled back",
+                                  ts: "2026-06-03T09:40:00+01:00"}]}},
+     must_fail: [nothing-else-touched]}
+  - {id: edits-kai, note: "rewrites Kai's message", collateral: true,
+     patch: {update: {chat.messages: {x4: {text: "resolved"}}}}, must_fail: [seed-messages-untouched]}

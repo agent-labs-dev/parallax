@@ -1,0 +1,11 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "files-house-rules-obeyed"
+version = 1
+area = "files"
+summary = "Write a weekly status update from notes, obeying the workspace AGENTS.md rules (ISO dates, bullets only); the prompt never names the rules file, so it deliberately tests AGENTS.md discovery"
+requires = ["mcp", "workspace", "shell"]
+provenance = "converted"
+legacy_ids = ["agents_direct_operating_instructions_are_mandatory"]
+canary = "df2b5a08-a54d-4f71-b233-dc0c542317aa"

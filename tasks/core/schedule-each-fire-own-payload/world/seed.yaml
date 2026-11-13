@@ -1,0 +1,13 @@
+now: 2026-07-14T09:05:00+01:00
+user: {name: Ellis Varga, email: ellis@greywater.test, timezone: Europe/London}
+chat:
+  channels:
+    - {id: C-FIELD, name: field-reports, members: [ellis@greywater.test, crew-a@greywater.test, crew-b@greywater.test],
+       topic: "Daily site notes from the crews", created: "2026-03-02T08:00:00+00:00"}
+    - {id: C-GEN, name: general, members: [ellis@greywater.test, crew-a@greywater.test], topic: "Anything",
+       created: "2026-03-02T08:00:00+00:00"}
+  messages:
+    - {id: fr-0710a, channel: C-FIELD, author: crew-a@greywater.test, ts: "2026-07-13T15:20:00+01:00", thread_id: null,
+       text: "Hollins Road valve chamber: lid replaced, traffic management removed."}
+    - {id: fr-0710b, channel: C-FIELD, author: crew-b@greywater.test, ts: "2026-07-13T16:45:00+01:00", thread_id: null,
+       text: "Sedge Farm borehole: water sample taken, sent to lab."}

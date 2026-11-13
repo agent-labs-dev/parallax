@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-forecast-from-wiki-method"
+version = 2
+area = "saas"
+summary = "Build the Q3 sales forecast from a 200-deal pipeline (two pages) by the wiki's method as amended in #sales-ops (Verbal 70% after a superseded 60% proposal, a duplicate deal to drop): stage weights, slipped deals out, quarter edges; one row per owner plus total into the Q3 sheet in last quarter's layout"
+requires = ["mcp", "world_clock"]
+services = ["tables", "wiki", "sheets", "chat"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "a819e2ad-5ebd-43f8-ae39-1143d01fe7b7"

@@ -1,0 +1,18 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "memory-recall-agreed-figure"
+version = 1
+area = "memory"
+summary = "Recall in a fresh session the pilot price agreed with a customer, not the higher figure in their email"
+requires = ["mcp", "memory"]
+provenance = "converted"
+legacy_ids = ["recall_agreed_figure_from_another_thread"]
+canary = "9cdfe321-38c7-43a5-aa60-7e5003956d4f"
+
+[[steps]]
+name = "turn-01"
+
+[[steps]]
+name = "turn-02"
+session = "new"

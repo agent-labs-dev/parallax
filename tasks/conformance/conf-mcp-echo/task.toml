@@ -1,0 +1,10 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "conf-mcp-echo"
+version = 1
+area = "conformance"
+summary = "Post a given check-in code to #conf and repeat it back"
+requires = ["mcp"]
+provenance = "hand_authored"
+canary = "b3cb4758-262a-4a92-b3ea-9189a0a62e6d"

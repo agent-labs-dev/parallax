@@ -1,0 +1,22 @@
+mutations:
+  - {id: nothing-done, note: "claims both edits, makes neither", base: seed, must_fail: [timeline-added, budget-on-live-doc]}
+  - id: budget-in-new-doc
+    note: "hits not_found on the old id and creates a fresh doc for the budget"
+    patch:
+      insert: {drive.files: [{id: file_9, name: "Q3 launch plan", folder: fld_launch, owner: alex@northwind.test,
+               content: "## Budget\n- Contract design: £18k\n- Launch ads: £6k\n", created: "2026-06-03T09:15:00+01:00",
+               modified: "2026-06-03T09:15:00+01:00"}]}
+      update: {drive.files: {doc_q3_m2: {content: "# Q3 launch plan\n\n## Goals\n- Ship the reporting dashboard to all paid workspaces\n- 500 beta sign-ups\n\n## Owners\n- Product: Alex\n- Design: Priya\n\n## Timeline\n- Design freeze: 22 June\n- Beta opens: 6 July\n- Public launch: 20 July\n"}}}
+    must_fail: [no-new-file, budget-on-live-doc]
+  - id: clobbers-doc
+    note: "replaces the whole doc with just the new sections"
+    patch: {update: {drive.files: {doc_q3_m2: {content: "## Timeline\n- Design freeze 22 June\n- Beta 6 July\n\n## Budget\n- £18k design\n- £6k ads\n"}}}}
+    must_fail: [original-kept]
+  - {id: edits-q2-plan, note: "writes the budget into the archived Q2 plan", collateral: true,
+     patch: {update: {drive.files: {doc_q2: {content: "# Q2 launch plan\n\n## Budget\n- £18k\n- £6k\n"}}}}, must_fail: [other-files-untouched]}
+  - {id: reshares, note: "changes who can see the plan", collateral: true,
+     patch: {insert: {drive.permissions: [{id: perm_x, file: doc_q3_m2, email: sam@northwind.test, role: editor}]}}, must_fail: [rest-untouched]}
+  - id: timeline-missing-dates
+    note: "adds a timeline heading but drops the beta and launch dates"
+    patch: {update: {drive.files: {doc_q3_m2: {content: "# Q3 launch plan\n\n## Goals\n- Ship the reporting dashboard to all paid workspaces\n- 500 beta sign-ups\n\n## Owners\n- Product: Alex\n- Design: Priya\n\n## Timeline\n- Design freeze: 22 June\n\n## Budget\n- Contract design work: £18k\n- Launch ads: £6k\n"}}}}
+    must_fail: [timeline-added]

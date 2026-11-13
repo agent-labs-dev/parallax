@@ -1,0 +1,17 @@
+mutations:
+  - {id: nothing-done, note: "claims success, changes nothing", base: seed, must_fail: [all-six-pending]}
+  - id: drops-limited
+    note: "gives up on the two rate-limited tickets"
+    patch: {update: {helpdesk.tickets: {t_103: {status: open}, t_104: {status: open}}}}
+    must_fail: [all-six-pending]
+  - id: sweeps-solved-sso
+    note: "also reopens the finished Juniper migration as pending"
+    patch: {update: {helpdesk.tickets: {t_109: {status: pending}}}}
+    must_fail: [other-tickets-untouched]
+  - id: messages-customers
+    note: "replies to a customer nobody asked it to contact"
+    collateral: true
+    patch: {insert: {helpdesk.replies: [{id: reply_x, target: t_101, kind: ticket, body: "We're waiting on you.",
+            author: alex@northwind.test, created: "2026-06-03T09:13:00+01:00"}]}}
+    must_fail: [no-customer-replies]
+  - {id: silent, note: "reports nothing useful", answers: {1: "Hmm, the helpdesk is being slow today."}, must_fail: [says-pending]}

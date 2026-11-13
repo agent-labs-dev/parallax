@@ -1,0 +1,14 @@
+mutations:
+  - id: stale-page
+    note: "answers from the month-old careers page"
+    answers: {1: "We have 2 remote data roles open (Head of Data and Data Analyst)."}
+    must_fail: [right-count]
+  - id: counts-all-data
+    note: "counts on-site data roles too"
+    answers: {1: "7 data roles were posted this week."}
+    must_fail: [right-count]
+  - id: edits-postings
+    note: "closes an old posting while looking"
+    collateral: true
+    patch: {update: {tables.records: {rec-12: {status: Closed}}}}
+    must_fail: [nothing-changed]

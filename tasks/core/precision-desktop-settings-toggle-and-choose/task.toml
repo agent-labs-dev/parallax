@@ -1,0 +1,14 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "precision-desktop-settings-toggle-and-choose"
+version = 1
+area = "precision"
+summary = "Save two preferences without changing launch on login"
+requires = ["mcp", "workspace", "desktop"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "19d003a4-d7f5-45ba-9840-2895b72c4a66"
+
+[metadata.parallax.desktop]
+apps = [{path = "app.py", title = "Preferences"}]

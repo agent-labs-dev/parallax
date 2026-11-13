@@ -1,0 +1,249 @@
+now: 2026-10-19T17:30:00+01:00
+user: {name: Sam Patel, email: sam@brightloop.test, timezone: Europe/London}
+helpdesk:
+  tickets:
+    - {id: TKT-5120, subject: "Password reset", requester: max@alderlabs.example, status: open, created: "2026-10-05T14:15:00Z", first_reply_at: "2026-10-05T16:42:00Z"}
+    - {id: TKT-5121, subject: "Mobile app crash", requester: noor@heronstudio.example, status: open, created: "2026-10-05T15:45:00Z", first_reply_at: "2026-10-05T20:40:00Z"}
+    - {id: TKT-5122, subject: "Upgrade question", requester: uma@latticelabs.example, status: solved, created: "2026-10-05T17:15:00Z", first_reply_at: "2026-10-06T14:05:00Z"}
+    - {id: TKT-5123, subject: "Search broken", requester: otto@junohealth.example, status: solved, created: "2026-10-05T20:15:00Z", first_reply_at: "2026-10-06T17:13:00Z"}
+    - {id: TKT-5124, subject: "Cannot log in", requester: uma@marlowlabs.example, status: solved, created: "2026-10-05T21:45:00Z", first_reply_at: "2026-10-07T17:56:00Z"}
+    - {id: TKT-5125, subject: "Delete account data", requester: wes@vantagefoods.example, status: solved, created: "2026-10-06T19:00:00Z", first_reply_at: "2026-10-07T18:27:00Z"}
+    - {id: TKT-5126, subject: "Webhook not firing", requester: noor@acmehealth.example, status: solved, created: "2026-10-06T19:45:00Z", first_reply_at: "2026-10-07T20:36:00Z"}
+    - {id: TKT-5127, subject: "Report numbers wrong", requester: max@rookstudio.example, status: solved, created: "2026-10-06T20:15:00Z", first_reply_at: "2026-10-08T14:53:00Z"}
+    - {id: TKT-5128, subject: "Billing address change", requester: hana@cinderfoods.example, status: open, created: "2026-10-07T14:15:00Z", first_reply_at: "2026-10-07T20:36:00Z"}
+    - {id: TKT-5129, subject: "API returns 500", requester: cara@herondental.example, status: open, created: "2026-10-07T17:15:00Z", first_reply_at: "2026-10-09T14:41:00Z"}
+    - {id: TKT-5130, subject: "Search broken", requester: sol@cinderenergy.example, status: solved, created: "2026-10-07T19:00:00Z", first_reply_at: "2026-10-09T16:09:00Z"}
+    - {id: TKT-5131, subject: "API returns 500", requester: gus@emberstudio.example, status: solved, created: "2026-10-08T18:30:00Z", first_reply_at: "2026-10-13T14:36:00Z"}
+    - {id: TKT-5132, subject: "Report numbers wrong", requester: yan@nimbushealth.example, status: solved, created: "2026-10-09T15:00:00Z", first_reply_at: "2026-10-13T22:00:00Z"}
+    - {id: TKT-5133, subject: "Email notifications missing", requester: noor@pinecrestlabs.example, status: solved, created: "2026-10-09T20:00:00Z", first_reply_at: "2026-10-13T15:20:00Z"}
+    - {id: TKT-5134, subject: "Search broken", requester: dev@vantagestudio.example, status: solved, created: "2026-10-12T04:30:00Z", first_reply_at: "2026-10-13T16:30:00Z"}
+    - {id: TKT-5135, subject: "API returns 500", requester: raj@emberenergy.example, status: solved, created: "2026-10-12T14:05:00Z", first_reply_at: "2026-10-13T21:23:00Z"}
+    - {id: TKT-5136, subject: "Permissions question", requester: ben@keplerfoods.example, status: solved, created: "2026-10-12T14:30:00Z", first_reply_at: "2026-10-15T21:00:00Z"}
+    - {id: TKT-5137, subject: "Delete account data", requester: uma@northwindlabs.example, status: solved, created: "2026-10-12T14:30:00Z", first_reply_at: "2026-10-13T15:30:00Z"}
+    - {id: TKT-5138, subject: "Billing address change", requester: lin@saltmarshmedia.example, status: solved, created: "2026-10-12T14:45:00Z", first_reply_at: "2026-10-15T19:31:00Z"}
+    - {id: TKT-5139, subject: "Mobile app crash", requester: tess@cinderfreight.example, status: solved, created: "2026-10-12T15:00:00Z", first_reply_at: "2026-10-12T18:30:00Z"}
+    - {id: TKT-5140, subject: "Password reset", requester: kai@acmestudio.example, status: open, created: "2026-10-12T15:30:00Z", first_reply_at: "2026-10-13T18:38:00Z"}
+    - {id: TKT-5141, subject: "Timezone wrong on reports", requester: uma@quarrystudio.example, status: solved, created: "2026-10-12T15:30:00Z", first_reply_at: "2026-10-13T21:28:00Z"}
+    - {id: TKT-5142, subject: "Webhook not firing", requester: uma@wrenhealth.example, status: solved, created: "2026-10-12T15:35:00Z", first_reply_at: "2026-10-15T15:57:00Z"}
+    - {id: TKT-5143, subject: "SSO setup help", requester: noor@keplermedia.example, status: solved, created: "2026-10-12T15:55:00Z", first_reply_at: "2026-10-13T15:33:00Z"}
+    - {id: TKT-5144, subject: "Slow dashboard", requester: otto@umberfoods.example, status: solved, created: "2026-10-12T16:20:00Z", first_reply_at: "2026-10-15T16:32:00Z"}
+    - {id: TKT-5145, subject: "Email notifications missing", requester: noor@junolabs.example, status: solved, created: "2026-10-12T17:05:00Z", first_reply_at: "2026-10-14T19:11:00Z"}
+    - {id: TKT-5146, subject: "Add seats", requester: vic@herondental.example, status: solved, created: "2026-10-12T17:05:00Z", first_reply_at: "2026-10-15T19:51:00Z"}
+    - {id: TKT-5147, subject: "Report numbers wrong", requester: ian@northwindmedia.example, status: solved, created: "2026-10-12T17:45:00Z", first_reply_at: "2026-10-15T14:33:00Z"}
+    - {id: TKT-5148, subject: "Password reset", requester: jo@orchidhealth.example, status: solved, created: "2026-10-12T18:00:00Z", first_reply_at: "2026-10-13T15:19:00Z"}
+    - {id: TKT-5149, subject: "Integration error", requester: fay@fjordlabs.example, status: open, created: "2026-10-12T18:15:00Z", first_reply_at: "2026-10-19T18:19:00Z"}
+    - {id: TKT-5150, subject: "Export failing", requester: pia@haldenenergy.example, status: open, created: "2026-10-12T18:25:00Z", first_reply_at: "2026-10-13T14:27:00Z"}
+    - {id: TKT-5151, subject: "Webhook not firing", requester: vic@quarryenergy.example, status: solved, created: "2026-10-12T18:45:00Z", first_reply_at: "2026-10-13T14:34:00Z"}
+    - {id: TKT-5152, subject: "Billing address change", requester: lin@haldenmedia.example, status: open, created: "2026-10-12T18:50:00Z", first_reply_at: "2026-10-13T19:31:00Z"}
+    - {id: TKT-5153, subject: "Webhook not firing", requester: ben@zephyrmedia.example, status: solved, created: "2026-10-12T19:00:00Z", first_reply_at: "2026-10-13T16:40:00Z"}
+    - {id: TKT-5154, subject: "Export failing", requester: fay@quarrystudio.example, status: open, created: "2026-10-12T19:15:00Z", first_reply_at: "2026-10-14T19:35:00Z"}
+    - {id: TKT-5155, subject: "Email notifications missing", requester: ian@northwindenergy.example, status: open, created: "2026-10-12T19:15:00Z", first_reply_at: "2026-10-19T21:43:00Z"}
+    - {id: TKT-5156, subject: "Password reset", requester: zoe@junohealth.example, status: solved, created: "2026-10-12T19:55:00Z", first_reply_at: "2026-10-13T16:58:00Z"}
+    - {id: TKT-5157, subject: "Password reset", requester: max@basaltstudio.example, status: open, created: "2026-10-12T20:25:00Z", first_reply_at: "2026-10-13T19:31:00Z"}
+    - {id: TKT-5158, subject: "Password reset", requester: eli@alderlabs.example, status: solved, created: "2026-10-12T21:45:00Z", first_reply_at: "2026-10-13T15:07:00Z"}
+    - {id: TKT-5159, subject: "Upgrade question", requester: dev@dovetaillabs.example, status: open, created: "2026-10-12T21:55:00Z", first_reply_at: "2026-10-19T20:29:00Z"}
+    - {id: TKT-5160, subject: "SSO setup help", requester: max@bluefinenergy.example, status: solved, created: "2026-10-13T12:05:00Z", first_reply_at: "2026-10-13T15:45:00Z"}
+    - {id: TKT-5161, subject: "Slow dashboard", requester: pia@northwindhealth.example, status: solved, created: "2026-10-13T14:15:00Z", first_reply_at: "2026-10-16T16:18:00Z"}
+    - {id: TKT-5162, subject: "Delete account data", requester: eli@nimbusmedia.example, status: solved, created: "2026-10-13T14:25:00Z", first_reply_at: "2026-10-13T15:43:00Z"}
+    - {id: TKT-5163, subject: "Webhook not firing", requester: wes@nimbuslabs.example, status: open, created: "2026-10-13T14:30:00Z", first_reply_at: "2026-10-13T20:46:00Z"}
+    - {id: TKT-5164, subject: "Webhook not firing", requester: kai@cinderenergy.example, status: solved, created: "2026-10-13T14:35:00Z", first_reply_at: "2026-10-13T17:19:00Z"}
+    - {id: TKT-5165, subject: "Permissions question", requester: uma@heronhealth.example, status: solved, created: "2026-10-13T14:45:00Z", first_reply_at: "2026-10-14T14:30:00Z"}
+    - {id: TKT-5166, subject: "Export failing", requester: raj@ironwoodlabs.example, status: solved, created: "2026-10-13T15:00:00Z", first_reply_at: "2026-10-13T20:10:00Z"}
+    - {id: TKT-5167, subject: "Webhook not firing", requester: ben@heronfoods.example, status: open, created: "2026-10-13T15:35:00Z", first_reply_at: "2026-10-15T16:36:00Z"}
+    - {id: TKT-5168, subject: "Email notifications missing", requester: otto@alderlabs.example, status: solved, created: "2026-10-13T15:35:00Z", first_reply_at: "2026-10-13T16:17:00Z"}
+    - {id: TKT-5169, subject: "Slow dashboard", requester: cara@fjordhealth.example, status: solved, created: "2026-10-13T15:40:00Z", first_reply_at: "2026-10-14T21:05:00Z"}
+    - {id: TKT-5170, subject: "Export failing", requester: ian@vantagedental.example, status: open, created: "2026-10-13T16:00:00Z", first_reply_at: "2026-10-20T21:05:00Z"}
+    - {id: TKT-5171, subject: "Webhook not firing", requester: ian@heronstudio.example, status: solved, created: "2026-10-13T16:05:00Z", first_reply_at: "2026-10-16T14:08:00Z"}
+    - {id: TKT-5172, subject: "Add seats", requester: eli@acmelabs.example, status: solved, created: "2026-10-13T16:25:00Z", first_reply_at: "2026-10-15T16:26:00Z"}
+    - {id: TKT-5173, subject: "Delete account data", requester: max@corvidenergy.example, status: open, created: "2026-10-13T16:30:00Z", first_reply_at: "2026-10-14T15:41:00Z"}
+    - {id: TKT-5174, subject: "Export failing", requester: pia@acmelabs.example, status: solved, created: "2026-10-13T16:30:00Z", first_reply_at: "2026-10-13T19:13:00Z"}
+    - {id: TKT-5175, subject: "Data import stuck", requester: ian@heronfoods.example, status: open, created: "2026-10-13T16:50:00Z", first_reply_at: "2026-10-13T21:05:00Z"}
+    - {id: TKT-5176, subject: "Add seats", requester: raj@latticestudio.example, status: open, created: "2026-10-13T18:00:00Z", first_reply_at: "2026-10-13T21:20:00Z"}
+    - {id: TKT-5177, subject: "Delete account data", requester: uma@basaltdental.example, status: solved, created: "2026-10-13T19:00:00Z", first_reply_at: "2026-10-16T16:00:00Z"}
+    - {id: TKT-5178, subject: "Search broken", requester: ana@heronfoods.example, status: solved, created: "2026-10-13T19:00:00Z", first_reply_at: "2026-10-14T15:51:00Z"}
+    - {id: TKT-5179, subject: "Data import stuck", requester: ana@latticehealth.example, status: solved, created: "2026-10-13T20:25:00Z", first_reply_at: "2026-10-14T18:24:00Z"}
+    - {id: TKT-5180, subject: "Cannot log in", requester: dev@cinderfoods.example, status: solved, created: "2026-10-13T20:45:00Z", first_reply_at: "2026-10-15T15:32:00Z"}
+    - {id: TKT-5181, subject: "Timezone wrong on reports", requester: cara@tambermedia.example, status: solved, created: "2026-10-13T21:35:00Z", first_reply_at: "2026-10-15T16:48:00Z"}
+    - {id: TKT-5182, subject: "API returns 500", requester: wes@ironwoodenergy.example, status: solved, created: "2026-10-14T13:30:00Z", first_reply_at: "2026-10-14T16:25:00Z"}
+    - {id: TKT-5183, subject: "API returns 500", requester: lin@basaltmedia.example, status: solved, created: "2026-10-14T15:40:00Z", first_reply_at: "2026-10-15T16:44:00Z"}
+    - {id: TKT-5184, subject: "Add seats", requester: tess@keplerdental.example, status: solved, created: "2026-10-14T15:45:00Z", first_reply_at: "2026-10-14T16:54:00Z"}
+    - {id: TKT-5185, subject: "Timezone wrong on reports", requester: hana@gablestudio.example, status: solved, created: "2026-10-14T17:15:00Z", first_reply_at: "2026-10-16T16:41:00Z"}
+    - {id: TKT-5186, subject: "Delete account data", requester: kai@vantagedental.example, status: solved, created: "2026-10-14T17:25:00Z", first_reply_at: "2026-10-14T21:16:00Z"}
+    - {id: TKT-5187, subject: "Permissions question", requester: tess@tamberfreight.example, status: solved, created: "2026-10-14T17:35:00Z", first_reply_at: "2026-10-16T14:33:00Z"}
+    - {id: TKT-5188, subject: "Add seats", requester: priya@marlowgroup.example, status: open, created: "2026-10-14T18:10:00Z", first_reply_at: "2026-10-14T21:05:00Z"}
+    - {id: TKT-5189, subject: "Slow dashboard", requester: noor@fjorddental.example, status: solved, created: "2026-10-14T18:40:00Z", first_reply_at: "2026-10-15T18:50:00Z"}
+    - {id: TKT-5190, subject: "Cannot log in", requester: yan@nimbusstudio.example, status: open, created: "2026-10-14T19:05:00Z", first_reply_at: "2026-10-15T17:01:00Z"}
+    - {id: TKT-5191, subject: "Add seats", requester: dev@tamberfreight.example, status: solved, created: "2026-10-14T20:25:00Z", first_reply_at: "2026-10-15T15:23:00Z"}
+    - {id: TKT-5192, subject: "Webhook not firing", requester: noor@latticehealth.example, status: open, created: "2026-10-14T21:00:00Z", first_reply_at: "2026-10-15T14:30:00Z"}
+    - {id: TKT-5193, subject: "Data import stuck", requester: dev@umberfoods.example, status: open, created: "2026-10-14T21:35:00Z", first_reply_at: "2026-10-15T15:17:00Z"}
+    - {id: TKT-5194, subject: "Search broken", requester: fay@quarrymedia.example, status: solved, created: "2026-10-15T14:25:00Z", first_reply_at: "2026-10-15T15:41:00Z"}
+    - {id: TKT-5195, subject: "Data import stuck", requester: pia@rookfoods.example, status: solved, created: "2026-10-15T14:40:00Z", first_reply_at: "2026-10-15T16:15:00Z"}
+    - {id: TKT-5196, subject: "SSO setup help", requester: ian@cinderenergy.example, status: solved, created: "2026-10-15T15:20:00Z", first_reply_at: "2026-10-15T21:35:00Z"}
+    - {id: TKT-5197, subject: "Export failing", requester: yan@orchidhealth.example, status: solved, created: "2026-10-15T16:00:00Z", first_reply_at: "2026-10-15T20:03:00Z"}
+    - {id: TKT-5198, subject: "Data import stuck", requester: pia@northwindlabs.example, status: solved, created: "2026-10-15T16:05:00Z", first_reply_at: "2026-10-16T18:08:00Z"}
+    - {id: TKT-5199, subject: "Cannot log in", requester: uma@rookenergy.example, status: open, created: "2026-10-15T16:35:00Z", first_reply_at: "2026-10-15T21:06:00Z"}
+    - {id: TKT-5200, subject: "Delete account data", requester: gus@ironwoodlabs.example, status: solved, created: "2026-10-15T18:00:00Z", first_reply_at: "2026-10-15T20:40:00Z"}
+    - {id: TKT-5201, subject: "Integration error", requester: fay@alderlabs.example, status: solved, created: "2026-10-15T19:05:00Z", first_reply_at: "2026-10-15T19:44:00Z"}
+    - {id: TKT-5202, subject: "Email notifications missing", requester: noor@quarrymedia.example, status: solved, created: "2026-10-15T19:25:00Z", first_reply_at: "2026-10-15T20:58:00Z"}
+    - {id: TKT-5203, subject: "Delete account data", requester: uma@zephyrfreight.example, status: solved, created: "2026-10-15T20:00:00Z", first_reply_at: "2026-10-16T16:45:00Z"}
+    - {id: TKT-5204, subject: "Invoice question", requester: raj@zephyrmedia.example, status: solved, created: "2026-10-15T20:00:00Z", first_reply_at: "2026-10-15T21:33:00Z"}
+    - {id: TKT-5205, subject: "Report numbers wrong", requester: uma@acmedental.example, status: open, created: "2026-10-15T20:05:00Z", first_reply_at: "2026-10-22T14:03:00Z"}
+    - {id: TKT-5206, subject: "Cannot log in", requester: sol@acmelabs.example, status: solved, created: "2026-10-15T20:55:00Z", first_reply_at: "2026-10-16T21:18:00Z"}
+    - {id: TKT-5207, subject: "Data import stuck", requester: gus@bluefindental.example, status: solved, created: "2026-10-15T21:10:00Z", first_reply_at: "2026-10-16T22:00:00Z"}
+    - {id: TKT-5208, subject: "Invoice question", requester: fay@basaltstudio.example, status: solved, created: "2026-10-15T21:25:00Z", first_reply_at: "2026-10-16T17:04:00Z"}
+    - {id: TKT-5209, subject: "Report numbers wrong", requester: yan@latticehealth.example, status: solved, created: "2026-10-15T21:35:00Z", first_reply_at: "2026-10-16T16:28:00Z"}
+    - {id: TKT-5210, subject: "Integration error", requester: tess@rookfoods.example, status: solved, created: "2026-10-16T15:00:00Z", first_reply_at: "2026-10-16T18:05:00Z"}
+    - {id: TKT-5211, subject: "Slow dashboard", requester: gus@corvidenergy.example, status: open, created: "2026-10-16T15:30:00Z", first_reply_at: "2026-10-19T21:18:00Z"}
+    - {id: TKT-5212, subject: "Upgrade question", requester: pia@cinderenergy.example, status: open, created: "2026-10-16T16:20:00Z", first_reply_at: "2026-10-16T19:13:00Z"}
+    - {id: TKT-5213, subject: "Email notifications missing", requester: wes@basaltenergy.example, status: open, created: "2026-10-16T16:25:00Z", first_reply_at: "2026-10-21T14:52:00Z"}
+    - {id: TKT-5214, subject: "Delete account data", requester: wes@cinderhealth.example, status: open, created: "2026-10-16T16:30:00Z", first_reply_at: "2026-10-19T14:40:00Z"}
+    - {id: TKT-5215, subject: "Cannot log in", requester: gus@dovetaillabs.example, status: open, created: "2026-10-16T17:25:00Z", first_reply_at: "2026-10-19T17:16:00Z"}
+    - {id: TKT-5216, subject: "Slow dashboard", requester: fay@emberstudio.example, status: open, created: "2026-10-16T17:50:00Z", first_reply_at: "2026-10-21T16:33:00Z"}
+    - {id: TKT-5217, subject: "Integration error", requester: gus@wrenhealth.example, status: open, created: "2026-10-16T18:25:00Z", first_reply_at: "2026-10-19T19:47:00Z"}
+    - {id: TKT-5218, subject: "SSO setup help", requester: vic@gabledental.example, status: open, created: "2026-10-16T20:10:00Z", first_reply_at: "2026-10-19T15:05:00Z"}
+    - {id: TKT-5219, subject: "Delete account data", requester: max@haldendental.example, status: open, created: "2026-10-16T21:15:00Z", first_reply_at: "2026-10-19T14:56:00Z"}
+    - {id: TKT-5220, subject: "Delete account data", requester: cara@saltmarshenergy.example, status: open, created: "2026-10-16T21:20:00Z", first_reply_at: "2026-10-19T15:50:00Z"}
+    - {id: TKT-5221, subject: "Export failing", requester: zoe@tamberfoods.example, status: open, created: "2026-10-16T21:20:00Z", first_reply_at: "2026-10-21T14:07:00Z"}
+    - {id: TKT-5222, subject: "Webhook not firing", requester: otto@keplerdental.example, status: open, created: "2026-10-16T21:35:00Z", first_reply_at: "2026-10-19T14:55:00Z"}
+    - {id: TKT-5223, subject: "Email notifications missing", requester: fay@latticemedia.example, status: open, created: "2026-10-17T15:00:00Z", first_reply_at: "2026-10-19T15:20:00Z"}
+    - {id: TKT-5224, subject: "Cannot log in", requester: yan@fjordfreight.example, status: open, created: "2026-10-19T02:15:00Z", first_reply_at: "2026-10-19T16:25:00Z"}
+    - {id: TKT-5225, subject: "Slow dashboard", requester: fay@bluefinlabs.example, status: open, created: "2026-10-19T03:00:00Z", first_reply_at: "2026-10-19T14:30:00Z"}
+    - {id: TKT-5226, subject: "Cannot log in", requester: lin@nimbusmedia.example, status: open, created: "2026-10-19T14:15:00Z", first_reply_at: "2026-10-19T14:50:00Z"}
+    - {id: TKT-5227, subject: "Email notifications missing", requester: gus@rookstudio.example, status: open, created: "2026-10-19T15:00:00Z", first_reply_at: "2026-10-19T15:40:00Z"}
+tables:
+  bases:
+    - {id: b1, name: Accounts, fields: [Account, Domain, "Other domains", Tier, "Tier changed", "Previous tier"]}
+  records:
+    - {id: acc001, base: b1, Account: "Basalt Dental", Domain: basaltdental.example, Tier: Free}
+    - {id: acc002, base: b1, Account: "Lattice Media", Domain: latticemedia.example, Tier: Enterprise}
+    - {id: acc003, base: b1, Account: "Juno Labs", Domain: junolabs.example, Tier: Free}
+    - {id: acc004, base: b1, Account: "Saltmarsh Energy", Domain: saltmarshenergy.example, Tier: Enterprise}
+    - {id: acc005, base: b1, Account: "Northwind Studio", Domain: northwindstudio.example, Tier: Free}
+    - {id: acc006, base: b1, Account: "Cinder Health", Domain: cinderhealth.example, Tier: Starter}
+    - {id: acc007, base: b1, Account: "Bluefin Energy", Domain: bluefinenergy.example, Tier: Enterprise}
+    - {id: acc008, base: b1, Account: "Kepler Foods", Domain: keplerfoods.example, Tier: Free}
+    - {id: acc009, base: b1, Account: "Rook Dental", Domain: rookdental.example, Tier: Starter}
+    - {id: acc010, base: b1, Account: "Ironwood Energy", Domain: ironwoodenergy.example, Tier: Enterprise}
+    - {id: acc011, base: b1, Account: "Gable Dental", Domain: gabledental.example, Tier: Pro}
+    - {id: acc012, base: b1, Account: "Vantage Studio", Domain: vantagestudio.example, Tier: Enterprise}
+    - {id: acc013, base: b1, Account: "Fjord Freight", Domain: fjordfreight.example, Tier: Enterprise}
+    - {id: acc014, base: b1, Account: "Pinecrest Labs", Domain: pinecrestlabs.example, Tier: Starter}
+    - {id: acc015, base: b1, Account: "Heron Studio", Domain: heronstudio.example, Tier: Free}
+    - {id: acc016, base: b1, Account: "Northwind Health", Domain: northwindhealth.example, Tier: Free}
+    - {id: acc017, base: b1, Account: "Corvid Energy", Domain: corvidenergy.example, Tier: Starter}
+    - {id: acc018, base: b1, Account: "Bluefin Labs", Domain: bluefinlabs.example, Tier: Pro}
+    - {id: acc019, base: b1, Account: "Ironwood Labs", Domain: ironwoodlabs.example, Tier: Enterprise, "Tier changed": "2026-10-14", "Previous tier": Pro}
+    - {id: acc020, base: b1, Account: "Halden Health", Domain: haldenhealth.example, Tier: Free}
+    - {id: acc021, base: b1, Account: "Nimbus Studio", Domain: nimbusstudio.example, Tier: Pro}
+    - {id: acc022, base: b1, Account: "Tamber Foods", Domain: tamberfoods.example, Tier: Starter}
+    - {id: acc023, base: b1, Account: "Heron Freight", Domain: heronfreight.example, Tier: Starter}
+    - {id: acc024, base: b1, Account: "Heron Health", Domain: heronhealth.example, Tier: Free}
+    - {id: acc025, base: b1, Account: "Nimbus Health", Domain: nimbushealth.example, Tier: Pro}
+    - {id: acc026, base: b1, Account: "Orchid Media", Domain: orchidmedia.example, Tier: Starter}
+    - {id: acc027, base: b1, Account: "Northwind Media", Domain: northwindmedia.example, Tier: Starter}
+    - {id: acc028, base: b1, Account: "Rook Studio", Domain: rookstudio.example, Tier: Pro}
+    - {id: acc029, base: b1, Account: "Wren Energy", Domain: wrenenergy.example, Tier: Starter}
+    - {id: acc030, base: b1, Account: "Zephyr Studio", Domain: zephyrstudio.example, Tier: Free}
+    - {id: acc031, base: b1, Account: "Northwind Labs", Domain: northwindlabs.example, Tier: Pro}
+    - {id: acc032, base: b1, Account: "Nimbus Media", Domain: nimbusmedia.example, Tier: Enterprise}
+    - {id: acc033, base: b1, Account: "Acme Media", Domain: acmemedia.example, Tier: Free}
+    - {id: acc034, base: b1, Account: "Quarry Media", Domain: quarrymedia.example, Tier: Enterprise}
+    - {id: acc035, base: b1, Account: "Cinder Freight", Domain: cinderfreight.example, Tier: Enterprise}
+    - {id: acc036, base: b1, Account: "Basalt Studio", Domain: basaltstudio.example, Tier: Pro}
+    - {id: acc037, base: b1, Account: "Kepler Dental", Domain: keplerdental.example, Tier: Pro}
+    - {id: acc038, base: b1, Account: "Wren Health", Domain: wrenhealth.example, Tier: Starter}
+    - {id: acc039, base: b1, Account: "Umber Foods", Domain: umberfoods.example, Tier: Free}
+    - {id: acc040, base: b1, Account: "Kepler Media", Domain: keplermedia.example, Tier: Pro}
+    - {id: acc041, base: b1, Account: "Bluefin Foods", Domain: bluefinfoods.example, Tier: Starter, "Tier changed": "2026-08-03", "Previous tier": Pro}
+    - {id: acc042, base: b1, Account: "Orchid Labs", Domain: orchidlabs.example, Tier: Pro}
+    - {id: acc043, base: b1, Account: "Ember Studio", Domain: emberstudio.example, Tier: Free}
+    - {id: acc044, base: b1, Account: "Basalt Media", Domain: basaltmedia.example, Tier: Starter}
+    - {id: acc045, base: b1, Account: "Zephyr Freight", Domain: zephyrfreight.example, Tier: Starter}
+    - {id: acc046, base: b1, Account: "Heron Dental", Domain: herondental.example, Tier: Free}
+    - {id: acc047, base: b1, Account: "Cinder Foods", Domain: cinderfoods.example, Tier: Starter}
+    - {id: acc048, base: b1, Account: "Dovetail Labs", Domain: dovetaillabs.example, Tier: Free}
+    - {id: acc049, base: b1, Account: "Gable Freight", Domain: gablefreight.example, Tier: Free}
+    - {id: acc050, base: b1, Account: "Acme Studio", Domain: acmestudio.example, Tier: Pro}
+    - {id: acc051, base: b1, Account: "Halden Dental", Domain: haldendental.example, Tier: Pro}
+    - {id: acc052, base: b1, Account: "Acme Health", Domain: acmehealth.example, Tier: Free}
+    - {id: acc053, base: b1, Account: "Juno Health", Domain: junohealth.example, Tier: Free}
+    - {id: acc054, base: b1, Account: "Cinder Media", Domain: cindermedia.example, Tier: Free}
+    - {id: acc055, base: b1, Account: "Ember Freight", Domain: emberfreight.example, Tier: Starter}
+    - {id: acc056, base: b1, Account: "Zephyr Media", Domain: zephyrmedia.example, Tier: Enterprise}
+    - {id: acc057, base: b1, Account: "Quarry Foods", Domain: quarryfoods.example, Tier: Free}
+    - {id: acc058, base: b1, Account: "Quarry Labs", Domain: quarrylabs.example, Tier: Free}
+    - {id: acc059, base: b1, Account: "Umber Dental", Domain: umberdental.example, Tier: Free}
+    - {id: acc060, base: b1, Account: "Gable Labs", Domain: gablelabs.example, Tier: Free}
+    - {id: acc061, base: b1, Account: "Basalt Energy", Domain: basaltenergy.example, Tier: Free}
+    - {id: acc062, base: b1, Account: "Dovetail Dental", Domain: dovetaildental.example, Tier: Pro}
+    - {id: acc063, base: b1, Account: "Cinder Labs", Domain: cinderlabs.example, Tier: Pro}
+    - {id: acc064, base: b1, Account: "Umber Energy", Domain: umberenergy.example, Tier: Free}
+    - {id: acc065, base: b1, Account: "Nimbus Energy", Domain: nimbusenergy.example, Tier: Free}
+    - {id: acc066, base: b1, Account: "Saltmarsh Foods", Domain: saltmarshfoods.example, Tier: Starter}
+    - {id: acc067, base: b1, Account: "Acme Dental", Domain: acmedental.example, Tier: Starter}
+    - {id: acc068, base: b1, Account: "Wren Foods", Domain: wrenfoods.example, Tier: Pro}
+    - {id: acc069, base: b1, Account: "Dovetail Studio", Domain: dovetailstudio.example, Tier: Free}
+    - {id: acc070, base: b1, Account: "Cinder Energy", Domain: cinderenergy.example, Tier: Pro}
+    - {id: acc071, base: b1, Account: "Orchid Dental", Domain: orchiddental.example, Tier: Starter}
+    - {id: acc072, base: b1, Account: "Basalt Labs", Domain: basaltlabs.example, Tier: Starter}
+    - {id: acc073, base: b1, Account: "Lattice Labs", Domain: latticelabs.example, Tier: Starter}
+    - {id: acc074, base: b1, Account: "Northwind Energy", Domain: northwindenergy.example, Tier: Free}
+    - {id: acc075, base: b1, Account: "Dovetail Energy", Domain: dovetailenergy.example, Tier: Free}
+    - {id: acc076, base: b1, Account: "Marlow Labs", Domain: marlowlabs.example, Tier: Enterprise, "Other domains": marlowgroup.example}
+    - {id: acc077, base: b1, Account: "Bluefin Dental", Domain: bluefindental.example, Tier: Starter}
+    - {id: acc078, base: b1, Account: "Quarry Energy", Domain: quarryenergy.example, Tier: Enterprise}
+    - {id: acc079, base: b1, Account: "Vantage Dental", Domain: vantagedental.example, Tier: Starter}
+    - {id: acc080, base: b1, Account: "Lattice Dental", Domain: latticedental.example, Tier: Free}
+    - {id: acc081, base: b1, Account: "Ember Energy", Domain: emberenergy.example, Tier: Free}
+    - {id: acc082, base: b1, Account: "Acme Freight", Domain: acmefreight.example, Tier: Pro}
+    - {id: acc083, base: b1, Account: "Heron Foods", Domain: heronfoods.example, Tier: Pro}
+    - {id: acc084, base: b1, Account: "Alder Labs", Domain: alderlabs.example, Tier: Enterprise}
+    - {id: acc085, base: b1, Account: "Ember Foods", Domain: emberfoods.example, Tier: Starter}
+    - {id: acc086, base: b1, Account: "Fjord Labs", Domain: fjordlabs.example, Tier: Free}
+    - {id: acc087, base: b1, Account: "Acme Labs", Domain: acmelabs.example, Tier: Starter}
+    - {id: acc088, base: b1, Account: "Umber Labs", Domain: umberlabs.example, Tier: Free}
+    - {id: acc089, base: b1, Account: "Orchid Health", Domain: orchidhealth.example, Tier: Enterprise}
+    - {id: acc090, base: b1, Account: "Saltmarsh Studio", Domain: saltmarshstudio.example, Tier: Pro}
+    - {id: acc091, base: b1, Account: "Saltmarsh Media", Domain: saltmarshmedia.example, Tier: Free}
+    - {id: acc092, base: b1, Account: "Halden Energy", Domain: haldenenergy.example, Tier: Enterprise}
+    - {id: acc093, base: b1, Account: "Halden Media", Domain: haldenmedia.example, Tier: Pro}
+    - {id: acc094, base: b1, Account: "Fjord Dental", Domain: fjorddental.example, Tier: Starter}
+    - {id: acc095, base: b1, Account: "Zephyr Foods", Domain: zephyrfoods.example, Tier: Free}
+    - {id: acc096, base: b1, Account: "Tamber Freight", Domain: tamberfreight.example, Tier: Starter}
+    - {id: acc097, base: b1, Account: "Vantage Foods", Domain: vantagefoods.example, Tier: Free}
+    - {id: acc098, base: b1, Account: "Fjord Health", Domain: fjordhealth.example, Tier: Free}
+    - {id: acc099, base: b1, Account: "Nimbus Labs", Domain: nimbuslabs.example, Tier: Starter}
+    - {id: acc100, base: b1, Account: "Juno Media", Domain: junomedia.example, Tier: Starter}
+    - {id: acc101, base: b1, Account: "Ember Health", Domain: emberhealth.example, Tier: Starter}
+    - {id: acc102, base: b1, Account: "Rook Energy", Domain: rookenergy.example, Tier: Pro}
+    - {id: acc103, base: b1, Account: "Quarry Studio", Domain: quarrystudio.example, Tier: Starter}
+    - {id: acc104, base: b1, Account: "Nimbus Freight", Domain: nimbusfreight.example, Tier: Pro}
+    - {id: acc105, base: b1, Account: "Lattice Studio", Domain: latticestudio.example, Tier: Enterprise}
+    - {id: acc106, base: b1, Account: "Bluefin Studio", Domain: bluefinstudio.example, Tier: Pro}
+    - {id: acc107, base: b1, Account: "Ironwood Dental", Domain: ironwooddental.example, Tier: Enterprise}
+    - {id: acc108, base: b1, Account: "Vantage Energy", Domain: vantageenergy.example, Tier: Starter}
+    - {id: acc109, base: b1, Account: "Tamber Media", Domain: tambermedia.example, Tier: Pro}
+    - {id: acc110, base: b1, Account: "Rook Foods", Domain: rookfoods.example, Tier: Enterprise}
+    - {id: acc111, base: b1, Account: "Gable Studio", Domain: gablestudio.example, Tier: Free}
+    - {id: acc112, base: b1, Account: "Lattice Health", Domain: latticehealth.example, Tier: Pro}
+wiki:
+  pages:
+    - {id: pg-sla, title: "Support SLA policy", space: Support, updated: "2026-09-01T10:00:00+01:00", body: "First-reply SLA for customer tickets.\n\nTargets by plan tier: Enterprise 2 business hours, Pro 8 business hours, Starter 24 business hours. Free accounts have no first-reply SLA.\n\nBusiness hours are the support team's: Monday to Friday, 09:00-17:00 US Central time (America/Chicago), except the support holidays posted in #support. Nights, weekends and holidays do not count. The clock starts when the ticket is created, or at the next business-hours opening if it is created outside business hours, and it stops at the first reply (first_reply_at in Zendesk). Zendesk timestamps are UTC.\n\nThe tier that applies is the account's tier when the ticket was created, not its tier today. Account tiers live in the Airtable Accounts base; match the requester's email domain to the account's Domain or one of its Other domains.\n\nA breach is a first reply later than the target. The weekly breach report covers tickets created Monday 00:00 to Sunday 23:59 Central time and goes to #support-leads every Monday.\n\nThe Head of Support can exclude tickets from a week's report, for example those created during a declared P1 incident. Exclusions are sent by email to the support leads."}
+    - {id: pg-esc, title: "Escalation paths", space: Support, updated: "2026-07-01T10:00:00+01:00", body: "P1 incidents go to #inc. Billing disputes go to finance@brightloop.test."}
+chat:
+  channels:
+    - {id: C01, name: support-leads, members: [sam@brightloop.test, dana@brightloop.test, luis@brightloop.test], topic: "Support leadership"}
+    - {id: C02, name: support, members: [sam@brightloop.test, dana@brightloop.test], topic: "Team chat"}
+  messages:
+    - {id: M1, channel: C01, author: dana@brightloop.test, ts: "2026-10-05T16:02:00+01:00", thread_id: null, text: "SLA breaches, week of 28 Sep (first reply, business hours CT): 3 total. Enterprise 1: TKT-4890 (Kepler Media). Pro 2: TKT-4871 (Rook Labs), TKT-4902 (Wren Foods). Starter 0."}
+    - {id: M2, channel: C01, author: dana@brightloop.test, ts: "2026-10-12T15:48:00+01:00", thread_id: null, text: "SLA breaches, week of 5 Oct (first reply, business hours CT): 4 total. Enterprise 2: TKT-4987 (Halden Health), TKT-5002 (Juno Labs). Pro 1: TKT-4990 (Corvid Media). Starter 1: TKT-5011 (Ember Foods)."}
+    - {id: M3, channel: C01, author: luis@brightloop.test, ts: "2026-10-12T16:10:00+01:00", thread_id: M2, text: "Thanks. Reminder that Free tickets never count, and use the tier at ticket creation."}
+    - {id: M4, channel: C01, author: dana@brightloop.test, ts: "2026-10-16T18:30:00+01:00", thread_id: null, text: "I'm out Monday. @sam can you do the SLA rundown this week?"}
+    - {id: M0, channel: C02, author: luis@brightloop.test, ts: "2026-10-08T15:20:00+01:00", thread_id: null, text: "Holiday reminder: Monday 12 Oct (Indigenous Peoples' Day) is a support holiday for the US team, skeleton crew only. It is not a business day for SLA; tickets that come in on Monday start the clock Tuesday 09:00 CT."}
+    - {id: M5, channel: C02, author: luis@brightloop.test, ts: "2026-10-19T14:05:00+01:00", thread_id: null, text: "Morning all, queue is calm."}
+mail:
+  messages:
+    - {id: e1, thread: te1, from: luis@brightloop.test, to: [support-leads@brightloop.test], subject: "Last week's SLA report: P1 exclusion", date: "2026-10-16T09:10:00+01:00", labels: [inbox], body: "Hi leads,\n\nFor last week's SLA rundown: tickets created during Thursday's P1 (the login outage), from 16:30 to 18:00 UK time on Thursday 15 Oct, are excluded from the breach list and the counts. Our replies were blocked by the outage, not by the team. Please mention the exclusion in the post.\n\nLuis"}
+    - {id: e2, thread: te2, from: luis@brightloop.test, to: [support@brightloop.test], subject: "P1 resolved: login outage", date: "2026-10-15T18:20:00+01:00", labels: [inbox], body: "The login outage is resolved. Status page updated. Thanks all for the patience today."}
+    - {id: e3, thread: te3, from: billing@tablesapp.example, to: [sam@brightloop.test], subject: "Your invoice for October", date: "2026-10-14T07:00:00+01:00", labels: [inbox], body: "Your Team plan invoice for October is ready."}
+    - {id: e4, thread: te4, from: dana@brightloop.test, to: [sam@brightloop.test], subject: "Monday cover", date: "2026-10-16T18:40:00+01:00", labels: [inbox], body: "Thanks for covering Monday. The queue should be quiet; ping Luis if anything escalates."}

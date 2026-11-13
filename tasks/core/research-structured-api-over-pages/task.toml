@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "research-structured-api-over-pages"
+version = 1
+area = "research"
+summary = "Count this week's remote data roles from the live postings base, not a stale careers page"
+requires = ["mcp", "world_clock"]
+services = ["tables", "web"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "416c4029-a2e0-47c4-8296-1f36c520778a"

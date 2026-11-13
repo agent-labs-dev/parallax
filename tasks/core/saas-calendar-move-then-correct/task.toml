@@ -1,0 +1,17 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-calendar-move-then-correct"
+version = 1
+area = "saas"
+summary = "Move one occurrence of a recurring standup, then undo it and move a different day after a correction"
+requires = ["mcp", "multi_turn", "world_clock"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "c0d3b445-4418-4a04-b82e-e4a711356494"
+
+[[steps]]
+name = "turn-01"
+
+[[steps]]
+name = "turn-02"

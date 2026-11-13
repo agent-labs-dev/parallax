@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-onboard-new-hire-by-role"
+version = 2
+area = "saas"
+summary = "Run the Sales onboarding checklist for a remote new hire, amended by Slack notes: share three Drive folders at the right roles (one Deal Desk file view-only), book week-1 meetings in her Eastern time with the corrected buddy, skip the CRM seat issue Rosa already opened, and post the Slack welcome"
+requires = ["mcp", "world_clock"]
+services = ["wiki", "drive", "tracker"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "ece03119-ead9-4532-89b2-338555291adc"

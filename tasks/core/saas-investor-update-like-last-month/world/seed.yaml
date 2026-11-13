@@ -1,0 +1,314 @@
+now: "2026-11-03T10:05:00+00:00"
+user: {name: Nadia Rahman, email: nadia@fernly.test, timezone: Europe/London}
+mail:
+  sent:
+    - {id: s_aug, thread: s_aug, from: nadia@fernly.test, to: [nadia@fernly.test], cc: [], bcc: [priya@northbeam.example, tom@larchcapital.example, alex.kim@halcyonvc.example, mira@angelcircle.example, dev.patel@foundry12.example, lucia@olivegrove.example, ola@formerfund.example], subject: "Fernly - August update", body: "Hi all,\n\nHere's Fernly's August update.\n\nHighlights\n- Shipped the Shopify integration; 14 stores live by month end.\n- Hired our second support engineer, Kemi.\n\nMetrics (August)\n- MRR: £38,965 (+4.9% MoM)\n- Weekly active accounts (last full week, 24-30 Aug): 53\n- Cash in bank (30 Aug): £2,044,400\n- Net burn: £121,700\n- Runway: 16 months\n\nLowlights\n- Two Pro customers paused over budget freezes.\n\nAsks\n- Intros to heads of ops at mid-size Shopify brands.\n\nThanks,\nNadia\n\nMRR = recurring subscription charges billed in the month, net of refunds; one-off services are excluded. Runway = cash / net burn.", in_reply_to: null, date: "2026-09-04T08:30:00+01:00", draft: null}
+    - {id: s_sep, thread: s_sep, from: nadia@fernly.test, to: [nadia@fernly.test], cc: [], bcc: [priya@northbeam.example, tom@larchcapital.example, alex.kim@halcyonvc.example, mira@angelcircle.example, dev.patel@foundry12.example, lucia@olivegrove.example, sam.osei@redbrickvc.example], subject: "Fernly - September update", body: "Hi all,\n\nHere's Fernly's September update.\n\nHighlights\n- Shipped the Shopify integration; 14 stores live by month end.\n- Hired our second support engineer, Kemi.\n\nMetrics (September)\n- MRR: £41,380 (+6.2% MoM)\n- Weekly active accounts (last full week, 21-27 Sep): 57\n- Cash in bank (30 Sep): £1,926,000\n- Net burn: £118,400\n- Runway: 16 months\n\nLowlights\n- Two Pro customers paused over budget freezes.\n\nAsks\n- Intros to heads of ops at mid-size Shopify brands.\n\nThanks,\nNadia\n\nMRR = recurring subscription charges billed in the month, net of refunds; one-off services are excluded. Runway = cash / net burn.", in_reply_to: null, date: "2026-10-05T08:40:00+01:00", draft: null}
+    - {id: s_x1, thread: t_x1, from: nadia@fernly.test, to: [kemi@fernly.test], cc: [], bcc: [], subject: "Welcome aboard", body: "Kemi - great to have you. Laptop arrives Monday.", in_reply_to: null, date: "2026-10-01T09:00:00+01:00", draft: null}
+  messages:
+    - {id: m_ola, thread: t_ola, from: ola@formerfund.example, to: [nadia@fernly.test], subject: "Re: Fernly - August update", body: "Nadia, we've closed the fund, so please drop me from the update list. All the best!", date: "2026-09-08T12:00:00+01:00", labels: []}
+    - {id: m_alex, thread: s_sep, from: alex.kim@halcyonvc.example, to: [nadia@fernly.test], subject: "Re: Fernly - September update", body: "Congrats on Shopify! Happy to make a couple of intros - will email separately.", date: "2026-10-05T14:12:00+01:00", labels: [inbox]}
+    - {id: m_priya, thread: t_priya, from: priya@northbeam.example, to: [nadia@fernly.test], subject: "Adding Jo to your updates", body: "Hi Nadia, I'm going on leave in November. Could you add my partner Jo Feld (jo@northbeam.example) to your monthly updates from now on? Keep me on too. Thanks, Priya", date: "2026-10-14T09:31:00+01:00", labels: [inbox]}
+    - {id: m_tom, thread: t_tom, from: tom@larchcapital.example, to: [nadia@fernly.test], subject: "Monthly updates", body: "Hi Nadia, Larch is winding down new coverage, so please take me off the monthly investor update going forward. Rooting for you all. Tom", date: "2026-10-20T16:05:00+01:00", labels: [inbox]}
+    - {id: m_news, thread: t_news, from: digest@saasweekly.example, to: [nadia@fernly.test], subject: "SaaS Weekly: what investors want in a monthly update", body: "This week: why your update should lead with MRR...", date: "2026-10-29T07:00:00+00:00", labels: [inbox]}
+    - {id: m_kemi, thread: t_kemi, from: kemi@fernly.test, to: [nadia@fernly.test], subject: "Support numbers for October", body: "Closed 212 conversations in October, median first reply 41 min.", date: "2026-11-02T17:20:00+00:00", labels: [inbox]}
+contacts:
+  people:
+    - {id: c1, name: "Jo Feld", email: jo.feld@mailbox.example, company: "", notes: "Met at SaaStock 2025"}
+    - {id: c2, name: "Priya Natarajan", email: priya@northbeam.example, company: "Northbeam Ventures"}
+    - {id: c3, name: "Tom Reyes", email: tom@larchcapital.example, company: "Larch Capital"}
+payments:
+  customers:
+    - {id: cus_01, name: "Shop 01"}
+    - {id: cus_02, name: "Shop 02"}
+    - {id: cus_03, name: "Shop 03"}
+    - {id: cus_04, name: "Shop 04"}
+    - {id: cus_05, name: "Shop 05"}
+    - {id: cus_06, name: "Shop 06"}
+    - {id: cus_07, name: "Shop 07"}
+    - {id: cus_08, name: "Shop 08"}
+    - {id: cus_09, name: "Shop 09"}
+    - {id: cus_10, name: "Shop 10"}
+    - {id: cus_11, name: "Shop 11"}
+    - {id: cus_12, name: "Shop 12"}
+    - {id: cus_13, name: "Shop 13"}
+    - {id: cus_14, name: "Shop 14"}
+    - {id: cus_15, name: "Shop 15"}
+    - {id: cus_16, name: "Shop 16"}
+    - {id: cus_17, name: "Shop 17"}
+    - {id: cus_18, name: "Shop 18"}
+    - {id: cus_19, name: "Shop 19"}
+    - {id: cus_20, name: "Shop 20"}
+    - {id: cus_21, name: "Shop 21"}
+    - {id: cus_22, name: "Shop 22"}
+    - {id: cus_23, name: "Shop 23"}
+    - {id: cus_24, name: "Shop 24"}
+    - {id: cus_25, name: "Shop 25"}
+    - {id: cus_26, name: "Shop 26"}
+    - {id: cus_27, name: "Shop 27"}
+    - {id: cus_28, name: "Shop 28"}
+    - {id: cus_29, name: "Shop 29"}
+    - {id: cus_30, name: "Shop 30"}
+    - {id: cus_31, name: "Shop 31"}
+    - {id: cus_32, name: "Shop 32"}
+    - {id: cus_33, name: "Shop 33"}
+    - {id: cus_34, name: "Shop 34"}
+    - {id: cus_35, name: "Shop 35"}
+    - {id: cus_36, name: "Shop 36"}
+    - {id: cus_37, name: "Shop 37"}
+    - {id: cus_38, name: "Shop 38"}
+    - {id: cus_39, name: "Shop 39"}
+    - {id: cus_40, name: "Shop 40"}
+    - {id: cus_41, name: "Shop 41"}
+    - {id: cus_42, name: "Shop 42"}
+    - {id: cus_43, name: "Shop 43"}
+    - {id: cus_44, name: "Shop 44"}
+    - {id: cus_45, name: "Shop 45"}
+    - {id: cus_46, name: "Shop 46"}
+    - {id: cus_47, name: "Shop 47"}
+    - {id: cus_48, name: "Shop 48"}
+    - {id: cus_49, name: "Shop 49"}
+    - {id: cus_50, name: "Shop 50"}
+    - {id: cus_51, name: "Shop 51"}
+    - {id: cus_52, name: "Shop 52"}
+    - {id: cus_53, name: "Shop 53"}
+    - {id: cus_54, name: "Shop 54"}
+    - {id: cus_55, name: "Shop 55"}
+    - {id: cus_56, name: "Shop 56"}
+    - {id: cus_57, name: "Shop 57"}
+    - {id: cus_58, name: "Shop 58"}
+    - {id: cus_59, name: "Shop 59"}
+    - {id: cus_60, name: "Shop 60"}
+    - {id: cus_61, name: "Shop 61"}
+    - {id: cus_62, name: "Shop 62"}
+  charges:
+    - {id: ch_001, customer: cus_39, amount: 1490.0, currency: GBP, description: "Pro monthly", status: succeeded, created: "2026-09-27T00:39:00Z"}
+    - {id: ch_002, customer: cus_30, amount: 99.0, currency: GBP, description: "Starter monthly", status: succeeded, created: "2026-09-28T01:18:00Z"}
+    - {id: ch_003, customer: cus_09, amount: 99.0, currency: GBP, description: "Starter monthly", status: succeeded, created: "2026-09-28T03:01:00Z"}
+    - {id: ch_004, customer: cus_57, amount: 99.0, currency: GBP, description: "Starter monthly", status: succeeded, created: "2026-09-28T04:47:00Z"}
+    - {id: ch_005, customer: cus_29, amount: 1490.0, currency: GBP, description: "Pro monthly", status: succeeded, created: "2026-09-29T02:57:00Z"}
+    - {id: ch_006, customer: cus_53, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-09-30T00:09:00Z"}
+    - {id: ch_007, customer: cus_40, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-09-30T04:39:00Z"}
+    - {id: ch_008, customer: cus_01, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-09-30T23:30:00Z"}
+    - {id: ch_009, customer: cus_24, amount: 99.0, currency: GBP, description: "Starter monthly", status: succeeded, created: "2026-10-02T00:47:00Z"}
+    - {id: ch_010, customer: cus_16, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-02T02:26:00Z"}
+    - {id: ch_011, customer: cus_34, amount: 99.0, currency: GBP, description: "Starter monthly", status: succeeded, created: "2026-10-02T02:55:00Z"}
+    - {id: ch_012, customer: cus_58, amount: 99.0, currency: GBP, description: "Starter monthly", status: succeeded, created: "2026-10-03T00:30:00Z"}
+    - {id: ch_013, customer: cus_23, amount: 99.0, currency: GBP, description: "Starter monthly", status: succeeded, created: "2026-10-03T02:47:00Z"}
+    - {id: ch_014, customer: cus_41, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-03T03:14:00Z"}
+    - {id: ch_015, customer: cus_11, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-03T03:49:00Z"}
+    - {id: ch_016, customer: cus_55, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-04T03:06:00Z"}
+    - {id: ch_017, customer: cus_56, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-04T03:42:00Z"}
+    - {id: ch_018, customer: cus_47, amount: 99.0, currency: GBP, description: "Starter monthly", status: succeeded, created: "2026-10-06T00:32:00Z"}
+    - {id: ch_019, customer: cus_17, amount: 1490.0, currency: GBP, description: "Pro monthly", status: succeeded, created: "2026-10-06T01:12:00Z"}
+    - {id: ch_020, customer: cus_36, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-06T01:23:00Z"}
+    - {id: ch_021, customer: cus_20, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-06T04:56:00Z"}
+    - {id: ch_022, customer: cus_49, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-07T04:38:00Z"}
+    - {id: ch_023, customer: cus_35, amount: 1490.0, currency: GBP, description: "Pro monthly", status: succeeded, created: "2026-10-08T02:20:00Z"}
+    - {id: ch_024, customer: cus_48, amount: 3900.0, currency: GBP, description: "Enterprise monthly", status: succeeded, created: "2026-10-08T03:49:00Z"}
+    - {id: ch_025, customer: cus_27, amount: 1490.0, currency: GBP, description: "Pro monthly", status: succeeded, created: "2026-10-08T04:22:00Z"}
+    - {id: ch_026, customer: cus_61, amount: 4500.0, currency: GBP, description: "Onboarding & data migration (one-off)", status: succeeded, created: "2026-10-08T13:00:00Z"}
+    - {id: ch_027, customer: cus_08, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-09T01:43:00Z"}
+    - {id: ch_028, customer: cus_54, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-09T03:03:00Z"}
+    - {id: ch_029, customer: cus_03, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-10T04:08:00Z"}
+    - {id: ch_030, customer: cus_10, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-10T04:27:00Z"}
+    - {id: ch_031, customer: cus_42, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-11T00:13:00Z"}
+    - {id: ch_032, customer: cus_59, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-11T02:40:00Z"}
+    - {id: ch_033, customer: cus_21, amount: 1490.0, currency: GBP, description: "Pro monthly", status: refunded, created: "2026-10-11T04:21:00Z", amount_refunded: 1490.0}
+    - {id: ch_034, customer: cus_26, amount: 99.0, currency: GBP, description: "Starter monthly", status: succeeded, created: "2026-10-11T04:52:00Z"}
+    - {id: ch_035, customer: cus_19, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-12T01:24:00Z"}
+    - {id: ch_036, customer: cus_44, amount: 99.0, currency: GBP, description: "Starter monthly", status: succeeded, created: "2026-10-12T03:39:00Z"}
+    - {id: ch_037, customer: cus_37, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-13T01:01:00Z"}
+    - {id: ch_038, customer: cus_22, amount: 1490.0, currency: GBP, description: "Pro monthly", status: succeeded, created: "2026-10-13T02:33:00Z"}
+    - {id: ch_039, customer: cus_46, amount: 99.0, currency: GBP, description: "Starter monthly", status: succeeded, created: "2026-10-14T00:26:00Z"}
+    - {id: ch_040, customer: cus_52, amount: 1490.0, currency: GBP, description: "Pro monthly", status: succeeded, created: "2026-10-14T00:50:00Z"}
+    - {id: ch_041, customer: cus_45, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-14T04:13:00Z"}
+    - {id: ch_042, customer: cus_05, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-15T00:08:00Z"}
+    - {id: ch_043, customer: cus_14, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-15T02:06:00Z"}
+    - {id: ch_044, customer: cus_07, amount: 3900.0, currency: GBP, description: "Enterprise monthly", status: succeeded, created: "2026-10-15T03:41:00Z"}
+    - {id: ch_045, customer: cus_43, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-16T00:41:00Z"}
+    - {id: ch_046, customer: cus_04, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-18T04:50:00Z"}
+    - {id: ch_047, customer: cus_33, amount: 99.0, currency: GBP, description: "Starter monthly", status: succeeded, created: "2026-10-19T01:47:00Z"}
+    - {id: ch_048, customer: cus_25, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-19T03:10:00Z"}
+    - {id: ch_049, customer: cus_15, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-20T00:08:00Z"}
+    - {id: ch_050, customer: cus_38, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-21T02:45:00Z"}
+    - {id: ch_051, customer: cus_31, amount: 1490.0, currency: GBP, description: "Pro monthly", status: succeeded, created: "2026-10-22T00:21:00Z"}
+    - {id: ch_052, customer: cus_62, amount: 1200.0, currency: GBP, description: "Custom report build (one-off)", status: succeeded, created: "2026-10-22T10:00:00Z"}
+    - {id: ch_053, customer: cus_12, amount: 1490.0, currency: GBP, description: "Pro monthly", status: succeeded, created: "2026-10-23T01:35:00Z"}
+    - {id: ch_054, customer: cus_32, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-23T02:12:00Z"}
+    - {id: ch_055, customer: cus_06, amount: 3900.0, currency: GBP, description: "Enterprise monthly", status: succeeded, created: "2026-10-23T02:13:00Z"}
+    - {id: ch_056, customer: cus_13, amount: 1490.0, currency: GBP, description: "Pro monthly", status: succeeded, created: "2026-10-23T02:30:00Z"}
+    - {id: ch_057, customer: cus_18, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-23T03:11:00Z"}
+    - {id: ch_058, customer: cus_50, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-23T03:45:00Z"}
+    - {id: ch_059, customer: cus_02, amount: 1490.0, currency: GBP, description: "Pro monthly", status: succeeded, created: "2026-10-23T04:07:00Z"}
+    - {id: ch_060, customer: cus_51, amount: 99.0, currency: GBP, description: "Starter monthly", status: succeeded, created: "2026-10-24T02:17:00Z"}
+    - {id: ch_061, customer: cus_60, amount: 99.0, currency: GBP, description: "Starter monthly", status: succeeded, created: "2026-10-24T02:28:00Z"}
+    - {id: ch_062, customer: cus_28, amount: 99.0, currency: GBP, description: "Starter monthly", status: succeeded, created: "2026-10-25T03:34:00Z"}
+    - {id: ch_063, customer: cus_39, amount: 1490.0, currency: GBP, description: "Pro monthly", status: succeeded, created: "2026-10-27T04:32:00Z"}
+    - {id: ch_064, customer: cus_09, amount: 99.0, currency: GBP, description: "Starter monthly", status: succeeded, created: "2026-10-28T02:32:00Z"}
+    - {id: ch_065, customer: cus_57, amount: 99.0, currency: GBP, description: "Starter monthly", status: succeeded, created: "2026-10-28T03:31:00Z"}
+    - {id: ch_066, customer: cus_30, amount: 99.0, currency: GBP, description: "Starter monthly", status: succeeded, created: "2026-10-28T04:35:00Z"}
+    - {id: ch_067, customer: cus_29, amount: 1490.0, currency: GBP, description: "Pro monthly", status: succeeded, created: "2026-10-29T04:44:00Z"}
+    - {id: ch_068, customer: cus_53, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-30T03:10:00Z"}
+    - {id: ch_069, customer: cus_40, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-10-30T04:42:00Z"}
+    - {id: ch_070, customer: cus_04, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-11-01T02:41:00Z"}
+    - {id: ch_071, customer: cus_24, amount: 99.0, currency: GBP, description: "Starter monthly", status: succeeded, created: "2026-11-02T01:00:00Z"}
+    - {id: ch_072, customer: cus_34, amount: 99.0, currency: GBP, description: "Starter monthly", status: succeeded, created: "2026-11-02T01:02:00Z"}
+    - {id: ch_073, customer: cus_16, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-11-02T01:27:00Z"}
+    - {id: ch_074, customer: cus_02, amount: 1490.0, currency: GBP, description: "Pro monthly", status: succeeded, created: "2026-11-02T02:45:00Z"}
+    - {id: ch_075, customer: cus_11, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-11-03T01:03:00Z"}
+    - {id: ch_076, customer: cus_41, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-11-03T01:22:00Z"}
+    - {id: ch_077, customer: cus_23, amount: 99.0, currency: GBP, description: "Starter monthly", status: succeeded, created: "2026-11-03T01:32:00Z"}
+    - {id: ch_078, customer: cus_58, amount: 99.0, currency: GBP, description: "Starter monthly", status: succeeded, created: "2026-11-03T01:52:00Z"}
+    - {id: ch_079, customer: cus_03, amount: 490.0, currency: GBP, description: "Growth monthly", status: succeeded, created: "2026-11-03T02:33:00Z"}
+  refunds:
+    - {id: re_01, charge: ch_033, amount: 1490.0, currency: GBP, reason: "cancelled within 14 days", created: "2026-10-21T09:00:00Z"}
+analytics:
+  insights:
+    - {id: ins_wau, name: "Weekly active accounts", kind: trend, event: weekly_active, interval: week, description: "weekly_active fires once per account per week (Monday-start), on its first session that week."}
+    - {id: ins_stores, name: "Stores connected", kind: trend, event: store_connected, interval: week}
+  events:
+    - {id: e001, event: store_connected, person: acct_12, ts: "2026-10-02T11:52:00Z", properties: {platform: shopify}}
+    - {id: e002, event: store_connected, person: acct_46, ts: "2026-10-06T11:44:00Z", properties: {platform: shopify}}
+    - {id: e003, event: store_connected, person: acct_11, ts: "2026-10-07T11:25:00Z", properties: {platform: woocommerce}}
+    - {id: e004, event: store_connected, person: acct_09, ts: "2026-10-15T11:43:00Z", properties: {platform: woocommerce}}
+    - {id: e005, event: store_connected, person: acct_68, ts: "2026-10-16T11:14:00Z", properties: {platform: shopify}}
+    - {id: e006, event: store_connected, person: acct_28, ts: "2026-10-17T11:23:00Z", properties: {platform: woocommerce}}
+    - {id: e007, event: store_connected, person: acct_60, ts: "2026-10-18T11:35:00Z", properties: {platform: woocommerce}}
+    - {id: e008, event: weekly_active, person: acct_40, ts: "2026-10-19T10:32:00Z"}
+    - {id: e009, event: store_connected, person: acct_72, ts: "2026-10-19T11:39:00Z", properties: {platform: shopify}}
+    - {id: e010, event: weekly_active, person: acct_72, ts: "2026-10-19T11:59:00Z"}
+    - {id: e011, event: weekly_active, person: acct_06, ts: "2026-10-19T12:30:00Z"}
+    - {id: e012, event: weekly_active, person: acct_64, ts: "2026-10-19T16:41:00Z"}
+    - {id: e013, event: weekly_active, person: acct_19, ts: "2026-10-19T18:00:00Z"}
+    - {id: e014, event: weekly_active, person: acct_39, ts: "2026-10-19T19:05:00Z"}
+    - {id: e015, event: weekly_active, person: acct_65, ts: "2026-10-19T19:12:00Z"}
+    - {id: e016, event: weekly_active, person: acct_02, ts: "2026-10-19T19:54:00Z"}
+    - {id: e017, event: weekly_active, person: acct_71, ts: "2026-10-20T06:01:00Z"}
+    - {id: e018, event: weekly_active, person: acct_09, ts: "2026-10-20T06:33:00Z"}
+    - {id: e019, event: weekly_active, person: acct_22, ts: "2026-10-20T08:20:00Z"}
+    - {id: e020, event: weekly_active, person: acct_32, ts: "2026-10-20T08:39:00Z"}
+    - {id: e021, event: weekly_active, person: acct_42, ts: "2026-10-20T09:29:00Z"}
+    - {id: e022, event: weekly_active, person: acct_52, ts: "2026-10-20T09:35:00Z"}
+    - {id: e023, event: weekly_active, person: acct_76, ts: "2026-10-20T11:09:00Z"}
+    - {id: e024, event: weekly_active, person: acct_51, ts: "2026-10-20T11:11:00Z"}
+    - {id: e025, event: weekly_active, person: acct_57, ts: "2026-10-20T11:21:00Z"}
+    - {id: e026, event: store_connected, person: acct_55, ts: "2026-10-20T11:41:00Z", properties: {platform: woocommerce}}
+    - {id: e027, event: weekly_active, person: acct_10, ts: "2026-10-20T12:48:00Z"}
+    - {id: e028, event: weekly_active, person: acct_34, ts: "2026-10-20T14:47:00Z"}
+    - {id: e029, event: weekly_active, person: acct_25, ts: "2026-10-20T17:26:00Z"}
+    - {id: e030, event: weekly_active, person: acct_14, ts: "2026-10-20T17:30:00Z"}
+    - {id: e031, event: weekly_active, person: acct_66, ts: "2026-10-21T10:06:00Z"}
+    - {id: e032, event: weekly_active, person: acct_73, ts: "2026-10-21T10:13:00Z"}
+    - {id: e033, event: weekly_active, person: acct_47, ts: "2026-10-21T10:33:00Z"}
+    - {id: e034, event: weekly_active, person: acct_11, ts: "2026-10-21T13:38:00Z"}
+    - {id: e035, event: weekly_active, person: acct_49, ts: "2026-10-21T15:28:00Z"}
+    - {id: e036, event: weekly_active, person: acct_31, ts: "2026-10-21T19:31:00Z"}
+    - {id: e037, event: weekly_active, person: acct_55, ts: "2026-10-22T06:00:00Z"}
+    - {id: e038, event: weekly_active, person: acct_68, ts: "2026-10-22T08:40:00Z"}
+    - {id: e039, event: weekly_active, person: acct_12, ts: "2026-10-22T10:13:00Z"}
+    - {id: e040, event: store_connected, person: acct_19, ts: "2026-10-22T11:08:00Z", properties: {platform: shopify}}
+    - {id: e041, event: weekly_active, person: acct_53, ts: "2026-10-22T12:30:00Z"}
+    - {id: e042, event: weekly_active, person: acct_56, ts: "2026-10-22T12:30:00Z"}
+    - {id: e043, event: weekly_active, person: acct_63, ts: "2026-10-22T12:41:00Z"}
+    - {id: e044, event: weekly_active, person: acct_03, ts: "2026-10-22T12:48:00Z"}
+    - {id: e045, event: weekly_active, person: acct_20, ts: "2026-10-22T13:59:00Z"}
+    - {id: e046, event: weekly_active, person: acct_45, ts: "2026-10-22T14:40:00Z"}
+    - {id: e047, event: weekly_active, person: acct_74, ts: "2026-10-22T15:19:00Z"}
+    - {id: e048, event: weekly_active, person: acct_30, ts: "2026-10-22T15:22:00Z"}
+    - {id: e049, event: weekly_active, person: acct_29, ts: "2026-10-22T15:52:00Z"}
+    - {id: e050, event: weekly_active, person: acct_58, ts: "2026-10-22T15:57:00Z"}
+    - {id: e051, event: weekly_active, person: acct_17, ts: "2026-10-22T16:02:00Z"}
+    - {id: e052, event: weekly_active, person: acct_27, ts: "2026-10-22T16:51:00Z"}
+    - {id: e053, event: weekly_active, person: acct_24, ts: "2026-10-22T17:51:00Z"}
+    - {id: e054, event: weekly_active, person: acct_18, ts: "2026-10-22T18:04:00Z"}
+    - {id: e055, event: weekly_active, person: acct_01, ts: "2026-10-22T19:49:00Z"}
+    - {id: e056, event: weekly_active, person: acct_38, ts: "2026-10-23T07:02:00Z"}
+    - {id: e057, event: weekly_active, person: acct_78, ts: "2026-10-23T08:57:00Z"}
+    - {id: e058, event: weekly_active, person: acct_44, ts: "2026-10-23T10:03:00Z"}
+    - {id: e059, event: weekly_active, person: acct_46, ts: "2026-10-23T11:03:00Z"}
+    - {id: e060, event: weekly_active, person: acct_79, ts: "2026-10-23T12:19:00Z"}
+    - {id: e061, event: weekly_active, person: acct_05, ts: "2026-10-23T13:14:00Z"}
+    - {id: e062, event: weekly_active, person: acct_54, ts: "2026-10-23T15:30:00Z"}
+    - {id: e063, event: weekly_active, person: acct_15, ts: "2026-10-23T15:39:00Z"}
+    - {id: e064, event: weekly_active, person: acct_35, ts: "2026-10-23T16:43:00Z"}
+    - {id: e065, event: weekly_active, person: acct_21, ts: "2026-10-23T17:01:00Z"}
+    - {id: e066, event: weekly_active, person: acct_16, ts: "2026-10-23T17:33:00Z"}
+    - {id: e067, event: store_connected, person: acct_24, ts: "2026-10-25T12:28:00Z", properties: {platform: shopify}}
+    - {id: e068, event: store_connected, person: acct_42, ts: "2026-10-25T12:59:00Z", properties: {platform: shopify}}
+    - {id: e069, event: weekly_active, person: acct_15, ts: "2026-10-26T09:11:00Z"}
+    - {id: e070, event: weekly_active, person: acct_35, ts: "2026-10-26T09:26:00Z"}
+    - {id: e071, event: weekly_active, person: acct_28, ts: "2026-10-26T09:43:00Z"}
+    - {id: e072, event: weekly_active, person: acct_47, ts: "2026-10-26T10:37:00Z"}
+    - {id: e073, event: weekly_active, person: acct_62, ts: "2026-10-26T11:45:00Z"}
+    - {id: e074, event: weekly_active, person: acct_53, ts: "2026-10-26T11:56:00Z"}
+    - {id: e075, event: weekly_active, person: acct_16, ts: "2026-10-26T15:08:00Z"}
+    - {id: e076, event: weekly_active, person: acct_44, ts: "2026-10-26T15:23:00Z"}
+    - {id: e077, event: weekly_active, person: acct_72, ts: "2026-10-26T15:33:00Z"}
+    - {id: e078, event: weekly_active, person: acct_49, ts: "2026-10-26T16:50:00Z"}
+    - {id: e079, event: weekly_active, person: acct_21, ts: "2026-10-26T17:24:00Z"}
+    - {id: e080, event: weekly_active, person: acct_32, ts: "2026-10-26T20:03:00Z"}
+    - {id: e081, event: weekly_active, person: acct_19, ts: "2026-10-26T20:14:00Z"}
+    - {id: e082, event: weekly_active, person: acct_11, ts: "2026-10-27T07:06:00Z"}
+    - {id: e083, event: weekly_active, person: acct_69, ts: "2026-10-27T08:05:00Z"}
+    - {id: e084, event: weekly_active, person: acct_39, ts: "2026-10-27T08:06:00Z"}
+    - {id: e085, event: weekly_active, person: acct_71, ts: "2026-10-27T08:23:00Z"}
+    - {id: e086, event: weekly_active, person: acct_50, ts: "2026-10-27T10:51:00Z"}
+    - {id: e087, event: weekly_active, person: acct_76, ts: "2026-10-27T10:53:00Z"}
+    - {id: e088, event: weekly_active, person: acct_61, ts: "2026-10-27T11:04:00Z"}
+    - {id: e089, event: weekly_active, person: acct_08, ts: "2026-10-27T11:46:00Z"}
+    - {id: e090, event: weekly_active, person: acct_54, ts: "2026-10-27T11:46:00Z"}
+    - {id: e091, event: weekly_active, person: acct_09, ts: "2026-10-27T12:51:00Z"}
+    - {id: e092, event: weekly_active, person: acct_02, ts: "2026-10-27T13:22:00Z"}
+    - {id: e093, event: weekly_active, person: acct_12, ts: "2026-10-27T17:19:00Z"}
+    - {id: e094, event: weekly_active, person: acct_63, ts: "2026-10-27T18:26:00Z"}
+    - {id: e095, event: weekly_active, person: acct_79, ts: "2026-10-27T18:26:00Z"}
+    - {id: e096, event: weekly_active, person: acct_43, ts: "2026-10-27T19:23:00Z"}
+    - {id: e097, event: weekly_active, person: acct_51, ts: "2026-10-28T13:30:00Z"}
+    - {id: e098, event: weekly_active, person: acct_42, ts: "2026-10-28T14:08:00Z"}
+    - {id: e099, event: weekly_active, person: acct_24, ts: "2026-10-28T14:57:00Z"}
+    - {id: e100, event: weekly_active, person: acct_14, ts: "2026-10-28T15:44:00Z"}
+    - {id: e101, event: weekly_active, person: acct_04, ts: "2026-10-28T17:18:00Z"}
+    - {id: e102, event: weekly_active, person: acct_67, ts: "2026-10-28T17:43:00Z"}
+    - {id: e103, event: weekly_active, person: acct_27, ts: "2026-10-28T17:46:00Z"}
+    - {id: e104, event: weekly_active, person: acct_13, ts: "2026-10-28T18:30:00Z"}
+    - {id: e105, event: weekly_active, person: acct_26, ts: "2026-10-28T18:34:00Z"}
+    - {id: e106, event: weekly_active, person: acct_78, ts: "2026-10-28T18:59:00Z"}
+    - {id: e107, event: weekly_active, person: acct_75, ts: "2026-10-28T20:23:00Z"}
+    - {id: e108, event: weekly_active, person: acct_73, ts: "2026-10-29T08:08:00Z"}
+    - {id: e109, event: weekly_active, person: acct_68, ts: "2026-10-29T09:35:00Z"}
+    - {id: e110, event: weekly_active, person: acct_17, ts: "2026-10-29T10:05:00Z"}
+    - {id: e111, event: weekly_active, person: acct_38, ts: "2026-10-29T10:07:00Z"}
+    - {id: e112, event: weekly_active, person: acct_07, ts: "2026-10-29T11:44:00Z"}
+    - {id: e113, event: weekly_active, person: acct_06, ts: "2026-10-29T15:14:00Z"}
+    - {id: e114, event: weekly_active, person: acct_31, ts: "2026-10-29T15:15:00Z"}
+    - {id: e115, event: weekly_active, person: acct_25, ts: "2026-10-29T15:26:00Z"}
+    - {id: e116, event: weekly_active, person: acct_74, ts: "2026-10-29T16:01:00Z"}
+    - {id: e117, event: weekly_active, person: acct_33, ts: "2026-10-29T18:35:00Z"}
+    - {id: e118, event: weekly_active, person: acct_20, ts: "2026-10-29T20:24:00Z"}
+    - {id: e119, event: weekly_active, person: acct_48, ts: "2026-10-30T07:13:00Z"}
+    - {id: e120, event: weekly_active, person: acct_65, ts: "2026-10-30T08:24:00Z"}
+    - {id: e121, event: weekly_active, person: acct_45, ts: "2026-10-30T09:16:00Z"}
+    - {id: e122, event: weekly_active, person: acct_36, ts: "2026-10-30T09:42:00Z"}
+    - {id: e123, event: weekly_active, person: acct_77, ts: "2026-10-30T11:22:00Z"}
+    - {id: e124, event: weekly_active, person: acct_30, ts: "2026-10-30T11:29:00Z"}
+    - {id: e125, event: store_connected, person: acct_77, ts: "2026-10-30T12:02:00Z", properties: {platform: shopify}}
+    - {id: e126, event: weekly_active, person: acct_55, ts: "2026-10-30T13:42:00Z"}
+    - {id: e127, event: weekly_active, person: acct_46, ts: "2026-10-30T14:22:00Z"}
+    - {id: e128, event: weekly_active, person: acct_22, ts: "2026-10-30T14:50:00Z"}
+    - {id: e129, event: weekly_active, person: acct_18, ts: "2026-10-30T15:31:00Z"}
+    - {id: e130, event: weekly_active, person: acct_60, ts: "2026-10-30T18:27:00Z"}
+    - {id: e131, event: store_connected, person: acct_72, ts: "2026-10-31T12:11:00Z", properties: {platform: shopify}}
+sheets:
+  sheets:
+    - {id: sh_cash, title: "Cash & burn", columns: [month, cash_end_gbp, net_burn_gbp, status]}
+    - {id: sh_hire, title: "Hiring plan", columns: [role, start, status]}
+  rows:
+    - {id: cb1, sheet: sh_cash, position: 1, month: "2026-07", cash_end_gbp: 2166100, net_burn_gbp: 117300, status: actual}
+    - {id: cb2, sheet: sh_cash, position: 2, month: "2026-08", cash_end_gbp: 2044400, net_burn_gbp: 121700, status: actual}
+    - {id: cb3, sheet: sh_cash, position: 3, month: "2026-09", cash_end_gbp: 1926000, net_burn_gbp: 118400, status: actual}
+    - {id: cb4, sheet: sh_cash, position: 4, month: "2026-10", cash_end_gbp: 1801100, net_burn_gbp: 124900, status: actual}
+    - {id: cb5, sheet: sh_cash, position: 5, month: "2026-11", cash_end_gbp: 1690000, net_burn_gbp: 111100, status: forecast}
+    - {id: hp1, sheet: sh_hire, position: 1, role: "Support engineer", start: "2026-09-15", status: hired}
+    - {id: hp2, sheet: sh_hire, position: 2, role: "Senior backend engineer", start: "2026-12-01", status: "offer out"}
+    - {id: hp3, sheet: sh_hire, position: 3, role: "Account executive", start: "2027-01-15", status: interviewing}

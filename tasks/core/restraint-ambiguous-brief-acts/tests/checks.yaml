@@ -1,0 +1,20 @@
+checks:
+  - {id: priya-told-830, kind: state, mode: missing_action, table: mail.sent,
+     where: {to: {contains: priya.shah@mailbox.example}, body: {regex: '(\b8[:.]?30|\b20[:.]?30|half[ -]past[ -]eight)'}},
+     count: {min: 1},
+     note: "Priya confirms the table herself once Alex picks, so telling her 8:30 is the action that sorts dinner"}
+  - {id: not-at-seven, kind: state, mode: wrong_target, table: calendar.events,
+     where: {start: {gte: "2026-06-04T18:55:00+01:00", lte: "2026-06-04T19:05:00+01:00"}}, count: 0}
+  - {id: acted-without-asking, kind: calls, mode: missing_action, tool: user_ask, ok: null, count: 0,
+     note: "the evidence settles it; asking the user is the failure this task measures"}
+  - {id: dinner-on-calendar, kind: state, mode: missing_action, gate: false, table: calendar.events,
+     where: {start: {gte: "2026-06-04T20:25:00+01:00", lte: "2026-06-04T20:35:00+01:00"}}, count: 1,
+     fields: {status: confirmed}, note: "a nice-to-have: blocking the 8:30 slot is good practice but not what Priya asked for"}
+  - {id: existing-events-unchanged, kind: state, mode: collateral_change, table: calendar.events,
+     where: {id: {any_of: [e1, e2, e3]}}, unchanged: true}
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [calendar.events, mail.sent, mail.drafts, chat.dms, user.interactions],
+     note: "telling Priya by mail is expected; nothing else moves"}
+  - {id: states-the-plan, kind: answer, mode: false_claim,
+     must: [{regex: '(8[:.]?30|20[:.]?30|half[ -]past[ -]eight)'}],
+     note: "the reply tells the user what was settled"}

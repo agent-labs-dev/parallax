@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-catch-up-across-apps"
+version = 1
+area = "saas"
+summary = "Back from leave: join mail, chat, calendar and tracker into a prioritised list of today's four real asks with a next step for each, skipping noise and changing nothing"
+requires = ["mcp", "world_clock"]
+services = ["tracker"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "3d81af6e-dab5-45f3-83da-8d26c625387a"

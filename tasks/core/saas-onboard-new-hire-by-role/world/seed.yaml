@@ -1,0 +1,237 @@
+now: 2026-10-29T10:05:00-07:00
+user: {name: Jordan Reyes, email: jordan.reyes@fernway.test, timezone: America/Los_Angeles}
+mail:
+  messages:
+    - {id: m01, thread: t-maya, from: lena.fischer@fernway.test, to: [jordan.reyes@fernway.test], subject: 'New starter: Maya Lindqvist (Sales), Monday', body: 'Hi Jordan, Maya Lindqvist joins us on Monday 2 November as an Account Executive in Sales, reporting to Daniel Okoye. She''s fully remote, based in Boston. Her work email is maya.lindqvist@fernway.test (live from Friday). Buddy: Tom Becker. Laptop is with IT. Can you get her onboarding set up? Thanks, Lena', date: '2026-10-26T09:14:00-07:00', labels: [inbox]}
+    - {id: m02, thread: t-maya, from: daniel.okoye@fernway.test, to: [jordan.reyes@fernway.test], subject: 'Re: New starter: Maya Lindqvist (Sales), Monday', body: 'Quick change: Tom starts paternity leave on Monday, so Priya from my team will be Maya''s buddy instead. Everything else as Lena said. Thanks! Daniel', date: '2026-10-28T16:02:00-07:00', labels: [inbox]}
+    - {id: m03, thread: m03, from: lena.fischer@fernway.test, to: [jordan.reyes@fernway.test], subject: 'New starter: Leo Rossi (Engineering)', body: 'Leo Rossi joined Engineering on 5 October, reporting to Marcus Webb. Buddy: Priya Shah. Thanks for setting him up.', date: '2026-09-28T11:00:00-07:00', labels: [inbox]}
+    - {id: m04, thread: m04, from: felix.braun@fernway.test, to: [jordan.reyes@fernway.test], subject: October expense reports due, body: 'Reminder: October expenses are due by 5 November.', date: '2026-10-12T09:30:00-07:00', labels: [inbox]}
+    - {id: m05, thread: m05, from: grace.kim@fernway.test, to: [jordan.reyes@fernway.test], subject: Roadmap H2 review notes, body: Notes from today's roadmap review are in Drive (Product)., date: '2026-10-13T10:30:00-07:00', labels: [inbox]}
+    - {id: m06, thread: m06, from: it-helpdesk@fernway.test, to: [jordan.reyes@fernway.test], subject: Laptop shipment update, body: The MacBook for the new Sales starter shipped and will be on her desk Monday., date: '2026-10-14T11:30:00-07:00', labels: [inbox]}
+    - {id: m07, thread: m07, from: olivia.grant@fernway.test, to: [jordan.reyes@fernway.test], subject: Sales kickoff venue, body: We've booked the Harbor Room for the January kickoff., date: '2026-10-15T12:30:00-07:00', labels: [inbox]}
+    - {id: m08, thread: m08, from: benefits@perkline.example, to: [jordan.reyes@fernway.test], subject: Open enrollment closes 13 Nov, body: Make your 2027 benefits choices before 13 November., date: '2026-10-16T13:30:00-07:00', labels: [inbox]}
+    - {id: m09, thread: m09, from: sam.ortiz@fernway.test, to: [jordan.reyes@fernway.test], subject: CS hiring, body: 'We''d like to open a CSM role in Q1. Can we chat next week?', date: '2026-10-17T14:30:00-07:00', labels: [inbox]}
+    - {id: m10, thread: m10, from: newsletter@hrweekly.example, to: [jordan.reyes@fernway.test], subject: 'HR Weekly: onboarding that sticks', body: Five ideas for better first weeks., date: '2026-10-18T15:30:00-07:00', labels: [inbox]}
+    - {id: m11, thread: m11, from: lena.fischer@fernway.test, to: [jordan.reyes@fernway.test], subject: Performance review cycle, body: Review cycle opens 9 November. Managers have the guide., date: '2026-10-19T16:30:00-07:00', labels: [inbox]}
+    - {id: m12, thread: m12, from: marcus.webb@fernway.test, to: [jordan.reyes@fernway.test], subject: Eng offsite headcount, body: We'll be 14 at the eng offsite. Room for 16 is fine., date: '2026-10-20T09:30:00-07:00', labels: [inbox]}
+    - {id: m13, thread: m13, from: noreply@calendly.example, to: [jordan.reyes@fernway.test], subject: 'New booking: candidate interview', body: 'Interview booked for Fri 30 Oct 11:00.', date: '2026-10-21T10:30:00-07:00', labels: [inbox]}
+    - {id: m14, thread: m14, from: hana.sato@fernway.test, to: [jordan.reyes@fernway.test], subject: Design system office hours, body: Office hours move to Wednesdays from next week., date: '2026-10-22T11:30:00-07:00', labels: [inbox]}
+    - {id: m15, thread: m15, from: nora.lind@fernway.test, to: [jordan.reyes@fernway.test], subject: Contract access reminder, body: 'Reminder: customer contracts are view-only for everyone outside Legal.', date: '2026-10-23T12:30:00-07:00', labels: [inbox]}
+    - {id: m16, thread: m16, from: ivan.petrov@fernway.test, to: [jordan.reyes@fernway.test], subject: SSO rollout, body: We're moving the last apps to SSO on 9 Nov., date: '2026-10-24T13:30:00-07:00', labels: [inbox]}
+    - {id: m17, thread: m17, from: aisha.bello@fernway.test, to: [jordan.reyes@fernway.test], subject: Thanks!, body: Thanks for sorting my parking pass., date: '2026-10-25T14:30:00-07:00', labels: [inbox]}
+    - {id: m18, thread: m18, from: daniel.okoye@fernway.test, to: [jordan.reyes@fernway.test], subject: Sales team photo, body: 'Team photo is Thursday 5 Nov at 16:00, please tell new folks.', date: '2026-10-26T15:30:00-07:00', labels: [inbox]}
+    - {id: m19, thread: m19, from: chen.wu@fernway.test, to: [jordan.reyes@fernway.test], subject: Architecture docs moved, body: Architecture docs now live in the Architecture folder., date: '2026-10-27T16:30:00-07:00', labels: [inbox]}
+    - {id: m20, thread: m20, from: lena.fischer@fernway.test, to: [jordan.reyes@fernway.test], subject: Headcount update, body: Two more Sales hires are planned for December., date: '2026-10-28T09:30:00-07:00', labels: [inbox]}
+    - {id: m21, thread: m21, from: rosa.martinez@fernway.test, to: [jordan.reyes@fernway.test], subject: CRM licences, body: We have 3 spare CRM seats until the renewal., date: '2026-10-12T10:30:00-07:00', labels: [inbox]}
+    - {id: m22, thread: m22, from: ben.carter@fernway.test, to: [jordan.reyes@fernway.test], subject: 'Lunch Friday?', body: Team lunch Friday at noon if you want to join., date: '2026-10-13T11:30:00-07:00', labels: [inbox]}
+    - {id: m23, thread: m23, from: olivia.grant@fernway.test, to: [jordan.reyes@fernway.test], subject: Q4 quota letters, body: Quota letters go out next week., date: '2026-10-14T12:30:00-07:00', labels: [inbox]}
+    - {id: m24, thread: m21, from: rosa.martinez@fernway.test, to: [jordan.reyes@fernway.test], subject: 'Re: CRM licences', body: 'Update: I opened the seat ticket for the new AE who starts 2 Nov, so 2 spare seats are left until the renewal.', date: '2026-10-26T15:45:00-07:00', labels: [inbox]}
+contacts:
+  people:
+    - {id: c01, name: Daniel Okoye, email: daniel.okoye@fernway.test, company: Fernway, title: Sales Manager, notes: Sales team}
+    - {id: c02, name: Priya Shah, email: priya.shah@fernway.test, company: Fernway, title: Account Executive, notes: Sales team (mid-market)}
+    - {id: c03, name: Priya Shah, email: p.shah@fernway.test, company: Fernway, title: Senior Software Engineer, notes: Engineering team (payments squad)}
+    - {id: c04, name: Tom Becker, email: tom.becker@fernway.test, company: Fernway, title: Account Executive, notes: Sales team. On paternity leave from 2 Nov to 11 Dec.}
+    - {id: c05, name: Rosa Martinez, email: rosa.martinez@fernway.test, company: Fernway, title: Revenue Operations Lead, notes: Sales team}
+    - {id: c06, name: Ivan Petrov, email: ivan.petrov@fernway.test, company: Fernway, title: IT Lead, notes: IT team}
+    - {id: c07, name: Lena Fischer, email: lena.fischer@fernway.test, company: Fernway, title: HR Business Partner, notes: People team}
+    - {id: c08, name: Marcus Webb, email: marcus.webb@fernway.test, company: Fernway, title: Engineering Manager, notes: Engineering team}
+    - {id: c09, name: Aisha Bello, email: aisha.bello@fernway.test, company: Fernway, title: Sales Development Rep, notes: Sales team}
+    - {id: c10, name: Chen Wu, email: chen.wu@fernway.test, company: Fernway, title: Staff Engineer, notes: Engineering team}
+    - {id: c11, name: Olivia Grant, email: olivia.grant@fernway.test, company: Fernway, title: Head of Sales, notes: Sales team}
+    - {id: c12, name: Sam Ortiz, email: sam.ortiz@fernway.test, company: Fernway, title: Customer Success Manager, notes: Customer Success team}
+    - {id: c13, name: Nora Lind, email: nora.lind@fernway.test, company: Fernway, title: Legal Counsel, notes: Legal team}
+    - {id: c14, name: Felix Braun, email: felix.braun@fernway.test, company: Fernway, title: Finance Manager, notes: Finance team}
+    - {id: c15, name: Hana Sato, email: hana.sato@fernway.test, company: Fernway, title: Product Designer, notes: Design team}
+    - {id: c16, name: Ben Carter, email: ben.carter@fernway.test, company: Fernway, title: Account Executive, notes: Sales team}
+    - {id: c17, name: Grace Kim, email: grace.kim@fernway.test, company: Fernway, title: Product Manager, notes: Product team}
+    - {id: c18, name: Leo Rossi, email: leo.rossi@fernway.test, company: Fernway, title: Backend Engineer, notes: Engineering team}
+    - {id: c19, name: Priya Shah, email: priya@brightloop.example, company: Brightloop, title: Procurement Manager, notes: Customer contact}
+calendar:
+  calendars:
+    - {id: cal-jordan, name: Jordan Reyes, owner: jordan.reyes@fernway.test, timezone: America/Los_Angeles}
+    - {id: cal-daniel, name: Daniel Okoye, owner: daniel.okoye@fernway.test, timezone: America/Los_Angeles}
+    - {id: cal-priya, name: Priya Shah, owner: priya.shah@fernway.test, timezone: America/Los_Angeles}
+    - {id: cal-rosa, name: Rosa Martinez, owner: rosa.martinez@fernway.test, timezone: America/Los_Angeles}
+  events:
+    - {id: e1, calendar: cal-daniel, title: Pipeline review, start: '2026-10-05T09:00:00-07:00', end: '2026-10-05T09:45:00-07:00', tz: America/Los_Angeles, attendees: [priya.shah@fernway.test, ben.carter@fernway.test, tom.becker@fernway.test], organizer: daniel.okoye@fernway.test, rrule: FREQ=WEEKLY;BYDAY=MO, exceptions: {}, status: confirmed, description: '', location: ''}
+    - {id: e2, calendar: cal-jordan, title: People Ops standup, start: '2026-10-05T09:00:00-07:00', end: '2026-10-05T09:15:00-07:00', tz: America/Los_Angeles, attendees: [lena.fischer@fernway.test], organizer: jordan.reyes@fernway.test, rrule: 'FREQ=WEEKLY;BYDAY=MO,WE,FR', exceptions: {}, status: confirmed, description: '', location: ''}
+    - {id: e3, calendar: cal-rosa, title: Deal desk office hours, start: '2026-10-08T13:00:00-07:00', end: '2026-10-08T14:00:00-07:00', tz: America/Los_Angeles, attendees: [], organizer: rosa.martinez@fernway.test, rrule: FREQ=WEEKLY;BYDAY=TH, exceptions: {}, status: confirmed, description: '', location: ''}
+    - {id: e4, calendar: cal-priya, title: Halcyon Foods renewal call, start: '2026-11-03T10:00:00-08:00', end: '2026-11-03T11:00:00-08:00', tz: America/Los_Angeles, attendees: [buyer@halcyonfoods.example], organizer: priya.shah@fernway.test, rrule: null, exceptions: {}, status: confirmed, description: '', location: ''}
+    - {id: e5, calendar: cal-daniel, title: Sales team photo, start: '2026-11-05T16:00:00-08:00', end: '2026-11-05T16:30:00-08:00', tz: America/Los_Angeles, attendees: [priya.shah@fernway.test, ben.carter@fernway.test, aisha.bello@fernway.test], organizer: daniel.okoye@fernway.test, rrule: null, exceptions: {}, status: confirmed, description: '', location: ''}
+chat:
+  channels:
+    - {id: ch1, name: general, members: [], topic: Company-wide, created: '2025-01-01T09:00:00-08:00'}
+    - {id: ch2, name: sales, members: [], topic: Sales team, created: '2025-01-01T09:00:00-08:00'}
+    - {id: ch3, name: sales-wins, members: [], topic: Closed deals, created: '2025-01-01T09:00:00-08:00'}
+    - {id: ch4, name: eng-team, members: [], topic: Engineering, created: '2025-01-01T09:00:00-08:00'}
+    - {id: ch5, name: people-ops, members: [], topic: People Ops, created: '2025-01-01T09:00:00-08:00'}
+  messages:
+    - {id: s1, channel: ch2, author: daniel.okoye@fernway.test, text: Welcome Ben Carter to the team! @Priya is your buddy., ts: '2026-08-03T09:30:00-07:00', thread_id: null}
+    - {id: s2, channel: ch4, author: jordan.reyes@fernway.test, text: 'Please welcome Leo Rossi to Engineering! Manager @Marcus Webb, buddy @Priya Shah.', ts: '2026-10-05T09:10:00-07:00', thread_id: null}
+    - {id: s3, channel: ch3, author: ben.carter@fernway.test, text: Closed Kestrel Air expansion!, ts: '2026-10-20T15:00:00-07:00', thread_id: null}
+    - {id: s5, channel: ch5, author: lena.fischer@fernway.test, text: 'Onboarding change from October: remote starters get their week-1 meetings at the checklist times in THEIR time zone, not Pacific (Leo got a 7am welcome). Where they''re based is in my new-starter email. The wiki page will catch up.', ts: '2026-10-06T08:45:00-07:00', thread_id: null}
+    - {id: s6, channel: ch2, author: rosa.martinez@fernway.test, text: 'Heads up for onboarding: the Discount approval matrix in Deal Desk is view-only for AEs and SDRs from now on (managers keep edit). Please share it as viewer with new Sales hires; the rest of Deal Desk is unchanged.', ts: '2026-10-21T10:20:00-07:00', thread_id: null}
+    - {id: s4, channel: ch2, author: olivia.grant@fernway.test, text: Q4 quota letters next week., ts: '2026-10-27T11:00:00-07:00', thread_id: null}
+wiki:
+  pages:
+    - {id: w1, title: 'New starter onboarding: how we run it', space: People, body: 'People Ops runs onboarding in the week before a new starter''s first day, from the checklist for their role. Checklists: ''Onboarding checklist: Sales'' and ''Onboarding checklist: Engineering''. Other teams: ask their manager. Week-1 meeting times are Pacific time. If HR names a buddy who can''t do it, the manager picks the replacement.', parent: null, author: lena.fischer@fernway.test, created: '2026-02-01T10:00:00-08:00', updated: '2026-09-15T10:00:00-07:00', url: 'https://wiki.example/pages/w1'}
+    - {id: w2, title: 'Onboarding checklist: Sales', space: People, body: "For Account Executives, SDRs and other Sales hires.\n1. Drive: share every file in the 'Sales Playbook' and 'Deal Desk' folders with the new hire as editor. Share the files in 'Customer Contracts' view-only (viewer, never editor: Legal's rule). Do not share 'Sales Archive'.\n2. Calendar, week 1 (invite the new hire to each):\n   - Monday 10:00-10:30 'Welcome 1:1' with their manager.\n   - Tuesday 14:00-14:30 'Buddy coffee' with their buddy.\n   - Wednesday 11:00-12:00 'CRM walkthrough' with the Revenue Operations lead.\n3. Linear: open one issue 'CRM seat for <name>', assigned to the Revenue Operations lead, label onboarding.\n4. Slack: post a welcome in #sales that tags the manager and the buddy.", parent: null, author: lena.fischer@fernway.test, created: '2026-02-01T10:00:00-08:00', updated: '2026-09-15T10:00:00-07:00', url: 'https://wiki.example/pages/w2'}
+    - {id: w3, title: 'Onboarding checklist: Engineering', space: People, body: "For engineers and engineering managers.\n1. Drive: share every file in 'Engineering Handbook' and 'Architecture' with the new hire as editor.\n2. Calendar, week 1 (invite the new hire to each):\n   - Monday 10:00-10:30 'Welcome 1:1' with their manager.\n   - Tuesday 13:00-14:00 'Dev environment setup' with the IT lead.\n   - Thursday 15:00-16:00 'Architecture overview' with their buddy.\n3. Linear: open one issue 'Laptop and GitHub access for <name>', assigned to the IT lead, label onboarding.\n4. Slack: post a welcome in #eng-team that tags the manager and the buddy.", parent: null, author: lena.fischer@fernway.test, created: '2026-02-01T10:00:00-08:00', updated: '2026-09-15T10:00:00-07:00', url: 'https://wiki.example/pages/w3'}
+    - {id: w4, title: Expense policy summary, space: Finance, body: Submit receipts within 30 days. Meals up to $60 a day when travelling., parent: null, author: lena.fischer@fernway.test, created: '2026-02-01T10:00:00-08:00', updated: '2026-09-15T10:00:00-07:00', url: 'https://wiki.example/pages/w4'}
+    - {id: w5, title: Holiday calendar 2026, space: People, body: 'Company holidays: 26-27 Nov (Thanksgiving), 24 Dec - 1 Jan.', parent: null, author: lena.fischer@fernway.test, created: '2026-02-01T10:00:00-08:00', updated: '2026-09-15T10:00:00-07:00', url: 'https://wiki.example/pages/w5'}
+    - {id: w6, title: Sales team rituals, space: Sales, body: 'Pipeline review Mondays 09:00. Deal desk office hours Thursdays 13:00. Wins go in #sales-wins.', parent: null, author: lena.fischer@fernway.test, created: '2026-02-01T10:00:00-08:00', updated: '2026-09-15T10:00:00-07:00', url: 'https://wiki.example/pages/w6'}
+drive:
+  folders:
+    - {id: f01, name: Sales Playbook, parent: null}
+    - {id: f02, name: Deal Desk, parent: null}
+    - {id: f03, name: Customer Contracts, parent: null}
+    - {id: f04, name: Engineering Handbook, parent: null}
+    - {id: f05, name: Architecture, parent: null}
+    - {id: f06, name: Sales Archive, parent: null}
+    - {id: f07, name: Marketing, parent: null}
+    - {id: f08, name: Finance, parent: null}
+    - {id: f09, name: People, parent: null}
+    - {id: f10, name: Product, parent: null}
+    - {id: f11, name: Customer Success, parent: null}
+    - {id: f12, name: Design, parent: null}
+  files:
+    - {id: d001, name: Discovery call guide, folder: f01, owner: olivia.grant@fernway.test, modified: '2026-09-25T10:00:00-07:00'}
+    - {id: d002, name: Qualification (MEDDIC) notes, folder: f01, owner: olivia.grant@fernway.test, modified: '2026-09-05T10:00:00-07:00'}
+    - {id: d003, name: Objection handling, folder: f01, owner: olivia.grant@fernway.test, modified: '2026-05-11T10:00:00-07:00'}
+    - {id: d004, name: Competitor battlecard - Northbeam, folder: f01, owner: olivia.grant@fernway.test, modified: '2026-03-06T10:00:00-07:00'}
+    - {id: d005, name: Competitor battlecard - Quillio, folder: f01, owner: olivia.grant@fernway.test, modified: '2026-05-08T10:00:00-07:00'}
+    - {id: d006, name: Demo script v4, folder: f01, owner: olivia.grant@fernway.test, modified: '2026-09-11T10:00:00-07:00'}
+    - {id: d007, name: Pricing talk track, folder: f01, owner: olivia.grant@fernway.test, modified: '2026-03-13T10:00:00-07:00'}
+    - {id: d008, name: Territory map 2026, folder: f01, owner: olivia.grant@fernway.test, modified: '2026-03-16T10:00:00-07:00'}
+    - {id: d009, name: Discount approval matrix, folder: f02, owner: rosa.martinez@fernway.test, modified: '2026-03-22T10:00:00-07:00'}
+    - {id: d010, name: Quote template, folder: f02, owner: rosa.martinez@fernway.test, modified: '2026-08-28T10:00:00-07:00'}
+    - {id: d011, name: Order form template, folder: f02, owner: rosa.martinez@fernway.test, modified: '2026-09-20T10:00:00-07:00'}
+    - {id: d012, name: Non-standard terms request, folder: f02, owner: rosa.martinez@fernway.test, modified: '2026-05-25T10:00:00-07:00'}
+    - {id: d013, name: Renewal uplift guide, folder: f02, owner: rosa.martinez@fernway.test, modified: '2026-10-03T10:00:00-07:00'}
+    - {id: d014, name: Deal review checklist, folder: f02, owner: rosa.martinez@fernway.test, modified: '2026-09-07T10:00:00-07:00'}
+    - {id: d015, name: MSA - Brightloop, folder: f03, owner: nora.lind@fernway.test, modified: '2026-08-28T10:00:00-07:00'}
+    - {id: d016, name: MSA - Halcyon Foods, folder: f03, owner: nora.lind@fernway.test, modified: '2026-08-07T10:00:00-07:00'}
+    - {id: d017, name: Order form - Kestrel Air, folder: f03, owner: nora.lind@fernway.test, modified: '2026-05-04T10:00:00-07:00'}
+    - {id: d018, name: MSA - Vantor Labs, folder: f03, owner: nora.lind@fernway.test, modified: '2026-05-15T10:00:00-07:00'}
+    - {id: d019, name: DPA - Brightloop, folder: f03, owner: nora.lind@fernway.test, modified: '2026-08-01T10:00:00-07:00'}
+    - {id: d020, name: Order form - Halcyon Foods, folder: f03, owner: nora.lind@fernway.test, modified: '2026-10-15T10:00:00-07:00'}
+    - {id: d021, name: MSA - Corvid Health, folder: f03, owner: nora.lind@fernway.test, modified: '2026-06-13T10:00:00-07:00'}
+    - {id: d022, name: Dev environment setup, folder: f04, owner: marcus.webb@fernway.test, modified: '2026-10-03T10:00:00-07:00'}
+    - {id: d023, name: Code review guidelines, folder: f04, owner: marcus.webb@fernway.test, modified: '2026-06-07T10:00:00-07:00'}
+    - {id: d024, name: On-call runbook, folder: f04, owner: marcus.webb@fernway.test, modified: '2026-09-11T10:00:00-07:00'}
+    - {id: d025, name: Release process, folder: f04, owner: marcus.webb@fernway.test, modified: '2026-06-28T10:00:00-07:00'}
+    - {id: d026, name: Incident postmortem template, folder: f04, owner: marcus.webb@fernway.test, modified: '2026-08-20T10:00:00-07:00'}
+    - {id: d027, name: Branching strategy, folder: f04, owner: marcus.webb@fernway.test, modified: '2026-10-26T10:00:00-07:00'}
+    - {id: d028, name: Testing standards, folder: f04, owner: marcus.webb@fernway.test, modified: '2026-09-11T10:00:00-07:00'}
+    - {id: d029, name: Security checklist, folder: f04, owner: marcus.webb@fernway.test, modified: '2026-03-01T10:00:00-07:00'}
+    - {id: d030, name: Service ownership, folder: f04, owner: marcus.webb@fernway.test, modified: '2026-03-23T10:00:00-07:00'}
+    - {id: d031, name: System overview, folder: f05, owner: chen.wu@fernway.test, modified: '2026-08-01T10:00:00-07:00'}
+    - {id: d032, name: Payments service design, folder: f05, owner: chen.wu@fernway.test, modified: '2026-03-08T10:00:00-07:00'}
+    - {id: d033, name: Event bus RFC, folder: f05, owner: chen.wu@fernway.test, modified: '2026-03-10T10:00:00-07:00'}
+    - {id: d034, name: Data model v3, folder: f05, owner: chen.wu@fernway.test, modified: '2026-06-02T10:00:00-07:00'}
+    - {id: d035, name: Auth service design, folder: f05, owner: chen.wu@fernway.test, modified: '2026-06-02T10:00:00-07:00'}
+    - {id: d036, name: Search indexing RFC, folder: f05, owner: chen.wu@fernway.test, modified: '2026-10-05T10:00:00-07:00'}
+    - {id: d037, name: Caching strategy, folder: f05, owner: chen.wu@fernway.test, modified: '2026-03-21T10:00:00-07:00'}
+    - {id: d038, name: API versioning, folder: f05, owner: chen.wu@fernway.test, modified: '2026-06-13T10:00:00-07:00'}
+    - {id: d039, name: Demo script v3 (old), folder: f06, owner: olivia.grant@fernway.test, modified: '2026-09-11T10:00:00-07:00'}
+    - {id: d040, name: Pricing 2024, folder: f06, owner: olivia.grant@fernway.test, modified: '2026-09-07T10:00:00-07:00'}
+    - {id: d041, name: Battlecard - Northbeam (2024), folder: f06, owner: olivia.grant@fernway.test, modified: '2026-05-23T10:00:00-07:00'}
+    - {id: d042, name: Territory map 2025, folder: f06, owner: olivia.grant@fernway.test, modified: '2026-09-05T10:00:00-07:00'}
+    - {id: d043, name: Quote template (old), folder: f06, owner: olivia.grant@fernway.test, modified: '2026-05-14T10:00:00-07:00'}
+    - {id: d044, name: Commission plan 2025, folder: f06, owner: olivia.grant@fernway.test, modified: '2026-10-23T10:00:00-07:00'}
+    - {id: d045, name: Brand guidelines, folder: f07, owner: grace.kim@fernway.test, modified: '2026-06-01T10:00:00-07:00'}
+    - {id: d046, name: Q4 campaign plan, folder: f07, owner: grace.kim@fernway.test, modified: '2026-03-20T10:00:00-07:00'}
+    - {id: d047, name: Webinar calendar, folder: f07, owner: grace.kim@fernway.test, modified: '2026-06-27T10:00:00-07:00'}
+    - {id: d048, name: Case study - Halcyon, folder: f07, owner: grace.kim@fernway.test, modified: '2026-08-12T10:00:00-07:00'}
+    - {id: d049, name: Case study - Kestrel Air, folder: f07, owner: grace.kim@fernway.test, modified: '2026-03-14T10:00:00-07:00'}
+    - {id: d050, name: Press kit, folder: f07, owner: grace.kim@fernway.test, modified: '2026-05-11T10:00:00-07:00'}
+    - {id: d051, name: Website copy deck, folder: f07, owner: grace.kim@fernway.test, modified: '2026-05-05T10:00:00-07:00'}
+    - {id: d052, name: Launch checklist, folder: f07, owner: grace.kim@fernway.test, modified: '2026-05-11T10:00:00-07:00'}
+    - {id: d053, name: Email nurture sequences, folder: f07, owner: grace.kim@fernway.test, modified: '2026-06-10T10:00:00-07:00'}
+    - {id: d054, name: FY26 budget, folder: f08, owner: felix.braun@fernway.test, modified: '2026-10-19T10:00:00-07:00'}
+    - {id: d055, name: Expense policy, folder: f08, owner: felix.braun@fernway.test, modified: '2026-06-05T10:00:00-07:00'}
+    - {id: d056, name: Vendor list, folder: f08, owner: felix.braun@fernway.test, modified: '2026-03-10T10:00:00-07:00'}
+    - {id: d057, name: Q3 board pack numbers, folder: f08, owner: felix.braun@fernway.test, modified: '2026-06-17T10:00:00-07:00'}
+    - {id: d058, name: Commission plan 2026, folder: f08, owner: felix.braun@fernway.test, modified: '2026-09-09T10:00:00-07:00'}
+    - {id: d059, name: Purchase order process, folder: f08, owner: felix.braun@fernway.test, modified: '2026-08-21T10:00:00-07:00'}
+    - {id: d060, name: Travel policy, folder: f08, owner: felix.braun@fernway.test, modified: '2026-05-08T10:00:00-07:00'}
+    - {id: d061, name: Headcount plan, folder: f08, owner: felix.braun@fernway.test, modified: '2026-08-18T10:00:00-07:00'}
+    - {id: d062, name: Employee handbook, folder: f09, owner: lena.fischer@fernway.test, modified: '2026-09-05T10:00:00-07:00'}
+    - {id: d063, name: Benefits overview, folder: f09, owner: lena.fischer@fernway.test, modified: '2026-10-16T10:00:00-07:00'}
+    - {id: d064, name: Holiday calendar 2026, folder: f09, owner: lena.fischer@fernway.test, modified: '2026-08-23T10:00:00-07:00'}
+    - {id: d065, name: Performance review guide, folder: f09, owner: lena.fischer@fernway.test, modified: '2026-09-06T10:00:00-07:00'}
+    - {id: d066, name: Onboarding feedback survey, folder: f09, owner: lena.fischer@fernway.test, modified: '2026-10-10T10:00:00-07:00'}
+    - {id: d067, name: Parental leave policy, folder: f09, owner: lena.fischer@fernway.test, modified: '2026-10-25T10:00:00-07:00'}
+    - {id: d068, name: Hiring plan Q4, folder: f09, owner: lena.fischer@fernway.test, modified: '2026-05-06T10:00:00-07:00'}
+    - {id: d069, name: Org chart, folder: f09, owner: lena.fischer@fernway.test, modified: '2026-08-04T10:00:00-07:00'}
+    - {id: d070, name: Roadmap H2, folder: f10, owner: grace.kim@fernway.test, modified: '2026-10-16T10:00:00-07:00'}
+    - {id: d071, name: PRD - bulk import, folder: f10, owner: grace.kim@fernway.test, modified: '2026-10-16T10:00:00-07:00'}
+    - {id: d072, name: PRD - SSO, folder: f10, owner: grace.kim@fernway.test, modified: '2026-05-23T10:00:00-07:00'}
+    - {id: d073, name: Pricing & packaging 2026, folder: f10, owner: grace.kim@fernway.test, modified: '2026-05-19T10:00:00-07:00'}
+    - {id: d074, name: Release notes October, folder: f10, owner: grace.kim@fernway.test, modified: '2026-09-27T10:00:00-07:00'}
+    - {id: d075, name: Customer research summary, folder: f10, owner: grace.kim@fernway.test, modified: '2026-06-22T10:00:00-07:00'}
+    - {id: d076, name: Feature request log, folder: f10, owner: grace.kim@fernway.test, modified: '2026-08-01T10:00:00-07:00'}
+    - {id: d077, name: Beta program, folder: f10, owner: grace.kim@fernway.test, modified: '2026-03-28T10:00:00-07:00'}
+    - {id: d078, name: Analytics plan, folder: f10, owner: grace.kim@fernway.test, modified: '2026-08-04T10:00:00-07:00'}
+    - {id: d079, name: Onboarding playbook (customers), folder: f11, owner: sam.ortiz@fernway.test, modified: '2026-09-08T10:00:00-07:00'}
+    - {id: d080, name: QBR template, folder: f11, owner: sam.ortiz@fernway.test, modified: '2026-06-22T10:00:00-07:00'}
+    - {id: d081, name: Health score model, folder: f11, owner: sam.ortiz@fernway.test, modified: '2026-05-03T10:00:00-07:00'}
+    - {id: d082, name: Renewal calendar, folder: f11, owner: sam.ortiz@fernway.test, modified: '2026-06-02T10:00:00-07:00'}
+    - {id: d083, name: Escalation process, folder: f11, owner: sam.ortiz@fernway.test, modified: '2026-08-11T10:00:00-07:00'}
+    - {id: d084, name: Churn analysis Q3, folder: f11, owner: sam.ortiz@fernway.test, modified: '2026-09-18T10:00:00-07:00'}
+    - {id: d085, name: Design system, folder: f12, owner: hana.sato@fernway.test, modified: '2026-08-16T10:00:00-07:00'}
+    - {id: d086, name: Icon library, folder: f12, owner: hana.sato@fernway.test, modified: '2026-09-15T10:00:00-07:00'}
+    - {id: d087, name: Mobile app flows, folder: f12, owner: hana.sato@fernway.test, modified: '2026-10-24T10:00:00-07:00'}
+    - {id: d088, name: Usability test notes, folder: f12, owner: hana.sato@fernway.test, modified: '2026-08-27T10:00:00-07:00'}
+    - {id: d089, name: Accessibility audit, folder: f12, owner: hana.sato@fernway.test, modified: '2026-10-26T10:00:00-07:00'}
+  permissions:
+    - {id: p001, file: d001, email: daniel.okoye@fernway.test, role: editor}
+    - {id: p002, file: d001, email: ben.carter@fernway.test, role: editor}
+    - {id: p003, file: d002, email: daniel.okoye@fernway.test, role: viewer}
+    - {id: p004, file: d002, email: tom.becker@fernway.test, role: editor}
+    - {id: p005, file: d002, email: ben.carter@fernway.test, role: editor}
+    - {id: p006, file: d004, email: daniel.okoye@fernway.test, role: editor}
+    - {id: p007, file: d005, email: daniel.okoye@fernway.test, role: editor}
+    - {id: p008, file: d006, email: tom.becker@fernway.test, role: viewer}
+    - {id: p009, file: d006, email: ben.carter@fernway.test, role: viewer}
+    - {id: p010, file: d008, email: ben.carter@fernway.test, role: editor}
+    - {id: p011, file: d009, email: daniel.okoye@fernway.test, role: viewer}
+    - {id: p012, file: d009, email: olivia.grant@fernway.test, role: editor}
+    - {id: p013, file: d010, email: daniel.okoye@fernway.test, role: viewer}
+    - {id: p014, file: d010, email: olivia.grant@fernway.test, role: editor}
+    - {id: p015, file: d011, email: daniel.okoye@fernway.test, role: viewer}
+    - {id: p016, file: d011, email: olivia.grant@fernway.test, role: viewer}
+    - {id: p017, file: d012, email: olivia.grant@fernway.test, role: editor}
+    - {id: p018, file: d015, email: olivia.grant@fernway.test, role: viewer}
+    - {id: p019, file: d016, email: daniel.okoye@fernway.test, role: viewer}
+    - {id: p020, file: d019, email: daniel.okoye@fernway.test, role: viewer}
+    - {id: p021, file: d020, email: olivia.grant@fernway.test, role: viewer}
+    - {id: p022, file: d021, email: daniel.okoye@fernway.test, role: viewer}
+    - {id: p023, file: d022, email: p.shah@fernway.test, role: editor}
+    - {id: p024, file: d022, email: leo.rossi@fernway.test, role: editor}
+    - {id: p025, file: d023, email: p.shah@fernway.test, role: editor}
+    - {id: p026, file: d024, email: p.shah@fernway.test, role: viewer}
+    - {id: p027, file: d024, email: leo.rossi@fernway.test, role: editor}
+    - {id: p028, file: d025, email: leo.rossi@fernway.test, role: editor}
+    - {id: p029, file: d027, email: p.shah@fernway.test, role: editor}
+    - {id: p030, file: d029, email: leo.rossi@fernway.test, role: editor}
+    - {id: p031, file: d031, email: p.shah@fernway.test, role: editor}
+    - {id: p032, file: d032, email: p.shah@fernway.test, role: viewer}
+    - {id: p033, file: d033, email: p.shah@fernway.test, role: editor}
+    - {id: p034, file: d034, email: p.shah@fernway.test, role: viewer}
+    - {id: p035, file: d034, email: marcus.webb@fernway.test, role: viewer}
+    - {id: p036, file: d035, email: p.shah@fernway.test, role: viewer}
+    - {id: p037, file: d036, email: p.shah@fernway.test, role: editor}
+    - {id: p038, file: d038, email: p.shah@fernway.test, role: editor}
+    - {id: p039, file: d038, email: marcus.webb@fernway.test, role: viewer}
+    - {id: p040, file: d046, email: olivia.grant@fernway.test, role: viewer}
+    - {id: p041, file: d047, email: olivia.grant@fernway.test, role: editor}
+    - {id: p042, file: d051, email: olivia.grant@fernway.test, role: editor}
+    - {id: p043, file: d052, email: olivia.grant@fernway.test, role: viewer}
+tracker:
+  issues:
+    - {id: ISS-301, title: CRM seat for Ben Carter, body: Sales onboarding., status: closed, assignee: rosa.martinez@fernway.test, labels: [onboarding], created: '2026-07-30T10:00:00-07:00', updated: '2026-08-04T10:00:00-07:00', url: 'https://tracker.example/issues/ISS-301'}
+    - {id: ISS-322, title: Laptop and GitHub access for Leo Rossi, body: Engineering onboarding., status: closed, assignee: ivan.petrov@fernway.test, labels: [onboarding], created: '2026-09-29T10:00:00-07:00', updated: '2026-10-05T10:00:00-07:00', url: 'https://tracker.example/issues/ISS-322'}
+    - {id: ISS-345, title: CRM seat for Maya Lindqvist, body: 'Sales onboarding, starts Mon 2 Nov (from Lena''s new-starter email). Seat reserved, will activate when her account is live.', status: open, assignee: rosa.martinez@fernway.test, labels: [onboarding], created: '2026-10-26T15:40:00-07:00', updated: '2026-10-26T15:40:00-07:00', url: 'https://tracker.example/issues/ISS-345'}
+    - {id: ISS-340, title: Renew CRM licences, body: Renewal due Jan., status: open, assignee: rosa.martinez@fernway.test, labels: [ops], created: '2026-10-10T10:00:00-07:00', updated: '2026-10-10T10:00:00-07:00', url: 'https://tracker.example/issues/ISS-340'}

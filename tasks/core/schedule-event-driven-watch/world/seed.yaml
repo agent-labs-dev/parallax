@@ -1,0 +1,16 @@
+now: 2026-06-11T11:15:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+contacts:
+  people:
+    - {id: c1, name: Jordan Kell, email: jordan.kell@acme.example, phone: null, company: Acme, title: "Head of Procurement", notes: ""}
+mail:
+  messages:
+    - {id: m1, thread: t-renewal, from: jordan.kell@acme.example, to: [alex@northwind.test], cc: [],
+       subject: "Renewal", body: "Could you send over the renewal proposal when it's ready?",
+       date: "2026-06-09T10:02:00+01:00", labels: [inbox]}
+    - {id: m2, thread: t-lunch, from: sam@northwind.test, to: [alex@northwind.test], cc: [],
+       subject: "Lunch Thursday?", body: "Usual place?", date: "2026-06-10T12:30:00+01:00", labels: [inbox]}
+  sent:
+    - {id: s1, thread: t-renewal, from: alex@northwind.test, to: [jordan.kell@acme.example], cc: [], bcc: [],
+       subject: "Re: Renewal", body: "Proposal attached: three-year term at the current rate.",
+       in_reply_to: m1, date: "2026-06-11T09:20:00+01:00", draft: null}

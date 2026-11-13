@@ -1,0 +1,31 @@
+now: 2026-06-03T09:40:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+mail:
+  messages:
+    - {id: m1, thread: t1, from: rosa@northwind.test, to: [alex@northwind.test], cc: [],
+       subject: "Checkout 502s - update", date: "2026-06-03T09:05:00+01:00", labels: [inbox],
+       body: "We rolled back release 4.12 at 08:50 and checkout error rates have been back to normal since 09:00. Root cause looks like a connection pool change; the postmortem is on Friday."}
+    - {id: m2, thread: t2, from: rosa@northwind.test, to: [alex@northwind.test], cc: [],
+       subject: "On-call rota", date: "2026-06-01T17:00:00+01:00", labels: [inbox],
+       body: "I'm on call until Sunday, then Kai takes over."}
+contacts:
+  people:
+    - {id: c1, name: Kai Nakamura, email: kai@northwind.test, company: Northwind, title: Support lead}
+    - {id: c2, name: Rosa Diaz, email: rosa@northwind.test, company: Northwind, title: SRE}
+chat:
+  channels:
+    - {id: ch-ops, name: ops, topic: "Operations", created: "2025-01-06T09:00:00+00:00",
+       members: [alex@northwind.test, kai@northwind.test, rosa@northwind.test]}
+    - {id: ch-gen, name: general, topic: "", created: "2025-01-06T09:00:00+00:00",
+       members: [alex@northwind.test, kai@northwind.test, rosa@northwind.test]}
+  messages:
+    - {id: x1, channel: ch-ops, author: kai@northwind.test, ts: "2026-06-02T15:00:00+01:00", thread_id: null,
+       text: "Heads up: the status page certificate renews on Thursday."}
+    - {id: x2, channel: ch-ops, author: kai@northwind.test, ts: "2026-06-03T08:47:00+01:00", thread_id: null,
+       text: "Is anyone looking at the checkout 502s? Customers are writing in about failed payments."}
+    - {id: x3, channel: ch-ops, author: rosa@northwind.test, ts: "2026-06-03T08:49:00+01:00", thread_id: x2,
+       text: "Looking now."}
+    - {id: x4, channel: ch-ops, author: kai@northwind.test, ts: "2026-06-03T09:30:00+01:00", thread_id: x2,
+       text: "Any update? I need something to tell customers."}
+    - {id: x5, channel: ch-gen, author: kai@northwind.test, ts: "2026-06-03T09:00:00+01:00", thread_id: null,
+       text: "Morning all!"}

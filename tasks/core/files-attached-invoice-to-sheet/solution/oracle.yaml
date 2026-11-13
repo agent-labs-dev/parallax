@@ -1,0 +1,9 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: sheets_append_row, args: {sheet: sh-bills, values: {Date: "2026-06-01", Supplier: Pellow Print & Bind, "Invoice no": PB-5521, Amount: 1240.00, Status: Unpaid}}}
+      - {tool: sheets_append_row, args: {sheet: sh-bills, values: {Date: "2026-06-01", Supplier: Hollin Wholesale, "Invoice no": HW-0098, Amount: 386.40, Status: Unpaid}}}
+      - {tool: sheets_append_row, args: {sheet: sh-bills, values: {Date: "2026-06-02", Supplier: Kestrel Cleaning Co, "Invoice no": KC-3310, Amount: 210.00, Status: Unpaid}}}
+      - {tool: sheets_append_row, args: {sheet: sh-bills, values: {Date: "2026-06-03", Supplier: Orchard Lane Deli, "Invoice no": OL-7742, Amount: 94.75, Status: Unpaid}}}
+      - {tool: sheets_append_row, args: {sheet: sh-bills, values: {Date: "2026-06-04", Supplier: Tamsin Signs, "Invoice no": TS-1187, Amount: 655.20, Status: Unpaid}}}
+    answer: "Logged all five in Supplier bills as unpaid: PB-5521 £1,240.00, HW-0098 £386.40, KC-3310 £210.00, OL-7742 £94.75 and TS-1187 £655.20."

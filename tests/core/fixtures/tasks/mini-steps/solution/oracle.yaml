@@ -1,0 +1,14 @@
+steps:
+  turn-01:
+    calls:
+      - tool: mail_create_draft
+        args: {to: [priya@northwind.test], body: "The budget is approved.", in_reply_to: m1}
+        save: draft
+    answer: "Drafted, not sent."
+  turn-02:
+    calls:
+      - tool: mail_update_draft
+        args: {id: "{{saved.draft.id}}", cc: [sam@northwind.test]}
+      - tool: mail_send_draft
+        args: {id: "{{saved.draft.id}}"}
+    answer: "Sent to Priya with Sam on CC."

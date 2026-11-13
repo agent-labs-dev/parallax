@@ -1,0 +1,16 @@
+now: 2026-06-03T09:12:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+calendar:
+  calendars:
+    - {id: cal-alex, name: Alex Morgan, owner: alex@northwind.test, timezone: Europe/London}
+  events:
+    - {id: e1, calendar: cal-alex, title: "Team standup", start: "2026-01-05T09:30:00+00:00", end: "2026-01-05T09:45:00+00:00",
+       tz: Europe/London, attendees: [priya@northwind.test, sam@northwind.test, marco@northwind.test],
+       organizer: alex@northwind.test, rrule: "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR",
+       exceptions: {"2026-05-25": {cancelled: true}}, status: confirmed, description: "Daily check-in", location: "Room 2"}
+    - {id: e2, calendar: cal-alex, title: "Design review", start: "2026-06-04T10:30:00+01:00", end: "2026-06-04T11:30:00+01:00",
+       tz: Europe/London, attendees: [priya@northwind.test], organizer: alex@northwind.test, rrule: null,
+       exceptions: {}, status: confirmed, description: "", location: ""}
+    - {id: e3, calendar: cal-alex, title: "Sprint planning", start: "2026-05-22T14:00:00+01:00", end: "2026-05-22T15:00:00+01:00",
+       tz: Europe/London, attendees: [priya@northwind.test, sam@northwind.test], organizer: alex@northwind.test,
+       rrule: "FREQ=WEEKLY;BYDAY=FR", exceptions: {}, status: confirmed, description: "", location: ""}

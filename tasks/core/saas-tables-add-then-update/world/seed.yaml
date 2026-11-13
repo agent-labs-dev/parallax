@@ -1,0 +1,17 @@
+now: 2026-06-03T14:05:00+01:00
+user: {name: Sofia Lind, email: sofia@harborline.test, timezone: Europe/London}
+tables:
+  bases:
+    - {id: b1, name: Leads, fields: [company, contact, email, stage, annual_value, owner]}
+    - {id: b2, name: Partners, fields: [company, contact, email, tier]}
+  records:
+    - {id: r1, base: b1, created: "2026-04-14T10:00:00+01:00", company: Greenleaf Grocers, contact: Tom Hale,
+       email: tom@greenleaf.example, stage: Qualified, annual_value: 8000, owner: sofia@harborline.test}
+    - {id: r2, base: b1, created: "2026-05-02T10:00:00+01:00", company: Ortiz Family Bakery, contact: Luis Ortiz,
+       email: luis@ortizbakery.example, stage: Lead, annual_value: 3000, owner: sofia@harborline.test}
+    - {id: r3, base: b1, created: "2026-05-20T10:00:00+01:00", company: Northgate Deli, contact: Asha Rao,
+       email: asha@northgate.example, stage: Proposal, annual_value: 15000, owner: sofia@harborline.test}
+    - {id: r4, base: b1, created: "2026-05-28T10:00:00+01:00", company: Bay Street Market, contact: Ken Ito,
+       email: ken@baystreet.example, stage: Won, annual_value: 22000, owner: sofia@harborline.test}
+    - {id: r5, base: b2, created: "2026-01-10T10:00:00+00:00", company: Ortiz Logistics, contact: Pablo Ortiz,
+       email: pablo@ortizlogistics.example, tier: Silver}

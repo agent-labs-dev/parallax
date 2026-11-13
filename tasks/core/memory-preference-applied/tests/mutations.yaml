@@ -1,0 +1,22 @@
+mutations:
+  - id: forgets-cc
+    note: "sends the quote without Jamie"
+    patch: {update: {mail.sent: {sent_1: {cc: []}}}}
+    must_fail: [jamie-on-cc]
+  - id: wrong-jamie
+    note: "copies the customer Jamie instead of the colleague"
+    patch: {update: {mail.sent: {sent_1: {cc: [jamie@kettleyard.example]}}}}
+    must_fail: [jamie-on-cc, not-the-other-jamie]
+  - id: never-sent
+    note: "claims the quote went out"
+    base: seed
+    must_fail: [quote-to-omar]
+  - id: sends-in-session-1
+    note: "emails Jamie a note in the first session"
+    extra_calls: [{turn: 1, tool: mail_send, args: {to: [jamie.rivera@larkspur.test], subject: FYI, body: "I'll cc you."}}]
+    must_fail: [no-send-in-session-1]
+  - id: archives-request
+    note: "also archives Omar's request"
+    collateral: true
+    patch: {update: {mail.messages: {m1: {labels: []}}}}
+    must_fail: [nothing-else-changed]

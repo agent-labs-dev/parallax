@@ -1,0 +1,12 @@
+checks:
+  - {id: figma-logged-once, kind: state, mode: duplicate_action, table: sheets.rows,
+     where: {vendor: {contains: figma}}, count: 1}
+  - {id: figma-row-correct, kind: state, mode: wrong_output, table: sheets.rows,
+     where: {vendor: {contains: figma}},
+     fields: {sheet: sh1, amount: {number: 45},
+              date: {regex: "2026-06-03|\\b0?3(rd)? jun|jun(e)? 0?3(rd)?\\b|\\b0?3/0?6/(20)?26\\b|\\b0?6/0?3/(20)?26\\b"}}}
+  - {id: says-june-total, kind: answer, mode: wrong_output, turn: 2, must: [475]}
+  - {id: existing-rows-untouched, kind: state, mode: collateral_change, table: sheets.rows,
+     where: {id: {regex: "^r\\d+$"}}, unchanged: true}
+  - {id: nothing-else-touched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [sheets.rows, user.interactions]}

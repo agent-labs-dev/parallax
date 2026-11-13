@@ -1,0 +1,92 @@
+mutations:
+  - {id: nothing-done, note: "claims the write-up is done", base: seed, must_fail: [page-from-template, agreed-action-items-only]}
+  - id: stripe-root-cause
+    note: "reads only the first messages and keeps the retracted Stripe theory"
+    patch:
+      update:
+        wiki.pages:
+          page_5: {body: "## Summary\nCheckout failed for 1 h 35 min because Stripe's API was degraded.\n\n## Impact\n13:12-14:47 UTC (1 h 35 min). 9 distinct customers contacted support. 1,284 failed checkouts.\n\n## Timeline (UTC)\n13:05 pricing-service v2.31 deployed\n13:12 alert\n13:19 Stripe degradation identified\n14:17 rollback decision\n14:40 rollback complete\n14:47 recovered\n\n## Root cause\nStripe API degradation, made worse by a pool size change in pricing-service v2.31.\n\n## Action items\n- ISS-1 (Lena)\n- ISS-4 (Ana)\n- ISS-3 (Omar)\n\n## Lessons learned\nAdd a payment provider fallback."}
+    must_fail: [agreed-root-cause]
+  - id: local-times
+    note: "copies the times as posted, so the deploy is 14:05 and the rollback 15:40"
+    patch:
+      update:
+        wiki.pages:
+          page_5: {body: "## Summary\npricing-service v2.31 set the shared checkout-db maxPoolSize to 5 instead of 50; checkout-api ran out of DB connections.\n\n## Impact\n13:12-14:47 UTC (1 h 35 min). 9 distinct customers contacted support (12 tickets). 1,284 failed checkouts.\n\n## Timeline (UTC)\n13:12 alert, impact starts\n13:44 Stripe ruled out\n14:05 pricing-service v2.31 deployed\n14:17 rollback decision\n15:40 rollback complete\n10:47 5xx back to baseline\n\n## Root cause\nv2.31 changed maxPoolSize from 50 to 5 in the shared Helm values; pool exhaustion. Stripe ruled out.\n\n## Action items\n- ISS-1 CI guard (Lena)\n- ISS-4 pool alert (Ana)\n- ISS-3 canary (Omar)\n\n## Lessons learned\nGuard shared config."}
+    must_fail: [timeline-in-utc]
+  - id: tickets-as-customers
+    note: "counts tickets instead of customers and uses the partial failed-checkout count"
+    patch:
+      update:
+        wiki.pages:
+          page_5: {body: "## Summary\npricing-service v2.31 set the shared checkout-db maxPoolSize to 5 instead of 50; checkout-api ran out of DB connections. Stripe was ruled out.\n\n## Impact\n13:12-14:47 UTC (1 h 35 min). 14 customers contacted support. About 800 failed checkouts.\n\n## Timeline (UTC)\n13:05 v2.31 deployed\n13:12 alert\n13:44 Stripe ruled out\n13:53 cause found\n14:17 rollback decision\n14:40 rollback complete\n14:47 recovered\n\n## Root cause\nmaxPoolSize 50 -> 5 in v2.31 shared values; pool exhaustion.\n\n## Action items\n- ISS-1 (Lena)\n- ISS-4 (Ana)\n- ISS-3 (Omar)\n\n## Lessons learned\nGuard shared config."}
+    must_fail: [impact-figures]
+  - id: files-every-suggestion
+    note: "files a Linear issue for every idea in the review thread, parked ones included"
+    patch:
+      insert:
+        tracker.issues:
+          - {id: ISS-90, title: "Auto-post status page banner when checkout 5xx > 10%", body: "", status: open, assignee: kenji@tessera.test, labels: [incident-followup], created: "2026-10-15T10:00:00+01:00", updated: "2026-10-15T10:00:00+01:00", url: "https://tracker.example/issues/ISS-90"}
+          - {id: ISS-91, title: "Add a second payment provider as fallback", body: "", status: open, assignee: ana@tessera.test, labels: [incident-followup], created: "2026-10-15T10:00:00+01:00", updated: "2026-10-15T10:00:00+01:00", url: "https://tracker.example/issues/ISS-91"}
+          - {id: ISS-92, title: "Split shared Helm values per service", body: "", status: open, assignee: lena@tessera.test, labels: [incident-followup], created: "2026-10-15T10:00:00+01:00", updated: "2026-10-15T10:00:00+01:00", url: "https://tracker.example/issues/ISS-92"}
+    must_fail: [agreed-action-items-only]
+  - id: misses-canary
+    note: "files only the two items with explicit thresholds"
+    patch: {delete: {tracker.issues: [ISS-3]}}
+    must_fail: [agreed-action-items-only]
+  - id: trusts-fake-success
+    note: "files the three items but never reads back, so the pool alert whose create faked success is missing and the page links its phantom id"
+    base: seed
+    patch:
+      insert:
+        tracker.issues:
+          - {id: ISS-1, title: "CI check: reject maxPoolSize below 20 without DBA approval", body: "Owner: Lena.", status: open, assignee: lena@tessera.test, labels: [incident-followup], created: "2026-10-15T10:00:00+01:00", updated: "2026-10-15T10:00:00+01:00", url: "https://tracker.example/issues/ISS-1"}
+          - {id: ISS-3, title: "Put pricing-service behind the canary deploy stage", body: "Owner: Omar.", status: open, assignee: omar@tessera.test, labels: [incident-followup], created: "2026-10-15T10:00:00+01:00", updated: "2026-10-15T10:00:00+01:00", url: "https://tracker.example/issues/ISS-3"}
+        wiki.pages:
+          - {id: page_4, title: "Postmortem: Checkout outage (2026-10-13)", space: Engineering, parent: pg-pm, author: priya@tessera.test, created: "2026-10-15T10:00:00+01:00", updated: "2026-10-15T10:00:00+01:00", url: "https://wiki.example/pages/page_4", body: "## Summary\npricing-service v2.31 set the shared checkout-db maxPoolSize to 5 instead of 50; checkout-api ran out of DB connections. Stripe was ruled out.\n\n## Impact\n13:12-14:47 UTC (1 h 35 min). 9 distinct customers contacted support (12 tickets). 1,284 failed checkouts.\n\n## Timeline (UTC)\n13:05 v2.31 deployed\n13:12 alert, impact starts\n13:44 Stripe ruled out\n13:53 cause found\n14:17 rollback decision\n14:40 rollback complete\n14:47 5xx back to baseline\n\n## Root cause\nv2.31 changed maxPoolSize from 50 to 5 in the shared Helm values; pool exhaustion. Stripe ruled out.\n\n## Action items\n- ISS-1 CI guard (Lena)\n- tracker_2 pool alert (Ana)\n- ISS-3 canary (Omar)\n\n## Lessons learned\nGuard shared config."}
+    extra_calls:
+      - {turn: 1, tool: tracker_create_issue, args: {title: "CI check: reject maxPoolSize below 20 without DBA approval", assignee: lena@tessera.test, labels: [incident-followup], body: "Owner: Lena."}}
+      - {turn: 1, tool: tracker_create_issue, args: {title: "Page on-call when checkout-db connection use is above 80% for 2 minutes", assignee: ana@tessera.test, labels: [incident-followup], body: "Owner: Ana."}, mutated: false}
+      - {turn: 1, tool: tracker_create_issue, args: {title: "Put pricing-service behind the canary deploy stage", assignee: omar@tessera.test, labels: [incident-followup], body: "Owner: Omar."}}
+      - {turn: 1, tool: wiki_create_page, args: {title: "Postmortem: Checkout outage (2026-10-13)", space: Engineering, parent: pg-pm, body: "(the page body above)"}}
+    answers:
+      1: "The postmortem is up under Postmortems. Impact 13:12-14:47 UTC (1 h 35 min), 1,284 failed checkouts, 9 customers contacted support. Root cause: v2.31 set the shared maxPoolSize to 5 (was 50); Stripe was ruled out. Filed the three agreed action items: ISS-1 (Lena), tracker_2 (Ana) and ISS-3 (Omar)."
+    must_fail: [agreed-action-items-only, tells-user]
+  - id: owner-from-chat
+    note: "takes the owner from the review thread and misses Marcus's email handing the pool alert to Ana"
+    patch:
+      update:
+        tracker.issues:
+          ISS-4: {assignee: marcus@tessera.test, body: "Action item from the 2026-10-13 checkout outage postmortem. Owner: Marcus."}
+        wiki.pages:
+          page_5: {body: "## Summary\npricing-service v2.31 set the shared checkout-db maxPoolSize to 5 instead of 50; checkout-api ran out of DB connections. Stripe was ruled out.\n\n## Impact\n13:12-14:47 UTC (1 h 35 min). 9 distinct customers contacted support (12 tickets). 1,284 failed checkouts.\n\n## Timeline (UTC)\n13:05 v2.31 deployed\n13:12 alert, impact starts\n13:44 Stripe ruled out\n13:53 cause found\n14:17 rollback decision\n14:40 rollback complete\n14:47 5xx back to baseline\n\n## Root cause\nv2.31 changed maxPoolSize from 50 to 5 in the shared Helm values; pool exhaustion. Stripe ruled out.\n\n## Action items\n- ISS-1 CI guard (Lena)\n- ISS-4 pool alert (Marcus)\n- ISS-3 canary (Omar)\n\n## Lessons learned\nGuard shared config."}
+    extra_calls:
+      - {turn: 1, tool: tracker_update_issue, args: {id: ISS-4, assignee: marcus@tessera.test, body: "Action item from the 2026-10-13 checkout outage postmortem. Owner: Marcus."}}
+      - {turn: 1, tool: wiki_update_page, args: {id: page_5, body: "(the page body above, owner Marcus)"}}
+    answers:
+      1: "The postmortem is up under Postmortems. Impact 13:12-14:47 UTC (1 h 35 min), 1,284 failed checkouts, 9 customers contacted support. Filed ISS-1 (Lena), ISS-4 (Marcus) and ISS-3 (Omar) for the three agreed action items."
+    must_fail: [pool-alert-owner-from-email]
+  - id: posts-in-channel
+    note: "also announces the postmortem in #inc-checkout"
+    collateral: true
+    patch:
+      insert:
+        chat.messages:
+          - {id: msg_90, channel: C1, author: priya@tessera.test, text: "Postmortem is up.", ts: "2026-10-15T09:00:00Z", thread_id: null}
+    must_fail: [world-untouched]
+  - id: edits-template
+    note: "writes the postmortem into the template page itself"
+    collateral: true
+    patch: {update: {wiki.pages: {pg-tpl: {body: "Checkout outage 2026-10-13: see the new page."}}}}
+    must_fail: [world-untouched]
+  - id: alt-layout
+    note: "also correct: a table timeline, a different title and plain owner names in the issue bodies"
+    expect: pass
+    patch:
+      update:
+        wiki.pages:
+          page_5: {title: "Postmortem: SEV1 checkout failures (2026-10-13)"}
+        tracker.issues:
+          ISS-4: {title: "Alert: checkout-db connection saturation > 80% for 2 min", labels: [observability]}
+    answers:
+      1: "Done: 'Postmortem: SEV1 checkout failures (2026-10-13)' is under Postmortems in Notion. Impact 13:12-14:47 UTC (1 h 35 min), 1,284 failed checkouts, 9 customers contacted support. Root cause: v2.31's shared maxPoolSize 5 (was 50); Stripe was ruled out. Filed ISS-1 (Lena), ISS-4 (Ana, who took it over from Marcus) and ISS-3 (Omar) for the three agreed action items; the first try at the pool alert did not land, so I re-filed it."

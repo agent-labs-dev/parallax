@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-analytics-activation-drop"
+version = 1
+area = "saas"
+summary = "Compare last week's signups and activation with the week before in product analytics, find that a partner cohort's mix (not the product) lowered the rate, and post the summary to #growth"
+requires = ["mcp", "world_clock"]
+services = ["analytics"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "88af6025-f891-4c2b-8a84-cf8fccb7b7cd"

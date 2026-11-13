@@ -1,0 +1,5 @@
+checks:
+  - {id: recalls-reference, kind: answer, mode: forgot_context, turn: 2,
+     must: [{regex: "amber[\\s-]*falcon[\\s-]*62"}]}
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [user.interactions]}

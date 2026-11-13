@@ -1,0 +1,17 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "conf-memory-recall"
+version = 1
+area = "conformance"
+summary = "Session 1 states a locker number; a fresh session 2 asks for it"
+requires = ["mcp", "memory"]
+provenance = "hand_authored"
+canary = "f767cf41-29d5-42fc-ba8e-109eb1c7cec3"
+
+[[steps]]
+name = "turn-01"
+
+[[steps]]
+name = "turn-02"
+session = "new"

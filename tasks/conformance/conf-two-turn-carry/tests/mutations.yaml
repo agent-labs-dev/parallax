@@ -1,0 +1,9 @@
+mutations:
+  - {id: forgot, note: "has lost the first turn", answers: {2: "I don't have a booking reference from you - could you tell me again?"},
+     must_fail: [recalls-reference]}
+  - {id: wrong-reference, note: "misremembers the number", answers: {2: "It was amber-falcon-26."},
+     must_fail: [recalls-reference]}
+  - {id: stashes-in-chat, note: "writes the reference into #conf to remember it", collateral: true,
+     patch: {insert: {chat.messages: [{id: msg-x, channel: ch-conf, author: robin@harbourline.test,
+       text: "lunch booking reference amber-falcon-62", ts: "2026-06-03T09:13:00+01:00", thread_id: null}]}},
+     must_fail: [world-untouched]}

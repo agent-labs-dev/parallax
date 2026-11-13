@@ -1,0 +1,7 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: drive_search, args: {query: Q3 deck}}
+      - {tool: contacts_search, args: {query: Morgan}}
+      - {tool: drive_share, args: {id: f_deck, emails: [morgan@northwind.test], role: viewer}}
+    answer: "Shared the Q3 Strategy Deck with Morgan Blake (view access). No other files in Q3 Planning were shared."

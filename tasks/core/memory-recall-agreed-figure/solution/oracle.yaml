@@ -1,0 +1,7 @@
+steps:
+  turn-01:
+    calls: []
+    answer: "Noted: the Ortiz Foods pilot is agreed at £12k (not the £15k in their email), paid in two halves."
+  turn-02:
+    calls: []
+    answer: "You agreed £12k with Ortiz Foods for the pilot, paid in two halves. Their email had asked for £15k, but £12k is what you settled on."

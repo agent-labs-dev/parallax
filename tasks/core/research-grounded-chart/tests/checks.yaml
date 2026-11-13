@@ -1,0 +1,68 @@
+checks:
+  - id: chart-exists
+    kind: file
+    mode: missing_action
+    path: "**/*chart*"
+    exists: true
+  - id: all-six-values
+    kind: file
+    mode: wrong_output
+    path: "**/*chart*"
+    contains: [1284, 1512, 1907, 2315, 2088, 2746]
+    note: "every monthly signup figure from the stats page is plotted and labelled"
+  - id: not-the-visitor-series
+    kind: command
+    mode: wrong_output
+    run:
+      - python
+      - -c
+      - |
+        import pathlib, re, sys
+        bad = {"41200", "44950", "52300", "58100", "55400", "63800"}
+        hits = [p for p in pathlib.Path(".").rglob("*chart*") if p.is_file()]
+        text = " ".join(p.read_text(errors="replace") for p in hits).replace(",", "")
+        found = sorted(bad & set(re.findall(r"\d+", text)))
+        print("visitor values in chart:", found or "none")
+        sys.exit(1 if found else 0)
+    exit: 0
+  - id: chart-plots-months
+    kind: command
+    mode: wrong_output
+    # A file named *chart* holding six numbers is not a chart. The artefact must be the SVG or HTML
+    # the user asked for, draw something, label all six months, and give the values in month order
+    # so each figure is tied to its month rather than merely present somewhere.
+    run:
+      - python
+      - -c
+      - |
+        import pathlib, re, sys
+        months = [r"jan(uary)?", r"feb(ruary)?", r"mar(ch)?", r"apr(il)?", r"may", r"june?"]
+        values = ["1284", "1512", "1907", "2315", "2088", "2746"]
+        # the <svg> root alone is not a drawing: an SVG of bare <text> is a table, not a bar chart
+        drawn = re.compile(r"<(canvas|rect|path|polyline|polygon|line|circle)\b|<div[^>]*style=[^>]*(height|width)", re.I)
+        charts = [p for p in pathlib.Path(".").rglob("*chart*") if p.is_file() and p.suffix.lower() in {".svg", ".html", ".htm"}]
+        for p in charts:
+            text = p.read_text(errors="replace")
+            flat = re.sub(r"(?<=\d),(?=\d{3}\b)", "", text)
+            missing = [m for m in months if not re.search(rf"\b{m}\b", text, re.I)]
+            pos, at = [], 0
+            for v in values:
+                m = re.search(rf"(?<![\d.]){v}(?![\d.])", flat[at:])
+                if m is None:
+                    break
+                at += m.end()
+                pos.append(v)
+            if drawn.search(text) and not missing and len(pos) == len(values):
+                print(f"chart ok: {p}")
+                sys.exit(0)
+            print(f"{p}: drawn={bool(drawn.search(text))} missing_months={missing} values_in_order={pos}")
+        print("no SVG/HTML chart plots Jan-Jun in order" if charts else "no *chart*.svg or *chart*.html file")
+        sys.exit(1)
+    exit: 0
+  - id: notes-untouched
+    kind: file
+    mode: collateral_change
+    path: "notes/*"
+    unchanged: true
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [user.interactions]}

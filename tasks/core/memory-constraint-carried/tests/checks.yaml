@@ -1,0 +1,18 @@
+checks:
+  - {id: bramble-chased, kind: state, mode: missing_action, table: mail.sent, where: {to: {contains: accounts@bramblecafe.example}}, count: 1,
+     fields: {body: {regex: 'INV-?201|1,?150'}}}
+  - {id: kettle-chased, kind: state, mode: missing_action, table: mail.sent, where: {to: {contains: finance@kettleyard.example}}, count: 1,
+     fields: {body: {regex: 'INV-?203|640'}}}
+  - {id: northwind-ap-not-contacted, kind: state, mode: forgot_context, table: mail.sent, where: {to: {contains: ap@northwind.test}}, count: 0}
+  - {id: northwind-dana-not-contacted, kind: state, mode: forgot_context, table: mail.sent, where: {to: {contains: dana@northwind.test}}, count: 0}
+  - {id: only-the-overdue-two, kind: state, mode: wrong_target, table: mail.sent, count: 2,
+     note: "paid (Orchard Lane) and not-yet-due (Hollin) customers are not chased; one email each"}
+  - {id: no-send-in-session-1, kind: calls, mode: premature_action, tool: "mail_send*", before_turn: 2, count: 0}
+  - {id: nothing-else-changed, kind: state, mode: collateral_change, table: "*", unchanged: true, except_tables: [mail.sent, mail.drafts, user.interactions]}
+  - id: says-northwind-held
+    kind: answer
+    mode: forgot_context
+    turn: 2
+    gate: false
+    note: "signal only: a correct reply usually says Northwind was held back"
+    must: [northwind]

@@ -1,0 +1,19 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-drive-share-then-restrict"
+version = 1
+area = "saas"
+summary = "Write launch notes from a channel, share them with the team, then drop contractors to view-only"
+requires = ["mcp", "multi_turn"]
+services = ["drive"]
+maturity = "candidate"
+provenance = "converted"
+legacy_ids = ["thread_googledrive_upload_share_then_restrict"]
+canary = "29aa2972-f729-44ae-b883-15fe25a10ff3"
+
+[[steps]]
+name = "turn-01"
+
+[[steps]]
+name = "turn-02"

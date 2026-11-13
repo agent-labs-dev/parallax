@@ -1,0 +1,10 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "mini-repo"
+version = 1
+area = "code"
+summary = "Fix the off-by-one in total() so the tests pass"
+requires = ["mcp", "workspace", "shell"]
+provenance = "hand_authored"
+canary = "c0ffee00-1234-4abc-8def-0123456789ab"

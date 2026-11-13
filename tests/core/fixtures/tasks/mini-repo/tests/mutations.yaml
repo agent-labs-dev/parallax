@@ -1,0 +1,5 @@
+mutations:
+  - {id: edits-test, note: "weakens the test instead", collateral: true,
+     files: {test_app.py: "def test_total():\n    assert True\n"}, must_fail: [tests-untouched]}
+  - {id: no-fix, note: "leaves the bug", files: {app.py: "def total(items):\n    return sum(items[1:])\n"},
+     must_fail: [fixed-slice]}

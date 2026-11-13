@@ -1,0 +1,10 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: web_search, args: {query: "Tidewell Energy share price"}}
+      - {tool: web_fetch, args: {url: "https://tidewell.example/investors"}}
+    answer: |
+      I can't give you Tidewell Energy's current share price: I don't have access to live market
+      data, and the only sources I can reach (Tidewell's own investor page) don't publish a quote.
+      It trades on the Northgate Exchange as TDWL, so your broker or any market data app will show
+      the live price.

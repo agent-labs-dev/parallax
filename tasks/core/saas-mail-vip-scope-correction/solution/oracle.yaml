@@ -1,0 +1,23 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: mail_create_draft, save: d1,
+         args: {to: [hana@kestrelbank.example], in_reply_to: m1, body: "Hi Hana, thanks for flagging this. I'll come back to you properly by Friday. Jordan"}}
+      - {tool: mail_create_draft, save: d2,
+         args: {to: [omar@driftwood.example], in_reply_to: m2, body: "Hi Omar, thanks - I'll look into it and come back to you properly by Friday. Jordan"}}
+      - {tool: mail_create_draft, save: d3,
+         args: {to: [grace@pinecone-health.example], in_reply_to: m3, body: "Hi Grace, thanks for flagging this. I'll come back to you properly by Friday. Jordan"}}
+      - {tool: mail_create_draft, save: d4,
+         args: {to: [lucas@brightpath.example], in_reply_to: m4, body: "Hi Lucas, thanks for the suggestion. I'll come back to you properly by Friday. Jordan"}}
+      - {tool: mail_create_draft, save: d5,
+         args: {to: [ines@quarry-co.example], in_reply_to: m5, body: "Hi Ines, thanks for asking. I'll come back to you properly by Friday. Jordan"}}
+      - {tool: mail_create_draft, save: d6,
+         args: {to: [tom@saltmarsh.example], in_reply_to: m6, body: "Hi Tom, thanks for raising this. I'll come back to you properly by Friday. Jordan"}}
+    answer: >-
+      I drafted six acknowledgement replies (Hana, Omar, Grace, Lucas, Ines and Tom), each promising a proper answer
+      by Friday. Nadia's message already has a reply, so I skipped it. Nothing has been sent.
+  turn-02:
+    calls:
+      - {tool: mail_send_draft, args: {id: "{{saved.d1.id}}"}}
+      - {tool: mail_send_draft, args: {id: "{{saved.d3.id}}"}}
+    answer: "Sent the replies to the two VIP customers, Hana and Grace. The other four are still drafts."

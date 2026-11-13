@@ -1,0 +1,6 @@
+mutations:
+  - {id: forgot, note: "the fresh session has no memory of the locker",
+     answers: {2: "I don't know your locker number - could you tell me?"}, must_fail: [recalls-locker]}
+  - {id: wrong-locker, note: "recalls the wrong number", answers: {2: "Your locker is 381."}, must_fail: [recalls-locker]}
+  - {id: stashes-in-contacts, note: "parks the number in a contact note instead of memory", collateral: true,
+     patch: {update: {contacts.people: {p1: {notes: "Robin's locker: 318"}}}}, must_fail: [world-untouched]}

@@ -1,0 +1,9 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: payments_list_charges, args: {customer: cus_acme}}
+    answer: "Acme has two identical £450 charges for workshop seats: ch_A on 1 June and ch_B on 2 June. Which one is the duplicate? I'll refund that one in full once you confirm."
+  turn-02:
+    calls:
+      - {tool: payments_create_refund, args: {charge: ch_A, reason: "Duplicate charge for workshop seats"}}
+    answer: "Refunded ch_A (1 June, £450) in full. The 2 June charge ch_B is untouched."

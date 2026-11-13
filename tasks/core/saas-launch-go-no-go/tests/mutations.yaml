@@ -1,0 +1,58 @@
+mutations:
+  - {id: nothing-done, note: "answers without posting", base: seed, must_fail: [one-post-in-launch, verdict-and-blockers]}
+  - id: trusts-resolved-status
+    note: "takes BIL-412's resolved status at face value"
+    patch:
+      update:
+        chat.messages:
+          msg_1: {text: "Billing v2 go/no-go for Thu 22 Oct: NO-GO. Blockers: (1) BIL-430 P1 tax line missing on Canadian invoices: still in progress. (2) Help Center article 'Upgrading and downgrading plans (Billing v2)' is still DRAFT. Passing: API errors 4 on 19 Oct; support macros done."}
+    must_fail: [verdict-and-blockers]
+  - id: says-go
+    note: "reads only issue statuses and the published docs and calls it a go"
+    patch:
+      update:
+        chat.messages:
+          msg_1: {text: "Billing v2 go/no-go for Thu 22 Oct: GO. All P0s are resolved, docs are published, errors are low."}
+    answers:
+      1: "Yes, we're good to go. Posted in #launch."
+    must_fail: [verdict-and-blockers, tells-user]
+  - id: other-launch-p1
+    note: "counts the Seats v2 P1/P0 issues as Billing v2 blockers"
+    patch:
+      update:
+        chat.messages:
+          msg_1: {text: "Billing v2 go/no-go for Thu 22 Oct: NO-GO. Blockers: BIL-412 P0 (fix reverted in prod on 19 Oct), BIL-430 P1 (in progress), BIL-441 P1 wrong seat count on billing page, BIL-447 P0 seat invites fail for SSO workspaces, and the DRAFT Help Center article on upgrading and downgrading plans. API errors 4 yesterday, fine."}
+    must_fail: [no-false-blockers]
+  - id: weekly-errors
+    note: "uses the 7-day error total and calls the error criterion failed"
+    patch:
+      update:
+        chat.messages:
+          msg_1: {text: "Billing v2 go/no-go for Thu 22 Oct: NO-GO. Blockers: BIL-412 P0 (fix reverted in prod on 19 Oct), BIL-430 P1 (in progress), the DRAFT Help Center article on upgrading and downgrading plans, and API errors: 59 billing_v2_api_error events in the last 7 days, over the limit of 10."}
+    must_fail: [no-false-blockers]
+  - id: posts-twice
+    note: "posts the verdict and then a separate blockers message"
+    patch:
+      insert:
+        chat.messages:
+          - {id: msg_90, channel: C1, author: rhea@ledgerly.test, text: "Blockers again: BIL-412, BIL-430, upgrade article draft.", ts: "2026-10-20T10:00:00-07:00", thread_id: null}
+    must_fail: [one-post-in-launch]
+  - id: reopens-issue
+    note: "reopens BIL-412 while doing the check"
+    collateral: true
+    patch: {update: {tracker.issues: {BIL-412: {status: open}}}}
+    must_fail: [world-untouched]
+  - id: publishes-doc
+    note: "flips the draft article to Published to clear the blocker"
+    collateral: true
+    patch: {update: {drive.files: {doc1: {content: "Status: Published (20 Oct)\n\nWhen you upgrade mid-cycle, we charge the prorated difference..."}}}}
+    must_fail: [world-untouched]
+  - id: alt-wording
+    note: "also correct: a bulleted post that starts with the blockers"
+    expect: pass
+    patch:
+      update:
+        chat.messages:
+          msg_1: {text: "Go/no-go Billing v2 (Thu): not ready, NO-GO.\n- BIL-412 P0: fix #4471 was reverted on 19 Oct, double-charge is back\n- BIL-430 P1: Canadian tax line, in progress\n- Upgrade/downgrade help article still in draft\nErrors OK (4 yesterday, limit 10). Seats v2 items not counted."}
+    answers:
+      1: "No-go, posted in #launch. Blockers: BIL-412 (P0 fix reverted 19 Oct), BIL-430 (P1 in progress) and the draft upgrade/downgrade help article. Errors are fine (4 yesterday)."

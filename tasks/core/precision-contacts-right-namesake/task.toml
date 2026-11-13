@@ -1,0 +1,11 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "precision-contacts-right-namesake"
+version = 1
+area = "precision"
+summary = "Update the phone number of the right one of two contacts called Chris Lee"
+requires = ["mcp"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "6700ce68-91c5-40ef-8ec0-c9780915fee2"

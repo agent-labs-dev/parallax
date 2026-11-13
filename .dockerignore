@@ -1,0 +1,35 @@
+# The docker build context is the repository root. Nothing private or
+# run-generated may reach an image: scripts/scan_public.py --docker-context
+# checks this file admits no private or environment material.
+
+# Reviewed comparison snapshots stay private, outside exports and build contexts.
+docs/results/
+
+# Private scanner rules name the material they guard.
+scripts/denylist.txt
+
+# Secrets and local environment
+.env
+.env.*
+.envrc
+.direnv/
+
+# Run output and generated briefs
+runs/
+artifacts/
+briefs/
+
+# Tooling, caches and VCS
+.git/
+.venv/
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+.ruff_cache/
+node_modules/
+dist/
+
+# Tests and review material are not part of any image
+tests/
+review/
+calibration/

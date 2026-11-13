@@ -1,0 +1,18 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-sla-breach-report"
+version = 3
+area = "saas"
+summary = "Find last week's first-reply SLA breaches among 108 Zendesk tickets (paged) using the Notion policy (business hours in Central time, a support holiday posted in Slack, tier at creation, other account domains, Free has no SLA), a P1 exclusion window that only the Head of Support's email gives (in UK time, the user's zone) and 112 Airtable accounts over two pages, then post the list and per-tier counts to #support-leads, where the first post fakes success and must be checked and redone"
+requires = ["mcp", "world_clock"]
+services = ["helpdesk", "tables", "wiki"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "b75e89dc-4818-4cd3-b0de-91d6c3de1b5d"
+
+[[metadata.parallax.faults]]
+tool = "chat_post_message"
+on_call = 1
+times = 1
+kind = "corrupt_success"

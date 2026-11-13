@@ -1,0 +1,6 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: scheduler_list_jobs, args: {}}
+      - {tool: scheduler_delete_job, args: {id: job-standup-reminder}}
+    answer: "Deleted the \"Standup reminder\" job. Your standup notes digest and timesheet reminder are still running."

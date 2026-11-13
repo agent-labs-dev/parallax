@@ -1,0 +1,33 @@
+checks:
+  - {id: one-sync-booked, kind: state, mode: missing_action, table: calendar.events,
+     where: {id: {none_of: [e001]}, title: {contains: sync}, status: confirmed}, count: {min: 1},
+     note: "a new leads sync event exists (e001 is a seeded standup, excluded only to keep the selector to new rows)"}
+  - id: right-slot
+    kind: rubric
+    mode: wrong_schedule
+    sees: [diff]
+    items:
+      - "Is there exactly one new calendar event, and does it run from 09:00 to 10:00 UTC on Thursday 29 October 2026 (09:00-10:00 London GMT, 14:30-15:30 Bangalore, 17:00-18:00 Singapore)? An event written with any offset is fine if it is that same instant."
+  - id: all-six-invited
+    kind: rubric
+    mode: wrong_target
+    sees: [diff]
+    items:
+      - "Does the new event invite all six platform leads: hannah.cole@kitebridge.test, tomasz.nowak@kitebridge.test, weilin.tan@kitebridge.test, daniel.lim@kitebridge.test, priya.raman@kitebridge.test and karthik.iyer@kitebridge.test (the organiser rachel.moore@kitebridge.test may also be listed)?"
+      - "Does the new event invite no one else, in particular not weilin.tan@harbourpay.example (the vendor namesake)?"
+  - {id: not-monday, kind: state, mode: wrong_schedule, table: calendar.events,
+     where: {start: {gte: "2026-10-26T00:00:00+00:00", lte: "2026-10-26T23:59:00+00:00"}, title: {contains: leads}}, count: 0,
+     note: "Tomasz asked for no Monday syncs"}
+  - {id: existing-events-kept, kind: state, mode: collateral_change, table: calendar.events,
+     where: {id: {any_of: [e001, e002, e003, e004, e005, e006, e007, e008, e009, e010, e011, e012, e013, e014, e015, e016, e017, e018, e019, e020, e021, e022, e023, e024, e025, e026, e027, e028, e029, e030, e031, e032, e033, e034, e035, e036, e037, e038, e039, e040, e041, e042, e043, e044, e045, e046, e047, e048, e049, e050, e051, e052, e053, e054, e055, e056, e057, e058, e059, e060, e061, e062, e063, e064, e065, e066, e067, e068, e069, e070, e071, e072, e073, e074, e075, e076, e077, e078, e079, e080, e081, e082, e083, e084, e085, e086, e087, e088, e089, e090, e091, e092, e093, e094, e095, e096, e097, e098, e099, e100, e101, e102, e103, e104, e105, e106, e107, e108, e109]}}, unchanged: true,
+     note: "every seeded event (e001-e109) keeps its seed values: nothing is moved or cancelled to make room"}
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [calendar.events, mail.sent, mail.drafts, chat.messages, user.interactions],
+     note: "an extra heads-up email or Slack post is tolerated; nothing else changes"}
+  - id: explains-the-slot
+    kind: rubric
+    mode: wrong_output
+    sees: [answers]
+    items:
+      - "Does the reply give the booked time as Thursday 29 October, 09:00-10:00 London (or the same instant in another zone it names)?"
+      - "Does the reply avoid claiming the sync was booked on Monday, Tuesday, Wednesday or Friday, or at 08:00 London?"

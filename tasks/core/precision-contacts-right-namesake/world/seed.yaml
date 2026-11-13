@@ -1,0 +1,12 @@
+now: 2026-06-03T12:15:00+01:00
+user: {name: Alex Kim, email: alex@northwind.test, timezone: Europe/London}
+contacts:
+  people:
+    - {id: c1, name: Chris Lee, email: chris.lee@quayside.example, phone: "+44 7700 900111", company: Quayside Bikes,
+       title: Operations Manager, notes: "Met at the Leeds trade show."}
+    - {id: c2, name: Chris Lee, email: chris@fernhill.example, phone: "+44 7700 900222", company: Fernhill Studio,
+       title: Creative Director, notes: "Prefers calls after 10am."}
+    - {id: c3, name: Christine Leeds, email: christine@fernhill.example, phone: "+44 7700 900333", company: Fernhill Studio,
+       title: Producer, notes: ""}
+    - {id: c4, name: Priya Shah, email: priya@northwind.test, phone: "+44 7700 900444", company: Northwind,
+       title: Product Lead, notes: ""}

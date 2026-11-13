@@ -1,0 +1,12 @@
+mutations:
+  - {id: did-nothing, note: "claims the cancellation without making it", base: seed, must_fail: [occurrence-cancelled]}
+  - {id: cancels-series, note: "cancels the whole recurring series", collateral: true,
+     patch: {update: {calendar.events: {e1: {status: cancelled}}}}, must_fail: [series-intact]}
+  - {id: cancels-following-week, note: "cancels the week after as well", collateral: true,
+     patch: {update: {calendar.events: {e1: {exceptions: {"2026-05-26": {cancelled: true}, "2026-06-09": {cancelled: true}, "2026-06-16": {cancelled: true}}}}}},
+     must_fail: [series-intact]}
+  - {id: wrong-one-to-one, note: "cancels the Sam 1:1 instead", base: seed,
+     patch: {update: {calendar.events: {e2: {exceptions: {"2026-06-09": {cancelled: true}}}}}},
+     must_fail: [occurrence-cancelled, other-events-unchanged]}
+  - {id: moves-contact, note: "edits Jo's contact card", collateral: true,
+     patch: {update: {contacts.people: {c1: {notes: "on leave"}}}}, must_fail: [world-untouched]}

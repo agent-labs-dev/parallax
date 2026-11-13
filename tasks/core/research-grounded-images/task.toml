@@ -1,0 +1,13 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "research-grounded-images"
+version = 1
+area = "research"
+summary = "Build a news roundup page whose images are exactly the seeded pictures of this week's stories"
+requires = ["mcp", "workspace", "shell", "world_clock"]
+services = ["web"]
+maturity = "candidate"
+provenance = "converted"
+legacy_ids = ["openui_news_roundup_renders_sourced_images"]
+canary = "464b3661-594b-4c2e-a52e-59c8103bfc5a"

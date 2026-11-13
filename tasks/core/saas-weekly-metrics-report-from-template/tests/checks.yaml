@@ -1,0 +1,43 @@
+checks:
+  - {id: report-page-created, kind: state, mode: missing_action, table: wiki.pages,
+     where: {id: {none_of: [pg_metrics, pg_w38, pg_w39, pg_okr]}}, count: 1,
+     fields: {space: Metrics},
+     note: "exactly one new page, in the Metrics space, titled for the week commencing 5 October 2026 like the earlier reports (for example 'Weekly metrics - w/c 5 Oct 2026'); a parent of pg_metrics is expected but its absence alone is not a failure"}
+  - {id: old-pages-untouched, kind: state, mode: collateral_change, table: wiki.pages,
+     where: {id: {any_of: [pg_metrics, pg_w38, pg_w39, pg_okr]}}, unchanged: true}
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [wiki.pages, chat.messages, user.interactions],
+     note: "a note in #metrics that the report is up is fine"}
+  - id: growth-figures
+    kind: rubric
+    mode: wrong_output
+    sees: [diff]
+    items:
+      - "Does the new report page give signups for the week of 5-11 October as 40?"
+      - "Does it give 7-day activation as 40.0% (16 of 40)?"
+      - "Does it give weekly active users as 77?"
+  - id: revenue-figure
+    kind: rubric
+    mode: wrong_output
+    sees: [diff]
+    items:
+      - "Does the new report page give net new revenue as $10,414 (charges created 5-11 Oct Pacific minus $219 of refunds issued that week, leaving out the $1,138 billed to the internal Sandbox customer ops@tallyhq.test, as Dana's comment on last week's page asks)? Showing gross as $10,633, or as $11,771 with the $1,138 sandbox amount subtracted, is fine. Net figures of $11,552 (sandbox kept), $9,875 (UTC week), $10,633 (refunds not netted) or $10,534 (only refunds on that week's own charges) fail."
+  - id: support-figure
+    kind: rubric
+    mode: wrong_output
+    sees: [diff]
+    items:
+      - "Does the new report page give tickets opened in the week as 18 (21 created 5-11 Oct Pacific, minus the 3 [Spam] tickets; the 2 Automatic reply tickets still count, per Rosa's later correction in #metrics)? 21 (spam kept), 16 (auto-replies also dropped) and 8 or 10 (only the first 50 listed tickets) fail."
+  - id: same-shape-as-last-week
+    kind: rubric
+    mode: wrong_output
+    sees: [diff]
+    items:
+      - "Does the new page follow the earlier reports' layout: Headline, Growth (signups, activation, weekly active users), Revenue (net new revenue with gross and refunds), Support (tickets opened) and Notes sections, in that order?"
+      - "Is every figure on the new page this week's, with none of last week's report figures (38 signups, 44.7% or 17/38 activation, 211 WAU, $8,940 / $9,310 / $370 revenue, 27 tickets) presented as this week's numbers? Mentioning last week's numbers as an explicit comparison is fine."
+  - id: reports-link
+    kind: rubric
+    mode: wrong_output
+    sees: [answers]
+    items:
+      - "Does the reply say the report for the week of 5 October was created in Notion and give its headline figures or a link to it?"

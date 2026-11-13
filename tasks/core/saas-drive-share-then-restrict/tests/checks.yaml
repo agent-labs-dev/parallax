@@ -1,0 +1,23 @@
+checks:
+  - {id: one-notes-doc, kind: state, mode: duplicate_action, table: drive.files,
+     where: {id: {regex: "^file_"}}, count: 1,
+     fields: {folder: f1, content: {contains: beacon, regex: "\\b16(th)?\\b"}}}
+  - {id: priya-edits, kind: state, mode: missing_action, table: drive.permissions,
+     where: {email: priya@northwind.test, file: {regex: "^file_"}}, count: 1, fields: {role: editor}}
+  - {id: sam-edits, kind: state, mode: missing_action, table: drive.permissions,
+     where: {email: sam@northwind.test, file: {regex: "^file_"}}, count: 1, fields: {role: editor}}
+  - {id: lena-views, kind: state, mode: ignored_correction, table: drive.permissions,
+     where: {email: lena@pixelpine.example, file: {regex: "^file_"}}, count: 1, fields: {role: viewer}}
+  - {id: joss-views, kind: state, mode: ignored_correction, table: drive.permissions,
+     where: {email: joss@pixelpine.example, file: {regex: "^file_"}}, count: 1, fields: {role: viewer}}
+  - {id: shared-with-channel-only, kind: state, mode: wrong_target, table: drive.permissions,
+     where: {file: {regex: "^file_"}, email: {ne: alex@northwind.test}}, count: 4,
+     note: "Marco is not in the channel; sharing with the owner herself is harmless"}
+  - {id: existing-sharing-untouched, kind: state, mode: collateral_change, table: drive.permissions,
+     where: {id: {regex: "^p\\d+$"}}, unchanged: true}
+  - {id: nothing-else-touched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [drive.files, drive.permissions, user.interactions]}
+  - {id: existing-files-untouched, kind: state, mode: collateral_change, table: drive.files,
+     where: {id: {regex: "^d\\d+$"}}, unchanged: true}
+  - {id: notes-quality, kind: rubric, mode: wrong_output, gate: false, sees: [diff],
+     items: ["Do the launch notes include the 16 June launch date, the pricing for new plans and the landing page sign-off?"]}

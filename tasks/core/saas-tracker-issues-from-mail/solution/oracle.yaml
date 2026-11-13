@@ -1,0 +1,13 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: tracker_create_issue, args: {title: "CSV export shows times in UTC instead of local time", labels: [bug],
+         body: "Reported by priti@cedarworks.example on 1 June: timesheet CSV exports are an hour off (UTC, not London time)."}}
+      - {tool: tracker_create_issue, args: {title: "Safari login page reloads instead of signing in", labels: [bug],
+         body: "Reported by dev@harrowgate.example (2 June) and sam@fielddayco.example (3 June): on Safari the login page reloads after entering the password. Chrome works."}}
+      - {tool: tracker_create_issue, args: {title: "VAT number missing from invoice PDFs", labels: [bug],
+         body: "Reported by accounts@bramblefarm.example on 2 June: May invoice PDFs omit the saved VAT number."}}
+    answer: >-
+      Filed three bugs from this week's email: CSV export times in UTC, the Safari login loop (reported by two
+      customers, filed once), and the missing VAT number on invoices. I didn't file the dark mode request since it's
+      a feature idea, and the slow search report came in last week.

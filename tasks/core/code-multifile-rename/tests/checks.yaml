@@ -1,0 +1,28 @@
+checks:
+  - {id: tests-pass, kind: command, mode: broke_build, run: [python, -m, pytest, -q, --color=no, -p, no:cacheprovider, tests],
+     exit: 0, stdout: [{regex: "(?m)^(?!.*\\b(failed|errors?|skipped|xfailed|deselected)\\b).*\\b([3-9]|[1-9]\\d+) passed\\b"}],
+     note: "at least the 3 seeded tests pass and none fail or are skipped; added tests are welcome"}
+  - id: callers-work-under-new-name
+    kind: command
+    mode: missing_action
+    note: "the new name exists and every caller, including the module-attribute call in sync.py, runs"
+    run:
+      - python
+      - -c
+      - |
+        import tempfile
+        from pathlib import Path
+        from ledger import source
+        from ledger.report import total_by_account
+        from ledger.sync import preview
+        d = Path(tempfile.mkdtemp())
+        (d / "entries.csv").write_text("account,pence\nfees,250\nfees,250\nrent,100\n", encoding="utf-8")
+        assert [r["pence"] for r in source.load_rows(d, table="entries", limit=1)] == ["250"]
+        assert total_by_account(str(d)) == {"fees": 500, "rent": 100}
+        assert preview(str(d), n=3) == ["fees: £2.50", "fees: £2.50", "rent: £1.00"]
+        print("callers ok")
+    stdout: ["callers ok"]
+  - {id: old-name-gone, kind: command, mode: missing_action, note: "grep exits 1 when nothing matches",
+     run: [grep, -rn, --include=*.py, fetch_rows, .], exit: 1}
+  - {id: unrelated-module-untouched, kind: file, mode: collateral_change, path: "ledger/formatting.py", unchanged: true}
+  - {id: fixture-untouched, kind: file, mode: collateral_change, path: "tests/conftest.py", unchanged: true}

@@ -1,0 +1,31 @@
+checks:
+  - id: daily-6pm-job
+    kind: state
+    mode: wrong_schedule
+    table: scheduler.jobs
+    where: {active: true}
+    count: 1
+    fields:
+      kind: cron
+      tz: Europe/London
+      spec: {regex: "^0{1,2} 18 \\* \\* \\*$"}
+  - id: tuesday-summary
+    kind: state
+    mode: missing_action
+    table: mail.sent
+    where: {to: {contains: ellis@greywater.test}, date: {gte: "2026-07-14T18:00:00+01:00", lte: "2026-07-15T17:59:59+01:00"}}
+    count: 1
+    fields:
+      body: {regex: "^(?=[\\s\\S]*bramble)(?=[\\s\\S]*(pump 7|ketter))(?![\\s\\S]*(hollins|sedge))"}
+    note: "the first run covers Tuesday's two posts and not Monday's"
+  - id: wednesday-summary
+    kind: state
+    mode: wrong_output
+    table: mail.sent
+    where: {to: {contains: ellis@greywater.test}, date: {gte: "2026-07-15T18:00:00+01:00"}}
+    count: 1
+    fields:
+      body: {regex: "^(?=[\\s\\S]*quarry)(?=[\\s\\S]*(g2|generator|oxlow))(?![\\s\\S]*(bramble|pump 7|ketter|hollins|sedge))"}
+    note: "the second run must not replay Tuesday's items"
+  - {id: chat-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [scheduler.jobs, mail.sent, mail.drafts, user.interactions]}

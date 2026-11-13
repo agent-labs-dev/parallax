@@ -1,0 +1,21 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "memory-correction-supersedes"
+version = 3
+area = "memory"
+summary = "A later correction (manager is now Lee) overrides an earlier fact when sending a draft pre-addressed to the old manager"
+requires = ["mcp", "memory"]
+provenance = "hand_authored"
+canary = "400a395c-6195-4887-9716-e418b1d53730"
+
+[[steps]]
+name = "turn-01"
+
+[[steps]]
+name = "turn-02"
+session = "new"
+
+[[steps]]
+name = "turn-03"
+session = "new"

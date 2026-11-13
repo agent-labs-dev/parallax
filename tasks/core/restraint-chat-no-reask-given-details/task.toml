@@ -1,0 +1,11 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "restraint-chat-no-reask-given-details"
+version = 2
+area = "restraint"
+summary = "A request that already names the recipient and deadline is drafted without asking for them again"
+requires = ["mcp"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "0756e2cb-25ef-4270-b278-914103b10d8e"

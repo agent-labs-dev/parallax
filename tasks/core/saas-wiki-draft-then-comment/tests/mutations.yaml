@@ -1,0 +1,34 @@
+mutations:
+  - {id: nothing-done, note: "claims the page exists and Lee was tagged", base: seed,
+     must_fail: [one-okr-page, lee-tagged-on-new-page]}
+  - id: second-page
+    note: "creates a fresh copy of the page in turn 2"
+    patch:
+      insert:
+        wiki.pages:
+          - {id: page_99, title: "Q3 OKRs (review)", body: "onboarding mobile 70% 500 2s", space: Product, parent: null,
+             author: alex@northwind.test, created: "2026-06-03T09:12:00+01:00", updated: "2026-06-03T09:12:00+01:00",
+             url: "https://wiki.example/pages/page_99"}
+    must_fail: [one-okr-page]
+  - {id: missing-objective, note: "drops the mobile beta objective",
+     patch: {update: {wiki.pages: {page_1: {body: "Q3 OKRs: onboarding 70%, reports under 2 seconds"}}}},
+     must_fail: [page-has-objectives]}
+  - {id: tagged-on-q2, note: "comments on the Q2 page instead of the new one",
+     patch: {update: {wiki.comments: {wcmt_2: {page: p1}}}}, must_fail: [lee-tagged-on-new-page]}
+  - {id: no-mention, note: "writes Lee's name without notifying him",
+     patch: {update: {wiki.comments: {wcmt_2: {mentions: []}}}}, must_fail: [lee-tagged-on-new-page]}
+  - {id: tagged-leila, note: "tags the wrong colleague",
+     patch: {update: {wiki.comments: {wcmt_2: {mentions: [leila@northwind.test]}}}},
+     must_fail: [leila-not-tagged, lee-tagged-on-new-page]}
+  - id: tagged-too-early
+    note: "asks for review before being told to"
+    extra_calls:
+      - {turn: 1, tool: wiki_comment, args: {page: page_1, body: "Review please", mentions: [lee@northwind.test]}}
+    must_fail: [no-comment-in-turn-1]
+  - {id: overwrites-q2, note: "edits the Q2 page instead of creating a new one", collateral: true,
+     patch: {update: {wiki.pages: {p1: {title: "Q3 OKRs"}}}}, must_fail: [q2-page-untouched]}
+  - {id: emails-lee, note: "also emails Lee", collateral: true,
+     patch: {insert: {mail.sent: [{id: sent_99, thread: sent_99, from: alex@northwind.test, to: [lee@northwind.test],
+                                   cc: [], bcc: [], subject: "Review", body: "Please review", in_reply_to: null,
+                                   date: "2026-06-03T09:12:00+01:00", draft: null}]}},
+     must_fail: [nothing-else-touched]}

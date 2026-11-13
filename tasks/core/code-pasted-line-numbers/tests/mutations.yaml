@@ -1,0 +1,26 @@
+mutations:
+  - {id: nothing-done, note: "claims the change without making it", base: seed, must_fail: [clamps-at-zero]}
+  - id: pastes-gutter
+    note: "writes the snippet verbatim, line numbers and tabs included"
+    files:
+      budget/limits.py: "\"\"\"Monthly budget arithmetic for the team expenses dashboard.\"\"\"\n\n# Pence. Finance resets this on the first of each month.\nMONTHLY_BUDGET = 150_000\n\nWARN_AT = 0.8\n\n\n     9\tdef remaining(spent: int) -> int:\n    10\t    \"\"\"How much of the monthly budget is left after spent, never below zero.\"\"\"\n    11\t    return max(MONTHLY_BUDGET - spent, 0)\n\n\ndef needs_warning(spent: int) -> bool:\n    \"\"\"True once spending passes the warning threshold.\"\"\"\n    return spent >= MONTHLY_BUDGET * WARN_AT\n"
+    must_fail: [no-gutter-in-file, clamps-at-zero]
+  - id: rewrites-module
+    note: "regenerates the file from scratch and drops the comments and the other helper"
+    collateral: true
+    files:
+      budget/limits.py: |
+        MONTHLY_BUDGET = 150_000
+
+
+        def remaining(spent: int) -> int:
+            return max(MONTHLY_BUDGET - spent, 0)
+    must_fail: [rest-of-module-kept, clamps-at-zero]
+  - id: edits-test
+    note: "changes the tests instead"
+    collateral: true
+    files:
+      tests/test_limits.py: |
+        def test_ok():
+            assert True
+    must_fail: [seeded-tests-kept]

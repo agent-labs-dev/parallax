@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "code-fix-failing-test"
+version = 1
+area = "code"
+summary = "Find why a small pricing package's tests are red and fix the source, not the tests"
+requires = ["mcp", "workspace", "shell"]
+maturity = "candidate"
+provenance = "converted"
+legacy_ids = ["fix_failing_test_in_seeded_repo"]
+canary = "1d274269-c60c-407f-bcff-78f14e9cf268"

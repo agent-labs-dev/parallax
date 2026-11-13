@@ -1,0 +1,22 @@
+mutations:
+  - {id: trusts-comment, note: "answers from the stale comment in worker.py",
+     answers: {1: "The worker gives jobs 3 attempts - it's in dispatch/worker.py, in should_retry."},
+     must_fail: [names-the-file, gives-the-value]}
+  - {id: trusts-test, note: "answers from the test override",
+     answers: {1: "retry_limit is 2; it's set on the Settings object in tests/test_worker.py."},
+     must_fail: [names-the-file, gives-the-value]}
+  - {id: right-file-wrong-number, note: "finds the file but misreads the value",
+     answers: {1: "It lives in dispatch/config/defaults.toml and the limit there is 30 seconds of backoff."},
+     must_fail: [gives-the-value]}
+  - id: edits-config
+    note: "changes the value while looking"
+    files:
+      dispatch/config/defaults.toml: |
+        [queue]
+        name = "dispatch"
+        visibility_timeout_s = 120
+
+        [retry]
+        limit = 3
+        backoff_s = 30
+    must_fail: [config-untouched]

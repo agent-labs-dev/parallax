@@ -1,0 +1,9 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: tables_list_records, args: {base: Leads, where: {Status: Qualified}}}
+      - {tool: tables_update_record, args: {id: rec02, fields: {Status: Contacted}}}
+      - {tool: tables_update_record, args: {id: rec05, fields: {Status: Contacted}}}
+      - {tool: tables_update_record, args: {id: rec08, fields: {Status: Contacted}}}
+      - {tool: tables_update_record, args: {id: rec11, fields: {Status: Contacted}}}
+    answer: "Done: Tomas Vidal, Imani Brooks, Marco Bellini and Sofia Lindqvist were Qualified and are now Contacted. Nothing else changed."

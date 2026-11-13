@@ -1,0 +1,28 @@
+checks:
+  - {id: sep-revenue, kind: state, mode: wrong_output, table: sheets.rows, where: {id: k1}, count: 1,
+     fields: {"Sep 2026": 35259},
+     note: "Stripe charges created in September Eastern time (36,099) minus refunds issued in September (50 + 790 = 840). Not the finance export's 38,444; not the UTC month (36,750); not gross. A currency-formatted string of the same amount is fine."}
+  - {id: sep-signups, kind: state, mode: wrong_output, table: sheets.rows, where: {id: k2}, count: 1,
+     fields: {"Sep 2026": 60}}
+  - {id: sep-activation, kind: state, mode: wrong_output, table: sheets.rows, where: {id: k3}, count: 1,
+     fields: {"Sep 2026": 45},
+     note: "the Activation (7-day) insight over 1-30 September: 27 of 60 = 45.0%. Not the legacy 30-day insight (58.3). 45, 45.0 or \"45.0%\" all count."}
+  - {id: sep-tickets, kind: state, mode: wrong_output, table: sheets.rows, where: {id: k4}, count: 1,
+     fields: {"Sep 2026": 48},
+     note: "tickets created 1-30 September Eastern time. Not 44 (only the first 50 tickets listed) and not 47 (UTC month)."}
+  - {id: nps-left-empty, kind: state, mode: wrong_output, table: sheets.rows, where: {id: k5}, count: 1,
+     fields: {"Sep 2026": null},
+     note: "the NPS responses sheet has no September responses, so the cell stays empty (null or an empty string). 0, or the October score 40, is wrong."}
+  - {id: past-months-kept, kind: state, mode: collateral_change, table: sheets.rows, where: {sheet: sh_kpi}, count: 5,
+     note: "the five KPI rows keep their seed metric names and their Jul 2026 and Aug 2026 values exactly; only Sep 2026 cells may differ from the seed, and no row is added or removed"}
+  - {id: other-sheets-untouched, kind: state, mode: collateral_change, table: sheets.rows,
+     where: {sheet: {any_of: [sh_fin, sh_nps]}}, unchanged: true}
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [sheets.rows, user.interactions]}
+  - id: flags-the-gaps
+    kind: rubric
+    mode: wrong_output
+    sees: [answers]
+    items:
+      - "Does the reply flag that the finance export's September revenue (38,444) does not match Stripe's (35,259 net of refunds), and say the sheet uses the Stripe figure?"
+      - "Does the reply say that NPS for September was left empty because there are no September survey responses (rather than reporting an NPS score for September)?"

@@ -1,0 +1,30 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: user_clock_now, args: {}}
+      - {tool: wiki_search, args: {query: retention}}
+      - {tool: wiki_get_page, args: {id: pg_defs}}
+      - {tool: mail_search, args: {label: inbox}}
+      - {tool: mail_get, args: {id: m1}}
+      - {tool: analytics_list_events, args: {}}
+      - {tool: analytics_funnel, args: {steps: [signed_up, trial_ended, session_started], window_days: 28, breakdown: plan, date_from: "2026-08-01", date_to: "2026-08-31"}}
+      - {tool: analytics_funnel, args: {steps: [signed_up, trial_ended, session_started], window_days: 28, breakdown: plan, date_from: "2026-09-01", date_to: "2026-09-30"}}
+      - {tool: analytics_funnel, args: {steps: [signed_up, trial_ended, session_started], window_days: 28, breakdown: email_domain, date_from: "2026-08-01", date_to: "2026-08-31"}}
+      - {tool: analytics_funnel, args: {steps: [signed_up, trial_ended, session_started], window_days: 28, breakdown: email_domain, date_from: "2026-09-01", date_to: "2026-09-30"}}
+    answer: |-
+      Yes: Team and Business. Day-28 retention (session after the trial ends and within 28 days of signup), by signup plan, with internal, test and pilot accounts excluded:
+
+      | Plan | August signups | September signups |
+      |---|---|---|
+      | Starter | 40.9% (9/22) | 40.0% (8/20) |
+      | Team | 62.5% (10/16) | 33.3% (5/15) |
+      | Business | 62.5% (5/8) | 42.9% (3/7) |
+
+      Team fell by about 29 points and Business by about 20; Starter was flat.
+
+      What I excluded, and why it matters:
+      - Staff on kitebase.test: ten comped Team workspaces in September, all retained. With them in, Team shows 60.0% (15/25).
+      - QA test signups on kitebase-qa.test and, from September, on qa-auto.example (Tomas's comment on the Metric definitions page): seven Starter signups, none retained. With them in, Starter shows 29.6% (8/27) and looks like the drop.
+      - The four Brightline pilot workspaces (brightline.example, Business), which Jonas asked to keep out by email: all retained because the pilot contract makes their admins log in. With them in, Business shows 63.6% (7/11) and looks flat.
+
+      In August the exclusions were one staff account (Team) and two QA accounts (Starter). I used the plan each account signed up on, so the three September Starter signups who later upgraded to Team stay in Starter.

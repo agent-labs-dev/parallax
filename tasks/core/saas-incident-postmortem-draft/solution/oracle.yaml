@@ -1,0 +1,69 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: user_clock_now, args: {}}
+      - {tool: mail_search, args: {label: inbox}}
+      - {tool: mail_get, args: {id: e7}}
+      - {tool: chat_list_channels, args: {}}
+      - {tool: chat_read_channel, args: {channel: inc-checkout, limit: 100}}
+      - {tool: chat_read_channel, args: {channel: deploys}}
+      - {tool: mail_search, args: {query: Tessera Status}}
+      - {tool: helpdesk_list_tickets, args: {limit: 100}}
+      - {tool: wiki_search, args: {query: postmortem}}
+      - {tool: wiki_get_page, args: {id: pg-tpl}}
+      - {tool: tracker_search_issues, args: {limit: 100}}
+      - {tool: tracker_create_issue, args: {title: "CI check: reject maxPoolSize below 20 without DBA approval", assignee: lena@tessera.test, labels: [incident-followup], body: "Action item from the 2026-10-13 checkout outage postmortem. Owner: Lena."}}
+      - {tool: tracker_create_issue, args: {title: "Page on-call when checkout-db connection use is above 80% for 2 minutes", assignee: ana@tessera.test, labels: [incident-followup], body: "Action item from the 2026-10-13 checkout outage postmortem. Owner: Ana (taken over from Marcus, who is on leave)."}}
+      - {tool: tracker_create_issue, args: {title: "Put pricing-service behind the canary deploy stage", assignee: omar@tessera.test, labels: [incident-followup], body: "Action item from the 2026-10-13 checkout outage postmortem. Owner: Omar."}}
+      - {tool: tracker_search_issues, args: {label: incident-followup}}
+      - {tool: tracker_create_issue, args: {title: "Page on-call when checkout-db connection use is above 80% for 2 minutes", assignee: ana@tessera.test, labels: [incident-followup], body: "Action item from the 2026-10-13 checkout outage postmortem. Owner: Ana (taken over from Marcus, who is on leave)."}}
+      - {tool: tracker_search_issues, args: {label: incident-followup}}
+      - tool: wiki_create_page
+        args:
+          title: "Postmortem: Checkout outage (2026-10-13)"
+          space: Engineering
+          parent: pg-pm
+          body: |-
+            ## Summary
+            On Tuesday 13 October checkout failed for most customers for 1 h 35 min. pricing-service v2.31 changed the shared checkout-db client settings and set maxPoolSize to 5 instead of 50, so checkout-api ran out of database connections and returned 5xx. Rolling back to v2.30 fixed it.
+
+            ## Impact
+            - Duration: 13:12-14:47 UTC (1 h 35 min).
+            - Customers affected: 9 distinct customers contacted support (12 tickets, some customers wrote more than once).
+            - Failed checkouts: 1,284 (payments dashboard, 13:12-14:47 UTC).
+
+            ## Timeline (UTC)
+            - 13:05 pricing-service v2.31 deployed to prod.
+            - 13:12 PagerDuty: checkout-api 5xx at 38%. Impact starts.
+            - 13:13 Jordan takes IC; SEV1 declared at 13:16.
+            - 13:19 Working theory: Stripe degradation.
+            - 13:23 Status page: Investigating.
+            - 13:30 Payments: calls that reach Stripe succeed; requests fail before Stripe.
+            - 13:36 Lena: checkout-db connections pinned at the pool max (5, normally 50).
+            - 13:44 Stripe theory retracted (their incident was eu-west only).
+            - 13:53 Omar finds the cause: v2.31 set maxPoolSize 5 in the shared values.
+            - 14:17 Decision: roll back pricing-service to v2.30.
+            - 14:19 Status page: Identified.
+            - 14:40 Rollback complete, all pods on v2.30.
+            - 14:47 5xx back to baseline. Impact ends.
+            - 14:49 Status page: Monitoring.
+            - 15:30 Status page: Resolved; SEV1 closed.
+
+            ## Root cause
+            pricing-service v2.31 edited the checkout-db client block of the shared Helm values and set maxPoolSize to 5 (a typo for 50). checkout-api reads the same values, so its pool was exhausted and requests timed out waiting for a connection; customer retries made it worse. Ruled out: Stripe. Its incident was in eu-west only, and our Stripe calls kept succeeding.
+
+            ## Action items
+            - ISS-1 CI check: reject maxPoolSize below 20 without DBA approval (owner Lena)
+            - ISS-4 Page on-call when checkout-db connection use is above 80% for 2 minutes (owner Ana; taken over from Marcus, who is on leave)
+            - ISS-3 Put pricing-service behind the canary deploy stage (owner Omar)
+
+            ## Lessons learned
+            Shared config needs its own guard rails, and we had no alert on the connection pool itself.
+    answer: |-
+      The postmortem is up in Notion under Postmortems: "Postmortem: Checkout outage (2026-10-13)", from the template.
+
+      - Impact: 13:12-14:47 UTC (1 h 35 min), 1,284 failed checkouts, 9 distinct customers contacted support (12 tickets).
+      - Root cause: pricing-service v2.31 set the shared checkout-db maxPoolSize to 5 instead of 50, so checkout-api ran out of DB connections. The early Stripe theory was retracted.
+      - Timeline is in UTC; I converted the times people posted in BST, CEST and ET.
+
+      I filed the three action items the review agreed, in Linear: ISS-1 CI guard on maxPoolSize (Lena), ISS-4 pool saturation paging (Ana, since Marcus is on leave and handed it to her), ISS-3 canary stage for pricing-service (Omar). The tracker reported the pool-alert issue as created the first time, but it was not there when I checked, so I filed it again as ISS-4; all three are now in the tracker. The parked ideas (status banner, second payment provider, splitting the Helm values) are not filed.

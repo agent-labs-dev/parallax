@@ -1,0 +1,20 @@
+now: 2026-06-03T11:05:00+01:00
+user: {name: Alex Kim, email: alex@northwind.test, timezone: Europe/London}
+mail:
+  messages:
+    - {id: m1, thread: t1, from: lee@northwind.test, to: [alex@northwind.test], cc: [],
+       subject: "Offsite headcount",
+       body: "Hi Alex, what's the final headcount for the offsite on the 18th? The caterer needs a number by Friday. Thanks, Lee",
+       date: "2026-06-03T09:20:00+01:00", labels: [inbox]}
+    - {id: m2, thread: t2, from: sam@northwind.test, to: [alex@northwind.test], cc: [],
+       subject: "Offsite RSVPs closed",
+       body: "RSVPs are closed. Final list is 24 people: 22 staff plus our 2 guest speakers. Two of them are vegetarian, one is gluten free.",
+       date: "2026-06-02T17:45:00+01:00", labels: [inbox]}
+    - {id: m3, thread: t3, from: sam@northwind.test, to: [alex@northwind.test], cc: [],
+       subject: "Offsite RSVPs so far",
+       body: "Quick update: 19 yeses so far, a few still to reply.",
+       date: "2026-05-28T12:00:00+01:00", labels: []}
+contacts:
+  people:
+    - {id: c1, name: Lee Walsh, email: lee@northwind.test, company: Northwind, title: Office Manager}
+    - {id: c2, name: Sam Patel, email: sam@northwind.test, company: Northwind, title: Chief of Staff}

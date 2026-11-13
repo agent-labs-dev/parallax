@@ -1,0 +1,11 @@
+now: 2026-06-03T09:12:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+chat:
+  channels:
+    - {id: c_eng, name: eng, members: [alex@northwind.test, sam@northwind.test, kai@northwind.test], topic: "Engineering",
+       created: "2026-01-12T10:00:00+00:00"}
+    - {id: c_general, name: general, members: [alex@northwind.test, sam@northwind.test, kai@northwind.test], topic: "Everything else",
+       created: "2026-01-12T10:00:00+00:00"}
+  messages:
+    - {id: msg_e1, channel: c_eng, author: kai@northwind.test, text: "Anyone know what port the ledger service listens on?",
+       ts: "2026-06-02T16:00:00+01:00", thread_id: null}

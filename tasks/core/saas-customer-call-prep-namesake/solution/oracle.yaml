@@ -1,0 +1,29 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: user_clock_now, args: {}}
+      - {tool: calendar_list_events, args: {start: "2026-10-19T14:00:00+01:00", end: "2026-10-20T23:59:00+01:00", query: Acme}}
+      - {tool: tables_list_records, args: {base: Accounts, query: Acme}}
+      - {tool: payments_list_charges, args: {customer: cus_acmelog}}
+      - {tool: helpdesk_list_tickets, args: {query: acmelogistics}}
+      - {tool: tracker_search_issues, args: {query: TKT-2210}}
+      - {tool: tracker_get_issue, args: {id: ENG-781}}
+      - {tool: mail_search, args: {sender: acmelogistics.example}}
+      - {tool: analytics_trend, args: {event: route_planned, date_from: "2026-09-21", date_to: "2026-10-18", interval: week, breakdown: org}}
+    answer: |-
+      Your 15:00 today (in 30 minutes) is the Acme check-in with **Acme Logistics**: Jo Marsh and Kofi Adu (acmelogistics.example), with Dana. Not Acme Corp; their renewal call is tomorrow at 11:00.
+
+      Account (Airtable): Business plan, ARR $51,000, renews 30 November 2026, owner Dana Okoro.
+
+      Billing (Stripe): the October invoice of $4,250 (13 Oct) failed, card declined for insufficient funds, and has not been retried. July to September were paid.
+
+      Support (Zendesk): two open tickets, both from Kofi:
+      - TKT-2210, route export CSV drops stops after 200 (high). Linear ENG-781 is fixed in main but not released: it ships in 4.12 on Tue 27 Oct, so it is still broken for them today.
+      - TKT-2231, driver app login loop after SSO on Android (no linked fix yet).
+      The August invoice-address ticket (TKT-1987) is solved.
+
+      Their last email (Jo, 16 Oct): they want 15% off the renewal because of the route export problems, and want to discuss it on this call.
+
+      Usage (PostHog, route_planned for Acme Logistics): 16, 15 and 16 a week from 21 Sep to 11 Oct, then 4 in the week of 12 Oct, a drop of about 75%. Likely linked to the export bug.
+
+      Suggested angle: own the export bug and give the 27 Oct date, raise the failed payment, and hold the discount talk until after the fix ships.

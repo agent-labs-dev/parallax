@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "schedule-cancel-right-job"
+version = 1
+area = "schedule"
+summary = "Stop only the standup reminder among three jobs, including a similarly named standup digest"
+requires = ["mcp"]
+services = ["scheduler"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "b2952f3c-7abb-4385-8a5c-58ed0a41fdbc"

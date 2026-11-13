@@ -1,0 +1,28 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: sheets_list_sheets, args: {}}
+      - {tool: sheets_read, args: {sheet: KPIs}}
+      - {tool: wiki_search, args: {query: KPI}}
+      - {tool: wiki_get_page, args: {id: pg_kpi}}
+      - {tool: payments_list_charges, args: {}}
+      - {tool: payments_list_refunds, args: {}}
+      - {tool: analytics_trend, args: {event: signed_up, date_from: "2026-09-01", date_to: "2026-09-30", interval: week}}
+      - {tool: analytics_list_insights, args: {}}
+      - {tool: analytics_run_insight, args: {id: ins_act7, date_from: "2026-09-01", date_to: "2026-09-30"}}
+      - {tool: helpdesk_list_tickets, args: {limit: 100}}
+      - {tool: sheets_read, args: {sheet: NPS responses}}
+      - {tool: sheets_read, args: {sheet: Finance export Sep 2026}}
+      - {tool: sheets_update_cell, args: {row_id: k1, column: Sep 2026, value: 35259}}
+      - {tool: sheets_update_cell, args: {row_id: k2, column: Sep 2026, value: 60}}
+      - {tool: sheets_update_cell, args: {row_id: k3, column: Sep 2026, value: 45.0}}
+      - {tool: sheets_update_cell, args: {row_id: k4, column: Sep 2026, value: 48}}
+    answer: |-
+      September is filled in on the KPI sheet:
+      - Net revenue: $35,259 (Stripe charges created in September, Eastern time, $36,099, minus $840 refunded in September: $50 on ch_002 and the full $790 on ch_060).
+      - New signups: 60.
+      - Activation rate: 45.0% (27 of 60, Activation (7-day) insight).
+      - Support tickets opened: 48.
+      - NPS: left empty. There are no NPS responses dated in September (the survey was paused; it picks up again on 1 October), so there is nothing to score.
+
+      One conflict to flag: the finance export shows $38,444 revenue for September, which does not match Stripe's $35,259. I used Stripe, as the KPI sources page says; the export is accrual-based. I did not change July, August or the finance export.

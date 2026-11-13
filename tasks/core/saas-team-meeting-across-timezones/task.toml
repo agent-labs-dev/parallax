@@ -1,0 +1,11 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-team-meeting-across-timezones"
+version = 1
+area = "saas"
+summary = "Book the platform leads sync at the only hour next week inside London, Singapore and Bangalore working hours, across 109 calendar events, a 'not Mondays' email, an all-day OOO and the UK clock change"
+requires = ["mcp", "world_clock"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "fbea3b47-7223-47c1-baa8-58e2bc038287"

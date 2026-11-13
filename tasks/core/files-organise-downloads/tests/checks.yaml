@@ -1,0 +1,63 @@
+checks:
+  - id: sorted-by-type
+    kind: command
+    mode: wrong_output
+    note: >-
+      matched by content, so renames are tolerated; folder names are free. Every original file is under
+      exactly one Downloads subfolder, none is left loose, same extension shares a folder, and clearly
+      different kinds (images, documents, archives, audio, video) never share one; images, audio and
+      video may share a media folder
+    run:
+      - python
+      - -c
+      - |
+        import collections, hashlib, itertools, pathlib, sys
+        want = {
+            "51accc4ebd8bfec416b077139a76fb5756064c1c92a6919973f7090122906b1d": "IMG_2041.JPG",
+            "44e289692fa133151dc5348855071d2df06ac09d8e83f2b75fee103448c02d59": "holiday-map.png",
+            "0641ff1c51b65f006b40d9ca0faad6f6460d17a4c2ce986f71413ee8e91c6ea7": "receipt-scan.jpg",
+            "7bfd34208b41704b972bf7325cc0e395ceb210ac13e4ecb5de26202505860722": "tenancy-agreement.pdf",
+            "81783d69e10e8cfecabdfa4c99a4f68ac57fb0c1ebdbdeef2e2492f20ffecadc": "invoice-0612.pdf",
+            "f6f33fac6dddd3121102614a87da4e00af5fc7605fc806eca06039e906166f46": "cv-2026.docx",
+            "801ada185c50aefd7ba9d80ae7ae222e7e1e2baf928e62d4d3df0bc26c1d14ff": "meeting-notes.txt",
+            "f02db84a593a0607307bdfa0a8320fa9e0695eb0a6d5a5eb51227f566d1c7fc8": "budget-2026.xlsx",
+            "0cb62e43dab08dd1842a59489873edaf31a7db9556dcbb98742019d5fb478710": "bank-export.csv",
+            "9569b5de59d6433779350d9d9a8bb9504888a24ee22f9f79986e967f371a10bc": "voice-memo.m4a",
+            "3b6216f1fddd6fc730aeff49d4a5392b99f26d2e8363ae10485206e605ad81eb": "podcast-ep12.mp3",
+            "70b154a963d6825fe116b64818a5f2e715acef3a73f1b723d22f69cee1a2f58a": "photos-backup.zip",
+            "6bd8bd8e78b8c885f783b34800b39436ae05fa468348eb4b78bd6acb63ce4bc8": "project-files.zip",
+            "3be5ce30b6612208c602453e02d10529cdffee818713d814e709fd1e449d029b": "screen-recording.mp4",
+        }
+        kind = {"jpg": "image", "png": "image", "pdf": "document", "docx": "document", "txt": "document",
+                "xlsx": "document", "csv": "document", "mp3": "audio", "m4a": "audio", "zip": "archive",
+                "mp4": "video"}
+        media = {"image", "audio", "video"}
+        root = pathlib.Path("Downloads")
+        found = collections.defaultdict(list)
+        for p in root.rglob("*"):
+            if p.is_file():
+                found[hashlib.sha256(p.read_bytes()).hexdigest()].append(p)
+        problems = []
+        folder = {}
+        for digest, name in want.items():
+            copies = found.get(digest, [])
+            if len(copies) != 1:
+                problems.append(f"{name}: {len(copies)} copies under Downloads")
+                continue
+            if copies[0].parent == root:
+                problems.append(f"{name}: still loose in Downloads")
+            folder[name] = copies[0].parent
+        by_ext = collections.defaultdict(set)
+        for name, parent in folder.items():
+            by_ext[name.rsplit(".", 1)[1].lower()].add(parent)
+        problems += [f".{ext} files split across {sorted(map(str, dirs))}" for ext, dirs in by_ext.items() if len(dirs) > 1]
+        for (a, pa), (b, pb) in itertools.combinations(folder.items(), 2):
+            ka, kb = kind[a.rsplit(".", 1)[1].lower()], kind[b.rsplit(".", 1)[1].lower()]
+            if pa == pb and pa != root and ka != kb and not {ka, kb} <= media:
+                problems.append(f"{a} ({ka}) and {b} ({kb}) share {pa}")
+        if problems:
+            sys.exit("; ".join(problems[:8]))
+        print("downloads sorted")
+    exit: 0
+    stdout: ["downloads sorted"]
+  - {id: desktop-untouched, kind: file, mode: collateral_change, path: "Desktop/**/*", unchanged: true}

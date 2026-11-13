@@ -1,0 +1,10 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "code-terminal-gcloud-login"
+version = 1
+area = "code"
+summary = "Sign gcloud in: run the login in a terminal and let the user paste the browser's verification code themselves"
+requires = ["mcp", "workspace", "shell", "terminal"]
+provenance = "hand_authored"
+canary = "a237aeec-6eae-4d76-91c4-cfe025a85a34"

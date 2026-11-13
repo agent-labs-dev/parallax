@@ -1,0 +1,11 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "files-csv-clean-then-counts"
+version = 1
+area = "files"
+summary = "Clean a messy leads CSV into cleaned.csv and report lead counts by source from the cleaned data"
+requires = ["mcp", "workspace", "shell"]
+provenance = "converted"
+legacy_ids = ["thread_sandbox_clean_csv_then_source_counts"]
+canary = "5190aa2b-2aaa-4037-ac31-9b31c72381fd"

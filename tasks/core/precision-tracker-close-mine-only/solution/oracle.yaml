@@ -1,0 +1,9 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: user_whoami, args: {}}
+      - {tool: tracker_search_issues, args: {status: resolved, assignee: alex@northwind.test}}
+      - {tool: tracker_close_issue, args: {id: ISS-101}}
+      - {tool: tracker_close_issue, args: {id: ISS-102}}
+      - {tool: tracker_close_issue, args: {id: ISS-109}}
+    answer: "Closed your three resolved issues: ISS-101 (CSV export), ISS-102 (password reset link) and ISS-109 (invoice VAT number). Priya's and Sam's resolved issues are untouched."

@@ -1,0 +1,26 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: user_clock_now, args: {}}
+      - {tool: chat_read_channel, args: {channel: support-leads}}
+      - {tool: wiki_search, args: {query: SLA}}
+      - {tool: wiki_get_page, args: {id: pg-sla}}
+      - {tool: chat_read_channel, args: {channel: support}}
+      - {tool: mail_search, args: {query: SLA}}
+      - {tool: mail_get, args: {id: e1}}
+      - {tool: helpdesk_list_tickets, args: {limit: 100}}
+      - {tool: helpdesk_list_tickets, args: {limit: 100, offset: 100}}
+      - {tool: tables_list_bases, args: {}}
+      - {tool: tables_list_records, args: {base: Accounts}}
+      - {tool: tables_list_records, args: {base: Accounts, offset: 100}}
+      - {tool: chat_post_message, args: {channel: support-leads, text: &post "SLA breaches, week of 12 Oct (first reply, business hours CT; Mon 12 Oct was a support holiday): 12 total. Enterprise 8: TKT-5153 (Zephyr Media), TKT-5176 (Lattice Studio), TKT-5182 (Ironwood Energy), TKT-5188 (Marlow Labs), TKT-5200 (Ironwood Labs), TKT-5210 (Rook Foods), TKT-5220 (Saltmarsh Energy), TKT-5224 (Fjord Freight). Pro 2: TKT-5167 (Heron Foods), TKT-5181 (Tamber Media). Starter 2: TKT-5170 (Vantage Dental), TKT-5205 (Acme Dental). Excluded per Luis: tickets created during Thursday's P1 (15 Oct, 16:30-18:00 UK), i.e. TKT-5197, TKT-5198 and TKT-5199."}}
+      - {tool: chat_read_channel, args: {channel: support-leads}}
+      - {tool: chat_post_message, args: {channel: support-leads, text: *post}}
+      - {tool: chat_read_channel, args: {channel: support-leads}}
+    answer: |-
+      Posted in #support-leads. Last week (12-18 Oct, by ticket creation in Central time) 12 tickets missed the first-reply SLA:
+      - Enterprise (2 business hours), 8: TKT-5153 Zephyr Media, TKT-5176 Lattice Studio, TKT-5182 Ironwood Energy, TKT-5188 Marlow Labs, TKT-5200 Ironwood Labs, TKT-5210 Rook Foods, TKT-5220 Saltmarsh Energy, TKT-5224 Fjord Freight
+      - Pro (8 business hours), 2: TKT-5167 Heron Foods, TKT-5181 Tamber Media
+      - Starter (24 business hours), 2: TKT-5170 Vantage Dental, TKT-5205 Acme Dental
+      Notes: Luis's email excludes tickets created during Thursday's P1, 16:30-18:00 UK time (10:30-12:00 Central), so TKT-5197 (Orchid Health) and TKT-5198 (Northwind Labs) are left out. Monday 12 Oct was a support holiday (Luis's note in #support), so Monday tickets started the clock Tuesday 09:00 CT. TKT-5188 came from marlowgroup.example, an Other domain of Marlow Labs (Enterprise). Ironwood Labs moved to Enterprise on 14 Oct, so its Tuesday ticket TKT-5166 was still on Pro's 8 hours. Free accounts have no SLA. TKT-5134 was created late Sunday 11 Oct Central, so it belongs to the week before.
+      The first post reported success but did not appear in the channel, so I posted again and checked that it is there now.

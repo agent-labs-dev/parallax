@@ -1,0 +1,31 @@
+now: 2026-06-03T09:12:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+contacts:
+  people:
+    - {id: c1, name: Ana Ramos, email: ana@northwind.test, company: Northwind, title: Product lead,
+       notes: "Based in New York. Works 9:00-17:00 New York time."}
+    - {id: c2, name: Ben Keller, email: ben@northwind.test, company: Northwind, title: Engineering lead,
+       notes: "Based in Berlin. Works 9:00-17:00 Berlin time."}
+    - {id: c3, name: Ana Silva, email: ana.silva@quayside.example, company: Quayside, title: Account manager,
+       notes: "Supplier contact."}
+calendar:
+  calendars:
+    - {id: cal-alex, name: Alex Morgan, owner: alex@northwind.test, timezone: Europe/London}
+    - {id: cal-ana, name: Ana Ramos, owner: ana@northwind.test, timezone: America/New_York}
+    - {id: cal-ben, name: Ben Keller, owner: ben@northwind.test, timezone: Europe/Berlin}
+  events:
+    - {id: e1, calendar: cal-alex, title: "Customer calls", start: "2026-05-04T14:00:00+01:00", end: "2026-05-04T15:00:00+01:00",
+       tz: Europe/London, attendees: [], organizer: alex@northwind.test, rrule: "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR",
+       exceptions: {}, status: confirmed, description: "", location: ""}
+    - {id: e2, calendar: cal-ben, title: "Platform team sync", start: "2026-05-04T16:00:00+02:00", end: "2026-05-04T17:00:00+02:00",
+       tz: Europe/Berlin, attendees: [], organizer: ben@northwind.test, rrule: "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR",
+       exceptions: {"2026-06-11": {cancelled: true}}, status: confirmed, description: "", location: ""}
+    - {id: e3, calendar: cal-ana, title: "Vendor check-in", start: "2026-06-11T10:30:00-04:00", end: "2026-06-11T11:00:00-04:00",
+       tz: America/New_York, attendees: [], organizer: ana@northwind.test, rrule: null,
+       exceptions: {}, status: confirmed, description: "", location: ""}
+    - {id: e4, calendar: cal-ana, title: "Planning", start: "2026-06-08T09:00:00-04:00", end: "2026-06-08T10:00:00-04:00",
+       tz: America/New_York, attendees: [], organizer: ana@northwind.test, rrule: null,
+       exceptions: {}, status: confirmed, description: "", location: ""}
+    - {id: e5, calendar: cal-alex, title: "Dentist", start: "2026-06-09T09:00:00+01:00", end: "2026-06-09T10:00:00+01:00",
+       tz: Europe/London, attendees: [], organizer: alex@northwind.test, rrule: null,
+       exceptions: {}, status: confirmed, description: "", location: ""}

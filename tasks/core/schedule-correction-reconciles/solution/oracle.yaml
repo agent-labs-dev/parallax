@@ -1,0 +1,14 @@
+steps:
+  turn-01:
+    calls:
+      - tool: scheduler_create_job
+        args: {kind: cron, spec: "0 8 * * *", title: "Open tickets digest",
+               instruction: "Email rowan@pinecrest.test a digest of all open helpdesk tickets with id, subject and priority."}
+        save: job
+    answer: "Set up: every day at 08:00 you'll get an email digest of the open helpdesk tickets."
+  turn-02:
+    calls:
+      - tool: scheduler_update_job
+        args: {id: "{{saved.job.id}}", spec: "0 9 * * *", title: "Urgent tickets digest",
+               instruction: "Email rowan@pinecrest.test a digest of the open helpdesk tickets with priority urgent, with id and subject."}
+    answer: "Updated the same job: it now runs daily at 09:00 and only includes urgent tickets. There's no 8am digest any more."

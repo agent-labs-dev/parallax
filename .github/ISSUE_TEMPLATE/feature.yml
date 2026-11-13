@@ -1,0 +1,16 @@
+name: Feature
+description: Suggest a task, a harness adapter or a change
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What you cannot measure or do with Parallax today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What you would add or change. For a new task, how it is graded from world state.

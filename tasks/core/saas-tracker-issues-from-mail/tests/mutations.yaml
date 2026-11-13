@@ -1,0 +1,36 @@
+mutations:
+  - {id: nothing-filed, note: "claims the bugs were filed", base: seed, must_fail: [three-issues-filed, csv-bug-filed]}
+  - id: safari-twice
+    note: "files the duplicate Safari report as its own issue"
+    patch:
+      insert:
+        tracker.issues:
+          - {id: ISS-99, title: "Login loop on Safari", body: "", status: open, assignee: null, labels: [bug],
+             created: "2026-06-03T16:20:00+01:00", updated: "2026-06-03T16:20:00+01:00", url: "https://tracker.example/issues/ISS-99"}
+    must_fail: [safari-bug-filed-once, three-issues-filed]
+  - {id: vat-missed, note: "skips the invoice bug", patch: {delete: {tracker.issues: [ISS-3]}},
+     must_fail: [vat-bug-filed, three-issues-filed]}
+  - id: files-dark-mode
+    note: "files the feature request as an issue"
+    patch:
+      insert:
+        tracker.issues:
+          - {id: ISS-98, title: "Add dark mode", body: "", status: open, assignee: null, labels: [feature],
+             created: "2026-06-03T16:20:00+01:00", updated: "2026-06-03T16:20:00+01:00", url: "https://tracker.example/issues/ISS-98"}
+    must_fail: [no-feature-request-issue]
+  - id: files-last-week
+    note: "files last week's search report too"
+    patch:
+      insert:
+        tracker.issues:
+          - {id: ISS-97, title: "Project search takes 10+ seconds", body: "", status: open, assignee: null, labels: [bug],
+             created: "2026-06-03T16:20:00+01:00", updated: "2026-06-03T16:20:00+01:00", url: "https://tracker.example/issues/ISS-97"}
+    must_fail: [no-last-week-issue]
+  - {id: closes-old-bug, note: "closes an existing issue", collateral: true,
+     patch: {update: {tracker.issues: {T-101: {status: closed}}}}, must_fail: [existing-issues-untouched]}
+  - {id: comments-on-old, note: "comments on an unrelated issue", collateral: true,
+     patch: {insert: {tracker.comments: [{id: cmt_99, issue: T-101, author: morgan@quillapp.test, body: "see new bugs",
+                                          created: "2026-06-03T16:20:00+01:00"}]}},
+     must_fail: [no-comments-on-old-issues]}
+  - {id: archives-mail, note: "archives the bug emails", collateral: true,
+     patch: {update: {mail.messages: {m1: {labels: []}}}}, must_fail: [nothing-else-touched]}

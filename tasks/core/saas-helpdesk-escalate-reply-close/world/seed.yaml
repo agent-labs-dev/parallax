@@ -1,0 +1,38 @@
+now: 2026-06-03T09:12:00+01:00
+user: {name: Chris Adeyemi, email: chris@tallyho.test, timezone: Europe/London}
+helpdesk:
+  conversations:
+    - id: cv1
+      customer: dana@whitfield-design.example
+      customer_name: Dana Whitfield
+      subject: "Charged twice for May"
+      status: open
+      ticket: null
+      updated: "2026-06-03T08:40:00+01:00"
+      messages:
+        - {from: dana@whitfield-design.example, at: "2026-06-03T08:31:00+01:00",
+           body: "Hi, I've been charged twice for my May subscription (two payments of 49 GBP on 1 May). Can someone refund the duplicate?"}
+        - {from: dana@whitfield-design.example, at: "2026-06-03T08:40:00+01:00",
+           body: "This is the second time this has happened. I'd like it sorted this week please."}
+    - id: cv2
+      customer: leo@marlowe-books.example
+      customer_name: Leo Marlowe
+      subject: "Where is the export button?"
+      status: open
+      ticket: null
+      updated: "2026-06-02T16:10:00+01:00"
+      messages:
+        - {from: leo@marlowe-books.example, at: "2026-06-02T16:10:00+01:00", body: "I can't find the export button on the reports page."}
+    - id: cv3
+      customer: mia@kinfolk-cafe.example
+      customer_name: Mia Santos
+      subject: "Billing address change"
+      status: open
+      ticket: null
+      updated: "2026-06-02T12:00:00+01:00"
+      messages:
+        - {from: mia@kinfolk-cafe.example, at: "2026-06-02T12:00:00+01:00", body: "How do I change the billing address on our invoices?"}
+  tickets:
+    - {id: TKT-0990, subject: "Refund for cancelled plan", description: "Customer cancelled within trial; refund requested.",
+       requester: ravi@northpier.example, priority: normal, status: open, conversation: null,
+       created: "2026-05-30T10:00:00+01:00", updated: "2026-05-30T10:00:00+01:00"}

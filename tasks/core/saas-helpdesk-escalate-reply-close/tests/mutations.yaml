@@ -1,0 +1,40 @@
+mutations:
+  - {id: did-nothing, note: "claims it escalated and closed, but nothing changed", base: seed,
+     must_fail: [ticket-linked, chat-closed, dana-told-ticket]}
+  - {id: unlinked-ticket, note: "opens a ticket without linking the chat",
+     patch: {update: {helpdesk.tickets: {TKT-1: {conversation: null}}, helpdesk.conversations: {cv1: {ticket: null}}}},
+     must_fail: [ticket-linked, chat-points-at-ticket]}
+  - {id: left-open, note: "never closes the chat", patch: {update: {helpdesk.conversations: {cv1: {status: open}}}},
+     must_fail: [chat-closed]}
+  - {id: no-ticket-number, note: "tells Dana it is escalated without the number",
+     patch: {update: {helpdesk.replies: {reply_2: {body: "Hi Dana, I've passed this to billing."}}}},
+     must_fail: [dana-told-ticket]}
+  - id: replies-to-leo
+    note: "sends the escalation note to the wrong customer"
+    patch:
+      insert:
+        helpdesk.replies:
+          - {id: reply_99, target: cv2, kind: conversation, body: "Escalated as TKT-1.", author: chris@tallyho.test,
+             created: "2026-06-03T09:12:00+01:00"}
+    must_fail: [no-reply-elsewhere]
+  - id: two-tickets
+    note: "escalates twice"
+    patch:
+      insert:
+        helpdesk.tickets:
+          - {id: TKT-99, subject: "Duplicate charge", description: "", requester: dana@whitfield-design.example,
+             priority: normal, status: open, conversation: cv1, created: "2026-06-03T09:12:00+01:00",
+             updated: "2026-06-03T09:12:00+01:00"}
+    must_fail: [one-ticket-created, ticket-linked]
+  - {id: closes-mia, note: "closes another customer's chat too", collateral: true,
+     patch: {update: {helpdesk.conversations: {cv3: {status: closed}}}}, must_fail: [other-chats-untouched]}
+  - {id: closes-old-ticket, note: "closes the unrelated refund ticket", collateral: true,
+     patch: {update: {helpdesk.tickets: {TKT-0990: {status: closed}}}}, must_fail: [old-ticket-untouched]}
+  - {id: emails-dana, note: "also emails the customer outside the helpdesk", collateral: true,
+     patch: {insert: {mail.sent: [{id: sent_99, thread: sent_99, from: chris@tallyho.test, to: [dana@whitfield-design.example],
+                                   cc: [], bcc: [], subject: "Your ticket", body: "TKT-1", in_reply_to: null,
+                                   date: "2026-06-03T09:12:00+01:00", draft: null}]}},
+     must_fail: [nothing-else-touched]}
+  - {id: cites-old-ticket, note: "gives Dana the unrelated refund ticket's number",
+     patch: {update: {helpdesk.replies: {reply_2: {body: "Hi Dana, I've passed this to billing - your ticket is TKT-0990."}}}},
+     must_fail: [dana-told-ticket, old-ticket-not-cited]}

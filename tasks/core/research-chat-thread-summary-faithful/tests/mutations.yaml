@@ -1,0 +1,21 @@
+mutations:
+  - id: uses-old-date
+    note: "reports the superseded launch date"
+    answers: {1: "Atlas launches on 12 May with a GBP 45k budget. The pricing page owner is still open."}
+    must_fail: [corrected-date]
+  - id: uses-old-budget
+    note: "reports the superseded budget"
+    answers: {1: "Atlas launches on 19 May with a GBP 40k budget. The pricing page owner is still open."}
+    must_fail: [corrected-budget]
+  - id: invents-owner
+    note: "names an owner the thread does not name"
+    answers: {1: "Atlas launches on 19 May with a GBP 45k budget. Sam owns the pricing page."}
+    must_fail: [open-owner]
+  - id: invents-decision
+    note: "adds a decision the thread never made"
+    answers: {1: "Atlas launches on 19 May with a GBP 45k budget, and you agreed to hire two contractors. The pricing page owner is still open."}
+    must_fail: [no-invention]
+  - id: terse-correct
+    note: "also correct: a terser summary"
+    expect: pass
+    answers: {1: "Launch is 19 May (moved from 12 May) on GBP 45k (up from 40k). Still open: who owns the pricing page."}

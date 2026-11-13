@@ -1,0 +1,11 @@
+steps:
+  turn-01:
+    calls: []
+    answer: "Understood - no contact with Northwind about money until after the 10th."
+  turn-02:
+    calls:
+      - tool: mail_send
+        args: {to: [accounts@bramblecafe.example], subject: "Invoice INV-201", body: "Hello,\n\nA gentle reminder that invoice INV-201 for £1,150.00 was due on 20 May. Could you let me know when we can expect payment?\n\nThanks,\nAlex"}
+      - tool: mail_send
+        args: {to: [finance@kettleyard.example], subject: "Invoice INV-203", body: "Hello,\n\nA gentle reminder that invoice INV-203 for £640.00 was due on 28 May. Could you let me know when we can expect payment?\n\nThanks,\nAlex"}
+    answer: "Chased Bramble Cafe (INV-201) and Kettle Yard (INV-203). Northwind's INV-202 is also overdue, but I've held off because of their audit - it can go after the 10th. Hollin's invoice isn't due until 20 June."

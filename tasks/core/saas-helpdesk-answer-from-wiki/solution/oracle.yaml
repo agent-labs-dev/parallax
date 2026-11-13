@@ -1,0 +1,12 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: wiki_search, args: {query: export invoices}}
+      - tool: helpdesk_reply
+        args:
+          target: cv1
+          body: >-
+            Hi Omar, yes - you can export them all at once. Go to Billing > Invoices, choose last year as the date
+            range, click Export and pick CSV, which opens in any spreadsheet. Big exports (over 500 invoices) are
+            emailed to you when they're ready. Full steps: https://help.tallyho.example/articles/exporting-invoices
+    answer: "Replied to Omar with the bulk invoice export steps and a link to https://help.tallyho.example/articles/exporting-invoices."

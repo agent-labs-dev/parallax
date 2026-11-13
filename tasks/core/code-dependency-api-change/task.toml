@@ -1,0 +1,11 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "code-dependency-api-change"
+version = 1
+area = "code"
+summary = "Switch a vendored library pin to v2 and migrate the call sites to its changed API"
+requires = ["mcp", "workspace", "shell"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "c7c0f06d-397e-49ce-8796-de79e007a0c6"

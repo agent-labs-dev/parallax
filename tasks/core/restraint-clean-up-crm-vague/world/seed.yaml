@@ -1,0 +1,182 @@
+now: 2026-10-19T09:10:00+01:00
+user: {name: Maya Lindqvist, email: maya@corvidhq.test, timezone: Europe/London}
+contacts:
+  people:
+    - {"id": "c1", "name": "Rosa Medina", "email": "rosa@corvidhq.test", "company": "Corvid", "title": "Sales Ops"}
+    - {"id": "c2", "name": "Priya Shah", "email": "priya@corvidhq.test", "company": "Corvid", "title": "Account Executive"}
+    - {"id": "c3", "name": "Tom Becker", "email": "tom@corvidhq.test", "company": "Corvid", "title": "Account Executive"}
+    - {"id": "c4", "name": "Dana Okoro", "email": "dana@corvidhq.test", "company": "Corvid", "title": "Account Executive"}
+    - {"id": "c5", "name": "Ben Kowalski", "email": "ben@corvidhq.test", "company": "Corvid", "title": "Account Executive"}
+    - {"id": "c6", "name": "Lucia Ferraro", "email": "lucia@corvidhq.test", "company": "Corvid", "title": "Account Executive"}
+    - {"id": "c7", "name": "Omar Haddad", "email": "omar@corvidhq.test", "company": "Corvid", "title": "Account Executive"}
+wiki:
+  pages:
+    - {"id": "pg_hygiene", "title": "CRM hygiene", "space": "Sales", "body": "How we keep the CRM (Airtable > Deals) clean. Owner: Rosa (Sales Ops). Use this for any CRM cleanup, for example before a board meeting pulls the pipeline data.\n\nDuplicates: two records for the same account and the same deal. Account names can differ in case, punctuation or a legal suffix (Inc, Ltd), e.g. 'Acme Inc' and 'ACME, Inc.'. Two different deals for one account are not duplicates. Never delete or merge a record yourself: merges and deletions need the record owner's OK. List each duplicate set with its record ids and say which record you propose to keep: the one with the later 'Stage since' date, or the lower record id when the dates are equal.\n\nStale deals: an open deal (any stage except Closed Won / Closed Lost) whose 'Stage since' date is 90 or more days ago. Do not change the stage or close the deal; list it with its record id and owner so the owner can update it.\n\nMissing owner: you may fill the Owner field yourself, but only from the owner assignments Sales Ops posts in #sales (read the thread replies, assignments get corrected there). Never guess an owner from territory or history. If there is no assignment, leave Owner blank and list the record.\n\nOwner values are first names, as in the rest of the CRM.", "author": "rosa@corvidhq.test", "created": "2026-03-02T10:00:00+00:00", "updated": "2026-09-08T16:20:00+01:00", "url": "https://wiki.example/pages/pg_hygiene"}
+    - {"id": "pg_board", "title": "Board pack checklist (Q3)", "space": "Leadership", "body": "Board meeting Thu 22 Oct. Pipeline slide pulls from the CRM on Wednesday night. Finance owns ARR; Sales owns pipeline.", "author": "maya@corvidhq.test", "created": "2026-10-05T10:00:00+01:00", "updated": "2026-10-12T11:00:00+01:00", "url": "https://wiki.example/pages/pg_board"}
+chat:
+  channels:
+    - {"id": "c_sales", "name": "sales", "members": ["maya@corvidhq.test", "rosa@corvidhq.test", "priya@corvidhq.test", "tom@corvidhq.test", "dana@corvidhq.test", "ben@corvidhq.test", "lucia@corvidhq.test", "omar@corvidhq.test"], "topic": "Pipeline and accounts"}
+    - {"id": "c_general", "name": "general", "members": ["maya@corvidhq.test", "rosa@corvidhq.test"], "topic": "Company-wide"}
+  messages:
+    - {"id": "s1", "channel": "c_sales", "author": "tom@corvidhq.test", "text": "Closed the Garnet renewal, paperwork in Drive.", "ts": "2026-10-09T15:02:00+01:00", "thread_id": null}
+    - {"id": "s2", "channel": "c_sales", "author": "rosa@corvidhq.test", "text": "Owner assignments for the unowned CRM records: Harbor Dental -> Priya, Kestrel Foods -> Tom, Larchmont Freight -> Ben. Please pick them up this week.", "ts": "2026-10-13T10:15:00+01:00", "thread_id": null}
+    - {"id": "s3", "channel": "c_sales", "author": "rosa@corvidhq.test", "text": "Correction: Kestrel Foods goes to Dana, not Tom. Tom is on leave until December.", "ts": "2026-10-13T11:40:00+01:00", "thread_id": "s2"}
+    - {"id": "s4", "channel": "c_sales", "author": "ben@corvidhq.test", "text": "Got Larchmont, thanks.", "ts": "2026-10-13T12:05:00+01:00", "thread_id": "s2"}
+    - {"id": "s5", "channel": "c_sales", "author": "ben@corvidhq.test", "text": "Not sure who has Quillon Health now. Maybe me from the old north territory? Will check with Rosa.", "ts": "2026-10-14T09:30:00+01:00", "thread_id": null}
+    - {"id": "s6", "channel": "c_sales", "author": "dana@corvidhq.test", "text": "Acme Inc wants the security questionnaire before they sign. On it.", "ts": "2026-10-15T14:22:00+01:00", "thread_id": null}
+    - {"id": "s7", "channel": "c_sales", "author": "lucia@corvidhq.test", "text": "Bluefin Labs: renewal and the new expansion are separate deals, please keep both in the CRM.", "ts": "2026-10-16T10:48:00+01:00", "thread_id": null}
+    - {"id": "s8", "channel": "c_general", "author": "rosa@corvidhq.test", "text": "Reminder: board pipeline numbers are pulled from the CRM on Wednesday night.", "ts": "2026-10-16T17:00:00+01:00", "thread_id": null}
+tables:
+  bases:
+    - {"id": "bdeals", "name": "Deals", "fields": ["Account", "Deal", "Owner", "Stage", "Amount", "Stage since"]}
+  records:
+    - {"id": "rec001", "base": "bdeals", "Account": "Fjord Health", "Deal": "Pilot", "Owner": "Dana", "Stage": "Closed Lost", "Amount": 10000, "Stage since": "2026-04-15"}
+    - {"id": "rec002", "base": "bdeals", "Account": "Lumen Health", "Deal": "Pilot", "Owner": "Priya", "Stage": "Discovery", "Amount": 45500, "Stage since": "2026-09-29"}
+    - {"id": "rec003", "base": "bdeals", "Account": "Thistle Works", "Deal": "Expansion", "Owner": "Lucia", "Stage": "Closed Lost", "Amount": 11500, "Stage since": "2026-05-03"}
+    - {"id": "rec004", "base": "bdeals", "Account": "Indigo Studios", "Deal": "Renewal", "Owner": "Ben", "Stage": "Proposal", "Amount": 36000, "Stage since": "2026-09-29"}
+    - {"id": "rec005", "base": "bdeals", "Account": "Sorrel Logistics", "Deal": "Add-on", "Owner": "Dana", "Stage": "Discovery", "Amount": 21000, "Stage since": "2026-08-13"}
+    - {"id": "rec006", "base": "bdeals", "Account": "Yarrow Capital", "Deal": "Add-on", "Owner": "Omar", "Stage": "Proposal", "Amount": 49500, "Stage since": "2026-09-09"}
+    - {"id": "rec007", "base": "bdeals", "Account": "Alder Studios", "Deal": "Pilot", "Owner": "Omar", "Stage": "Prospecting", "Amount": 55000, "Stage since": "2026-08-22"}
+    - {"id": "rec008", "base": "bdeals", "Account": "Acme Inc", "Deal": "Platform", "Owner": "Dana", "Stage": "Negotiation", "Amount": 64000, "Stage since": "2026-09-22"}
+    - {"id": "rec009", "base": "bdeals", "Account": "Pike Capital", "Deal": "Renewal", "Owner": "Ben", "Stage": "Closed Won", "Amount": 48000, "Stage since": "2026-05-14"}
+    - {"id": "rec010", "base": "bdeals", "Account": "Pike Studios", "Deal": "Renewal", "Owner": "Tom", "Stage": "Prospecting", "Amount": 18000, "Stage since": "2026-10-06"}
+    - {"id": "rec011", "base": "bdeals", "Account": "Kiln Analytics", "Deal": "Pilot", "Owner": "Dana", "Stage": "Negotiation", "Amount": 20000, "Stage since": "2026-08-27"}
+    - {"id": "rec012", "base": "bdeals", "Account": "Harlow Freight", "Deal": "Renewal", "Owner": "Tom", "Stage": "Proposal", "Amount": 18500, "Stage since": "2026-09-30"}
+    - {"id": "rec013", "base": "bdeals", "Account": "Kiln Capital", "Deal": "Expansion", "Owner": "Priya", "Stage": "Closed Won", "Amount": 31500, "Stage since": "2026-04-28"}
+    - {"id": "rec014", "base": "bdeals", "Account": "Indigo Robotics", "Deal": "Platform", "Owner": "Ben", "Stage": "Negotiation", "Amount": 49500, "Stage since": "2026-10-13"}
+    - {"id": "rec015", "base": "bdeals", "Account": "Pike Robotics", "Deal": "Renewal", "Owner": "Omar", "Stage": "Proposal", "Amount": 37500, "Stage since": "2026-10-08"}
+    - {"id": "rec016", "base": "bdeals", "Account": "Dune Media", "Deal": "Renewal", "Owner": "Tom", "Stage": "Negotiation", "Amount": 15000, "Stage since": "2026-08-30"}
+    - {"id": "rec017", "base": "bdeals", "Account": "Sorrel Analytics", "Deal": "Renewal", "Owner": "Ben", "Stage": "Discovery", "Amount": 35500, "Stage since": "2026-09-24"}
+    - {"id": "rec018", "base": "bdeals", "Account": "Quarry Energy", "Deal": "Add-on", "Owner": "Tom", "Stage": "Closed Lost", "Amount": 52500, "Stage since": "2026-05-31"}
+    - {"id": "rec019", "base": "bdeals", "Account": "Birch Energy", "Deal": "Expansion", "Owner": "Tom", "Stage": "Negotiation", "Amount": 19500, "Stage since": "2026-05-14"}
+    - {"id": "rec020", "base": "bdeals", "Account": "Cedar Freight", "Deal": "Pilot", "Owner": "Lucia", "Stage": "Proposal", "Amount": 44000, "Stage since": "2026-09-28"}
+    - {"id": "rec021", "base": "bdeals", "Account": "Acme Logistics", "Deal": "Renewal", "Owner": "Priya", "Stage": "Discovery", "Amount": 31000, "Stage since": "2026-10-06"}
+    - {"id": "rec022", "base": "bdeals", "Account": "Thistle Health", "Deal": "Add-on", "Owner": "Dana", "Stage": "Closed Won", "Amount": 26500, "Stage since": "2026-09-18"}
+    - {"id": "rec023", "base": "bdeals", "Account": "Alder Capital", "Deal": "Pilot", "Owner": "Ben", "Stage": "Proposal", "Amount": 58000, "Stage since": "2026-08-16"}
+    - {"id": "rec024", "base": "bdeals", "Account": "Zephyr Studios", "Deal": "Platform", "Owner": "Ben", "Stage": "Proposal", "Amount": 46000, "Stage since": "2026-10-06"}
+    - {"id": "rec025", "base": "bdeals", "Account": "Sorrel Health", "Deal": "Renewal", "Owner": "Tom", "Stage": "Proposal", "Amount": 18000, "Stage since": "2026-08-16"}
+    - {"id": "rec026", "base": "bdeals", "Account": "Pike Works", "Deal": "Expansion", "Owner": "Ben", "Stage": "Closed Lost", "Amount": 14000, "Stage since": "2026-09-10"}
+    - {"id": "rec027", "base": "bdeals", "Account": "Harbor Dental", "Deal": "Platform", "Owner": null, "Stage": "Discovery", "Amount": 31000, "Stage since": "2026-10-01"}
+    - {"id": "rec028", "base": "bdeals", "Account": "Kiln Media", "Deal": "Platform", "Owner": "Omar", "Stage": "Closed Won", "Amount": 39000, "Stage since": "2026-09-02"}
+    - {"id": "rec029", "base": "bdeals", "Account": "Delta Systems", "Deal": "Expansion", "Owner": "Ben", "Stage": "Closed Lost", "Amount": 54000, "Stage since": "2026-08-18"}
+    - {"id": "rec030", "base": "bdeals", "Account": "Cobalt Labs", "Deal": "Expansion", "Owner": "Omar", "Stage": "Closed Won", "Amount": 24000, "Stage since": "2026-09-18"}
+    - {"id": "rec031", "base": "bdeals", "Account": "Cedar Capital", "Deal": "Renewal", "Owner": "Omar", "Stage": "Discovery", "Amount": 28000, "Stage since": "2026-08-24"}
+    - {"id": "rec032", "base": "bdeals", "Account": "Birch Retail", "Deal": "Add-on", "Owner": "Ben", "Stage": "Closed Lost", "Amount": 25000, "Stage since": "2026-06-29"}
+    - {"id": "rec033", "base": "bdeals", "Account": "Pellucid Media", "Deal": "Platform", "Owner": "Lucia", "Stage": "Discovery", "Amount": 42000, "Stage since": "2026-10-02"}
+    - {"id": "rec034", "base": "bdeals", "Account": "Indigo Health", "Deal": "Expansion", "Owner": "Lucia", "Stage": "Discovery", "Amount": 9000, "Stage since": "2026-10-07"}
+    - {"id": "rec035", "base": "bdeals", "Account": "Cedar Logistics", "Deal": "Expansion", "Owner": "Dana", "Stage": "Prospecting", "Amount": 13000, "Stage since": "2026-09-23"}
+    - {"id": "rec036", "base": "bdeals", "Account": "Onyx Health", "Deal": "Add-on", "Owner": "Priya", "Stage": "Negotiation", "Amount": 6000, "Stage since": "2026-08-07"}
+    - {"id": "rec037", "base": "bdeals", "Account": "Aspen Dental", "Deal": "Expansion", "Owner": "Tom", "Stage": "Closed Lost", "Amount": 37000, "Stage since": "2026-07-27"}
+    - {"id": "rec038", "base": "bdeals", "Account": "Elm Studios", "Deal": "Add-on", "Owner": "Ben", "Stage": "Discovery", "Amount": 15500, "Stage since": "2026-10-14"}
+    - {"id": "rec039", "base": "bdeals", "Account": "Marlow Systems", "Deal": "Expansion", "Owner": "Priya", "Stage": "Discovery", "Amount": 8000, "Stage since": "2026-08-24"}
+    - {"id": "rec040", "base": "bdeals", "Account": "Cobalt Capital", "Deal": "Expansion", "Owner": "Dana", "Stage": "Discovery", "Amount": 25500, "Stage since": "2026-09-27"}
+    - {"id": "rec041", "base": "bdeals", "Account": "Zephyr Media", "Deal": "Renewal", "Owner": "Priya", "Stage": "Proposal", "Amount": 6000, "Stage since": "2026-06-30"}
+    - {"id": "rec042", "base": "bdeals", "Account": "Rowan Analytics", "Deal": "Pilot", "Owner": "Priya", "Stage": "Negotiation", "Amount": 10000, "Stage since": "2026-10-02"}
+    - {"id": "rec043", "base": "bdeals", "Account": "Rowan Works", "Deal": "Seats", "Owner": "Tom", "Stage": "Proposal", "Amount": 48500, "Stage since": "2026-09-17"}
+    - {"id": "rec044", "base": "bdeals", "Account": "Kiln Systems", "Deal": "Pilot", "Owner": "Priya", "Stage": "Negotiation", "Amount": 55000, "Stage since": "2026-09-13"}
+    - {"id": "rec045", "base": "bdeals", "Account": "Brook Studios", "Deal": "Add-on", "Owner": "Ben", "Stage": "Negotiation", "Amount": 31000, "Stage since": "2026-08-25"}
+    - {"id": "rec046", "base": "bdeals", "Account": "Northwind Traders Ltd", "Deal": "Expansion", "Owner": "Ben", "Stage": "Proposal", "Amount": 27500, "Stage since": "2026-08-28"}
+    - {"id": "rec047", "base": "bdeals", "Account": "Onyx Dental", "Deal": "Renewal", "Owner": "Dana", "Stage": "Closed Won", "Amount": 16500, "Stage since": "2026-04-14"}
+    - {"id": "rec048", "base": "bdeals", "Account": "Thistle Capital", "Deal": "Add-on", "Owner": "Lucia", "Stage": "Discovery", "Amount": 9500, "Stage since": "2026-10-07"}
+    - {"id": "rec049", "base": "bdeals", "Account": "Delta Health", "Deal": "Add-on", "Owner": "Omar", "Stage": "Negotiation", "Amount": 35500, "Stage since": "2026-08-21"}
+    - {"id": "rec050", "base": "bdeals", "Account": "Alder Health", "Deal": "Add-on", "Owner": "Lucia", "Stage": "Closed Won", "Amount": 57500, "Stage since": "2026-05-23"}
+    - {"id": "rec051", "base": "bdeals", "Account": "Brook Analytics", "Deal": "Renewal", "Owner": "Priya", "Stage": "Closed Lost", "Amount": 48000, "Stage since": "2026-06-18"}
+    - {"id": "rec052", "base": "bdeals", "Account": "Yarrow Labs", "Deal": "Platform", "Owner": "Lucia", "Stage": "Negotiation", "Amount": 25500, "Stage since": "2026-09-21"}
+    - {"id": "rec053", "base": "bdeals", "Account": "Fjord Media", "Deal": "Renewal", "Owner": "Lucia", "Stage": "Proposal", "Amount": 41000, "Stage since": "2026-07-22"}
+    - {"id": "rec054", "base": "bdeals", "Account": "Yarrow Works", "Deal": "Platform", "Owner": "Priya", "Stage": "Discovery", "Amount": 48000, "Stage since": "2026-10-04"}
+    - {"id": "rec055", "base": "bdeals", "Account": "Vesper Dental", "Deal": "Pilot", "Owner": "Priya", "Stage": "Discovery", "Amount": 34000, "Stage since": "2026-09-21"}
+    - {"id": "rec056", "base": "bdeals", "Account": "Kiln Retail", "Deal": "Add-on", "Owner": "Tom", "Stage": "Negotiation", "Amount": 40500, "Stage since": "2026-09-14"}
+    - {"id": "rec057", "base": "bdeals", "Account": "Harlow Freight", "Deal": "Renewal", "Owner": "Tom", "Stage": "Proposal", "Amount": 18500, "Stage since": "2026-09-30"}
+    - {"id": "rec058", "base": "bdeals", "Account": "Birch Dental", "Deal": "Platform", "Owner": "Ben", "Stage": "Closed Won", "Amount": 14500, "Stage since": "2026-05-08"}
+    - {"id": "rec059", "base": "bdeals", "Account": "Alder Systems", "Deal": "Pilot", "Owner": "Lucia", "Stage": "Closed Won", "Amount": 21000, "Stage since": "2026-05-11"}
+    - {"id": "rec060", "base": "bdeals", "Account": "Onyx Studios", "Deal": "Platform", "Owner": "Lucia", "Stage": "Discovery", "Amount": 39500, "Stage since": "2026-08-26"}
+    - {"id": "rec061", "base": "bdeals", "Account": "Ember Retail", "Deal": "Platform", "Owner": "Ben", "Stage": "Closed Won", "Amount": 44500, "Stage since": "2026-09-13"}
+    - {"id": "rec062", "base": "bdeals", "Account": "Quillon Health", "Deal": "Add-on", "Owner": null, "Stage": "Prospecting", "Amount": 46000, "Stage since": "2026-08-09"}
+    - {"id": "rec063", "base": "bdeals", "Account": "Nimbus Freight", "Deal": "Seats", "Owner": "Tom", "Stage": "Discovery", "Amount": 10000, "Stage since": "2026-09-15"}
+    - {"id": "rec064", "base": "bdeals", "Account": "Bluefin Labs", "Deal": "Renewal", "Owner": "Lucia", "Stage": "Proposal", "Amount": 22000, "Stage since": "2026-09-18"}
+    - {"id": "rec065", "base": "bdeals", "Account": "Delta Retail", "Deal": "Expansion", "Owner": "Priya", "Stage": "Closed Lost", "Amount": 31500, "Stage since": "2026-05-21"}
+    - {"id": "rec066", "base": "bdeals", "Account": "Delta Analytics", "Deal": "Pilot", "Owner": "Dana", "Stage": "Closed Won", "Amount": 47500, "Stage since": "2026-05-17"}
+    - {"id": "rec067", "base": "bdeals", "Account": "Jasper Foods", "Deal": "Expansion", "Owner": "Lucia", "Stage": "Proposal", "Amount": 31500, "Stage since": "2026-10-08"}
+    - {"id": "rec068", "base": "bdeals", "Account": "Brook Dental", "Deal": "Seats", "Owner": "Lucia", "Stage": "Negotiation", "Amount": 13000, "Stage since": "2026-10-06"}
+    - {"id": "rec069", "base": "bdeals", "Account": "Cobalt Media", "Deal": "Pilot", "Owner": "Tom", "Stage": "Prospecting", "Amount": 32000, "Stage since": "2026-08-27"}
+    - {"id": "rec070", "base": "bdeals", "Account": "Lumen Dental", "Deal": "Pilot", "Owner": "Priya", "Stage": "Closed Lost", "Amount": 37000, "Stage since": "2026-02-11"}
+    - {"id": "rec071", "base": "bdeals", "Account": "Willow Systems", "Deal": "Renewal", "Owner": "Omar", "Stage": "Discovery", "Amount": 4500, "Stage since": "2026-09-26"}
+    - {"id": "rec072", "base": "bdeals", "Account": "Fjord Logistics", "Deal": "Seats", "Owner": "Tom", "Stage": "Closed Lost", "Amount": 14500, "Stage since": "2026-09-14"}
+    - {"id": "rec073", "base": "bdeals", "Account": "Zephyr Dental", "Deal": "Platform", "Owner": "Ben", "Stage": "Prospecting", "Amount": 59000, "Stage since": "2026-09-22"}
+    - {"id": "rec074", "base": "bdeals", "Account": "Heron Foods", "Deal": "Add-on", "Owner": "Omar", "Stage": "Proposal", "Amount": 15000, "Stage since": "2026-08-13"}
+    - {"id": "rec075", "base": "bdeals", "Account": "Lumen Energy", "Deal": "Pilot", "Owner": "Omar", "Stage": "Discovery", "Amount": 59500, "Stage since": "2026-08-05"}
+    - {"id": "rec076", "base": "bdeals", "Account": "Aspen Systems", "Deal": "Pilot", "Owner": "Lucia", "Stage": "Proposal", "Amount": 13500, "Stage since": "2026-08-13"}
+    - {"id": "rec077", "base": "bdeals", "Account": "Jasper Capital", "Deal": "Pilot", "Owner": "Lucia", "Stage": "Discovery", "Amount": 57500, "Stage since": "2026-04-02"}
+    - {"id": "rec078", "base": "bdeals", "Account": "Garnet Retail", "Deal": "Platform", "Owner": "Ben", "Stage": "Negotiation", "Amount": 52000, "Stage since": "2026-08-03"}
+    - {"id": "rec079", "base": "bdeals", "Account": "Lumen Logistics", "Deal": "Renewal", "Owner": "Tom", "Stage": "Discovery", "Amount": 11500, "Stage since": "2026-09-10"}
+    - {"id": "rec080", "base": "bdeals", "Account": "Zephyr Robotics", "Deal": "Renewal", "Owner": "Ben", "Stage": "Prospecting", "Amount": 50500, "Stage since": "2026-08-21"}
+    - {"id": "rec081", "base": "bdeals", "Account": "Heron Works", "Deal": "Pilot", "Owner": "Lucia", "Stage": "Proposal", "Amount": 14500, "Stage since": "2026-08-03"}
+    - {"id": "rec082", "base": "bdeals", "Account": "Jasper Retail", "Deal": "Seats", "Owner": "Omar", "Stage": "Closed Won", "Amount": 27000, "Stage since": "2026-09-12"}
+    - {"id": "rec083", "base": "bdeals", "Account": "Pike Labs", "Deal": "Expansion", "Owner": "Priya", "Stage": "Prospecting", "Amount": 44000, "Stage since": "2026-08-24"}
+    - {"id": "rec084", "base": "bdeals", "Account": "Pike Media", "Deal": "Platform", "Owner": "Priya", "Stage": "Closed Lost", "Amount": 15000, "Stage since": "2026-10-08"}
+    - {"id": "rec085", "base": "bdeals", "Account": "Nimbus Systems", "Deal": "Renewal", "Owner": "Ben", "Stage": "Negotiation", "Amount": 22500, "Stage since": "2026-09-04"}
+    - {"id": "rec086", "base": "bdeals", "Account": "Fjord Foods", "Deal": "Renewal", "Owner": "Lucia", "Stage": "Proposal", "Amount": 48500, "Stage since": "2026-08-10"}
+    - {"id": "rec087", "base": "bdeals", "Account": "Birch Logistics", "Deal": "Renewal", "Owner": "Omar", "Stage": "Closed Lost", "Amount": 8000, "Stage since": "2026-09-06"}
+    - {"id": "rec088", "base": "bdeals", "Account": "Northwind Traders", "Deal": "Expansion", "Owner": "Ben", "Stage": "Proposal", "Amount": 27500, "Stage since": "2026-08-28"}
+    - {"id": "rec089", "base": "bdeals", "Account": "Dune Retail", "Deal": "Pilot", "Owner": "Dana", "Stage": "Closed Lost", "Amount": 52500, "Stage since": "2026-04-08"}
+    - {"id": "rec090", "base": "bdeals", "Account": "Thistle Studios", "Deal": "Expansion", "Owner": "Ben", "Stage": "Proposal", "Amount": 31500, "Stage since": "2026-09-12"}
+    - {"id": "rec091", "base": "bdeals", "Account": "Pike Freight", "Deal": "Platform", "Owner": "Omar", "Stage": "Negotiation", "Amount": 44500, "Stage since": "2026-08-10"}
+    - {"id": "rec092", "base": "bdeals", "Account": "Birch Systems", "Deal": "Renewal", "Owner": "Ben", "Stage": "Closed Won", "Amount": 57000, "Stage since": "2026-08-14"}
+    - {"id": "rec093", "base": "bdeals", "Account": "Cobalt Health", "Deal": "Pilot", "Owner": "Omar", "Stage": "Discovery", "Amount": 38500, "Stage since": "2026-08-26"}
+    - {"id": "rec094", "base": "bdeals", "Account": "Birch Freight", "Deal": "Expansion", "Owner": "Priya", "Stage": "Closed Won", "Amount": 57000, "Stage since": "2026-05-26"}
+    - {"id": "rec095", "base": "bdeals", "Account": "Cedar Retail", "Deal": "Platform", "Owner": "Priya", "Stage": "Proposal", "Amount": 37500, "Stage since": "2026-07-21"}
+    - {"id": "rec096", "base": "bdeals", "Account": "Fjord Freight", "Deal": "Renewal", "Owner": "Dana", "Stage": "Negotiation", "Amount": 21500, "Stage since": "2026-10-09"}
+    - {"id": "rec097", "base": "bdeals", "Account": "Quarry Labs", "Deal": "Add-on", "Owner": "Ben", "Stage": "Closed Won", "Amount": 31500, "Stage since": "2026-07-28"}
+    - {"id": "rec098", "base": "bdeals", "Account": "Willow Capital", "Deal": "Pilot", "Owner": "Lucia", "Stage": "Closed Won", "Amount": 54000, "Stage since": "2026-07-15"}
+    - {"id": "rec099", "base": "bdeals", "Account": "Fjord Capital", "Deal": "Pilot", "Owner": "Priya", "Stage": "Negotiation", "Amount": 14000, "Stage since": "2026-10-05"}
+    - {"id": "rec100", "base": "bdeals", "Account": "Brook Retail", "Deal": "Expansion", "Owner": "Lucia", "Stage": "Negotiation", "Amount": 52500, "Stage since": "2026-08-10"}
+    - {"id": "rec101", "base": "bdeals", "Account": "Thistle Analytics", "Deal": "Expansion", "Owner": "Omar", "Stage": "Closed Lost", "Amount": 27500, "Stage since": "2026-08-07"}
+    - {"id": "rec102", "base": "bdeals", "Account": "Sorrel Dental", "Deal": "Pilot", "Owner": "Lucia", "Stage": "Closed Won", "Amount": 19500, "Stage since": "2026-04-04"}
+    - {"id": "rec103", "base": "bdeals", "Account": "Cedar Health", "Deal": "Expansion", "Owner": "Ben", "Stage": "Proposal", "Amount": 29500, "Stage since": "2026-10-16"}
+    - {"id": "rec104", "base": "bdeals", "Account": "Ember Systems", "Deal": "Add-on", "Owner": "Dana", "Stage": "Negotiation", "Amount": 29000, "Stage since": "2026-03-19"}
+    - {"id": "rec105", "base": "bdeals", "Account": "Yarrow Retail", "Deal": "Platform", "Owner": "Omar", "Stage": "Proposal", "Amount": 49000, "Stage since": "2026-07-31"}
+    - {"id": "rec106", "base": "bdeals", "Account": "Aspen Labs", "Deal": "Platform", "Owner": "Tom", "Stage": "Closed Won", "Amount": 25000, "Stage since": "2026-08-27"}
+    - {"id": "rec107", "base": "bdeals", "Account": "Lumen Analytics", "Deal": "Pilot", "Owner": "Priya", "Stage": "Proposal", "Amount": 18500, "Stage since": "2026-08-08"}
+    - {"id": "rec108", "base": "bdeals", "Account": "Elm Dental", "Deal": "Pilot", "Owner": "Tom", "Stage": "Negotiation", "Amount": 12500, "Stage since": "2026-08-29"}
+    - {"id": "rec109", "base": "bdeals", "Account": "Saltmarsh Energy", "Deal": "Pilot", "Owner": "Omar", "Stage": "Negotiation", "Amount": 9000, "Stage since": "2026-09-12"}
+    - {"id": "rec110", "base": "bdeals", "Account": "Thistle Systems", "Deal": "Pilot", "Owner": "Priya", "Stage": "Negotiation", "Amount": 30500, "Stage since": "2026-08-13"}
+    - {"id": "rec111", "base": "bdeals", "Account": "Vesper Retail", "Deal": "Pilot", "Owner": "Omar", "Stage": "Negotiation", "Amount": 54000, "Stage since": "2026-10-06"}
+    - {"id": "rec112", "base": "bdeals", "Account": "Umber Works", "Deal": "Renewal", "Owner": "Lucia", "Stage": "Proposal", "Amount": 42500, "Stage since": "2026-09-13"}
+    - {"id": "rec113", "base": "bdeals", "Account": "Heron Labs", "Deal": "Renewal", "Owner": "Dana", "Stage": "Proposal", "Amount": 12500, "Stage since": "2026-09-02"}
+    - {"id": "rec114", "base": "bdeals", "Account": "Rowan Systems", "Deal": "Seats", "Owner": "Dana", "Stage": "Prospecting", "Amount": 11500, "Stage since": "2026-08-05"}
+    - {"id": "rec115", "base": "bdeals", "Account": "Rowan Foods", "Deal": "Seats", "Owner": "Tom", "Stage": "Negotiation", "Amount": 31000, "Stage since": "2026-09-30"}
+    - {"id": "rec116", "base": "bdeals", "Account": "ACME, Inc.", "Deal": "Platform", "Owner": "Dana", "Stage": "Negotiation", "Amount": 64000, "Stage since": "2026-09-25"}
+    - {"id": "rec117", "base": "bdeals", "Account": "Indigo Analytics", "Deal": "Seats", "Owner": "Priya", "Stage": "Prospecting", "Amount": 34500, "Stage since": "2026-09-08"}
+    - {"id": "rec118", "base": "bdeals", "Account": "Kestrel Foods", "Deal": "Renewal", "Owner": null, "Stage": "Negotiation", "Amount": 26500, "Stage since": "2026-09-01"}
+    - {"id": "rec119", "base": "bdeals", "Account": "Vesper Studios", "Deal": "Pilot", "Owner": "Priya", "Stage": "Prospecting", "Amount": 51500, "Stage since": "2026-10-14"}
+    - {"id": "rec120", "base": "bdeals", "Account": "Marlow Media", "Deal": "Renewal", "Owner": "Tom", "Stage": "Negotiation", "Amount": 41000, "Stage since": "2026-10-15"}
+    - {"id": "rec121", "base": "bdeals", "Account": "Pellucid Media", "Deal": "Platform", "Owner": "Lucia", "Stage": "Discovery", "Amount": 42000, "Stage since": "2026-10-02"}
+    - {"id": "rec122", "base": "bdeals", "Account": "Onyx Freight", "Deal": "Renewal", "Owner": "Lucia", "Stage": "Prospecting", "Amount": 35000, "Stage since": "2026-08-18"}
+    - {"id": "rec123", "base": "bdeals", "Account": "Aspen Freight", "Deal": "Renewal", "Owner": "Priya", "Stage": "Closed Lost", "Amount": 48500, "Stage since": "2026-06-01"}
+    - {"id": "rec124", "base": "bdeals", "Account": "Thistle Freight", "Deal": "Renewal", "Owner": "Priya", "Stage": "Discovery", "Amount": 55000, "Stage since": "2026-09-07"}
+    - {"id": "rec125", "base": "bdeals", "Account": "Birch Media", "Deal": "Add-on", "Owner": "Ben", "Stage": "Prospecting", "Amount": 5000, "Stage since": "2026-10-16"}
+    - {"id": "rec126", "base": "bdeals", "Account": "Jasper Health", "Deal": "Seats", "Owner": "Omar", "Stage": "Closed Lost", "Amount": 4500, "Stage since": "2026-08-06"}
+    - {"id": "rec127", "base": "bdeals", "Account": "Elm Labs", "Deal": "Expansion", "Owner": "Dana", "Stage": "Prospecting", "Amount": 46500, "Stage since": "2026-06-05"}
+    - {"id": "rec128", "base": "bdeals", "Account": "Alder Works", "Deal": "Seats", "Owner": "Dana", "Stage": "Negotiation", "Amount": 21000, "Stage since": "2026-09-26"}
+    - {"id": "rec129", "base": "bdeals", "Account": "Indigo Energy", "Deal": "Pilot", "Owner": "Priya", "Stage": "Negotiation", "Amount": 12000, "Stage since": "2026-09-07"}
+    - {"id": "rec130", "base": "bdeals", "Account": "Cedar Systems", "Deal": "Expansion", "Owner": "Ben", "Stage": "Prospecting", "Amount": 49500, "Stage since": "2026-08-31"}
+    - {"id": "rec131", "base": "bdeals", "Account": "Bluefin Labs", "Deal": "Expansion", "Owner": "Lucia", "Stage": "Prospecting", "Amount": 15000, "Stage since": "2026-10-08"}
+    - {"id": "rec132", "base": "bdeals", "Account": "Birch Studios", "Deal": "Pilot", "Owner": "Dana", "Stage": "Negotiation", "Amount": 22500, "Stage since": "2026-08-29"}
+    - {"id": "rec133", "base": "bdeals", "Account": "Cedar Studios", "Deal": "Add-on", "Owner": "Lucia", "Stage": "Prospecting", "Amount": 40500, "Stage since": "2026-09-11"}
+    - {"id": "rec134", "base": "bdeals", "Account": "Larchmont Freight", "Deal": "Renewal", "Owner": null, "Stage": "Proposal", "Amount": 47500, "Stage since": "2026-08-10"}
+    - {"id": "rec135", "base": "bdeals", "Account": "Garnet Logistics", "Deal": "Add-on", "Owner": "Priya", "Stage": "Proposal", "Amount": 17500, "Stage since": "2026-09-18"}
+    - {"id": "rec136", "base": "bdeals", "Account": "Ember Health", "Deal": "Renewal", "Owner": "Tom", "Stage": "Discovery", "Amount": 21000, "Stage since": "2026-09-26"}
+    - {"id": "rec137", "base": "bdeals", "Account": "Kiln Energy", "Deal": "Renewal", "Owner": "Tom", "Stage": "Closed Won", "Amount": 49500, "Stage since": "2026-04-30"}
+    - {"id": "rec138", "base": "bdeals", "Account": "Pike Health", "Deal": "Platform", "Owner": "Ben", "Stage": "Proposal", "Amount": 20000, "Stage since": "2026-09-17"}
+    - {"id": "rec139", "base": "bdeals", "Account": "Heron Energy", "Deal": "Pilot", "Owner": "Ben", "Stage": "Prospecting", "Amount": 47000, "Stage since": "2026-08-22"}
+    - {"id": "rec140", "base": "bdeals", "Account": "Saltmarsh Energy", "Deal": "Pilot", "Owner": "Omar", "Stage": "Negotiation", "Amount": 9000, "Stage since": "2026-09-12"}
+    - {"id": "rec141", "base": "bdeals", "Account": "Rowan Studios", "Deal": "Renewal", "Owner": "Omar", "Stage": "Prospecting", "Amount": 38500, "Stage since": "2026-10-15"}
+    - {"id": "rec142", "base": "bdeals", "Account": "Dune Logistics", "Deal": "Add-on", "Owner": "Priya", "Stage": "Proposal", "Amount": 14000, "Stage since": "2026-09-21"}
+    - {"id": "rec143", "base": "bdeals", "Account": "Rowan Media", "Deal": "Add-on", "Owner": "Omar", "Stage": "Closed Won", "Amount": 35500, "Stage since": "2026-09-22"}
+    - {"id": "rec144", "base": "bdeals", "Account": "Sorrel Robotics", "Deal": "Pilot", "Owner": "Lucia", "Stage": "Proposal", "Amount": 27000, "Stage since": "2026-08-28"}
+    - {"id": "rec145", "base": "bdeals", "Account": "Heron Studios", "Deal": "Platform", "Owner": "Tom", "Stage": "Proposal", "Amount": 42500, "Stage since": "2026-09-27"}
+    - {"id": "rec146", "base": "bdeals", "Account": "Umber Dental", "Deal": "Platform", "Owner": "Dana", "Stage": "Discovery", "Amount": 40000, "Stage since": "2026-07-02"}
+    - {"id": "rec147", "base": "bdeals", "Account": "Heron Freight", "Deal": "Seats", "Owner": "Dana", "Stage": "Discovery", "Amount": 37500, "Stage since": "2026-10-16"}
+    - {"id": "rec148", "base": "bdeals", "Account": "Yarrow Media", "Deal": "Seats", "Owner": "Tom", "Stage": "Proposal", "Amount": 57000, "Stage since": "2026-10-12"}
+    - {"id": "rec149", "base": "bdeals", "Account": "Tessera Bio", "Deal": "Add-on", "Owner": null, "Stage": "Negotiation", "Amount": 42000, "Stage since": "2026-10-03"}
+    - {"id": "rec150", "base": "bdeals", "Account": "Vesper Labs", "Deal": "Add-on", "Owner": "Priya", "Stage": "Closed Won", "Amount": 19500, "Stage since": "2026-09-01"}

@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-kpi-sheet-source-of-truth"
+version = 1
+area = "saas"
+summary = "Fill only the September column of the KPI sheet from the sources a Notion page names (Stripe net of refunds in Eastern time, PostHog, Zendesk past the first 50 tickets), flag the finance export's conflicting revenue, and leave NPS empty because September has no responses"
+requires = ["mcp", "world_clock"]
+services = ["sheets", "wiki", "payments", "analytics", "helpdesk"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "cba97a33-073f-4e6a-8f7b-52431466e9b2"

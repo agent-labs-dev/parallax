@@ -1,0 +1,16 @@
+checks:
+  - id: links-policy-page
+    kind: answer
+    mode: missing_action
+    must: [{regex: "https?://(www\\.)?lanternrail\\.example/help/season-ticket-refunds"}]
+  - {id: only-real-links, kind: answer, mode: fabrication, known_urls_only: true,
+     must: [{regex: "https?://"}]}
+  - id: states-the-terms
+    kind: answer
+    mode: wrong_output
+    must:
+      - 12.5
+      - {regex: "unused|remaining|left"}
+    note: "unused whole weeks back, minus the £12.50 fee"
+  - {id: nothing-changed, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [user.interactions]}

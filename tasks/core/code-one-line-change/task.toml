@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "code-one-line-change"
+version = 1
+area = "code"
+summary = "Change a default port as a one-line edit without rewriting the surrounding file"
+requires = ["mcp", "workspace", "shell"]
+maturity = "candidate"
+provenance = "converted"
+legacy_ids = ["edit_one_line_change_preserves_the_rest"]
+canary = "7a62ec5f-2869-4098-baef-104036307e2f"

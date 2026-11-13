@@ -1,0 +1,56 @@
+checks:
+  - id: page-from-template
+    kind: rubric
+    mode: missing_action
+    sees: [diff]
+    items:
+      - "Did the agent create exactly one new wiki page for the 13 October checkout outage, as a child of the Postmortems page (pg-pm), with the template's sections: Summary, Impact, Timeline (UTC), Root cause, Action items and Lessons learned?"
+  - id: timeline-in-utc
+    kind: rubric
+    mode: wrong_output
+    sees: [diff]
+    items:
+      - "Does the page's timeline put the impact start (first alert) at 13:12 UTC and the recovery at 14:47 UTC?"
+      - "Does the page's timeline give the pricing-service v2.31 deploy at 13:05 UTC and the rollback completing at 14:40 UTC (not 14:05 or 15:40, which are the BST times people posted)?"
+      - "Are all times in the page's timeline in UTC, with no event left in ET, BST or CEST?"
+  - id: impact-figures
+    kind: rubric
+    mode: wrong_output
+    sees: [diff]
+    items:
+      - "Does the page give the duration as 1 hour 35 minutes (13:12-14:47 UTC)?"
+      - "Does the page give 1,284 failed checkouts (not the early partial estimate of about 800)?"
+      - "Does the page give 9 distinct customers who contacted support (12 tickets, not 12 customers), leaving out the unrelated coupon and slow-mobile-checkout tickets?"
+  - id: agreed-root-cause
+    kind: rubric
+    mode: wrong_output
+    sees: [diff]
+    items:
+      - "Does the page give the root cause as pricing-service v2.31 changing the shared checkout-db client setting maxPoolSize from 50 to 5, which exhausted checkout-api's database connections?"
+      - "Does the page treat Stripe only as a theory that was ruled out, not as the cause or a contributing cause?"
+  - id: agreed-action-items-only
+    kind: rubric
+    mode: wrong_target
+    sees: [diff]
+    items:
+      - "Does the final tracker state hold exactly three new issues, one for each agreed item: a CI check rejecting maxPoolSize below 20 without approval, paging on checkout-db connection use above 80%, and putting pricing-service behind the canary deploy stage (no item missing and none filed twice)?"
+      - "Are the CI-check issue and the canary issue assigned to, or explicitly naming, their owners lena@tessera.test and omar@tessera.test?"
+      - "Was no tracker issue created for the parked or rejected ideas: an automatic status page banner, a second payment provider, rewriting pricing-service in Go, or splitting the shared Helm values?"
+      - "Does the page's Action items section list the three new issues by tracker ids (or links) that exist in the final tracker state, with no id the tracker does not hold (such as a tracker_N id from a create that did not land)?"
+  - id: pool-alert-owner-from-email
+    kind: rubric
+    mode: wrong_target
+    sees: [diff]
+    items:
+      - "Is the new checkout-db connection paging issue assigned to ana@tessera.test (or explicitly naming Ana as owner), not to marcus@tessera.test, since Marcus's email hands the item to Ana while he is on leave?"
+      - "Does the page's Action items section give Ana, not Marcus, as the owner of the connection paging item?"
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [wiki.pages, tracker.issues, user.interactions],
+     note: "no chat post, no mail sent, no ticket touched, no existing issue or page edited"}
+  - id: tells-user
+    kind: rubric
+    mode: false_claim
+    sees: [answers, diff]
+    items:
+      - "Does the reply tell the user where the postmortem page is and that three action-item issues were filed in the tracker, and summarise the impact as 13:12-14:47 UTC with 1,284 failed checkouts?"
+      - "Does every issue id the reply names exist among the new issues in the final tracker state, and does the reply avoid claiming an issue was filed when the final state does not hold it?"

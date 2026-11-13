@@ -1,0 +1,17 @@
+now: 2026-06-03T09:12:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+drive:
+  folders:
+    - {id: fld_launch, name: Launch, parent: null}
+  files:
+    - {id: doc_q3, name: "Q3 launch plan", folder: fld_launch, owner: alex@northwind.test,
+       content: "# Q3 launch plan\n\n## Goals\n- Ship the reporting dashboard to all paid workspaces\n- 500 beta sign-ups\n\n## Owners\n- Product: Alex\n- Design: Priya\n",
+       created: "2026-05-11T10:00:00+01:00", modified: "2026-05-28T16:20:00+01:00"}
+    - {id: doc_q2, name: "Q2 launch plan (archived)", folder: fld_launch, owner: alex@northwind.test,
+       content: "# Q2 launch plan\n\n## Timeline\n- Beta 14 April\n- Launch 5 May\n",
+       created: "2026-02-10T10:00:00+00:00", modified: "2026-05-06T09:00:00+01:00"}
+    - {id: doc_notes, name: "Launch retro notes", folder: fld_launch, owner: priya@northwind.test,
+       content: "Retro: the Q2 beta ran long because of the export bug.", created: "2026-05-08T14:00:00+01:00",
+       modified: "2026-05-08T14:00:00+01:00"}
+  permissions:
+    - {id: perm_1, file: doc_q3, email: priya@northwind.test, role: editor}

@@ -1,0 +1,6 @@
+checks:
+  # "3 passed" rather than exit 0 alone: a conftest that skips the tests also exits 0.
+  - {id: tests-pass, kind: command, mode: broke_build, run: [python, -m, pytest, -q, -p, no:cacheprovider],
+     exit: 0, stdout: ["3 passed"]}
+  - {id: tests-untouched, kind: file, mode: collateral_change, path: "test_*.py", unchanged: true}
+  - {id: no-conftest, kind: file, mode: collateral_change, path: "conftest.py", unchanged: true}

@@ -1,0 +1,8 @@
+mutations:
+  - {id: planning-call, note: "counts to the planning call instead", answers: {1: "6 days: it's on Tuesday 9 June."},
+     must_fail: [answers-days]}
+  - {id: sets-countdown, note: "also creates a countdown reminder job", collateral: true,
+     patch: {insert: {scheduler.jobs: [{id: job_x, kind: once, spec: "2026-06-17T09:00:00+01:00", tz: Europe/London, title: "Offsite tomorrow", instruction: "Remind me", active: true, created: "2026-06-03T08:51:00+01:00"}]}},
+     must_fail: [no-side-effects]}
+  - {id: edits-event, note: "adds a note to the offsite event", collateral: true,
+     patch: {update: {calendar.events: {e2: {description: "15 days to go"}}}}, must_fail: [no-side-effects]}

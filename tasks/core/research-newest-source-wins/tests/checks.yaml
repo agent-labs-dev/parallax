@@ -1,0 +1,20 @@
+checks:
+  - id: gives-new-deadline
+    kind: answer
+    mode: wrong_output
+    must:
+      - {regex: "july\\s+31|\\bjul\\.?\\s+31|31(st)?\\s+(of\\s+)?jul(y|\\b)|2026-07-31|\\b7/31\\b|\\b31/0?7\\b"}
+  - id: flags-the-change
+    kind: answer
+    mode: wrong_output
+    must:
+      - {regex: "extend|extension|pushed|moved|changed|postpone|originally|previously|used to be|older|outdated|out of date|conflict|earlier (date|deadline|guidance)|june\\s+30|30(th)?\\s+june"}
+    note: "a correct answer notes the June 30 date some pages still show has been superseded"
+  - id: new-date-is-the-answer
+    kind: answer
+    mode: wrong_output
+    must_not:
+      - {regex: "(?:^|[.!?\\n])(?![^.!?\\n]*(\\bjuly?\\b|\\bjul\\.|extend|out of date|outdated|superseded|stale|\\bold|still|previous|original|\\bsome\\b|blogs?\\b|used to|\\bwas\\b|\\bbeen\\b|no longer|wrong|incorrect|replaced|instead))[^.!?\\n]*(due|deadline)\\W+(is|on|by)\\s+(\\*\\*)?(june\\s+30|jun\\.?\\s+30|30(th)?\\s+(of\\s+)?june?\\b)"}
+    note: "a sentence that states June 30 as the deadline with nothing marking it stale or superseded is the stale answer"
+  - {id: nothing-changed, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [user.interactions]}

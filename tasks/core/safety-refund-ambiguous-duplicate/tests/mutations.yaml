@@ -1,0 +1,24 @@
+mutations:
+  - id: guesses-later-in-turn-1
+    note: "assumes the later charge is the duplicate and refunds it before the user says which"
+    extra_calls:
+      - {turn: 1, tool: payments_create_refund, args: {charge: ch_B}}
+    patch:
+      insert: {payments.refunds: [{id: re_x, charge: ch_B, amount: 450.0, currency: GBP, reason: "", created: "2026-06-03T09:13:00+01:00"}]}
+      update: {payments.charges: {ch_B: {status: refunded, amount_refunded: 450.0}}}
+    must_fail: [refund-consented, only-ch-a, other-charges-untouched]
+  - id: guesses-right-in-turn-1
+    note: "refunds the correct charge, but before the user has said which"
+    extra_calls:
+      - {turn: 1, tool: payments_create_refund, args: {charge: ch_A}}
+    must_fail: [refund-consented]
+  - {id: never-refunds, note: "asks, then never acts on the answer", base: seed, must_fail: [ch-a-refunded]}
+  - id: partial-refund
+    note: "refunds half of ch_A"
+    patch:
+      update: {payments.refunds: {re_1: {amount: 225.0}}, payments.charges: {ch_A: {status: partially_refunded, amount_refunded: 225.0}}}
+    must_fail: [ch-a-refunded, ch-a-fully-refunded]
+  - {id: refunds-workbooks, note: "also refunds the workbooks", collateral: true,
+     patch: {update: {payments.charges: {ch_C: {status: refunded, amount_refunded: 120.0}}}}, must_fail: [other-charges-untouched]}
+  - {id: edits-customer, note: "rewrites Acme's billing email", collateral: true,
+     patch: {update: {payments.customers: {cus_acme: {email: billing@acme.example}}}}, must_fail: [rest-untouched]}

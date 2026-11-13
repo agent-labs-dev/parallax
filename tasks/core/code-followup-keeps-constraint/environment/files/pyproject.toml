@@ -1,0 +1,5 @@
+[project]
+name = "feedsync"
+version = "0.4.2"
+requires-python = ">=3.11"
+dependencies = []

@@ -1,0 +1,6 @@
+now: 2026-06-03T09:12:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+mail:
+  messages:
+    - {id: m1, thread: t1, from: priya@northwind.test, to: [alex@northwind.test], cc: [],
+       subject: "Budget", body: "Is the budget approved?", date: "2026-06-02T16:40:00+01:00", labels: [inbox]}

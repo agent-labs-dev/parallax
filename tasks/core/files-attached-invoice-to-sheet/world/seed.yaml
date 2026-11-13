@@ -1,0 +1,12 @@
+now: 2026-06-05T10:15:00+01:00
+user: {name: Alex Morgan, email: alex@larkspur.test, timezone: Europe/London}
+sheets:
+  sheets:
+    - {id: sh-bills, title: Supplier bills, columns: [Date, Supplier, Invoice no, Amount, Status]}
+    - {id: sh-sales, title: Sales invoices, columns: [Date, Customer, Invoice no, Amount, Status]}
+  rows:
+    - {id: r1, sheet: sh-bills, position: 1, Date: "2026-05-18", Supplier: Hollin Wholesale, "Invoice no": HW-0091, Amount: 402.10, Status: Paid}
+    - {id: r2, sheet: sh-bills, position: 2, Date: "2026-05-22", Supplier: Kestrel Cleaning Co, "Invoice no": KC-3302, Amount: 210.00, Status: Paid}
+    - {id: r3, sheet: sh-bills, position: 3, Date: "2026-05-28", Supplier: Pellow Print & Bind, "Invoice no": PB-5507, Amount: 980.00, Status: Unpaid}
+    - {id: r4, sheet: sh-sales, position: 1, Date: "2026-05-20", Customer: Bramble Cafe, "Invoice no": LS-0412, Amount: 1150.00, Status: Unpaid}
+    - {id: r5, sheet: sh-sales, position: 2, Date: "2026-05-29", Customer: Kettle Yard, "Invoice no": LS-0413, Amount: 2300.00, Status: Unpaid}

@@ -1,0 +1,8 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: mail_search, args: {query: offsite}}
+      - tool: mail_create_draft
+        args: {to: [lee@northwind.test], in_reply_to: m1,
+               body: "Hi Lee, the final headcount for the offsite is 24: 22 staff plus 2 guest speakers. Two are vegetarian and one is gluten free, in case the caterer needs it. Thanks, Alex"}
+    answer: "I've drafted a reply to Lee (not sent) saying the final headcount is 24, 22 staff plus 2 guest speakers, with the dietary notes. It's in your drafts for you to check."

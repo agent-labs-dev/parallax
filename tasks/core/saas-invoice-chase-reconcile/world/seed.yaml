@@ -1,0 +1,240 @@
+now: 2026-10-19T09:00:00+01:00
+user: {name: Priya Nair, email: priya@fernhill.test, timezone: Europe/London}
+sheets:
+  sheets:
+    - {id: s1, title: AR ledger, columns: [Invoice, Customer, Amount, Due, Status, Note]}
+  rows:
+    - {id: r001, sheet: s1, position: 1, Invoice: INV-3001, Customer: "Zephyr Outdoor", Amount: 6400, Due: "2026-04-30", Status: Paid}
+    - {id: r002, sheet: s1, position: 2, Invoice: INV-3002, Customer: "Glacier Fitness", Amount: 6950, Due: "2026-05-07", Status: Paid}
+    - {id: r003, sheet: s1, position: 3, Invoice: INV-3003, Customer: "Raven Foods", Amount: 3700, Due: "2026-05-04", Status: Paid}
+    - {id: r004, sheet: s1, position: 4, Invoice: INV-3004, Customer: "Maple Energy", Amount: 700, Due: "2026-05-08", Status: Paid}
+    - {id: r005, sheet: s1, position: 5, Invoice: INV-3005, Customer: "Delta Insurance", Amount: 7650, Due: "2026-05-09", Status: Paid}
+    - {id: r006, sheet: s1, position: 6, Invoice: INV-3006, Customer: "Oak Legal", Amount: 4400, Due: "2026-05-10", Status: Paid}
+    - {id: r007, sheet: s1, position: 7, Invoice: INV-3007, Customer: "Lagoon Outdoor", Amount: 900, Due: "2026-05-13", Status: Paid}
+    - {id: r008, sheet: s1, position: 8, Invoice: INV-3008, Customer: "Redwood Retail", Amount: 2850, Due: "2026-05-11", Status: Paid}
+    - {id: r009, sheet: s1, position: 9, Invoice: INV-3009, Customer: "Calder Farms", Amount: 6200, Due: "2026-07-30", Status: Unpaid}
+    - {id: r010, sheet: s1, position: 10, Invoice: INV-3010, Customer: "Birch Games", Amount: 4300, Due: "2026-05-17", Status: Paid}
+    - {id: r011, sheet: s1, position: 11, Invoice: INV-3011, Customer: "Birch Games", Amount: 11200, Due: "2026-05-20", Status: Paid}
+    - {id: r012, sheet: s1, position: 12, Invoice: INV-3012, Customer: "Pike Outdoor", Amount: 10450, Due: "2026-05-21", Status: Paid}
+    - {id: r013, sheet: s1, position: 13, Invoice: INV-3013, Customer: "Oak Legal", Amount: 5250, Due: "2026-05-23", Status: Paid}
+    - {id: r014, sheet: s1, position: 14, Invoice: INV-3014, Customer: "Juniper Labs", Amount: 5500, Due: "2026-05-22", Status: Paid}
+    - {id: r015, sheet: s1, position: 15, Invoice: INV-3015, Customer: "Pike Outdoor", Amount: 10850, Due: "2026-05-27", Status: Paid}
+    - {id: r016, sheet: s1, position: 16, Invoice: INV-3016, Customer: "Lagoon Legal", Amount: 2100, Due: "2026-05-30", Status: Paid}
+    - {id: r017, sheet: s1, position: 17, Invoice: INV-3017, Customer: "Alder Dental", Amount: 4750, Due: "2026-08-22", Status: Unpaid}
+    - {id: r018, sheet: s1, position: 18, Invoice: INV-3018, Customer: "Delta Capital", Amount: 10000, Due: "2026-05-31", Status: Paid}
+    - {id: r019, sheet: s1, position: 19, Invoice: INV-3019, Customer: "Lagoon Outdoor", Amount: 10550, Due: "2026-06-01", Status: Paid}
+    - {id: r020, sheet: s1, position: 20, Invoice: INV-3020, Customer: "Redwood Retail", Amount: 1450, Due: "2026-06-01", Status: Paid}
+    - {id: r021, sheet: s1, position: 21, Invoice: INV-3021, Customer: "Raven Foods", Amount: 1400, Due: "2026-06-06", Status: Paid}
+    - {id: r022, sheet: s1, position: 22, Invoice: INV-3022, Customer: "Delta Insurance", Amount: 1550, Due: "2026-06-06", Status: Paid}
+    - {id: r023, sheet: s1, position: 23, Invoice: INV-3023, Customer: "Birch Games", Amount: 5350, Due: "2026-06-06", Status: Paid}
+    - {id: r024, sheet: s1, position: 24, Invoice: INV-3024, Customer: "Kingsmere Labs", Amount: 1800, Due: "2026-08-20", Status: Unpaid}
+    - {id: r025, sheet: s1, position: 25, Invoice: INV-3025, Customer: "Atlas Studios", Amount: 5350, Due: "2026-06-11", Status: Paid}
+    - {id: r026, sheet: s1, position: 26, Invoice: INV-3026, Customer: "Ridge Works", Amount: 8950, Due: "2026-06-10", Status: Paid}
+    - {id: r027, sheet: s1, position: 27, Invoice: INV-3027, Customer: "Moorfield Energy", Amount: 10000, Due: "2026-06-10", Status: Paid}
+    - {id: r028, sheet: s1, position: 28, Invoice: INV-3028, Customer: "Pike Outdoor", Amount: 1500, Due: "2026-06-15", Status: Paid}
+    - {id: r029, sheet: s1, position: 29, Invoice: INV-3029, Customer: "Coral Dental", Amount: 2200, Due: "2026-06-20", Status: Paid}
+    - {id: r030, sheet: s1, position: 30, Invoice: INV-3030, Customer: "Maple Freight", Amount: 7200, Due: "2026-06-19", Status: Paid}
+    - {id: r031, sheet: s1, position: 31, Invoice: INV-3031, Customer: "Brookline Legal", Amount: 8400, Due: "2026-08-29", Status: Unpaid}
+    - {id: r032, sheet: s1, position: 32, Invoice: INV-3032, Customer: "Oak Legal", Amount: 3500, Due: "2026-06-24", Status: Paid}
+    - {id: r033, sheet: s1, position: 33, Invoice: INV-3033, Customer: "Ridge Outdoor", Amount: 6350, Due: "2026-06-24", Status: Paid}
+    - {id: r034, sheet: s1, position: 34, Invoice: INV-3034, Customer: "Lagoon Outdoor", Amount: 5350, Due: "2026-06-24", Status: Paid}
+    - {id: r035, sheet: s1, position: 35, Invoice: INV-3035, Customer: "Maple Freight", Amount: 9950, Due: "2026-06-25", Status: Paid}
+    - {id: r036, sheet: s1, position: 36, Invoice: INV-3036, Customer: "Zephyr Outdoor", Amount: 8600, Due: "2026-06-27", Status: Paid}
+    - {id: r037, sheet: s1, position: 37, Invoice: INV-3037, Customer: "Moorfield Energy", Amount: 8800, Due: "2026-07-03", Status: Paid}
+    - {id: r038, sheet: s1, position: 38, Invoice: INV-3038, Customer: "Dunmore Games", Amount: 5600, Due: "2026-09-01", Status: Unpaid}
+    - {id: r039, sheet: s1, position: 39, Invoice: INV-3039, Customer: "Kestrel Hotels", Amount: 1700, Due: "2026-07-03", Status: Paid}
+    - {id: r040, sheet: s1, position: 40, Invoice: INV-3040, Customer: "Lagoon Outdoor", Amount: 2100, Due: "2026-07-01", Status: Paid}
+    - {id: r041, sheet: s1, position: 41, Invoice: INV-3041, Customer: "Raven Foods", Amount: 1050, Due: "2026-07-09", Status: Paid}
+    - {id: r042, sheet: s1, position: 42, Invoice: INV-3042, Customer: "Mesa Foods", Amount: 4300, Due: "2026-07-05", Status: Paid}
+    - {id: r043, sheet: s1, position: 43, Invoice: INV-3043, Customer: "Zephyr Health", Amount: 850, Due: "2026-07-09", Status: Paid}
+    - {id: r044, sheet: s1, position: 44, Invoice: INV-3044, Customer: "Eastgate Media", Amount: 2900, Due: "2026-09-05", Status: Unpaid}
+    - {id: r045, sheet: s1, position: 45, Invoice: INV-3045, Customer: "Juniper Insurance", Amount: 2150, Due: "2026-07-13", Status: Paid}
+    - {id: r046, sheet: s1, position: 46, Invoice: INV-3046, Customer: "Granite Foods", Amount: 6550, Due: "2026-07-15", Status: Paid}
+    - {id: r047, sheet: s1, position: 47, Invoice: INV-3047, Customer: "Fairlight Studios", Amount: 3150, Due: "2026-09-08", Status: Unpaid}
+    - {id: r048, sheet: s1, position: 48, Invoice: INV-3048, Customer: "Sequoia Systems", Amount: 4500, Due: "2026-07-20", Status: Paid}
+    - {id: r049, sheet: s1, position: 49, Invoice: INV-3049, Customer: "Redwood Retail", Amount: 4950, Due: "2026-07-19", Status: Paid}
+    - {id: r050, sheet: s1, position: 50, Invoice: INV-3050, Customer: "Coral Robotics", Amount: 9700, Due: "2026-07-22", Status: Paid}
+    - {id: r051, sheet: s1, position: 51, Invoice: INV-3051, Customer: "Atlas Studios", Amount: 6700, Due: "2026-07-20", Status: Paid}
+    - {id: r052, sheet: s1, position: 52, Invoice: INV-3052, Customer: "Alder Dental", Amount: 2300, Due: "2026-09-10", Status: Unpaid}
+    - {id: r053, sheet: s1, position: 53, Invoice: INV-3053, Customer: "Kestrel Hotels", Amount: 8750, Due: "2026-07-28", Status: Paid}
+    - {id: r054, sheet: s1, position: 54, Invoice: INV-3054, Customer: "Mesa Foods", Amount: 9600, Due: "2026-07-26", Status: Paid}
+    - {id: r055, sheet: s1, position: 55, Invoice: INV-3055, Customer: "Lagoon Legal", Amount: 4150, Due: "2026-07-31", Status: Paid}
+    - {id: r056, sheet: s1, position: 56, Invoice: INV-3056, Customer: "Glenrock Freight", Amount: 7300, Due: "2026-08-14", Status: Unpaid}
+    - {id: r057, sheet: s1, position: 57, Invoice: INV-3057, Customer: "Juniper Energy", Amount: 10950, Due: "2026-08-04", Status: Paid}
+    - {id: r058, sheet: s1, position: 58, Invoice: INV-3058, Customer: "Ridge Outdoor", Amount: 9050, Due: "2026-08-05", Status: Paid}
+    - {id: r059, sheet: s1, position: 59, Invoice: INV-3059, Customer: "Mesa Foods", Amount: 9950, Due: "2026-08-06", Status: Paid}
+    - {id: r060, sheet: s1, position: 60, Invoice: INV-3060, Customer: "Delta Insurance", Amount: 6600, Due: "2026-08-04", Status: Paid}
+    - {id: r061, sheet: s1, position: 61, Invoice: INV-3061, Customer: "Juniper Labs", Amount: 5850, Due: "2026-08-08", Status: Paid}
+    - {id: r062, sheet: s1, position: 62, Invoice: INV-3062, Customer: "Delta Insurance", Amount: 950, Due: "2026-08-07", Status: Paid}
+    - {id: r063, sheet: s1, position: 63, Invoice: INV-3063, Customer: "Glenrock Freight", Amount: 1950, Due: "2026-09-12", Status: Unpaid}
+    - {id: r064, sheet: s1, position: 64, Invoice: INV-3064, Customer: "Moorfield Energy", Amount: 1100, Due: "2026-08-09", Status: Paid}
+    - {id: r065, sheet: s1, position: 65, Invoice: INV-3065, Customer: "Zephyr Outdoor", Amount: 10500, Due: "2026-08-13", Status: Paid}
+    - {id: r066, sheet: s1, position: 66, Invoice: INV-3066, Customer: "Birch Games", Amount: 5150, Due: "2026-08-15", Status: Paid}
+    - {id: r067, sheet: s1, position: 67, Invoice: INV-3067, Customer: "Ridge Outdoor", Amount: 6750, Due: "2026-08-17", Status: Paid}
+    - {id: r068, sheet: s1, position: 68, Invoice: INV-3068, Customer: "Zephyr Outdoor", Amount: 7400, Due: "2026-08-20", Status: Paid}
+    - {id: r069, sheet: s1, position: 69, Invoice: INV-3069, Customer: "Maple Freight", Amount: 11850, Due: "2026-08-20", Status: Paid}
+    - {id: r070, sheet: s1, position: 70, Invoice: INV-3070, Customer: "Sierra Legal", Amount: 7000, Due: "2026-08-21", Status: Paid}
+    - {id: r071, sheet: s1, position: 71, Invoice: INV-3071, Customer: "Hollins Retail", Amount: 3900, Due: "2026-09-24", Status: Unpaid}
+    - {id: r072, sheet: s1, position: 72, Invoice: INV-3072, Customer: "Coral Robotics", Amount: 10500, Due: "2026-08-27", Status: Paid}
+    - {id: r073, sheet: s1, position: 73, Invoice: INV-3073, Customer: "Glacier Health", Amount: 7500, Due: "2026-08-26", Status: Paid}
+    - {id: r074, sheet: s1, position: 74, Invoice: INV-3074, Customer: "Juniper Labs", Amount: 1950, Due: "2026-08-26", Status: Paid}
+    - {id: r075, sheet: s1, position: 75, Invoice: INV-3075, Customer: "Lagoon Legal", Amount: 6800, Due: "2026-08-30", Status: Paid}
+    - {id: r076, sheet: s1, position: 76, Invoice: INV-3076, Customer: "Coral Robotics", Amount: 5600, Due: "2026-09-01", Status: Paid}
+    - {id: r077, sheet: s1, position: 77, Invoice: INV-3077, Customer: "Redwood Retail", Amount: 9800, Due: "2026-08-30", Status: Paid}
+    - {id: r078, sheet: s1, position: 78, Invoice: INV-3078, Customer: "Ivybridge Health", Amount: 6650, Due: "2026-09-28", Status: Unpaid}
+    - {id: r079, sheet: s1, position: 79, Invoice: INV-3079, Customer: "Sierra Legal", Amount: 8400, Due: "2026-09-05", Status: Paid}
+    - {id: r080, sheet: s1, position: 80, Invoice: INV-3080, Customer: "Ridge Works", Amount: 3200, Due: "2026-09-08", Status: Paid}
+    - {id: r081, sheet: s1, position: 81, Invoice: INV-3081, Customer: "Mesa Foods", Amount: 3550, Due: "2026-09-09", Status: Paid}
+    - {id: r082, sheet: s1, position: 82, Invoice: INV-3082, Customer: "Delta Capital", Amount: 1350, Due: "2026-09-09", Status: Paid}
+    - {id: r083, sheet: s1, position: 83, Invoice: INV-3083, Customer: "Atlas Studios", Amount: 5350, Due: "2026-09-12", Status: Paid}
+    - {id: r084, sheet: s1, position: 84, Invoice: INV-3084, Customer: "Larkspur Travel", Amount: 2450, Due: "2026-10-01", Status: Unpaid}
+    - {id: r085, sheet: s1, position: 85, Invoice: INV-3085, Customer: "Birch Games", Amount: 11450, Due: "2026-09-17", Status: Paid}
+    - {id: r086, sheet: s1, position: 86, Invoice: INV-3086, Customer: "Sierra Legal", Amount: 6550, Due: "2026-09-15", Status: Paid}
+    - {id: r087, sheet: s1, position: 87, Invoice: INV-3087, Customer: "Oak Legal", Amount: 5350, Due: "2026-09-16", Status: Paid}
+    - {id: r088, sheet: s1, position: 88, Invoice: INV-3088, Customer: "Glacier Fitness", Amount: 10500, Due: "2026-09-19", Status: Paid}
+    - {id: r089, sheet: s1, position: 89, Invoice: INV-3089, Customer: "Sequoia Systems", Amount: 600, Due: "2026-09-18", Status: Paid}
+    - {id: r090, sheet: s1, position: 90, Invoice: INV-3090, Customer: "Moorfield Energy", Amount: 5100, Due: "2026-10-02", Status: Unpaid}
+    - {id: r091, sheet: s1, position: 91, Invoice: INV-3091, Customer: "Atlas Studios", Amount: 6950, Due: "2026-09-24", Status: Paid}
+    - {id: r092, sheet: s1, position: 92, Invoice: INV-3092, Customer: "Juniper Labs", Amount: 11600, Due: "2026-09-29", Status: Paid}
+    - {id: r093, sheet: s1, position: 93, Invoice: INV-3093, Customer: "Delta Insurance", Amount: 8550, Due: "2026-09-27", Status: Paid}
+    - {id: r094, sheet: s1, position: 94, Invoice: INV-3094, Customer: "Coral Robotics", Amount: 8900, Due: "2026-09-26", Status: Paid}
+    - {id: r095, sheet: s1, position: 95, Invoice: INV-3095, Customer: "Juniper Energy", Amount: 1800, Due: "2026-10-02", Status: Paid}
+    - {id: r096, sheet: s1, position: 96, Invoice: INV-3096, Customer: "Calder Farms", Amount: 1250, Due: "2026-10-09", Status: Unpaid}
+    - {id: r097, sheet: s1, position: 97, Invoice: INV-3097, Customer: "Delta Insurance", Amount: 4950, Due: "2026-10-04", Status: Paid}
+    - {id: r098, sheet: s1, position: 98, Invoice: INV-3098, Customer: "Lagoon Outdoor", Amount: 6600, Due: "2026-10-09", Status: Paid}
+    - {id: r099, sheet: s1, position: 99, Invoice: INV-3099, Customer: "Raven Foods", Amount: 7800, Due: "2026-10-09", Status: Paid}
+    - {id: r100, sheet: s1, position: 100, Invoice: INV-3100, Customer: "Granite Farms", Amount: 7000, Due: "2026-10-08", Status: Paid}
+    - {id: r101, sheet: s1, position: 101, Invoice: INV-3101, Customer: "Ridge Works", Amount: 7150, Due: "2026-10-08", Status: Paid}
+    - {id: r102, sheet: s1, position: 102, Invoice: INV-3102, Customer: "Juniper Labs", Amount: 5150, Due: "2026-10-10", Status: Paid}
+    - {id: r103, sheet: s1, position: 103, Invoice: INV-3103, Customer: "Hollins Retail", Amount: 980, Due: "2026-10-14", Status: Unpaid}
+    - {id: r104, sheet: s1, position: 104, Invoice: INV-3104, Customer: "Birch Games", Amount: 11100, Due: "2026-10-16", Status: Paid}
+    - {id: r105, sheet: s1, position: 105, Invoice: INV-3105, Customer: "Juniper Insurance", Amount: 7050, Due: "2026-10-18", Status: Paid}
+    - {id: r106, sheet: s1, position: 106, Invoice: INV-3106, Customer: "Sequoia Systems", Amount: 9950, Due: "2026-10-22", Status: Unpaid}
+    - {id: r107, sheet: s1, position: 107, Invoice: INV-3107, Customer: "Sierra Legal", Amount: 3250, Due: "2026-10-22", Status: Unpaid}
+    - {id: r108, sheet: s1, position: 108, Invoice: INV-3108, Customer: "Maple Software", Amount: 600, Due: "2026-10-21", Status: Unpaid}
+    - {id: r109, sheet: s1, position: 109, Invoice: INV-3109, Customer: "Larkspur Travel", Amount: 4400, Due: "2026-10-22", Status: Unpaid}
+    - {id: r110, sheet: s1, position: 110, Invoice: INV-3110, Customer: "Glacier Fitness", Amount: 9050, Due: "2026-10-27", Status: Unpaid}
+    - {id: r111, sheet: s1, position: 111, Invoice: INV-3111, Customer: "Maple Software", Amount: 1000, Due: "2026-10-26", Status: Unpaid}
+    - {id: r112, sheet: s1, position: 112, Invoice: INV-3112, Customer: "Glacier Fitness", Amount: 10400, Due: "2026-10-25", Status: Unpaid}
+    - {id: r113, sheet: s1, position: 113, Invoice: INV-3113, Customer: "Ivybridge Health", Amount: 9250, Due: "2026-10-27", Status: Unpaid}
+    - {id: r114, sheet: s1, position: 114, Invoice: INV-3114, Customer: "Glacier Fitness", Amount: 9350, Due: "2026-11-04", Status: Unpaid}
+    - {id: r115, sheet: s1, position: 115, Invoice: INV-3115, Customer: "Coral Robotics", Amount: 3350, Due: "2026-10-31", Status: Unpaid}
+    - {id: r116, sheet: s1, position: 116, Invoice: INV-3116, Customer: "Delta Capital", Amount: 5750, Due: "2026-11-01", Status: Unpaid}
+    - {id: r117, sheet: s1, position: 117, Invoice: INV-3117, Customer: "Kestrel Hotels", Amount: 2100, Due: "2026-11-07", Status: Unpaid}
+    - {id: r118, sheet: s1, position: 118, Invoice: INV-3118, Customer: "Atlas Studios", Amount: 8750, Due: "2026-11-05", Status: Unpaid}
+    - {id: r119, sheet: s1, position: 119, Invoice: CN-0412, Customer: "Kingsmere Labs", Amount: -1800, Due: "2026-09-30", Status: Applied, Note: "Credit against INV-3024 (damaged batch)"}
+payments:
+  customers:
+    - {id: cus_001, name: "Alder Dental", email: "ap@alderdental.example"}
+    - {id: cus_002, name: "Brookline Legal", email: "ap@brooklinelegal.example"}
+    - {id: cus_003, name: "Calder Farms", email: "ap@calderfarms.example"}
+    - {id: cus_004, name: "Dunmore Games", email: "ap@dunmoregames.example"}
+    - {id: cus_005, name: "Eastgate Media", email: "ap@eastgatemedia.example"}
+    - {id: cus_006, name: "Fairlight Studios", email: "ap@fairlightstudios.example"}
+    - {id: cus_007, name: "Glenrock Freight", email: "ap@glenrockfreight.example"}
+    - {id: cus_008, name: "Hollins Retail", email: "ap@hollinsretail.example"}
+    - {id: cus_009, name: "Ivybridge Health", email: "ap@ivybridgehealth.example"}
+    - {id: cus_010, name: "Kingsmere Labs", email: "ap@kingsmerelabs.example"}
+    - {id: cus_011, name: "Larkspur Travel", email: "ap@larkspurtravel.example"}
+    - {id: cus_012, name: "Moorfield Energy", email: "ap@moorfieldenergy.example"}
+    - {id: cus_013, name: "Juniper Labs", email: "ap@juniperlabs.example"}
+    - {id: cus_014, name: "Zephyr Health", email: "ap@zephyrhealth.example"}
+    - {id: cus_015, name: "Lagoon Outdoor", email: "ap@lagoonoutdoor.example"}
+    - {id: cus_016, name: "Granite Foods", email: "ap@granitefoods.example"}
+    - {id: cus_017, name: "Juniper Insurance", email: "ap@juniperinsurance.example"}
+    - {id: cus_018, name: "Delta Insurance", email: "ap@deltainsurance.example"}
+    - {id: cus_019, name: "Redwood Retail", email: "ap@redwoodretail.example"}
+    - {id: cus_020, name: "Coral Dental", email: "ap@coraldental.example"}
+    - {id: cus_021, name: "Ridge Works", email: "ap@ridgeworks.example"}
+    - {id: cus_022, name: "Pike Outdoor", email: "ap@pikeoutdoor.example"}
+    - {id: cus_023, name: "Birch Games", email: "ap@birchgames.example"}
+    - {id: cus_024, name: "Zephyr Outdoor", email: "ap@zephyroutdoor.example"}
+    - {id: cus_025, name: "Sequoia Systems", email: "ap@sequoiasystems.example"}
+    - {id: cus_026, name: "Lagoon Legal", email: "ap@lagoonlegal.example"}
+    - {id: cus_027, name: "Maple Freight", email: "ap@maplefreight.example"}
+    - {id: cus_028, name: "Ridge Outdoor", email: "ap@ridgeoutdoor.example"}
+    - {id: cus_029, name: "Sierra Legal", email: "ap@sierralegal.example"}
+    - {id: cus_030, name: "Juniper Energy", email: "ap@juniperenergy.example"}
+    - {id: cus_031, name: "Maple Software", email: "ap@maplesoftware.example"}
+    - {id: cus_032, name: "Mesa Foods", email: "ap@mesafoods.example"}
+    - {id: cus_033, name: "Atlas Studios", email: "ap@atlasstudios.example"}
+    - {id: cus_034, name: "Coral Robotics", email: "ap@coralrobotics.example"}
+    - {id: cus_035, name: "Delta Capital", email: "ap@deltacapital.example"}
+    - {id: cus_036, name: "Kestrel Hotels", email: "ap@kestrelhotels.example"}
+    - {id: cus_037, name: "Raven Foods", email: "ap@ravenfoods.example"}
+    - {id: cus_038, name: "Granite Farms", email: "ap@granitefarms.example"}
+    - {id: cus_039, name: "Oak Legal", email: "ap@oaklegal.example"}
+    - {id: cus_040, name: "Glacier Health", email: "ap@glacierhealth.example"}
+    - {id: cus_041, name: "Glacier Fitness", email: "ap@glacierfitness.example"}
+    - {id: cus_042, name: "Maple Energy", email: "ap@mapleenergy.example"}
+  charges:
+    - {id: ch_001, customer: cus_018, amount: 7650.0, currency: GBP, description: "Payment for INV-3005", status: succeeded, amount_refunded: 0.0, created: "2026-05-07T10:51:00+01:00"}
+    - {id: ch_002, customer: cus_019, amount: 2850.0, currency: GBP, description: "Payment for INV-3008", status: succeeded, amount_refunded: 0.0, created: "2026-05-16T10:23:00+01:00"}
+    - {id: ch_003, customer: cus_037, amount: 3700.0, currency: GBP, description: "Payment for INV-3003", status: succeeded, amount_refunded: 0.0, created: "2026-05-20T12:45:00+01:00"}
+    - {id: ch_004, customer: cus_022, amount: 10450.0, currency: GBP, description: "Payment for INV-3012", status: succeeded, amount_refunded: 0.0, created: "2026-05-22T14:43:00+01:00"}
+    - {id: ch_005, customer: cus_013, amount: 5500.0, currency: GBP, description: "Payment for INV-3014", status: succeeded, amount_refunded: 0.0, created: "2026-05-24T11:54:00+01:00"}
+    - {id: ch_006, customer: cus_019, amount: 1450.0, currency: GBP, description: "Payment for INV-3020", status: succeeded, amount_refunded: 0.0, created: "2026-06-03T17:39:00+01:00"}
+    - {id: ch_007, customer: cus_015, amount: 10550.0, currency: GBP, description: "Payment for INV-3019", status: succeeded, amount_refunded: 0.0, created: "2026-06-07T16:49:00+01:00"}
+    - {id: ch_008, customer: cus_026, amount: 2100.0, currency: GBP, description: "Payment for INV-3016", status: succeeded, amount_refunded: 0.0, created: "2026-06-13T9:47:00+01:00"}
+    - {id: ch_009, customer: cus_027, amount: 9950.0, currency: GBP, description: "Payment for INV-3035", status: succeeded, amount_refunded: 0.0, created: "2026-06-23T15:17:00+01:00"}
+    - {id: ch_010, customer: cus_039, amount: 3500.0, currency: GBP, description: "Payment for INV-3032", status: succeeded, amount_refunded: 0.0, created: "2026-06-23T15:26:00+01:00"}
+    - {id: ch_011, customer: cus_018, amount: 1550.0, currency: GBP, description: "Payment for INV-3022", status: succeeded, amount_refunded: 0.0, created: "2026-06-23T9:22:00+01:00"}
+    - {id: ch_012, customer: cus_027, amount: 7200.0, currency: GBP, description: "Payment for INV-3030", status: succeeded, amount_refunded: 0.0, created: "2026-07-04T9:27:00+01:00"}
+    - {id: ch_013, customer: cus_032, amount: 4300.0, currency: GBP, description: "Payment for INV-3042", status: succeeded, amount_refunded: 0.0, created: "2026-07-12T9:49:00+01:00"}
+    - {id: ch_014, customer: cus_024, amount: 8600.0, currency: GBP, description: "Payment for INV-3036", status: succeeded, amount_refunded: 0.0, created: "2026-07-17T10:42:00+01:00"}
+    - {id: ch_015, customer: cus_017, amount: 2150.0, currency: GBP, description: "Payment for INV-3045", status: succeeded, amount_refunded: 0.0, created: "2026-08-01T15:48:00+01:00"}
+    - {id: ch_016, customer: cus_019, amount: 4950.0, currency: GBP, description: "Payment for INV-3049", status: succeeded, amount_refunded: 0.0, created: "2026-08-07T13:34:00+01:00"}
+    - {id: ch_017, customer: cus_013, amount: 5850.0, currency: GBP, description: "Payment for INV-3061", status: succeeded, amount_refunded: 0.0, created: "2026-08-09T16:28:00+01:00"}
+    - {id: ch_018, customer: cus_028, amount: 6750.0, currency: GBP, description: "Payment for INV-3067", status: succeeded, amount_refunded: 0.0, created: "2026-08-20T10:15:00+01:00"}
+    - {id: ch_019, customer: cus_012, amount: 1100.0, currency: GBP, description: "Payment for INV-3064", status: succeeded, amount_refunded: 0.0, created: "2026-08-23T9:40:00+01:00"}
+    - {id: ch_020, customer: cus_001, amount: 4750.0, currency: GBP, description: "Payment for INV-3017", status: succeeded, amount_refunded: 0.0, created: "2026-09-02T10:50:00+01:00"}
+    - {id: ch_021, customer: cus_029, amount: 7000.0, currency: GBP, description: "Payment for INV-3070", status: succeeded, amount_refunded: 0.0, created: "2026-09-07T14:13:00+01:00"}
+    - {id: ch_022, customer: cus_035, amount: 1350.0, currency: GBP, description: "Payment for INV-3082", status: succeeded, amount_refunded: 0.0, created: "2026-09-08T14:39:00+01:00"}
+    - {id: ch_023, customer: cus_040, amount: 7500.0, currency: GBP, description: "Payment for INV-3073", status: succeeded, amount_refunded: 0.0, created: "2026-09-10T13:59:00+01:00"}
+    - {id: ch_024, customer: cus_034, amount: 10500.0, currency: GBP, description: "Payment for INV-3072", status: succeeded, amount_refunded: 0.0, created: "2026-09-16T14:13:00+01:00"}
+    - {id: ch_025, customer: cus_026, amount: 6800.0, currency: GBP, description: "Payment for INV-3075", status: succeeded, amount_refunded: 0.0, created: "2026-09-16T9:38:00+01:00"}
+    - {id: ch_026, customer: cus_032, amount: 3550.0, currency: GBP, description: "Payment for INV-3081", status: succeeded, amount_refunded: 0.0, created: "2026-09-17T11:25:00+01:00"}
+    - {id: ch_027, customer: cus_019, amount: 9800.0, currency: GBP, description: "Payment for INV-3077", status: succeeded, amount_refunded: 0.0, created: "2026-09-18T12:37:00+01:00"}
+    - {id: ch_028, customer: cus_001, amount: 2300.0, currency: GBP, description: "Payment for INV-3052", status: succeeded, amount_refunded: 0.0, created: "2026-09-18T14:10:00+01:00"}
+    - {id: ch_029, customer: cus_025, amount: 600.0, currency: GBP, description: "Payment for INV-3089", status: succeeded, amount_refunded: 0.0, created: "2026-09-20T16:46:00+01:00"}
+    - {id: ch_030, customer: cus_034, amount: 8900.0, currency: GBP, description: "Payment for INV-3094", status: succeeded, amount_refunded: 0.0, created: "2026-09-22T9:42:00+01:00"}
+    - {id: ch_031, customer: cus_002, amount: 4200.0, currency: GBP, description: "Part payment INV-3031", status: succeeded, amount_refunded: 0.0, created: "2026-09-26T17:26:00+01:00"}
+    - {id: ch_032, customer: cus_009, amount: 6650.0, currency: GBP, description: "Payment for INV-3078", status: succeeded, amount_refunded: 0.0, created: "2026-10-04T10:45:00+01:00"}
+    - {id: ch_033, customer: cus_030, amount: 1800.0, currency: GBP, description: "Payment for INV-3095", status: succeeded, amount_refunded: 0.0, created: "2026-10-04T14:56:00+01:00"}
+    - {id: ch_034, customer: cus_006, amount: 3150.0, currency: GBP, description: "Payment for INV-3047", status: failed, amount_refunded: 0.0, created: "2026-10-07T9:21:00+01:00"}
+    - {id: ch_035, customer: cus_012, amount: 5100.0, currency: GBP, description: "Payment for INV-3090", status: succeeded, amount_refunded: 0.0, created: "2026-10-10T13:17:00+01:00"}
+    - {id: ch_036, customer: cus_021, amount: 7150.0, currency: GBP, description: "Payment for INV-3101", status: succeeded, amount_refunded: 0.0, created: "2026-10-16T11:10:00+01:00"}
+    - {id: ch_037, customer: cus_011, amount: 4400.0, currency: GBP, description: "Payment for INV-3109", status: succeeded, amount_refunded: 0.0, created: "2026-10-16T15:18:00+01:00"}
+    - {id: ch_038, customer: cus_038, amount: 7000.0, currency: GBP, description: "Payment for INV-3100", status: succeeded, amount_refunded: 0.0, created: "2026-10-16T15:19:00+01:00"}
+    - {id: ch_039, customer: cus_017, amount: 7050.0, currency: GBP, description: "Payment for INV-3105", status: succeeded, amount_refunded: 0.0, created: "2026-10-17T10:43:00+01:00"}
+    - {id: ch_040, customer: cus_015, amount: 6600.0, currency: GBP, description: "Payment for INV-3098", status: succeeded, amount_refunded: 0.0, created: "2026-10-17T11:31:00+01:00"}
+mail:
+  messages:
+    - {id: m1, thread: m1, from: "ap@dunmoregames.example", to: ["priya@fernhill.test"], subject: "Re: Overdue invoice INV-3038", body: "Hi Priya, apologies for the delay. INV-3038 (GBP 5,600) is approved and scheduled in our 24 October payment run. Thanks, Sofia (Dunmore Games AP)", date: "2026-10-14T11:20:00+01:00", labels: [inbox]}
+    - {id: m2, thread: m2, from: "ap@eastgatemedia.example", to: ["priya@fernhill.test"], subject: INV-3044, body: "Hi Priya, sorry this slipped. We will pay INV-3044 by 10 October at the latest. Best, Ken, Eastgate Media", date: "2026-09-29T15:02:00+01:00", labels: [inbox]}
+    - {id: m3, thread: m3, from: "ap@birchgames.example", to: ["priya@fernhill.test"], subject: "Payment for INV-3011", body: "Hi, INV-3011 will be paid by 30 June. Regards, accounts team", date: "2026-06-20T10:00:00+01:00", labels: [inbox]}
+    - {id: m4, thread: m4, from: "ap@hollinsretail.example", to: ["priya@fernhill.test"], subject: "Copy of invoice INV-3071", body: "Could you resend INV-3071 as a PDF? Our system lost the attachment. Thanks, Hollins Retail AP", date: "2026-10-16T09:12:00+01:00", labels: [inbox]}
+    - {id: m5, thread: m5, from: "noreply@stripe.example", to: ["priya@fernhill.test"], subject: "Payment failed for Fairlight Studios", body: "A payment of GBP 3,150.00 from Fairlight Studios failed (card declined). Description: Payment for INV-3047.", date: "2026-10-07T13:40:00+01:00", labels: [inbox]}
+    - {id: m6, thread: m6, from: "tom@fernhill.test", to: ["priya@fernhill.test"], subject: "Month-end close", body: "Priya, month-end close is on Wednesday. Can you have AR tidy by then? Tom", date: "2026-10-17T16:45:00+01:00", labels: [inbox]}
+    - {id: m7, thread: m7, from: "ap@brooklinelegal.example", to: ["priya@fernhill.test"], subject: "INV-3031 part payment", body: "Hi Priya, we've sent half of INV-3031 now (GBP 4,200). We're checking the rest with our partners and will come back to you. Dan, Brookline Legal", date: "2026-09-26T14:30:00+01:00", labels: [inbox]}
+    - {id: m8, thread: m8, from: "news@saasweekly.example", to: ["priya@fernhill.test"], subject: "This week in SaaS finance", body: "Five ways to cut DSO this quarter...", date: "2026-10-18T07:00:00+01:00", labels: [inbox]}
+    - {id: m9, thread: m9, from: "ap@glenrockfreight.example", to: ["priya@fernhill.test"], subject: "Supplier form", body: "Hi, please fill in our updated supplier form so we can keep paying you. Glenrock Freight procurement", date: "2026-08-02T10:30:00+01:00", labels: [inbox]}
+  sent:
+    - {id: sent0, thread: sent0, from: priya@fernhill.test, to: [ap@moorfieldenergy.example], cc: [], bcc: [], subject: "Overdue invoice INV-2987", in_reply_to: null, draft: null, date: "2026-09-15T10:05:00+01:00", body: "Hello,\n\nOur records show the following invoice is more than 30 days overdue:\n- INV-2987, GBP 3,400.00, due 4 August 2026\n\nPlease arrange payment this week or let me know when we can expect it.\n\nThanks,\nPriya Nair\nFernhill Accounts"}
+wiki:
+  pages:
+    - id: pg1
+      title: Collections process
+      space: Finance
+      author: priya@fernhill.test
+      created: "2026-02-03T10:00:00+00:00"
+      updated: "2026-07-21T15:00:00+01:00"
+      url: https://wiki.example/pages/pg1
+      body: |-
+        How we sort out overdue invoices. The AR ledger sheet is the source of truth; keep it in step with Stripe.
+
+        1. Reconcile first. Stripe charge descriptions carry the invoice number. If a charge for the full amount succeeded, set the ledger row's Status to Paid. A part payment does not settle an invoice: leave it Unpaid and chase only the balance. A failed charge is not a payment.
+        2. Credit notes (CN- rows) cancel the invoice named in their Note. Set that invoice's Status to Credited; nothing is owed on it.
+        3. Chase invoices that are more than 30 days past their due date. Don't chase a customer who has promised in writing to pay by a date that hasn't come yet. If a promised date has passed and the money hasn't arrived, chase and mention the missed promise.
+        4. One chaser per customer, listing each overdue invoice and the amount still owed, to the AP address on their Stripe customer record. Use last month's chasers as the template. Leave chasers as drafts: Priya reviews and sends every one herself.
+        5. Invoices 30 days overdue or less get no chaser yet; list them in the summary with anything else that needs a decision.

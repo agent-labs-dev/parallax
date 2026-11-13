@@ -1,0 +1,83 @@
+now: 2026-06-11T08:40:00+01:00
+user: {name: Sam Rivera, email: sam@orbitly.test, timezone: Europe/London}
+mail:
+  messages:
+    - {id: m01, thread: t01, from: priya@orbitly.test, to: [sam@orbitly.test], cc: [], labels: [inbox],
+       subject: "Acme escalation: CSV export failing", date: "2026-06-10T16:05:00+01:00",
+       body: "Hi Sam, Acme's exports have failed since Tuesday morning (timeouts on their big workspaces). Their VP Ops wants an update from engineering by 12:00 Thursday or she escalates to their exec sponsor. It's ORB-482 in the tracker. Can you own the reply? Priya"}
+    - {id: m02, thread: t02, from: ap@orbitly.test, to: [sam@orbitly.test], cc: [], labels: [inbox],
+       subject: "Approval needed: Brightside Dev invoice INV-4471", date: "2026-06-10T09:00:00+01:00",
+       body: "Brightside Dev invoice INV-4471 (£8,400, May contract work) needs your approval by 17:00 on Thursday 11 June, or it misses this month's pay run. Approve in the finance portal. Accounts Payable"}
+    - {id: m03, thread: t03, from: newsletter@pragmaticeng.example, to: [sam@orbitly.test], cc: [], labels: [inbox],
+       subject: "The Pragmatic Engineer: how teams run on-call", date: "2026-06-09T07:00:00+01:00", body: "This week: on-call rotations at 12 companies."}
+    - {id: m04, thread: t04, from: noreply@github.example, to: [sam@orbitly.test], cc: [], labels: [inbox],
+       subject: "[orbitly/app] Your daily digest", date: "2026-06-10T07:00:00+01:00", body: "14 pull requests merged, 3 opened."}
+    - {id: m05, thread: t05, from: office@orbitly.test, to: [all@orbitly.test], cc: [], labels: [inbox],
+       subject: "Office closed Friday 19 June", date: "2026-06-09T12:00:00+01:00", body: "The office is closed on Friday 19 June for the floor refit. Work from home."}
+    - {id: m06, thread: t06, from: jules@gmail.example, to: [sam@orbitly.test], cc: [], labels: [inbox],
+       subject: "Lunch next week?", date: "2026-06-10T19:22:00+01:00", body: "Free for lunch next Wednesday or Thursday? No rush."}
+    - {id: m07, thread: t07, from: noreply@aws.example, to: [sam@orbitly.test], cc: [], labels: [inbox],
+       subject: "Your AWS invoice is available", date: "2026-06-09T05:10:00+01:00", body: "Your invoice for May is available. It will be charged automatically to the card on file."}
+    - {id: m08, thread: t08, from: marco@orbitly.test, to: [sam@orbitly.test], cc: [], labels: [inbox],
+       subject: "Review request: ORB-490 cache warmup", date: "2026-06-10T11:40:00+01:00",
+       body: "No rush on this one, could you review the cache warmup PR for ORB-490 before next Wednesday's release cut?"}
+    - {id: m09, thread: t09, from: events@leaddev.example, to: [sam@orbitly.test], cc: [], labels: [inbox],
+       subject: "LeadDev London: early-bird ends Friday", date: "2026-06-10T08:30:00+01:00", body: "Early-bird tickets end this Friday."}
+    - {id: m10, thread: t10, from: hr@orbitly.test, to: [managers@orbitly.test], cc: [], labels: [inbox],
+       subject: "Reminder: mid-year reviews open 1 July", date: "2026-06-09T10:00:00+01:00", body: "Mid-year reviews open on 1 July. Nothing to do yet."}
+    - {id: m11, thread: t11, from: alerts@statuspage.example, to: [sam@orbitly.test], cc: [], labels: [inbox],
+       subject: "Staging degraded", date: "2026-06-09T10:01:00+01:00", body: "staging.orbitly.test: degraded performance."}
+    - {id: m12, thread: t11, from: alerts@statuspage.example, to: [sam@orbitly.test], cc: [], labels: [inbox],
+       subject: "Resolved: Staging degraded", date: "2026-06-09T11:28:00+01:00", body: "staging.orbitly.test: all systems operational."}
+    - {id: m13, thread: t13, from: news@linkedin.example, to: [sam@orbitly.test], cc: [], labels: [inbox],
+       subject: "5 people viewed your profile", date: "2026-06-10T06:00:00+01:00", body: "See who's looking."}
+    - {id: m14, thread: t14, from: lee@orbitly.test, to: [sam@orbitly.test], cc: [], labels: [inbox],
+       subject: "Notes for our 1:1", date: "2026-06-10T18:10:00+01:00", body: "Added two topics to our doc for Thursday's 1:1: the on-call rota and my conference talk."}
+calendar:
+  calendars:
+    - {id: primary, name: Sam Rivera, owner: sam@orbitly.test, timezone: Europe/London}
+  events:
+    - {id: e1, calendar: primary, title: "Eng standup", start: "2026-05-04T09:30:00+01:00", end: "2026-05-04T09:45:00+01:00",
+       tz: Europe/London, attendees: [marco@orbitly.test, lee@orbitly.test, ana@orbitly.test], organizer: sam@orbitly.test,
+       rrule: "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR", exceptions: {}, status: confirmed, description: "", location: ""}
+    - {id: e2, calendar: primary, title: "1:1 Sam / Lee", start: "2026-05-07T15:00:00+01:00", end: "2026-05-07T15:30:00+01:00",
+       tz: Europe/London, attendees: [lee@orbitly.test], organizer: sam@orbitly.test,
+       rrule: "FREQ=WEEKLY;BYDAY=TH", exceptions: {}, status: confirmed, description: "", location: ""}
+    - {id: e3, calendar: primary, title: "Q3 planning (eng leads)", start: "2026-06-11T15:00:00+01:00", end: "2026-06-11T16:30:00+01:00",
+       tz: Europe/London, attendees: [kim@orbitly.test, dana@orbitly.test, sam@orbitly.test, ravi@orbitly.test], organizer: kim@orbitly.test,
+       rrule: null, exceptions: {}, status: confirmed, description: "Added on 10 June. Bring the Q3 headcount ask.", location: "Boardroom"}
+    - {id: e4, calendar: primary, title: "Lunch and learn: observability", start: "2026-06-11T12:30:00+01:00", end: "2026-06-11T13:15:00+01:00",
+       tz: Europe/London, attendees: [all@orbitly.test], organizer: ana@orbitly.test,
+       rrule: null, exceptions: {}, status: confirmed, description: "Optional.", location: "Kitchen"}
+    - {id: e5, calendar: primary, title: "Release cut 2.31", start: "2026-06-17T10:00:00+01:00", end: "2026-06-17T10:30:00+01:00",
+       tz: Europe/London, attendees: [marco@orbitly.test], organizer: marco@orbitly.test,
+       rrule: null, exceptions: {}, status: confirmed, description: "", location: ""}
+chat:
+  channels:
+    - {id: ch_leads, name: eng-leads, members: [sam@orbitly.test, dana@orbitly.test, ravi@orbitly.test, kim@orbitly.test], topic: "Engineering leads", created: "2026-01-05T09:00:00+00:00"}
+    - {id: ch_eng, name: eng, members: [sam@orbitly.test, marco@orbitly.test, lee@orbitly.test, ana@orbitly.test], topic: "Engineering", created: "2026-01-05T09:00:00+00:00"}
+    - {id: ch_random, name: random, members: [sam@orbitly.test, marco@orbitly.test, lee@orbitly.test, ana@orbitly.test, dana@orbitly.test], topic: "Anything", created: "2026-01-05T09:00:00+00:00"}
+  messages:
+    - {id: c1, channel: ch_leads, author: dana@orbitly.test, text: "@Sam when you're back: I need your Q3 headcount ask (roles and start months) by end of day Thursday for the budget review.", ts: "2026-06-10T17:40:00+01:00", thread_id: null}
+    - {id: c2, channel: ch_leads, author: ravi@orbitly.test, text: "Platform's ask is in the doc.", ts: "2026-06-10T17:55:00+01:00", thread_id: null}
+    - {id: c3, channel: ch_eng, author: marco@orbitly.test, text: "staging is down, looking", ts: "2026-06-09T10:02:00+01:00", thread_id: null}
+    - {id: c4, channel: ch_eng, author: marco@orbitly.test, text: "fixed - a bad migration, rolled back. All good now (ORB-479).", ts: "2026-06-09T11:30:00+01:00", thread_id: c3}
+    - {id: c5, channel: ch_eng, author: ana@orbitly.test, text: "Shipped the new logging dashboards, link in the wiki.", ts: "2026-06-10T14:12:00+01:00", thread_id: null}
+    - {id: c6, channel: ch_random, author: lee@orbitly.test, text: "Who left the excellent banana bread in the kitchen?", ts: "2026-06-10T10:30:00+01:00", thread_id: null}
+contacts:
+  people:
+    - {id: p1, name: Priya Nair, email: priya@orbitly.test, company: Orbitly, title: Customer success lead}
+    - {id: p2, name: Dana Wolfe, email: dana@orbitly.test, company: Orbitly, title: VP Engineering}
+    - {id: p3, name: Lee Park, email: lee@orbitly.test, company: Orbitly, title: Engineer}
+    - {id: p4, name: Kim Osei, email: kim@orbitly.test, company: Orbitly, title: CTO}
+tracker:
+  issues:
+    - {id: ORB-482, title: "CSV export times out for workspaces over 50k rows", body: "Reported by Acme on 9 June. Export job hits the 60 s gateway timeout.",
+       status: open, assignee: sam@orbitly.test, labels: [bug, P1, customer], created: "2026-06-09T09:20:00+01:00", updated: "2026-06-09T09:20:00+01:00",
+       url: "https://tracker.example/issues/ORB-482"}
+    - {id: ORB-479, title: "Staging down after migration", body: "Rolled back the migration.", status: resolved, assignee: marco@orbitly.test,
+       labels: [incident], created: "2026-06-09T10:05:00+01:00", updated: "2026-06-09T11:31:00+01:00", url: "https://tracker.example/issues/ORB-479"}
+    - {id: ORB-486, title: "Tidy up feature flag names", body: "Low priority clean-up.", status: open, assignee: sam@orbitly.test,
+       labels: [chore, P3], created: "2026-06-08T15:00:00+01:00", updated: "2026-06-08T15:00:00+01:00", url: "https://tracker.example/issues/ORB-486"}
+    - {id: ORB-490, title: "Warm the cache on deploy", body: "PR open, needs review before the 2.31 release cut.", status: in_progress, assignee: marco@orbitly.test,
+       labels: [perf], created: "2026-06-05T10:00:00+01:00", updated: "2026-06-10T11:38:00+01:00", url: "https://tracker.example/issues/ORB-490"}

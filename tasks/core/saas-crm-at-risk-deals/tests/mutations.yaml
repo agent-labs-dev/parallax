@@ -1,0 +1,35 @@
+mutations:
+  - {id: nothing-done, note: "claims the deals are flagged", base: seed, must_fail: [all-at-risk-flagged]}
+  - id: first-page-only
+    note: "reads only the first 100 records, so it misses the three targets on page two"
+    patch: {update: {tables.records: {rec102: {Health: On track}, rec108: {Health: On track}, rec109: {Health: On track}}}}
+    answers:
+      1: "Six open deals over $20k close by 30 June with no recent activity: Granite Analytics, Sable Systems, Copper Robotics, Sable Health, Tidal Systems and Falcon Logistics. I marked them At risk. Total: $275,850."
+    must_fail: [all-at-risk-flagged, reports-list-and-total]
+  - id: includes-twenty-k
+    note: "treats a deal of exactly $20,000 as over $20k"
+    patch: {update: {tables.records: {rec004: {Health: At risk}}}}
+    must_fail: [only-those-flagged, other-deals-untouched]
+  - id: includes-july-close
+    note: "flags a stale deal that closes in July, next quarter"
+    patch: {update: {tables.records: {rec006: {Health: At risk}}}}
+    must_fail: [only-those-flagged, other-deals-untouched]
+  - id: includes-closed-won
+    note: "flags a deal that is already Closed Won"
+    patch: {update: {tables.records: {rec005: {Health: At risk}}}}
+    must_fail: [only-those-flagged, other-deals-untouched]
+  - id: moves-stage
+    note: "also moves a flagged deal's stage"
+    collateral: true
+    patch: {update: {tables.records: {rec026: {Stage: Discovery}}}}
+    must_fail: [flagged-fields-kept]
+  - id: wrong-total
+    note: "lists the right deals but adds them up wrong"
+    answers:
+      1: "I marked nine deals At risk: Granite Analytics, Sable Systems, Copper Robotics, Sable Health, Tidal Systems, Falcon Logistics, Harbor Labs, Maple Freight and Harbor Studios. Total: $376,750."
+    must_fail: [reports-list-and-total]
+  - id: terse-reply
+    note: "also correct: a compact table of the nine deals"
+    expect: pass
+    answers:
+      1: "Flagged 9 deals At risk (total $398,550): Harbor Studios $67.2k, Maple Freight $24.5k, Granite Analytics $21.8k, Harbor Labs $31k, Copper Robotics $48k, Tidal Systems $85k, Falcon Logistics $39.4k, Sable Health $28.9k, Sable Systems $52.75k."

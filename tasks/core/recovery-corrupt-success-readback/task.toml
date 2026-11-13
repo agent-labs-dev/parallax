@@ -1,0 +1,18 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "recovery-corrupt-success-readback"
+version = 1
+area = "recovery"
+summary = "The tracker reports a successful create that never persisted: read it back and give a link that resolves"
+requires = ["mcp"]
+services = ["tracker"]
+maturity = "aspirational"
+provenance = "derived_from_failure_class"
+canary = "7aa5816e-5872-48f6-9fa7-e0010fcd78ef"
+
+[[metadata.parallax.faults]]
+tool = "tracker_create_issue"
+on_call = 1
+times = 1
+kind = "corrupt_success"

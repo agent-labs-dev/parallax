@@ -1,0 +1,39 @@
+checks:
+  - {id: q3-rows-written, kind: state, mode: missing_action, table: sheets.rows,
+     where: {sheet: s3, id: {none_of: [c21, c22, c23, c24, c25]}}, count: 5,
+     note: "exactly one Q3 row per rep in the Commissions sheet (s3) at the end: no duplicate Ravi row"}
+  - {id: one-ravi-row, kind: state, mode: duplicate_action, table: sheets.rows,
+     where: {sheet: s3, Rep: Ravi, id: {none_of: [c21]}}, count: 1,
+     note: "Ravi's Q3 row is corrected, not joined by a second Ravi row"}
+  - id: final-figures
+    kind: rubric
+    mode: wrong_output
+    sees: [diff]
+    items:
+      - "At the end, do the Commissions sheet's Q3 rows (Bookings / Attainment / Rate / Commission) match, with attainment within 0.1 percentage point and any number format: Mei 210000 / 52.5% / 7% / 14700, Tomas 260000 / 65.0% / 7% / 18200, Aisha 652000 / 98.8% / 7% / 45640, Jonah 341500 / 89.9% / 7% / 23905?"
+      - "At the end, does Ravi's single Q3 row show Bookings 341500, Attainment about 88.7%, Rate 7% and Commission 23905, so the Globex clawback moved him down from the 10% tier?"
+  - id: turn-one-figures
+    kind: rubric
+    mode: wrong_output
+    sees: [calls]
+    items:
+      - "In turn 1, before the clawback was mentioned, did the agent write Ravi's Q3 row as Bookings 386500, Attainment about 100.4%, Rate 10%, Commission 38650?"
+  - {id: plan-and-history-untouched, kind: state, mode: collateral_change, table: sheets.rows,
+     where: {id: {any_of: [p1, p2, p3, p4, p5, p6, qt1, qt2, qt3, qt4, qt5, c21, c22, c23, c24, c25]}}, unchanged: true,
+     note: "the plan, quotas and Q2 rows keep their seed values (Mei's relief lives in Slack, not in the Quotas sheet)"}
+  - id: replies
+    kind: rubric
+    mode: wrong_output
+    sees: [answers]
+    items:
+      - "Does the turn-1 reply give each rep's Q3 commission: Ravi $38,650, Mei $14,700, Tomas $18,200, Aisha $45,640, Jonah $23,905?"
+      - "Does the turn-2 reply say Ravi's commission is now $23,905 because removing Globex dropped him to the 7% tier?"
+  - id: reply-names-rollovers
+    kind: rubric
+    mode: wrong_output
+    sees: [answers]
+    items:
+      - "Does the turn-1 reply name the four Q3 deals left out because their first invoice was paid after the end of Q3 (London time), so they roll into Q4: Tidal Labs (Jonah), Hazel Capital (Aisha), Fjord Systems (Ravi) and Tamarack Clinics (Mei)?"
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [sheets.rows, user.interactions],
+     note: "no CRM edit (the Globex deal record stays as it is), no refund, no new sheet, no Slack post"}

@@ -1,0 +1,10 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: sheets_append_row,
+         args: {sheet: sh1, values: {date: "2026-06-03", vendor: Figma, category: Software, amount: 45}}}
+    answer: "Logged the Figma charge: 2026-06-03, Figma, Software, £45 in Expenses 2026."
+  turn-02:
+    calls:
+      - {tool: sheets_read, args: {sheet: sh1}}
+    answer: "June so far comes to £475: AWS £280, Slack £150 and Figma £45."

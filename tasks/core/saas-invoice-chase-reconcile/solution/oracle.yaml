@@ -1,0 +1,61 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: user_clock_now, args: {}}
+      - {tool: wiki_search, args: {query: overdue invoices}}
+      - {tool: wiki_search, args: {query: collections}}
+      - {tool: wiki_get_page, args: {id: pg1}}
+      - {tool: sheets_read, args: {sheet: AR ledger}}
+      - {tool: payments_list_charges, args: {}}
+      - {tool: payments_list_customers, args: {}}
+      - {tool: mail_search, args: {query: INV, limit: 100}}
+      - {tool: mail_list_sent, args: {}}
+      - {tool: sheets_update_cell, args: {row_id: r017, column: Status, value: Paid}}
+      - {tool: sheets_update_cell, args: {row_id: r052, column: Status, value: Paid}}
+      - {tool: sheets_update_cell, args: {row_id: r078, column: Status, value: Paid}}
+      - {tool: sheets_update_cell, args: {row_id: r090, column: Status, value: Paid}}
+      - {tool: sheets_update_cell, args: {row_id: r109, column: Status, value: Paid}}
+      - {tool: sheets_update_cell, args: {row_id: r024, column: Status, value: Credited}}
+      - tool: mail_create_draft
+        args:
+          to: [ap@calderfarms.example]
+          subject: Overdue invoice INV-3009
+          body: "Hello,\n\nOur records show the following invoice is more than 30 days overdue:\n- INV-3009, GBP 6,200.00, due 30 July 2026\n\nPlease arrange payment this week or let me know when we can expect it.\n\nThanks,\nPriya Nair\nFernhill Accounts"
+      - tool: mail_create_draft
+        args:
+          to: [ap@brooklinelegal.example]
+          subject: Overdue balance on INV-3031
+          body: "Hello Dan,\n\nThank you for the part payment of GBP 4,200.00 against INV-3031. The remaining balance is more than 30 days overdue:\n- INV-3031, GBP 4,200.00 still owed of GBP 8,400.00, due 29 August 2026\n\nPlease arrange payment of the balance this week or let me know when we can expect it.\n\nThanks,\nPriya Nair\nFernhill Accounts"
+      - tool: mail_create_draft
+        args:
+          to: [ap@eastgatemedia.example]
+          subject: Overdue invoice INV-3044
+          body: "Hello Ken,\n\nYou let us know that INV-3044 would be paid by 10 October, but we haven't received the payment yet:\n- INV-3044, GBP 2,900.00, due 5 September 2026\n\nPlease arrange payment this week or let me know when we can expect it.\n\nThanks,\nPriya Nair\nFernhill Accounts"
+      - tool: mail_create_draft
+        args:
+          to: [ap@fairlightstudios.example]
+          subject: Overdue invoice INV-3047
+          body: "Hello,\n\nOur records show the following invoice is more than 30 days overdue. The card payment we tried on 7 October was declined:\n- INV-3047, GBP 3,150.00, due 8 September 2026\n\nPlease arrange payment this week or let me know when we can expect it.\n\nThanks,\nPriya Nair\nFernhill Accounts"
+      - tool: mail_create_draft
+        args:
+          to: [ap@glenrockfreight.example]
+          subject: Overdue invoices INV-3056 and INV-3063
+          body: "Hello,\n\nOur records show the following invoices are more than 30 days overdue:\n- INV-3056, GBP 7,300.00, due 14 August 2026\n- INV-3063, GBP 1,950.00, due 12 September 2026\nTotal: GBP 9,250.00\n\nPlease arrange payment this week or let me know when we can expect it.\n\nThanks,\nPriya Nair\nFernhill Accounts"
+    answer: |-
+      Done, following the Collections process page.
+
+      Reconciled with Stripe, ledger updated:
+      - Marked Paid (paid in full in Stripe): INV-3017 and INV-3052 (Alder Dental), INV-3078 (Ivybridge Health), INV-3090 (Moorfield Energy), INV-3109 (Larkspur Travel, paid early).
+      - Marked Credited: INV-3024 (Kingsmere Labs), cancelled by credit note CN-0412.
+
+      Drafted five chasers for invoices more than 30 days overdue (not sent, ready for your review), GBP 25,700 in total:
+      - Calder Farms: INV-3009, GBP 6,200
+      - Brookline Legal: INV-3031, balance GBP 4,200 (they part-paid 4,200 of 8,400)
+      - Eastgate Media: INV-3044, GBP 2,900 (they promised payment by 10 October and missed it)
+      - Fairlight Studios: INV-3047, GBP 3,150 (the Stripe charge failed)
+      - Glenrock Freight: INV-3056 and INV-3063, GBP 9,250
+
+      No chaser:
+      - Dunmore Games, INV-3038 (GBP 5,600): they promised payment in their 24 October run.
+      - Overdue 30 days or less: INV-3071 Hollins Retail GBP 3,900 (25 days), INV-3084 Larkspur Travel GBP 2,450 (18 days), INV-3096 Calder Farms GBP 1,250 (10 days), INV-3103 Hollins Retail GBP 980 (5 days).
+      Hollins Retail also asked for a PDF copy of INV-3071.

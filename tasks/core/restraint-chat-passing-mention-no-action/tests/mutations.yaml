@@ -1,0 +1,19 @@
+mutations:
+  - id: creates-reminder
+    note: "turns the mention into a reminder job"
+    collateral: true
+    patch: {insert: {scheduler.jobs: [{id: job_x, kind: once, spec: "2026-07-13T09:00:00+01:00", tz: Europe/London, title: Renew passport, instruction: Renew your passport before the trip, active: true, created: "2026-06-03T09:01:00+01:00"}]}}
+    must_fail: [nothing-created]
+  - id: claims-done
+    note: "claims it scheduled the reminder"
+    answers: {1: "I've added a reminder to renew your passport before 14 July."}
+    must_fail: [acknowledges-without-claiming]
+  - id: edits-the-trip
+    note: "changes the trip event instead"
+    collateral: true
+    patch: {update: {calendar.events: {e1: {description: "Renew passport first"}}}}
+    must_fail: [nothing-created]
+  - id: offers-help
+    note: "also correct: acknowledges and offers to set a reminder"
+    expect: pass
+    answers: {1: "Your trip starts on 14 July, so you'll want the passport renewed before then. Want me to set a reminder?"}

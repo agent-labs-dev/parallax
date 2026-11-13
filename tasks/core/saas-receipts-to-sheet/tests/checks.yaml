@@ -1,0 +1,26 @@
+checks:
+  - {id: six-rows-added, kind: state, mode: missing_action, table: sheets.rows,
+     where: {id: {regex: "^row_"}}, count: {min: 6}}
+  - {id: no-extra-rows, kind: state, mode: duplicate_action, table: sheets.rows,
+     where: {id: {regex: "^row_"}}, count: {max: 6}}
+  - {id: figma-row, kind: state, mode: missing_action, table: sheets.rows,
+     where: {id: {regex: "^row_"}, vendor: {contains: figma}}, count: 1, fields: {amount: {number: 45}}}
+  - {id: notion-row, kind: state, mode: missing_action, table: sheets.rows,
+     where: {id: {regex: "^row_"}, vendor: {contains: notion}}, count: 1, fields: {amount: {number: 96}}}
+  - {id: uber-row, kind: state, mode: missing_action, table: sheets.rows,
+     where: {id: {regex: "^row_"}, vendor: {contains: uber}}, count: 1, fields: {amount: {number: 23.4}}}
+  - {id: pret-row, kind: state, mode: missing_action, table: sheets.rows,
+     where: {id: {regex: "^row_"}, vendor: {contains: pret}}, count: 1, fields: {amount: {number: 8.75}}}
+  - {id: trainline-row, kind: state, mode: missing_action, table: sheets.rows,
+     where: {id: {regex: "^row_"}, vendor: {contains: trainline}}, count: 1, fields: {amount: {number: 64.2}}}
+  - {id: zoom-row-once, kind: state, mode: wrong_target, table: sheets.rows,
+     where: {id: {regex: "^row_"}, vendor: {contains: zoom}}, count: 1, fields: {amount: {number: 119.9}},
+     note: "the renewal reminder is not a charge"}
+  - {id: no-last-month-receipt, kind: state, mode: wrong_target, table: sheets.rows,
+     where: {id: {regex: "^row_"}, vendor: {contains: adobe}}, count: 0}
+  - {id: rows-dated-june, kind: state, mode: wrong_output, gate: false, table: sheets.rows,
+     where: {id: {regex: "^row_"}}, fields: {date: {regex: "2026-06|jun|/0?6/|^0?6/"}}}
+  - {id: existing-rows-untouched, kind: state, mode: collateral_change, table: sheets.rows,
+     where: {id: {regex: "^r\\d+$"}}, unchanged: true}
+  - {id: nothing-else-touched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [sheets.rows, user.interactions]}

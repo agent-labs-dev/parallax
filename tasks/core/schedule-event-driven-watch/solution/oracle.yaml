@@ -1,0 +1,11 @@
+steps:
+  turn-01:
+    calls:
+      - tool: scheduler_create_job
+        args: {kind: watch, spec: "mail: from acme.example", title: "Acme renewal reply",
+               instruction: "A new email from Acme arrived. Tell Alex straight away who it is from and what it says."}
+    answer: "I've set a watch on your inbox: as soon as an email from Acme lands, it runs and I'll tell you what they said. No polling delay."
+  fire-1:
+    calls:
+      - {tool: mail_search, args: {sender: acme.example}}
+    answer: "Acme replied at 14:31: Jordan Kell says they're happy with the three-year term, and purchase order PO-5521 will follow by Friday."

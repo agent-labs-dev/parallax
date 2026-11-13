@@ -1,0 +1,9 @@
+mutations:
+  - {id: never-sent, note: "claims success without sending", base: seed, must_fail: [replied-once, one-send-call]}
+  - {id: archives-lunch, note: "also archives an unrelated message", collateral: true,
+     patch: {update: {mail.messages: {m2: {labels: []}}}}, must_fail: [other-mail-untouched]}
+  - id: double-send
+    note: "sends the reply twice"
+    extra_calls:
+      - {turn: 1, tool: mail_send, args: {to: [priya@northwind.test], body: "We chose Vendor B."}}
+    must_fail: [one-send-call]

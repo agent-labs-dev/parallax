@@ -1,0 +1,279 @@
+now: 2026-06-17T10:00:00+01:00
+user: {name: Maya Chen, email: maya@loomly.test, timezone: Europe/London}
+analytics:
+  insights:
+    - {id: ins_activation, name: "Activation (signup to first project, 3 days)", kind: funnel,
+       steps: [signed_up, project_created], window_days: 3,
+       description: "Share of new signups who create their first project within 3 days. Our activation KPI."}
+    - {id: ins_signups, name: "Weekly signups", kind: trend, event: signed_up, interval: week,
+       description: "New accounts per week."}
+  events:
+    - {id: e001, event: signed_up, person: p0041, ts: "2026-06-01T12:13:00+01:00", properties: {source: organic}}
+    - {id: e002, event: signed_up, person: p0006, ts: "2026-06-01T13:22:00+01:00", properties: {source: organic}}
+    - {id: e003, event: signed_up, person: p0027, ts: "2026-06-01T15:16:00+01:00", properties: {source: organic}}
+    - {id: e004, event: signed_up, person: p0035, ts: "2026-06-01T15:31:00+01:00", properties: {source: organic}}
+    - {id: e005, event: signed_up, person: p0051, ts: "2026-06-01T15:33:00+01:00", properties: {source: paid_search}}
+    - {id: e006, event: project_created, person: c0257, ts: "2026-06-01T16:09:00+01:00"}
+    - {id: e007, event: signed_up, person: p0011, ts: "2026-06-01T16:34:00+01:00", properties: {source: organic}}
+    - {id: e008, event: signed_up, person: p0009, ts: "2026-06-01T17:24:00+01:00", properties: {source: organic}}
+    - {id: e009, event: project_created, person: c0392, ts: "2026-06-02T09:02:00+01:00"}
+    - {id: e010, event: signed_up, person: p0007, ts: "2026-06-02T09:07:00+01:00", properties: {source: organic}}
+    - {id: e011, event: signed_up, person: p0032, ts: "2026-06-02T09:20:00+01:00", properties: {source: organic}}
+    - {id: e012, event: signed_up, person: p0045, ts: "2026-06-02T09:32:00+01:00", properties: {source: organic}}
+    - {id: e013, event: project_created, person: p0032, ts: "2026-06-02T09:50:00+01:00"}
+    - {id: e014, event: invited_teammate, person: p0032, ts: "2026-06-02T11:00:00+01:00"}
+    - {id: e015, event: project_created, person: c0081, ts: "2026-06-02T13:48:00+01:00"}
+    - {id: e016, event: signed_up, person: p0002, ts: "2026-06-02T14:04:00+01:00", properties: {source: organic}}
+    - {id: e017, event: project_created, person: p0045, ts: "2026-06-02T14:12:00+01:00"}
+    - {id: e018, event: signed_up, person: p0022, ts: "2026-06-02T15:35:00+01:00", properties: {source: organic}}
+    - {id: e019, event: signed_up, person: p0025, ts: "2026-06-02T16:29:00+01:00", properties: {source: organic}}
+    - {id: e020, event: signed_up, person: p0055, ts: "2026-06-03T08:53:00+01:00", properties: {source: paid_search}}
+    - {id: e021, event: signed_up, person: p0023, ts: "2026-06-03T09:11:00+01:00", properties: {source: organic}}
+    - {id: e022, event: project_created, person: c0063, ts: "2026-06-03T09:38:00+01:00"}
+    - {id: e023, event: signed_up, person: p0054, ts: "2026-06-03T09:41:00+01:00", properties: {source: paid_search}}
+    - {id: e024, event: signed_up, person: p0036, ts: "2026-06-03T10:03:00+01:00", properties: {source: organic}}
+    - {id: e025, event: project_created, person: p0054, ts: "2026-06-03T11:05:00+01:00"}
+    - {id: e026, event: signed_up, person: p0008, ts: "2026-06-03T11:35:00+01:00", properties: {source: organic}}
+    - {id: e027, event: signed_up, person: p0059, ts: "2026-06-03T11:36:00+01:00", properties: {source: paid_search}}
+    - {id: e028, event: signed_up, person: p0017, ts: "2026-06-03T11:44:00+01:00", properties: {source: organic}}
+    - {id: e029, event: signed_up, person: p0033, ts: "2026-06-03T12:21:00+01:00", properties: {source: organic}}
+    - {id: e030, event: project_created, person: p0033, ts: "2026-06-03T13:45:00+01:00"}
+    - {id: e031, event: project_created, person: p0017, ts: "2026-06-03T14:43:00+01:00"}
+    - {id: e032, event: signed_up, person: p0001, ts: "2026-06-03T14:55:00+01:00", properties: {source: organic}}
+    - {id: e033, event: invited_teammate, person: p0033, ts: "2026-06-03T15:09:00+01:00"}
+    - {id: e034, event: signed_up, person: p0015, ts: "2026-06-03T15:31:00+01:00", properties: {source: organic}}
+    - {id: e035, event: signed_up, person: p0046, ts: "2026-06-03T15:44:00+01:00", properties: {source: paid_search}}
+    - {id: e036, event: invited_teammate, person: p0017, ts: "2026-06-03T16:12:00+01:00"}
+    - {id: e037, event: signed_up, person: p0031, ts: "2026-06-03T17:50:00+01:00", properties: {source: organic}}
+    - {id: e038, event: signed_up, person: p0010, ts: "2026-06-03T17:52:00+01:00", properties: {source: organic}}
+    - {id: e039, event: project_created, person: p0010, ts: "2026-06-03T18:34:00+01:00"}
+    - {id: e040, event: project_created, person: p0001, ts: "2026-06-03T18:40:00+01:00"}
+    - {id: e041, event: project_created, person: p0046, ts: "2026-06-03T19:09:00+01:00"}
+    - {id: e042, event: signed_up, person: p0048, ts: "2026-06-04T08:49:00+01:00", properties: {source: paid_search}}
+    - {id: e043, event: signed_up, person: p0042, ts: "2026-06-04T10:43:00+01:00", properties: {source: organic}}
+    - {id: e044, event: signed_up, person: p0004, ts: "2026-06-04T10:53:00+01:00", properties: {source: organic}}
+    - {id: e045, event: project_created, person: p0004, ts: "2026-06-04T11:19:00+01:00"}
+    - {id: e046, event: signed_up, person: p0043, ts: "2026-06-04T11:43:00+01:00", properties: {source: organic}}
+    - {id: e047, event: project_created, person: p0042, ts: "2026-06-04T12:18:00+01:00"}
+    - {id: e048, event: signed_up, person: p0050, ts: "2026-06-04T12:25:00+01:00", properties: {source: paid_search}}
+    - {id: e049, event: signed_up, person: p0040, ts: "2026-06-04T12:43:00+01:00", properties: {source: organic}}
+    - {id: e050, event: signed_up, person: p0044, ts: "2026-06-04T13:30:00+01:00", properties: {source: organic}}
+    - {id: e051, event: signed_up, person: p0013, ts: "2026-06-04T13:33:00+01:00", properties: {source: organic}}
+    - {id: e052, event: project_created, person: p0040, ts: "2026-06-04T15:27:00+01:00"}
+    - {id: e053, event: signed_up, person: p0038, ts: "2026-06-04T15:33:00+01:00", properties: {source: organic}}
+    - {id: e054, event: project_created, person: p0050, ts: "2026-06-04T16:03:00+01:00"}
+    - {id: e055, event: signed_up, person: p0003, ts: "2026-06-04T16:10:00+01:00", properties: {source: organic}}
+    - {id: e056, event: project_created, person: p0043, ts: "2026-06-04T16:13:00+01:00"}
+    - {id: e057, event: project_created, person: c0025, ts: "2026-06-04T16:52:00+01:00"}
+    - {id: e058, event: project_created, person: p0013, ts: "2026-06-04T16:58:00+01:00"}
+    - {id: e059, event: project_created, person: p0044, ts: "2026-06-04T17:00:00+01:00"}
+    - {id: e060, event: project_created, person: p0038, ts: "2026-06-04T17:08:00+01:00"}
+    - {id: e061, event: signed_up, person: p0060, ts: "2026-06-04T17:26:00+01:00", properties: {source: paid_search}}
+    - {id: e062, event: invited_teammate, person: c0025, ts: "2026-06-04T17:48:00+01:00"}
+    - {id: e063, event: project_created, person: p0060, ts: "2026-06-04T21:33:00+01:00"}
+    - {id: e064, event: invited_teammate, person: p0060, ts: "2026-06-04T22:02:00+01:00"}
+    - {id: e065, event: signed_up, person: p0029, ts: "2026-06-05T08:13:00+01:00", properties: {source: organic}}
+    - {id: e066, event: signed_up, person: p0057, ts: "2026-06-05T08:14:00+01:00", properties: {source: paid_search}}
+    - {id: e067, event: signed_up, person: p0014, ts: "2026-06-05T08:35:00+01:00", properties: {source: organic}}
+    - {id: e068, event: signed_up, person: p0018, ts: "2026-06-05T09:20:00+01:00", properties: {source: organic}}
+    - {id: e069, event: signed_up, person: p0016, ts: "2026-06-05T10:26:00+01:00", properties: {source: organic}}
+    - {id: e070, event: signed_up, person: p0028, ts: "2026-06-05T10:45:00+01:00", properties: {source: organic}}
+    - {id: e071, event: project_created, person: p0018, ts: "2026-06-05T11:26:00+01:00"}
+    - {id: e072, event: signed_up, person: p0034, ts: "2026-06-05T11:49:00+01:00", properties: {source: organic}}
+    - {id: e073, event: project_created, person: p0028, ts: "2026-06-05T11:55:00+01:00"}
+    - {id: e074, event: project_created, person: c0232, ts: "2026-06-05T13:32:00+01:00"}
+    - {id: e075, event: signed_up, person: p0053, ts: "2026-06-05T14:00:00+01:00", properties: {source: paid_search}}
+    - {id: e076, event: signed_up, person: p0026, ts: "2026-06-05T15:47:00+01:00", properties: {source: organic}}
+    - {id: e077, event: project_created, person: c0244, ts: "2026-06-05T16:29:00+01:00"}
+    - {id: e078, event: signed_up, person: p0052, ts: "2026-06-05T16:37:00+01:00", properties: {source: paid_search}}
+    - {id: e079, event: project_created, person: p0034, ts: "2026-06-05T16:47:00+01:00"}
+    - {id: e080, event: signed_up, person: p0047, ts: "2026-06-05T16:57:00+01:00", properties: {source: paid_search}}
+    - {id: e081, event: invited_teammate, person: p0034, ts: "2026-06-05T17:33:00+01:00"}
+    - {id: e082, event: signed_up, person: p0037, ts: "2026-06-05T17:38:00+01:00", properties: {source: organic}}
+    - {id: e083, event: project_created, person: c0091, ts: "2026-06-05T17:54:00+01:00"}
+    - {id: e084, event: invited_teammate, person: c0091, ts: "2026-06-05T18:01:00+01:00"}
+    - {id: e085, event: signed_up, person: p0056, ts: "2026-06-06T08:48:00+01:00", properties: {source: paid_search}}
+    - {id: e086, event: signed_up, person: p0058, ts: "2026-06-06T09:43:00+01:00", properties: {source: paid_search}}
+    - {id: e087, event: signed_up, person: p0049, ts: "2026-06-06T09:56:00+01:00", properties: {source: paid_search}}
+    - {id: e088, event: project_created, person: p0056, ts: "2026-06-06T10:23:00+01:00"}
+    - {id: e089, event: signed_up, person: p0039, ts: "2026-06-06T10:34:00+01:00", properties: {source: organic}}
+    - {id: e090, event: signed_up, person: p0020, ts: "2026-06-06T11:06:00+01:00", properties: {source: organic}}
+    - {id: e091, event: signed_up, person: p0005, ts: "2026-06-06T11:18:00+01:00", properties: {source: organic}}
+    - {id: e092, event: signed_up, person: p0024, ts: "2026-06-06T11:59:00+01:00", properties: {source: organic}}
+    - {id: e093, event: project_created, person: p0049, ts: "2026-06-06T12:43:00+01:00"}
+    - {id: e094, event: project_created, person: p0039, ts: "2026-06-06T13:20:00+01:00"}
+    - {id: e095, event: project_created, person: c0232, ts: "2026-06-06T13:42:00+01:00"}
+    - {id: e096, event: project_created, person: c0133, ts: "2026-06-06T13:53:00+01:00"}
+    - {id: e097, event: signed_up, person: p0012, ts: "2026-06-06T15:07:00+01:00", properties: {source: organic}}
+    - {id: e098, event: signed_up, person: p0021, ts: "2026-06-06T16:39:00+01:00", properties: {source: organic}}
+    - {id: e099, event: project_created, person: c0196, ts: "2026-06-07T08:39:00+01:00"}
+    - {id: e100, event: project_created, person: c0041, ts: "2026-06-07T09:54:00+01:00"}
+    - {id: e101, event: project_created, person: c0340, ts: "2026-06-07T10:58:00+01:00"}
+    - {id: e102, event: invited_teammate, person: c0340, ts: "2026-06-07T12:08:00+01:00"}
+    - {id: e103, event: project_created, person: c0070, ts: "2026-06-07T14:08:00+01:00"}
+    - {id: e104, event: signed_up, person: p0030, ts: "2026-06-07T15:10:00+01:00", properties: {source: organic}}
+    - {id: e105, event: signed_up, person: p0019, ts: "2026-06-07T16:55:00+01:00", properties: {source: organic}}
+    - {id: e106, event: project_created, person: p0030, ts: "2026-06-07T17:52:00+01:00"}
+    - {id: e107, event: project_created, person: c0351, ts: "2026-06-07T18:26:00+01:00"}
+    - {id: e108, event: project_created, person: p0019, ts: "2026-06-07T19:49:00+01:00"}
+    - {id: e109, event: signed_up, person: p0062, ts: "2026-06-08T08:50:00+01:00", properties: {source: organic}}
+    - {id: e110, event: signed_up, person: p0079, ts: "2026-06-08T09:05:00+01:00", properties: {source: organic}}
+    - {id: e111, event: project_created, person: p0079, ts: "2026-06-08T10:47:00+01:00"}
+    - {id: e112, event: signed_up, person: p0064, ts: "2026-06-08T10:51:00+01:00", properties: {source: organic}}
+    - {id: e113, event: signed_up, person: p0135, ts: "2026-06-08T11:03:00+01:00", properties: {source: partner_launch}}
+    - {id: e114, event: signed_up, person: p0074, ts: "2026-06-08T11:29:00+01:00", properties: {source: organic}}
+    - {id: e115, event: project_created, person: p0062, ts: "2026-06-08T12:18:00+01:00"}
+    - {id: e116, event: signed_up, person: p0086, ts: "2026-06-08T12:27:00+01:00", properties: {source: organic}}
+    - {id: e117, event: project_created, person: p0064, ts: "2026-06-08T12:57:00+01:00"}
+    - {id: e118, event: signed_up, person: p0117, ts: "2026-06-08T13:19:00+01:00", properties: {source: paid_search}}
+    - {id: e119, event: project_created, person: c0126, ts: "2026-06-08T13:40:00+01:00"}
+    - {id: e120, event: project_created, person: c0296, ts: "2026-06-08T14:27:00+01:00"}
+    - {id: e121, event: signed_up, person: p0085, ts: "2026-06-08T14:47:00+01:00", properties: {source: organic}}
+    - {id: e122, event: invited_teammate, person: c0126, ts: "2026-06-08T15:04:00+01:00"}
+    - {id: e123, event: project_created, person: p0117, ts: "2026-06-08T15:23:00+01:00"}
+    - {id: e124, event: signed_up, person: p0084, ts: "2026-06-08T16:38:00+01:00", properties: {source: organic}}
+    - {id: e125, event: signed_up, person: p0130, ts: "2026-06-08T17:25:00+01:00", properties: {source: partner_launch}}
+    - {id: e126, event: project_created, person: c0299, ts: "2026-06-09T08:22:00+01:00"}
+    - {id: e127, event: project_created, person: c0276, ts: "2026-06-09T08:23:00+01:00"}
+    - {id: e128, event: signed_up, person: p0092, ts: "2026-06-09T10:46:00+01:00", properties: {source: organic}}
+    - {id: e129, event: project_created, person: p0092, ts: "2026-06-09T11:37:00+01:00"}
+    - {id: e130, event: signed_up, person: p0070, ts: "2026-06-09T12:14:00+01:00", properties: {source: organic}}
+    - {id: e131, event: signed_up, person: p0095, ts: "2026-06-09T12:37:00+01:00", properties: {source: organic}}
+    - {id: e132, event: signed_up, person: p0115, ts: "2026-06-09T12:39:00+01:00", properties: {source: paid_search}}
+    - {id: e133, event: signed_up, person: p0097, ts: "2026-06-09T12:41:00+01:00", properties: {source: organic}}
+    - {id: e134, event: invited_teammate, person: p0092, ts: "2026-06-09T13:07:00+01:00"}
+    - {id: e135, event: signed_up, person: p0134, ts: "2026-06-09T13:16:00+01:00", properties: {source: partner_launch}}
+    - {id: e136, event: project_created, person: c0135, ts: "2026-06-09T13:19:00+01:00"}
+    - {id: e137, event: project_created, person: p0097, ts: "2026-06-09T14:28:00+01:00"}
+    - {id: e138, event: signed_up, person: p0083, ts: "2026-06-09T14:38:00+01:00", properties: {source: organic}}
+    - {id: e139, event: signed_up, person: p0106, ts: "2026-06-09T15:11:00+01:00", properties: {source: organic}}
+    - {id: e140, event: signed_up, person: p0063, ts: "2026-06-09T15:33:00+01:00", properties: {source: organic}}
+    - {id: e141, event: project_created, person: p0106, ts: "2026-06-09T15:43:00+01:00"}
+    - {id: e142, event: signed_up, person: p0108, ts: "2026-06-09T17:14:00+01:00", properties: {source: paid_search}}
+    - {id: e143, event: signed_up, person: p0138, ts: "2026-06-09T17:38:00+01:00", properties: {source: partner_launch}}
+    - {id: e144, event: project_created, person: c0029, ts: "2026-06-09T18:03:00+01:00"}
+    - {id: e145, event: project_created, person: c0053, ts: "2026-06-09T18:22:00+01:00"}
+    - {id: e146, event: project_created, person: p0083, ts: "2026-06-09T18:29:00+01:00"}
+    - {id: e147, event: invited_teammate, person: c0029, ts: "2026-06-09T18:41:00+01:00"}
+    - {id: e148, event: project_created, person: p0063, ts: "2026-06-09T19:23:00+01:00"}
+    - {id: e149, event: project_created, person: p0108, ts: "2026-06-09T20:07:00+01:00"}
+    - {id: e150, event: signed_up, person: p0078, ts: "2026-06-10T08:14:00+01:00", properties: {source: organic}}
+    - {id: e151, event: signed_up, person: p0119, ts: "2026-06-10T08:30:00+01:00", properties: {source: paid_search}}
+    - {id: e152, event: signed_up, person: p0098, ts: "2026-06-10T09:03:00+01:00", properties: {source: organic}}
+    - {id: e153, event: signed_up, person: p0096, ts: "2026-06-10T09:08:00+01:00", properties: {source: organic}}
+    - {id: e154, event: project_created, person: p0119, ts: "2026-06-10T09:16:00+01:00"}
+    - {id: e155, event: signed_up, person: p0101, ts: "2026-06-10T10:20:00+01:00", properties: {source: organic}}
+    - {id: e156, event: signed_up, person: p0099, ts: "2026-06-10T11:37:00+01:00", properties: {source: organic}}
+    - {id: e157, event: signed_up, person: p0133, ts: "2026-06-10T11:58:00+01:00", properties: {source: partner_launch}}
+    - {id: e158, event: project_created, person: p0133, ts: "2026-06-10T12:42:00+01:00"}
+    - {id: e159, event: signed_up, person: p0114, ts: "2026-06-10T12:49:00+01:00", properties: {source: paid_search}}
+    - {id: e160, event: signed_up, person: p0094, ts: "2026-06-10T13:02:00+01:00", properties: {source: organic}}
+    - {id: e161, event: signed_up, person: p0104, ts: "2026-06-10T13:10:00+01:00", properties: {source: organic}}
+    - {id: e162, event: signed_up, person: p0128, ts: "2026-06-10T13:23:00+01:00", properties: {source: partner_launch}}
+    - {id: e163, event: project_created, person: p0101, ts: "2026-06-10T13:25:00+01:00"}
+    - {id: e164, event: project_created, person: p0114, ts: "2026-06-10T13:45:00+01:00"}
+    - {id: e165, event: signed_up, person: p0140, ts: "2026-06-10T14:04:00+01:00", properties: {source: partner_launch}}
+    - {id: e166, event: signed_up, person: p0090, ts: "2026-06-10T14:37:00+01:00", properties: {source: organic}}
+    - {id: e167, event: signed_up, person: p0113, ts: "2026-06-10T15:23:00+01:00", properties: {source: paid_search}}
+    - {id: e168, event: project_created, person: c0095, ts: "2026-06-10T15:39:00+01:00"}
+    - {id: e169, event: project_created, person: p0090, ts: "2026-06-10T16:09:00+01:00"}
+    - {id: e170, event: signed_up, person: p0091, ts: "2026-06-10T16:09:00+01:00", properties: {source: organic}}
+    - {id: e171, event: project_created, person: p0091, ts: "2026-06-10T16:58:00+01:00"}
+    - {id: e172, event: signed_up, person: p0072, ts: "2026-06-10T17:12:00+01:00", properties: {source: organic}}
+    - {id: e173, event: project_created, person: p0104, ts: "2026-06-10T17:12:00+01:00"}
+    - {id: e174, event: signed_up, person: p0105, ts: "2026-06-10T17:59:00+01:00", properties: {source: organic}}
+    - {id: e175, event: project_created, person: p0105, ts: "2026-06-10T21:02:00+01:00"}
+    - {id: e176, event: signed_up, person: p0077, ts: "2026-06-11T10:09:00+01:00", properties: {source: organic}}
+    - {id: e177, event: signed_up, person: p0129, ts: "2026-06-11T10:11:00+01:00", properties: {source: partner_launch}}
+    - {id: e178, event: project_created, person: p0077, ts: "2026-06-11T11:04:00+01:00"}
+    - {id: e179, event: signed_up, person: p0066, ts: "2026-06-11T11:44:00+01:00", properties: {source: organic}}
+    - {id: e180, event: project_created, person: c0230, ts: "2026-06-11T11:56:00+01:00"}
+    - {id: e181, event: signed_up, person: p0082, ts: "2026-06-11T12:18:00+01:00", properties: {source: organic}}
+    - {id: e182, event: signed_up, person: p0122, ts: "2026-06-11T12:38:00+01:00", properties: {source: partner_launch}}
+    - {id: e183, event: signed_up, person: p0100, ts: "2026-06-11T13:15:00+01:00", properties: {source: organic}}
+    - {id: e184, event: project_created, person: p0066, ts: "2026-06-11T13:19:00+01:00"}
+    - {id: e185, event: project_created, person: c0187, ts: "2026-06-11T14:02:00+01:00"}
+    - {id: e186, event: project_created, person: c0117, ts: "2026-06-11T14:06:00+01:00"}
+    - {id: e187, event: signed_up, person: p0089, ts: "2026-06-11T14:44:00+01:00", properties: {source: organic}}
+    - {id: e188, event: signed_up, person: p0139, ts: "2026-06-11T14:46:00+01:00", properties: {source: partner_launch}}
+    - {id: e189, event: signed_up, person: p0068, ts: "2026-06-11T15:02:00+01:00", properties: {source: organic}}
+    - {id: e190, event: signed_up, person: p0102, ts: "2026-06-11T15:06:00+01:00", properties: {source: organic}}
+    - {id: e191, event: project_created, person: p0100, ts: "2026-06-11T15:45:00+01:00"}
+    - {id: e192, event: project_created, person: p0068, ts: "2026-06-11T16:27:00+01:00"}
+    - {id: e193, event: signed_up, person: p0132, ts: "2026-06-11T16:31:00+01:00", properties: {source: partner_launch}}
+    - {id: e194, event: signed_up, person: p0116, ts: "2026-06-11T17:22:00+01:00", properties: {source: paid_search}}
+    - {id: e195, event: signed_up, person: p0137, ts: "2026-06-12T08:36:00+01:00", properties: {source: partner_launch}}
+    - {id: e196, event: signed_up, person: p0080, ts: "2026-06-12T08:59:00+01:00", properties: {source: organic}}
+    - {id: e197, event: signed_up, person: p0071, ts: "2026-06-12T09:10:00+01:00", properties: {source: organic}}
+    - {id: e198, event: signed_up, person: p0125, ts: "2026-06-12T09:12:00+01:00", properties: {source: partner_launch}}
+    - {id: e199, event: project_created, person: c0227, ts: "2026-06-12T09:32:00+01:00"}
+    - {id: e200, event: signed_up, person: p0120, ts: "2026-06-12T10:06:00+01:00", properties: {source: paid_search}}
+    - {id: e201, event: signed_up, person: p0103, ts: "2026-06-12T10:39:00+01:00", properties: {source: organic}}
+    - {id: e202, event: project_created, person: p0120, ts: "2026-06-12T11:39:00+01:00"}
+    - {id: e203, event: signed_up, person: p0131, ts: "2026-06-12T13:18:00+01:00", properties: {source: partner_launch}}
+    - {id: e204, event: project_created, person: c0204, ts: "2026-06-12T15:54:00+01:00"}
+    - {id: e205, event: signed_up, person: p0121, ts: "2026-06-12T16:23:00+01:00", properties: {source: partner_launch}}
+    - {id: e206, event: signed_up, person: p0065, ts: "2026-06-12T16:45:00+01:00", properties: {source: organic}}
+    - {id: e207, event: signed_up, person: p0110, ts: "2026-06-12T17:41:00+01:00", properties: {source: paid_search}}
+    - {id: e208, event: project_created, person: p0065, ts: "2026-06-12T19:02:00+01:00"}
+    - {id: e209, event: project_created, person: p0110, ts: "2026-06-12T22:22:00+01:00"}
+    - {id: e210, event: signed_up, person: p0107, ts: "2026-06-13T08:17:00+01:00", properties: {source: paid_search}}
+    - {id: e211, event: project_created, person: c0234, ts: "2026-06-13T08:43:00+01:00"}
+    - {id: e212, event: signed_up, person: p0136, ts: "2026-06-13T11:52:00+01:00", properties: {source: partner_launch}}
+    - {id: e213, event: signed_up, person: p0073, ts: "2026-06-13T13:23:00+01:00", properties: {source: organic}}
+    - {id: e214, event: signed_up, person: p0061, ts: "2026-06-13T13:26:00+01:00", properties: {source: organic}}
+    - {id: e215, event: signed_up, person: p0126, ts: "2026-06-13T13:39:00+01:00", properties: {source: partner_launch}}
+    - {id: e216, event: signed_up, person: p0088, ts: "2026-06-13T14:51:00+01:00", properties: {source: organic}}
+    - {id: e217, event: signed_up, person: p0112, ts: "2026-06-13T15:07:00+01:00", properties: {source: paid_search}}
+    - {id: e218, event: signed_up, person: p0076, ts: "2026-06-13T15:58:00+01:00", properties: {source: organic}}
+    - {id: e219, event: signed_up, person: p0069, ts: "2026-06-13T16:09:00+01:00", properties: {source: organic}}
+    - {id: e220, event: signed_up, person: p0124, ts: "2026-06-13T16:16:00+01:00", properties: {source: partner_launch}}
+    - {id: e221, event: project_created, person: p0076, ts: "2026-06-13T18:49:00+01:00"}
+    - {id: e222, event: signed_up, person: p0111, ts: "2026-06-14T08:35:00+01:00", properties: {source: paid_search}}
+    - {id: e223, event: signed_up, person: p0109, ts: "2026-06-14T09:05:00+01:00", properties: {source: paid_search}}
+    - {id: e224, event: signed_up, person: p0123, ts: "2026-06-14T09:39:00+01:00", properties: {source: partner_launch}}
+    - {id: e225, event: signed_up, person: p0067, ts: "2026-06-14T10:00:00+01:00", properties: {source: organic}}
+    - {id: e226, event: signed_up, person: p0081, ts: "2026-06-14T10:20:00+01:00", properties: {source: organic}}
+    - {id: e227, event: project_created, person: c0138, ts: "2026-06-14T10:47:00+01:00"}
+    - {id: e228, event: project_created, person: p0123, ts: "2026-06-14T11:55:00+01:00"}
+    - {id: e229, event: signed_up, person: p0093, ts: "2026-06-14T13:20:00+01:00", properties: {source: organic}}
+    - {id: e230, event: signed_up, person: p0075, ts: "2026-06-14T13:44:00+01:00", properties: {source: organic}}
+    - {id: e231, event: signed_up, person: p0118, ts: "2026-06-14T14:51:00+01:00", properties: {source: paid_search}}
+    - {id: e232, event: signed_up, person: p0127, ts: "2026-06-14T15:54:00+01:00", properties: {source: partner_launch}}
+    - {id: e233, event: signed_up, person: p0087, ts: "2026-06-14T17:48:00+01:00", properties: {source: organic}}
+    - {id: e234, event: project_created, person: c0317, ts: "2026-06-15T08:30:00+01:00"}
+    - {id: e235, event: signed_up, person: p0149, ts: "2026-06-15T09:05:00+01:00", properties: {source: organic}}
+    - {id: e236, event: invited_teammate, person: c0317, ts: "2026-06-15T09:29:00+01:00"}
+    - {id: e237, event: signed_up, person: p0153, ts: "2026-06-15T10:17:00+01:00", properties: {source: partner_launch}}
+    - {id: e238, event: signed_up, person: p0145, ts: "2026-06-15T11:24:00+01:00", properties: {source: organic}}
+    - {id: e239, event: project_created, person: c0077, ts: "2026-06-15T11:45:00+01:00"}
+    - {id: e240, event: project_created, person: p0145, ts: "2026-06-15T12:15:00+01:00"}
+    - {id: e241, event: signed_up, person: p0150, ts: "2026-06-15T13:02:00+01:00", properties: {source: paid_search}}
+    - {id: e242, event: project_created, person: c0294, ts: "2026-06-15T13:20:00+01:00"}
+    - {id: e243, event: signed_up, person: p0151, ts: "2026-06-15T14:15:00+01:00", properties: {source: paid_search}}
+    - {id: e244, event: project_created, person: c0388, ts: "2026-06-15T14:35:00+01:00"}
+    - {id: e245, event: signed_up, person: p0146, ts: "2026-06-15T14:38:00+01:00", properties: {source: organic}}
+    - {id: e246, event: project_created, person: p0151, ts: "2026-06-15T15:27:00+01:00"}
+    - {id: e247, event: signed_up, person: p0147, ts: "2026-06-15T16:09:00+01:00", properties: {source: organic}}
+    - {id: e248, event: project_created, person: p0146, ts: "2026-06-15T18:33:00+01:00"}
+    - {id: e249, event: signed_up, person: p0156, ts: "2026-06-16T08:05:00+01:00", properties: {source: partner_launch}}
+    - {id: e250, event: signed_up, person: p0154, ts: "2026-06-16T08:21:00+01:00", properties: {source: partner_launch}}
+    - {id: e251, event: signed_up, person: p0152, ts: "2026-06-16T08:48:00+01:00", properties: {source: partner_launch}}
+    - {id: e252, event: signed_up, person: p0141, ts: "2026-06-16T11:07:00+01:00", properties: {source: organic}}
+    - {id: e253, event: signed_up, person: p0155, ts: "2026-06-16T11:52:00+01:00", properties: {source: partner_launch}}
+    - {id: e254, event: signed_up, person: p0148, ts: "2026-06-16T13:51:00+01:00", properties: {source: organic}}
+    - {id: e255, event: signed_up, person: p0142, ts: "2026-06-16T14:10:00+01:00", properties: {source: organic}}
+    - {id: e256, event: signed_up, person: p0143, ts: "2026-06-16T15:02:00+01:00", properties: {source: organic}}
+    - {id: e257, event: project_created, person: p0148, ts: "2026-06-16T15:39:00+01:00"}
+    - {id: e258, event: signed_up, person: p0144, ts: "2026-06-16T17:11:00+01:00", properties: {source: organic}}
+    - {id: e259, event: project_created, person: c0326, ts: "2026-06-16T17:11:00+01:00"}
+    - {id: e260, event: project_created, person: c0001, ts: "2026-06-16T17:48:00+01:00"}
+    - {id: e261, event: project_created, person: p0143, ts: "2026-06-16T18:04:00+01:00"}
+chat:
+  channels:
+    - {id: ch_growth, name: growth, members: [maya@loomly.test, theo@loomly.test, ines@loomly.test], topic: "Signups, activation and experiments", created: "2026-01-12T09:00:00+00:00"}
+    - {id: ch_general, name: general, members: [maya@loomly.test, theo@loomly.test, ines@loomly.test, raj@loomly.test], topic: "Company-wide", created: "2026-01-12T09:00:00+00:00"}
+  messages:
+    - {id: g1, channel: ch_growth, author: theo@loomly.test, text: "Brightwave partner launch is live! Their customers get Loomly free for 3 months via the Brightwave app store link.", ts: "2026-06-08T11:05:00+01:00", thread_id: null}
+    - {id: g2, channel: ch_growth, author: ines@loomly.test, text: "New onboarding checklist copy shipped to 50% of signups, results in two weeks.", ts: "2026-05-27T15:20:00+01:00", thread_id: null}
+    - {id: n1, channel: ch_general, author: raj@loomly.test, text: "Office is closed on Friday for the move.", ts: "2026-06-16T09:10:00+01:00", thread_id: null}

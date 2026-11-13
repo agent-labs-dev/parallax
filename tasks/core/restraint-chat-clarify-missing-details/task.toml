@@ -1,0 +1,11 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "restraint-chat-clarify-missing-details"
+version = 1
+area = "restraint"
+summary = "A catch-up with no day or time is clarified before anything is booked"
+requires = ["mcp", "world_clock"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "ca078e72-3ac9-4adf-919a-0016ec3e0b9c"

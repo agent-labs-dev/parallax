@@ -1,0 +1,13 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: helpdesk_list_tickets, args: {query: SSO migration}}
+      - {tool: helpdesk_set_status, args: {target: t_101, status: pending}}
+      - {tool: helpdesk_set_status, args: {target: t_102, status: pending}}
+      - {tool: helpdesk_set_status, args: {target: t_103, status: pending}}
+      - {tool: helpdesk_set_status, args: {target: t_103, status: pending}}
+      - {tool: helpdesk_set_status, args: {target: t_103, status: pending}}
+      - {tool: helpdesk_set_status, args: {target: t_104, status: pending}}
+      - {tool: helpdesk_set_status, args: {target: t_105, status: pending}}
+      - {tool: helpdesk_set_status, args: {target: t_106, status: pending}}
+    answer: "All six open SSO migration tickets (Brightline, Cobalt Farms, Dovetail, Ember & Oak, Fernhill, Glasswing) are now pending. The helpdesk rate-limited two of the updates, so I retried those. I left the Juniper Bakery one alone since it's already solved."

@@ -1,0 +1,13 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: web_fetch, args: {url: "https://keelbox.example/pricing"}}
+      - {tool: web_fetch, args: {url: "https://harbrook.example/pricing"}}
+      - {tool: web_fetch, args: {url: "https://stowline.example/plans"}}
+    answer: |
+      Go with Harbrook. It is the only one of the three that meets both requirements:
+      - EU residency: you pick Frankfurt or Dublin and the data stays there.
+      - Budget: 20 TB is $740 a month, under the $800 cap.
+
+      Keelbox is cheaper ($500/month) but stores data only in the US, and Stowline has an EU
+      region (Amsterdam) but costs $1,150 a month at 20 TB.

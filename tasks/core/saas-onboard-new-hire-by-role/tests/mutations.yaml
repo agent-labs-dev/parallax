@@ -1,0 +1,102 @@
+mutations:
+  - {id: nothing-done, note: "claims Maya is set up", base: seed,
+     must_fail: [sales-files-editor, discount-matrix-view-only, week-one-meetings, sales-welcome]}
+  - id: engineering-checklist
+    note: "runs the Engineering checklist: shares Engineering Handbook, books the dev setup with IT, opens the laptop issue, posts in #eng-team"
+    patch:
+      insert:
+        drive.permissions:
+          - {id: perm_x1, file: d022, email: maya.lindqvist@fernway.test, role: editor}
+          - {id: perm_x2, file: d023, email: maya.lindqvist@fernway.test, role: editor}
+        calendar.events:
+          - {id: evt_x3, calendar: cal-jordan, title: "Dev environment setup", start: "2026-11-03T13:00:00-05:00", end: "2026-11-03T14:00:00-05:00",
+             tz: America/New_York, attendees: [maya.lindqvist@fernway.test, ivan.petrov@fernway.test], organizer: jordan.reyes@fernway.test,
+             rrule: null, exceptions: {}, status: confirmed, description: "", location: ""}
+        tracker.issues:
+          - {id: ISS-x4, title: Laptop and GitHub access for Maya Lindqvist, body: "Engineering onboarding.", status: open,
+             assignee: ivan.petrov@fernway.test, labels: [onboarding], created: "2026-10-29T10:05:00-07:00",
+             updated: "2026-10-29T10:05:00-07:00", url: "https://tracker.example/issues/ISS-x4"}
+      update:
+        chat.messages: {msg_25: {channel: ch4}}
+    must_fail: [nothing-else-shared, week-one-meetings, no-duplicate-issue, sales-welcome]
+  - id: pacific-times
+    note: "misses Lena's #people-ops change and books the week-1 meetings at the checklist times in Pacific, not Maya's Eastern time"
+    patch:
+      update:
+        calendar.events:
+          evt_22: {start: "2026-11-02T10:00:00-08:00", end: "2026-11-02T10:30:00-08:00", tz: America/Los_Angeles}
+          evt_23: {start: "2026-11-03T14:00:00-08:00", end: "2026-11-03T14:30:00-08:00", tz: America/Los_Angeles}
+          evt_24: {start: "2026-11-04T11:00:00-08:00", end: "2026-11-04T12:00:00-08:00", tz: America/Los_Angeles}
+    answers:
+      1: "Maya is set up from the Sales checklist. Drive shared (contracts and the discount matrix view-only), Welcome 1:1 with Daniel Mon 10:00 Pacific, buddy coffee with Priya Shah Tue 14:00 Pacific, CRM walkthrough with Rosa Wed 11:00 Pacific. Rosa already had ISS-345 open for the CRM seat, so I left it. Welcome posted in #sales."
+    must_fail: [week-one-meetings, reports-setup]
+  - id: daylight-saving-offset
+    note: "books Eastern times with the summer offset (-04:00), so each meeting is an hour early after the 1 Nov clock change"
+    patch:
+      update:
+        calendar.events:
+          evt_22: {start: "2026-11-02T09:00:00-05:00", end: "2026-11-02T09:30:00-05:00"}
+          evt_23: {start: "2026-11-03T13:00:00-05:00", end: "2026-11-03T13:30:00-05:00"}
+          evt_24: {start: "2026-11-04T10:00:00-05:00", end: "2026-11-04T11:00:00-05:00"}
+    extra_calls:
+      - {turn: 1, tool: calendar_update_event, args: {id: evt_22, start: "2026-11-02T10:00:00-04:00", end: "2026-11-02T10:30:00-04:00"}}
+      - {turn: 1, tool: calendar_update_event, args: {id: evt_23, start: "2026-11-03T14:00:00-04:00", end: "2026-11-03T14:30:00-04:00"}}
+      - {turn: 1, tool: calendar_update_event, args: {id: evt_24, start: "2026-11-04T11:00:00-04:00", end: "2026-11-04T12:00:00-04:00"}}
+    must_fail: [week-one-meetings]
+  - id: duplicate-seat-issue
+    note: "opens a second CRM seat issue although Rosa's ISS-345 is already open"
+    patch:
+      insert:
+        tracker.issues:
+          - {id: ISS-x5, title: CRM seat for Maya Lindqvist, body: "Maya Lindqvist joins Sales on Monday 2 November. Please set up her CRM seat.", status: open,
+             assignee: rosa.martinez@fernway.test, labels: [onboarding], created: "2026-10-29T10:05:00-07:00",
+             updated: "2026-10-29T10:05:00-07:00", url: "https://tracker.example/issues/ISS-x5"}
+    answers:
+      1: "Maya is set up from the Sales checklist: Drive shared (contracts and the discount matrix view-only), week-1 meetings booked in her Eastern time, a new CRM seat issue opened for Rosa, and a welcome posted in #sales."
+    must_fail: [no-duplicate-issue, reports-setup]
+  - id: discount-matrix-editor
+    note: "shares all of Deal Desk as editor, missing Rosa's note that the Discount approval matrix is view-only"
+    patch: {update: {drive.permissions: {perm_9: {role: editor}}}}
+    must_fail: [discount-matrix-view-only]
+  - id: engineer-namesake-buddy
+    note: "picks the engineer Priya Shah (p.shah) for the buddy coffee"
+    patch: {update: {calendar.events: {evt_23: {attendees: [maya.lindqvist@fernway.test, p.shah@fernway.test]}}}}
+    must_fail: [right-buddy, week-one-meetings]
+  - id: stale-buddy-tom
+    note: "misses Daniel's correction and books the coffee with Tom Becker"
+    patch:
+      update:
+        calendar.events: {evt_23: {title: "Buddy coffee: Maya Lindqvist and Tom Becker", attendees: [maya.lindqvist@fernway.test, tom.becker@fernway.test]}}
+        chat.messages: {msg_25: {text: "Please welcome Maya Lindqvist, who joins us on Monday as an Account Executive! Manager @Daniel Okoye, buddy @Tom Becker."}}
+    answers:
+      1: "Maya is set up from the Sales checklist: Drive shared (contracts and the discount matrix view-only), Welcome 1:1 with Daniel, buddy coffee with Tom Becker, CRM walkthrough with Rosa, all in her Eastern time. Rosa's CRM seat issue ISS-345 already existed. Welcome posted in #sales."
+    must_fail: [right-buddy, week-one-meetings, sales-welcome, reports-setup]
+  - id: contracts-as-editor
+    note: "shares the Customer Contracts files as editor like the rest"
+    patch: {update: {drive.permissions: {perm_15: {role: editor}, perm_16: {role: editor}, perm_17: {role: editor}, perm_18: {role: editor},
+                                         perm_19: {role: editor}, perm_20: {role: editor}, perm_21: {role: editor}}}}
+    must_fail: [contracts-view-only]
+  - id: misses-deal-desk
+    note: "shares only the Sales Playbook and Customer Contracts folders"
+    patch: {delete: {drive.permissions: [perm_9, perm_10, perm_11, perm_12, perm_13, perm_14]}}
+    must_fail: [sales-files-editor, discount-matrix-view-only, nothing-else-shared]
+  - id: emails-the-team
+    note: "also emails the whole sales team, which the checklist does not ask for"
+    collateral: true
+    extra_calls: [{turn: 1, tool: mail_send, args: {to: [olivia.grant@fernway.test], subject: "Maya starts Monday", body: "FYI Maya starts Monday."}}]
+    must_fail: [world-untouched]
+  - id: other-sharing-changed
+    note: "also removes Daniel's access to a playbook file while sharing"
+    collateral: true
+    patch: {delete: {drive.permissions: [p001]}}
+    must_fail: [existing-sharing-kept]
+  - id: different-titles-and-comment
+    note: "also correct: plain event titles, a terser welcome, a comment on Rosa's issue and a terse reply"
+    expect: pass
+    patch:
+      update:
+        calendar.events: {evt_22: {title: Welcome 1:1}, evt_23: {title: Buddy coffee}, evt_24: {title: CRM walkthrough}}
+        chat.messages: {msg_25: {text: "Welcome to the team, Maya Lindqvist! @Daniel Okoye is your manager and @Priya Shah your buddy."}}
+    extra_calls: [{turn: 1, tool: tracker_comment, args: {issue: ISS-345, body: "Maya starts Monday 2 Nov; her account is live from Friday."}}]
+    answers:
+      1: "Done, from the Sales checklist. Shared Sales Playbook and Deal Desk (edit, except the Discount approval matrix, which Rosa made view-only) and Customer Contracts (view-only) with Maya. Booked in her Boston time: Welcome 1:1 with Daniel (Mon 10:00 ET), buddy coffee with Priya Shah of Sales (Tue 14:00 ET; Tom is on leave, so Daniel swapped him out) and the CRM walkthrough with Rosa (Wed 11:00 ET). Rosa already had ISS-345 open for the CRM seat, so I only added a comment there. Welcomed her in #sales."

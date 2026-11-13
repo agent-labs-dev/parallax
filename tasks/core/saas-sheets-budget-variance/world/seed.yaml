@@ -1,0 +1,161 @@
+now: 2026-06-04T10:00:00+01:00
+user: {name: Riley Okafor, email: riley@tandemco.test, timezone: Europe/London}
+sheets:
+  sheets:
+    - {id: sh1, title: Transactions, columns: [date, vendor, category, amount]}
+    - {id: sh2, title: Budget, columns: [month, category, budget]}
+  rows:
+    - {id: t001, sheet: sh1, position: 1, date: "2026-04-20", vendor: "Uber", category: Travel, amount: 372.01}
+    - {id: t002, sheet: sh1, position: 2, date: "2026-04-20", vendor: "Deliveroo", category: Meals, amount: 98.30}
+    - {id: t003, sheet: sh1, position: 3, date: "2026-04-21", vendor: "Zoom", category: Software, amount: 170.65}
+    - {id: t004, sheet: sh1, position: 4, date: "2026-04-22", vendor: "Brightside Dev", category: Contractors, amount: 899.49}
+    - {id: t005, sheet: sh1, position: 5, date: "2026-04-22", vendor: "Deliveroo", category: Meals, amount: 271.25}
+    - {id: t006, sheet: sh1, position: 6, date: "2026-04-23", vendor: "Trainline", category: Travel, amount: 576.37}
+    - {id: t007, sheet: sh1, position: 7, date: "2026-04-23", vendor: "Zoom", category: Software, amount: 826.25}
+    - {id: t008, sheet: sh1, position: 8, date: "2026-04-23", vendor: "Ocado", category: Office, amount: 315.79}
+    - {id: t009, sheet: sh1, position: 9, date: "2026-04-23", vendor: "Ocado", category: Office, amount: 417.26}
+    - {id: t010, sheet: sh1, position: 10, date: "2026-04-23", vendor: "Printful", category: Marketing, amount: 295.66}
+    - {id: t011, sheet: sh1, position: 11, date: "2026-04-23", vendor: "Wagamama", category: Meals, amount: 219.96}
+    - {id: t012, sheet: sh1, position: 12, date: "2026-04-23", vendor: "British Airways", category: Travel, amount: 819.48}
+    - {id: t013, sheet: sh1, position: 13, date: "2026-04-24", vendor: "Trainline", category: Travel, amount: 543.59}
+    - {id: t014, sheet: sh1, position: 14, date: "2026-04-24", vendor: "Eventbrite", category: Marketing, amount: 361.31}
+    - {id: t015, sheet: sh1, position: 15, date: "2026-04-24", vendor: "Pret", category: Meals, amount: 324.49}
+    - {id: t016, sheet: sh1, position: 16, date: "2026-04-24", vendor: "Uber", category: Travel, amount: 687.04}
+    - {id: t017, sheet: sh1, position: 17, date: "2026-04-25", vendor: "Eurostar", category: Travel, amount: 808.56}
+    - {id: t018, sheet: sh1, position: 18, date: "2026-04-25", vendor: "Northdesk Ltd", category: Contractors, amount: 163.05}
+    - {id: t019, sheet: sh1, position: 19, date: "2026-04-25", vendor: "Zoom", category: Software, amount: 333.15}
+    - {id: t020, sheet: sh1, position: 20, date: "2026-04-25", vendor: "Ocado", category: Office, amount: 886.51}
+    - {id: t021, sheet: sh1, position: 21, date: "2026-04-25", vendor: "Google Ads", category: Marketing, amount: 470.59}
+    - {id: t022, sheet: sh1, position: 22, date: "2026-04-26", vendor: "British Airways", category: Travel, amount: 778.33}
+    - {id: t023, sheet: sh1, position: 23, date: "2026-04-26", vendor: "Ikea", category: Office, amount: 248.25}
+    - {id: t024, sheet: sh1, position: 24, date: "2026-04-26", vendor: "Amazon", category: Office, amount: 630.38}
+    - {id: t025, sheet: sh1, position: 25, date: "2026-04-26", vendor: "Meta Ads", category: Marketing, amount: 701.53}
+    - {id: t026, sheet: sh1, position: 26, date: "2026-04-26", vendor: "Eventbrite", category: Marketing, amount: 776.71}
+    - {id: t027, sheet: sh1, position: 27, date: "2026-04-26", vendor: "Linear", category: Software, amount: 844.30}
+    - {id: t028, sheet: sh1, position: 28, date: "2026-04-27", vendor: "Meta Ads", category: Marketing, amount: 141.40}
+    - {id: t029, sheet: sh1, position: 29, date: "2026-04-27", vendor: "Zoom", category: Software, amount: 522.26}
+    - {id: t030, sheet: sh1, position: 30, date: "2026-04-27", vendor: "Trainline", category: Travel, amount: 152.79}
+    - {id: t031, sheet: sh1, position: 31, date: "2026-04-28", vendor: "Hale Consulting", category: Contractors, amount: 698.15}
+    - {id: t032, sheet: sh1, position: 32, date: "2026-04-28", vendor: "Trainline", category: Travel, amount: 807.97}
+    - {id: t033, sheet: sh1, position: 33, date: "2026-04-28", vendor: "Brightside Dev", category: Contractors, amount: 844.93}
+    - {id: t034, sheet: sh1, position: 34, date: "2026-04-29", vendor: "Brightside Dev", category: Contractors, amount: 338.63}
+    - {id: t035, sheet: sh1, position: 35, date: "2026-04-29", vendor: "Eventbrite", category: Marketing, amount: 361.72}
+    - {id: t036, sheet: sh1, position: 36, date: "2026-04-29", vendor: "Wagamama", category: Meals, amount: 767.84}
+    - {id: t037, sheet: sh1, position: 37, date: "2026-04-30", vendor: "Deliveroo", category: Meals, amount: 621.62}
+    - {id: t038, sheet: sh1, position: 38, date: "2026-04-30", vendor: "Northdesk Ltd", category: Contractors, amount: 304.82}
+    - {id: t039, sheet: sh1, position: 39, date: "2026-04-30", vendor: "Linear", category: Software, amount: 465.96}
+    - {id: t040, sheet: sh1, position: 40, date: "2026-04-30", vendor: "Premier Inn", category: Travel, amount: 139.73}
+    - {id: t041, sheet: sh1, position: 41, date: "2026-04-30", vendor: "Zoom", category: Software, amount: 640.00}
+    - {id: t042, sheet: sh1, position: 42, date: "2026-04-30", vendor: "Pret", category: Meals, amount: 212.40}
+    - {id: t043, sheet: sh1, position: 43, date: "2026-05-01", vendor: "Uber", category: Travel, amount: 772.29}
+    - {id: t044, sheet: sh1, position: 44, date: "2026-05-01", vendor: "Hale Consulting", category: Contractors, amount: 1998.77}
+    - {id: t045, sheet: sh1, position: 45, date: "2026-05-02", vendor: "Premier Inn", category: Travel, amount: 70.24}
+    - {id: t046, sheet: sh1, position: 46, date: "2026-05-02", vendor: "Viking", category: Office, amount: 184.16}
+    - {id: t047, sheet: sh1, position: 47, date: "2026-05-02", vendor: "Pret", category: Meals, amount: 141.96}
+    - {id: t048, sheet: sh1, position: 48, date: "2026-05-02", vendor: "Wagamama", category: Meals, amount: 62.51}
+    - {id: t049, sheet: sh1, position: 49, date: "2026-05-03", vendor: "Eurostar", category: Travel, amount: 995.04}
+    - {id: t050, sheet: sh1, position: 50, date: "2026-05-03", vendor: "Dishoom", category: Meals, amount: 256.47}
+    - {id: t051, sheet: sh1, position: 51, date: "2026-05-04", vendor: "Zoom", category: Software, amount: 415.46}
+    - {id: t052, sheet: sh1, position: 52, date: "2026-05-05", vendor: "Trainline", category: Travel, amount: 384.14}
+    - {id: t053, sheet: sh1, position: 53, date: "2026-05-05", vendor: "British Airways", category: Travel, amount: 244.45}
+    - {id: t054, sheet: sh1, position: 54, date: "2026-05-05", vendor: "Ikea", category: Office, amount: 431.55}
+    - {id: t055, sheet: sh1, position: 55, date: "2026-05-07", vendor: "Ocado", category: Office, amount: 39.22}
+    - {id: t056, sheet: sh1, position: 56, date: "2026-05-08", vendor: "Zoom", category: Software, amount: 210.88}
+    - {id: t057, sheet: sh1, position: 57, date: "2026-05-08", vendor: "GitHub", category: Software, amount: 474.85}
+    - {id: t058, sheet: sh1, position: 58, date: "2026-05-08", vendor: "Zoom", category: Software, amount: 996.85}
+    - {id: t059, sheet: sh1, position: 59, date: "2026-05-08", vendor: "LinkedIn Ads", category: Marketing, amount: 30.31}
+    - {id: t060, sheet: sh1, position: 60, date: "2026-05-08", vendor: "Ikea", category: Office, amount: 1.08}
+    - {id: t061, sheet: sh1, position: 61, date: "2026-05-08", vendor: "Wagamama", category: Meals, amount: 606.83}
+    - {id: t062, sheet: sh1, position: 62, date: "2026-05-08", vendor: "Dishoom", category: Meals, amount: 28.29}
+    - {id: t063, sheet: sh1, position: 63, date: "2026-05-09", vendor: "Uber", category: Travel, amount: 654.61}
+    - {id: t064, sheet: sh1, position: 64, date: "2026-05-09", vendor: "Uber", category: Travel, amount: 130.03}
+    - {id: t065, sheet: sh1, position: 65, date: "2026-05-10", vendor: "Notion", category: Software, amount: 997.59}
+    - {id: t066, sheet: sh1, position: 66, date: "2026-05-10", vendor: "Eurostar", category: Travel, amount: 405.64}
+    - {id: t067, sheet: sh1, position: 67, date: "2026-05-10", vendor: "Printful", category: Marketing, amount: 658.08}
+    - {id: t068, sheet: sh1, position: 68, date: "2026-05-10", vendor: "Hale Consulting", category: Contractors, amount: 5220.55}
+    - {id: t069, sheet: sh1, position: 69, date: "2026-05-12", vendor: "Eurostar", category: Travel, amount: 518.19}
+    - {id: t070, sheet: sh1, position: 70, date: "2026-05-12", vendor: "Northdesk Ltd", category: Contractors, amount: 6152.52}
+    - {id: t071, sheet: sh1, position: 71, date: "2026-05-13", vendor: "GitHub", category: Software, amount: 432.38}
+    - {id: t072, sheet: sh1, position: 72, date: "2026-05-13", vendor: "British Airways", category: Travel, amount: 632.06}
+    - {id: t073, sheet: sh1, position: 73, date: "2026-05-13", vendor: "Google Ads", category: Marketing, amount: 2305.06}
+    - {id: t074, sheet: sh1, position: 74, date: "2026-05-13", vendor: "Viking", category: Office, amount: 128.63}
+    - {id: t075, sheet: sh1, position: 75, date: "2026-05-13", vendor: "Deliveroo", category: Meals, amount: 136.13}
+    - {id: t076, sheet: sh1, position: 76, date: "2026-05-14", vendor: "Amazon", category: Office, amount: 44.77}
+    - {id: t077, sheet: sh1, position: 77, date: "2026-05-14", vendor: "Pixel & Co", category: Contractors, amount: 1703.36}
+    - {id: t078, sheet: sh1, position: 78, date: "2026-05-14", vendor: "Deliveroo", category: Meals, amount: 143.61}
+    - {id: t079, sheet: sh1, position: 79, date: "2026-05-15", vendor: "GitHub", category: Software, amount: 140.99}
+    - {id: t080, sheet: sh1, position: 80, date: "2026-05-15", vendor: "LinkedIn Ads", category: Marketing, amount: 48.05}
+    - {id: t081, sheet: sh1, position: 81, date: "2026-05-15", vendor: "LinkedIn Ads", category: Marketing, amount: 552.02}
+    - {id: t082, sheet: sh1, position: 82, date: "2026-05-15", vendor: "Printful", category: Marketing, amount: 431.74}
+    - {id: t083, sheet: sh1, position: 83, date: "2026-05-15", vendor: "Printful", category: Marketing, amount: 1444.24}
+    - {id: t084, sheet: sh1, position: 84, date: "2026-05-15", vendor: "Wagamama", category: Meals, amount: 21.74}
+    - {id: t085, sheet: sh1, position: 85, date: "2026-05-16", vendor: "Miro", category: Software, amount: 755.01}
+    - {id: t086, sheet: sh1, position: 86, date: "2026-05-16", vendor: "Trainline", category: Travel, amount: 1003.28}
+    - {id: t087, sheet: sh1, position: 87, date: "2026-05-16", vendor: "Google Ads", category: Marketing, amount: 615.79}
+    - {id: t088, sheet: sh1, position: 88, date: "2026-05-16", vendor: "Pret", category: Meals, amount: 6.85}
+    - {id: t089, sheet: sh1, position: 89, date: "2026-05-17", vendor: "Figma", category: Software, amount: 409.21}
+    - {id: t090, sheet: sh1, position: 90, date: "2026-05-17", vendor: "GitHub", category: Software, amount: 207.25}
+    - {id: t091, sheet: sh1, position: 91, date: "2026-05-17", vendor: "Ocado", category: Office, amount: 196.97}
+    - {id: t092, sheet: sh1, position: 92, date: "2026-05-17", vendor: "Northdesk Ltd", category: Contractors, amount: 2784.66}
+    - {id: t093, sheet: sh1, position: 93, date: "2026-05-18", vendor: "Zoom", category: Software, amount: 68.40}
+    - {id: t094, sheet: sh1, position: 94, date: "2026-05-18", vendor: "1Password", category: Software, amount: 866.33}
+    - {id: t095, sheet: sh1, position: 95, date: "2026-05-18", vendor: "Meta Ads", category: Marketing, amount: 1136.00}
+    - {id: t096, sheet: sh1, position: 96, date: "2026-05-18", vendor: "Eventbrite", category: Marketing, amount: 423.45}
+    - {id: t097, sheet: sh1, position: 97, date: "2026-05-19", vendor: "Notion", category: Software, amount: 115.40}
+    - {id: t098, sheet: sh1, position: 98, date: "2026-05-19", vendor: "Slack", category: Software, amount: 2.25}
+    - {id: t099, sheet: sh1, position: 99, date: "2026-05-19", vendor: "GitHub", category: Software, amount: 103.65}
+    - {id: t100, sheet: sh1, position: 100, date: "2026-05-19", vendor: "Wagamama", category: Meals, amount: 33.92}
+    - {id: t101, sheet: sh1, position: 101, date: "2026-05-20", vendor: "Premier Inn", category: Travel, amount: 278.06}
+    - {id: t102, sheet: sh1, position: 102, date: "2026-05-21", vendor: "British Airways", category: Travel, amount: 133.99}
+    - {id: t103, sheet: sh1, position: 103, date: "2026-05-21", vendor: "Meta Ads", category: Marketing, amount: 214.60}
+    - {id: t104, sheet: sh1, position: 104, date: "2026-05-21", vendor: "Wagamama", category: Meals, amount: 1.71}
+    - {id: t105, sheet: sh1, position: 105, date: "2026-05-22", vendor: "Eurostar", category: Travel, amount: 27.45}
+    - {id: t106, sheet: sh1, position: 106, date: "2026-05-23", vendor: "Google Ads", category: Marketing, amount: 750.43}
+    - {id: t107, sheet: sh1, position: 107, date: "2026-05-23", vendor: "Ocado", category: Office, amount: 83.62}
+    - {id: t108, sheet: sh1, position: 108, date: "2026-05-24", vendor: "Trainline", category: Travel, amount: 177.85}
+    - {id: t109, sheet: sh1, position: 109, date: "2026-05-25", vendor: "British Airways", category: Travel, amount: -380.00}
+    - {id: t110, sheet: sh1, position: 110, date: "2026-05-25", vendor: "Eventbrite", category: Marketing, amount: 3428.61}
+    - {id: t111, sheet: sh1, position: 111, date: "2026-05-26", vendor: "Viking", category: Office, amount: 530.00}
+    - {id: t112, sheet: sh1, position: 112, date: "2026-05-26", vendor: "Northdesk Ltd", category: Contractors, amount: 340.14}
+    - {id: t113, sheet: sh1, position: 113, date: "2026-05-27", vendor: "Zoom", category: Software, amount: 194.14}
+    - {id: t114, sheet: sh1, position: 114, date: "2026-05-27", vendor: "Miro", category: Software, amount: 681.73}
+    - {id: t115, sheet: sh1, position: 115, date: "2026-05-27", vendor: "Eurostar", category: Travel, amount: 72.68}
+    - {id: t116, sheet: sh1, position: 116, date: "2026-05-27", vendor: "Meta Ads", category: Marketing, amount: 1761.62}
+    - {id: t117, sheet: sh1, position: 117, date: "2026-05-27", vendor: "Printful", category: Marketing, amount: -900.00}
+    - {id: t118, sheet: sh1, position: 118, date: "2026-05-27", vendor: "Dishoom", category: Meals, amount: 205.91}
+    - {id: t119, sheet: sh1, position: 119, date: "2026-05-29", vendor: "1Password", category: Software, amount: 1377.63}
+    - {id: t120, sheet: sh1, position: 120, date: "2026-05-29", vendor: "Deliveroo", category: Meals, amount: 10.20}
+    - {id: t121, sheet: sh1, position: 121, date: "2026-05-31", vendor: "Dishoom", category: Meals, amount: 143.87}
+    - {id: t122, sheet: sh1, position: 122, date: "2026-06-01", vendor: "Miro", category: Software, amount: 1200.00}
+    - {id: t123, sheet: sh1, position: 123, date: "2026-06-01", vendor: "Uber", category: Travel, amount: 310.50}
+    - {id: t124, sheet: sh1, position: 124, date: "2026-06-01", vendor: "Slack", category: Software, amount: 301.12}
+    - {id: t125, sheet: sh1, position: 125, date: "2026-06-01", vendor: "Notion", category: Software, amount: 348.61}
+    - {id: t126, sheet: sh1, position: 126, date: "2026-06-01", vendor: "Ikea", category: Office, amount: 170.12}
+    - {id: t127, sheet: sh1, position: 127, date: "2026-06-01", vendor: "Pret", category: Meals, amount: 81.57}
+    - {id: t128, sheet: sh1, position: 128, date: "2026-06-01", vendor: "Ocado", category: Office, amount: 229.94}
+    - {id: t129, sheet: sh1, position: 129, date: "2026-06-01", vendor: "Notion", category: Software, amount: 18.77}
+    - {id: t130, sheet: sh1, position: 130, date: "2026-06-02", vendor: "GitHub", category: Software, amount: 47.11}
+    - {id: t131, sheet: sh1, position: 131, date: "2026-06-02", vendor: "Viking", category: Office, amount: 182.46}
+    - {id: t132, sheet: sh1, position: 132, date: "2026-06-03", vendor: "Wagamama", category: Meals, amount: 134.33}
+    - {id: t133, sheet: sh1, position: 133, date: "2026-06-03", vendor: "Ikea", category: Office, amount: 91.13}
+    - {id: b01, sheet: sh2, position: 1, month: "2026-04", category: Software, budget: 8000}
+    - {id: b02, sheet: sh2, position: 2, month: "2026-04", category: Travel, budget: 5000}
+    - {id: b03, sheet: sh2, position: 3, month: "2026-04", category: Marketing, budget: 12000}
+    - {id: b04, sheet: sh2, position: 4, month: "2026-04", category: Office, budget: 1500}
+    - {id: b05, sheet: sh2, position: 5, month: "2026-04", category: Contractors, budget: 20000}
+    - {id: b06, sheet: sh2, position: 6, month: "2026-04", category: Meals, budget: 1200}
+    - {id: b07, sheet: sh2, position: 7, month: "2026-04", category: Training, budget: 2000}
+    - {id: b08, sheet: sh2, position: 8, month: "2026-05", category: Software, budget: 8000}
+    - {id: b09, sheet: sh2, position: 9, month: "2026-05", category: Travel, budget: 5000}
+    - {id: b10, sheet: sh2, position: 10, month: "2026-05", category: Marketing, budget: 12000}
+    - {id: b11, sheet: sh2, position: 11, month: "2026-05", category: Office, budget: 1500}
+    - {id: b12, sheet: sh2, position: 12, month: "2026-05", category: Contractors, budget: 20000}
+    - {id: b13, sheet: sh2, position: 13, month: "2026-05", category: Meals, budget: 1200}
+    - {id: b14, sheet: sh2, position: 14, month: "2026-05", category: Training, budget: 2000}
+    - {id: b15, sheet: sh2, position: 15, month: "2026-06", category: Software, budget: 8500}
+    - {id: b16, sheet: sh2, position: 16, month: "2026-06", category: Travel, budget: 5000}
+    - {id: b17, sheet: sh2, position: 17, month: "2026-06", category: Marketing, budget: 14000}
+    - {id: b18, sheet: sh2, position: 18, month: "2026-06", category: Office, budget: 1500}
+    - {id: b19, sheet: sh2, position: 19, month: "2026-06", category: Contractors, budget: 20000}
+    - {id: b20, sheet: sh2, position: 20, month: "2026-06", category: Meals, budget: 1200}
+    - {id: b21, sheet: sh2, position: 21, month: "2026-06", category: Training, budget: 2000}

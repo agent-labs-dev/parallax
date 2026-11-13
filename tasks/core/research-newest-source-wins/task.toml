@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "research-newest-source-wins"
+version = 1
+area = "research"
+summary = "Two sources disagree on a filing deadline; the newer official notice wins and the conflict is flagged"
+requires = ["mcp", "world_clock"]
+services = ["web"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "b7330612-21bd-49d0-b1ea-6a095267841f"

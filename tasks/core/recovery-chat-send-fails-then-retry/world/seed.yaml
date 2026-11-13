@@ -1,0 +1,24 @@
+now: 2026-06-03T09:12:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+chat:
+  channels:
+    - {id: c_launch, name: launch, members: [alex@northwind.test, priya@northwind.test, sam@northwind.test],
+       topic: "Release announcements", created: "2026-01-12T10:00:00+00:00"}
+    - {id: c_eng, name: eng, members: [alex@northwind.test, sam@northwind.test, kai@northwind.test],
+       topic: "Engineering chatter", created: "2026-01-12T10:00:00+00:00"}
+    - {id: c_general, name: general, members: [alex@northwind.test, priya@northwind.test, sam@northwind.test, kai@northwind.test],
+       topic: "Everything else", created: "2026-01-12T10:00:00+00:00"}
+  messages:
+    - {id: msg_l1, channel: c_launch, author: priya@northwind.test, text: "Release 2.3 is out: bulk tagging and the dark theme.",
+       ts: "2026-05-20T11:02:00+01:00", thread_id: null}
+    - {id: msg_e1, channel: c_eng, author: kai@northwind.test, text: "2.4 build is green, tagging it now.",
+       ts: "2026-06-03T08:40:00+01:00", thread_id: null}
+    - {id: msg_e2, channel: c_eng, author: sam@northwind.test, text: "Deployed 2.4 to production, all healthy.",
+       ts: "2026-06-03T08:58:00+01:00", thread_id: null}
+    - {id: msg_g1, channel: c_general, author: priya@northwind.test, text: "Reminder: team lunch on Friday.",
+       ts: "2026-06-02T15:00:00+01:00", thread_id: null}
+contacts:
+  people:
+    - {id: p1, name: Priya Shah, email: priya@northwind.test, company: Northwind}
+    - {id: p2, name: Sam Okafor, email: sam@northwind.test, company: Northwind}
+    - {id: p3, name: Kai Lindqvist, email: kai@northwind.test, company: Northwind}

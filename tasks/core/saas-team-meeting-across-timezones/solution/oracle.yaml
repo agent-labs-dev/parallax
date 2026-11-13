@@ -1,0 +1,18 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: user_clock_now, args: {}}
+      - {tool: chat_list_channels, args: {}}
+      - {tool: chat_read_channel, args: {channel: platform-leads}}
+      - {tool: contacts_search, args: {query: Platform Lead}}
+      - {tool: mail_search, args: {query: leads sync}}
+      - {tool: mail_get, args: {id: m02}}
+      - {tool: calendar_free_busy, args: {people: [rachel.moore@kitebridge.test, hannah.cole@kitebridge.test, tomasz.nowak@kitebridge.test, weilin.tan@kitebridge.test, daniel.lim@kitebridge.test, priya.raman@kitebridge.test, karthik.iyer@kitebridge.test], start: "2026-10-26T00:00:00+00:00", end: "2026-10-31T00:00:00+00:00"}}
+      - {tool: calendar_create_event, args: {title: Platform leads sync, start: "2026-10-29T09:00:00", end: "2026-10-29T10:00:00", tz: Europe/London, attendees: [hannah.cole@kitebridge.test, tomasz.nowak@kitebridge.test, weilin.tan@kitebridge.test, daniel.lim@kitebridge.test, priya.raman@kitebridge.test, karthik.iyer@kitebridge.test], description: "Agenda: Q4 reliability goals."}}
+    answer: |-
+      I booked the platform leads sync for Thursday 29 October, 09:00-10:00 London time, and invited all six leads. In their time zones that is 14:30-15:30 in Bangalore and 17:00-18:00 in Singapore.
+      This is the only hour next week that fits everyone. London is back on GMT from 25 October, so the shared 09:00-18:00 window is just 09:00-10:00 London.
+      - Monday 26: everyone is free, but Tomasz asked to keep the sync off Mondays.
+      - Tuesday 27: Wei Lin is out of office all day.
+      - Wednesday 28: Priya has her Identity roadmap review at 14:30 Bangalore time.
+      - Friday 30: Daniel has his data platform demo at 17:00 Singapore time.

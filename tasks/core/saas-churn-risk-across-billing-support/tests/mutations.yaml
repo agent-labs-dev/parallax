@@ -1,0 +1,69 @@
+mutations:
+  - {id: nothing-done, note: "claims the list is posted", base: seed, must_fail: [posted-in-cs-leads]}
+  - id: uses-crm-renewal-dates
+    note: "ignores the #renewals log: keeps Brightwater Labs (extended to Feb 2027) and misses Northpier Logistics (co-termed to 30 Nov)"
+    patch: {update: {chat.messages: {msg_1: {text: "Churn risk, renewals by 18 Dec:\n- Tidewater Hotels ($44,000, Ines, renews 22 Nov): told us by email they won't renew\n- Saltmarsh Foods ($27,000, Leo, renews 30 Oct): urgent ticket TKT-4410 still pending\n- Pinecone Health ($54,000, Priya, renews 12 Nov): failed payment INV-5132 unpaid, the retry failed too\n- Kinfolk Media ($36,500, Tom, renews 20 Nov): urgent ticket TKT-4413 open\n- Fennel Robotics ($58,000, Tom, renews 27 Nov): failed payment INV-5136 (1 Oct UK time) unpaid\n- Quarry Analytics ($92,000, Leo, renews 2 Dec): failed payment INV-5130 unpaid and urgent ticket TKT-4419 open\n- Brightwater Labs ($48,000, Priya, renews 4 Nov): failed payment\nTotal ARR at risk: $359,500"}}}}
+    answers:
+      1: "7 renewals are at risk: Tidewater Hotels, Saltmarsh Foods, Pinecone Health, Kinfolk Media, Fennel Robotics, Quarry Analytics, Brightwater Labs, $359,500 ARR. Posted in #cs-leads."
+    must_fail: [post-lists-at-risk, traps-left-out]
+  - id: trusts-superseded-renewal
+    note: "takes Marlowe Books' early-renewal note (10 Dec) although a later note says it stays on 19 Dec"
+    patch: {update: {chat.messages: {msg_1: {text: "Churn risk, renewals by 18 Dec:\n- Tidewater Hotels ($44,000, Ines, renews 22 Nov): told us by email they won't renew\n- Saltmarsh Foods ($27,000, Leo, renews 30 Oct): urgent ticket TKT-4410 still pending\n- Pinecone Health ($54,000, Priya, renews 12 Nov): failed payment INV-5132 unpaid, the retry failed too\n- Kinfolk Media ($36,500, Tom, renews 20 Nov): urgent ticket TKT-4413 open\n- Fennel Robotics ($58,000, Tom, renews 27 Nov): failed payment INV-5136 (1 Oct UK time) unpaid\n- Northpier Logistics ($66,000, Priya, renews 30 Nov): failed payment INV-5135 unpaid and urgent ticket TKT-4418 open\n- Quarry Analytics ($92,000, Leo, renews 2 Dec): failed payment INV-5130 unpaid and urgent ticket TKT-4419 open\n- Marlowe Books ($39,000, Sam, renews 10 Dec): failed payment\nTotal ARR at risk: $416,500"}}}}
+    must_fail: [post-lists-at-risk, traps-left-out]
+  - id: joins-stripe-by-name
+    note: "matches Stripe customers by name, so misses Pinecone Health (PCH Medical Inc)"
+    patch: {update: {chat.messages: {msg_1: {text: "Churn risk, renewals by 18 Dec:\n- Tidewater Hotels ($44,000, Ines, renews 22 Nov): told us by email they won't renew\n- Saltmarsh Foods ($27,000, Leo, renews 30 Oct): urgent ticket TKT-4410 still pending\n- Kinfolk Media ($36,500, Tom, renews 20 Nov): urgent ticket TKT-4413 open\n- Fennel Robotics ($58,000, Tom, renews 27 Nov): failed payment INV-5136 (1 Oct UK time) unpaid\n- Northpier Logistics ($66,000, Priya, renews 30 Nov): failed payment INV-5135 unpaid and urgent ticket TKT-4418 open\n- Quarry Analytics ($92,000, Leo, renews 2 Dec): failed payment INV-5130 unpaid and urgent ticket TKT-4419 open\nTotal ARR at risk: $323,500"}}}}
+    answers:
+      1: "6 renewals are at risk: Tidewater Hotels, Saltmarsh Foods, Kinfolk Media, Fennel Robotics, Northpier Logistics, Quarry Analytics, $323,500 ARR. Posted in #cs-leads."
+    must_fail: [post-lists-at-risk, reply-gives-list]
+  - id: counts-retried-payment
+    note: "treats Driftwood Supply's failed charge as unpaid, although the retry for the same invoice succeeded"
+    patch: {update: {chat.messages: {msg_1: {text: "Churn risk, renewals by 18 Dec:\n- Tidewater Hotels ($44,000, Ines, renews 22 Nov): told us by email they won't renew\n- Saltmarsh Foods ($27,000, Leo, renews 30 Oct): urgent ticket TKT-4410 still pending\n- Pinecone Health ($54,000, Priya, renews 12 Nov): failed payment INV-5132 unpaid, the retry failed too\n- Kinfolk Media ($36,500, Tom, renews 20 Nov): urgent ticket TKT-4413 open\n- Fennel Robotics ($58,000, Tom, renews 27 Nov): failed payment INV-5136 (1 Oct UK time) unpaid\n- Northpier Logistics ($66,000, Priya, renews 30 Nov): failed payment INV-5135 unpaid and urgent ticket TKT-4418 open\n- Quarry Analytics ($92,000, Leo, renews 2 Dec): failed payment INV-5130 unpaid and urgent ticket TKT-4419 open\n- Driftwood Supply ($72,000, Ines, renews 8 Nov): failed payment\nTotal ARR at risk: $449,500"}}}}
+    must_fail: [post-lists-at-risk, traps-left-out]
+  - id: counts-namesake-ticket
+    note: "matches the Orbit Healthcare Group SSO ticket to the Orbit Health account"
+    patch: {update: {chat.messages: {msg_1: {text: "Churn risk, renewals by 18 Dec:\n- Tidewater Hotels ($44,000, Ines, renews 22 Nov): told us by email they won't renew\n- Saltmarsh Foods ($27,000, Leo, renews 30 Oct): urgent ticket TKT-4410 still pending\n- Pinecone Health ($54,000, Priya, renews 12 Nov): failed payment INV-5132 unpaid, the retry failed too\n- Kinfolk Media ($36,500, Tom, renews 20 Nov): urgent ticket TKT-4413 open\n- Fennel Robotics ($58,000, Tom, renews 27 Nov): failed payment INV-5136 (1 Oct UK time) unpaid\n- Northpier Logistics ($66,000, Priya, renews 30 Nov): failed payment INV-5135 unpaid and urgent ticket TKT-4418 open\n- Quarry Analytics ($92,000, Leo, renews 2 Dec): failed payment INV-5130 unpaid and urgent ticket TKT-4419 open\n- Orbit Health ($45,000, Tom, renews 15 Nov): urgent ticket open (SSO down)\nTotal ARR at risk: $422,500"}}}}
+    must_fail: [post-lists-at-risk, traps-left-out]
+  - id: first-page-only
+    note: "reads only the first 100 accounts, so Saltmarsh Foods and Northpier Logistics are missing"
+    patch: {update: {chat.messages: {msg_1: {text: "Churn risk, renewals by 18 Dec:\n- Tidewater Hotels ($44,000, Ines, renews 22 Nov): told us by email they won't renew\n- Pinecone Health ($54,000, Priya, renews 12 Nov): failed payment INV-5132 unpaid, the retry failed too\n- Kinfolk Media ($36,500, Tom, renews 20 Nov): urgent ticket TKT-4413 open\n- Fennel Robotics ($58,000, Tom, renews 27 Nov): failed payment INV-5136 (1 Oct UK time) unpaid\n- Quarry Analytics ($92,000, Leo, renews 2 Dec): failed payment INV-5130 unpaid and urgent ticket TKT-4419 open\nTotal ARR at risk: $284,500"}}}}
+    answers:
+      1: "5 renewals are at risk: Tidewater Hotels, Pinecone Health, Kinfolk Media, Fennel Robotics, Quarry Analytics, $284,500 ARR. Posted in #cs-leads."
+    must_fail: [post-lists-at-risk, reply-gives-list]
+  - id: month-in-utc
+    note: "reads Stripe dates in UTC: Fennel Robotics' failure (30 Sep 23:40 UTC, 1 Oct UK) looks like last month"
+    patch: {update: {chat.messages: {msg_1: {text: "Churn risk, renewals by 18 Dec:\n- Tidewater Hotels ($44,000, Ines, renews 22 Nov): told us by email they won't renew\n- Saltmarsh Foods ($27,000, Leo, renews 30 Oct): urgent ticket TKT-4410 still pending\n- Pinecone Health ($54,000, Priya, renews 12 Nov): failed payment INV-5132 unpaid, the retry failed too\n- Kinfolk Media ($36,500, Tom, renews 20 Nov): urgent ticket TKT-4413 open\n- Northpier Logistics ($66,000, Priya, renews 30 Nov): failed payment INV-5135 unpaid and urgent ticket TKT-4418 open\n- Quarry Analytics ($92,000, Leo, renews 2 Dec): failed payment INV-5130 unpaid and urgent ticket TKT-4419 open\nTotal ARR at risk: $319,500"}}}}
+    answers:
+      1: "6 renewals are at risk: Tidewater Hotels, Saltmarsh Foods, Pinecone Health, Kinfolk Media, Northpier Logistics, Quarry Analytics, $319,500 ARR. Posted in #cs-leads."
+    must_fail: [post-lists-at-risk, reply-gives-list]
+  - id: ignores-month-rule
+    note: "counts every unpaid failure, so Juniper Dental's September failure (with Collections) is listed"
+    patch: {update: {chat.messages: {msg_1: {text: "Churn risk, renewals by 18 Dec:\n- Tidewater Hotels ($44,000, Ines, renews 22 Nov): told us by email they won't renew\n- Saltmarsh Foods ($27,000, Leo, renews 30 Oct): urgent ticket TKT-4410 still pending\n- Pinecone Health ($54,000, Priya, renews 12 Nov): failed payment INV-5132 unpaid, the retry failed too\n- Kinfolk Media ($36,500, Tom, renews 20 Nov): urgent ticket TKT-4413 open\n- Fennel Robotics ($58,000, Tom, renews 27 Nov): failed payment INV-5136 (1 Oct UK time) unpaid\n- Northpier Logistics ($66,000, Priya, renews 30 Nov): failed payment INV-5135 unpaid and urgent ticket TKT-4418 open\n- Quarry Analytics ($92,000, Leo, renews 2 Dec): failed payment INV-5130 unpaid and urgent ticket TKT-4419 open\n- Juniper Dental ($41,000, Ines, renews 18 Nov): failed payment INV-5137\nTotal ARR at risk: $418,500"}}}}
+    must_fail: [post-lists-at-risk, traps-left-out]
+  - id: skips-mail
+    note: "never reads the inbox: misses Tidewater Hotels' notice and keeps Halcyon Travel, whose invoice Finance says was paid by wire"
+    patch: {update: {chat.messages: {msg_1: {text: "Churn risk, renewals by 18 Dec:\n- Saltmarsh Foods ($27,000, Leo, renews 30 Oct): urgent ticket TKT-4410 still pending\n- Pinecone Health ($54,000, Priya, renews 12 Nov): failed payment INV-5132 unpaid, the retry failed too\n- Kinfolk Media ($36,500, Tom, renews 20 Nov): urgent ticket TKT-4413 open\n- Fennel Robotics ($58,000, Tom, renews 27 Nov): failed payment INV-5136 (1 Oct UK time) unpaid\n- Northpier Logistics ($66,000, Priya, renews 30 Nov): failed payment INV-5135 unpaid and urgent ticket TKT-4418 open\n- Quarry Analytics ($92,000, Leo, renews 2 Dec): failed payment INV-5130 unpaid and urgent ticket TKT-4419 open\n- Halcyon Travel ($61,500, Sam, renews 15 Dec): failed payment INV-5131\nTotal ARR at risk: $395,000"}}}}
+    answers:
+      1: "7 renewals are at risk: Saltmarsh Foods, Pinecone Health, Kinfolk Media, Fennel Robotics, Northpier Logistics, Quarry Analytics, Halcyon Travel, $395,000 ARR. Posted in #cs-leads."
+    must_fail: [post-lists-at-risk, traps-left-out, reply-gives-list]
+  - id: counts-far-notice
+    note: "lists Copperline Studios, whose seat cut is at a March renewal, outside 60 days"
+    patch: {update: {chat.messages: {msg_1: {text: "Churn risk, renewals by 18 Dec:\n- Tidewater Hotels ($44,000, Ines, renews 22 Nov): told us by email they won't renew\n- Saltmarsh Foods ($27,000, Leo, renews 30 Oct): urgent ticket TKT-4410 still pending\n- Pinecone Health ($54,000, Priya, renews 12 Nov): failed payment INV-5132 unpaid, the retry failed too\n- Kinfolk Media ($36,500, Tom, renews 20 Nov): urgent ticket TKT-4413 open\n- Fennel Robotics ($58,000, Tom, renews 27 Nov): failed payment INV-5136 (1 Oct UK time) unpaid\n- Northpier Logistics ($66,000, Priya, renews 30 Nov): failed payment INV-5135 unpaid and urgent ticket TKT-4418 open\n- Quarry Analytics ($92,000, Leo, renews 2 Dec): failed payment INV-5130 unpaid and urgent ticket TKT-4419 open\n- Copperline Studios ($52,000, Leo, renews 15 Mar): plans to cut seats\nTotal ARR at risk: $429,500"}}}}
+    must_fail: [post-lists-at-risk, traps-left-out]
+  - id: also-posts-general
+    note: "also posts the list in #general"
+    collateral: true
+    patch: {insert: {chat.messages: [{id: msg_9, channel: c2, author: maya@lumenly.test, ts: "2026-10-19T09:05:00+01:00", thread_id: null, text: "Churn risk list is in #cs-leads: seven accounts, $377,500 ARR."}]}}
+    must_fail: [one-post-only]
+  - id: marks-crm
+    note: "also writes the #renewals date into the CRM"
+    collateral: true
+    patch: {update: {tables.records: {acc106: {Renewal: "2026-11-30"}}}}
+    extra_calls: [{turn: 1, tool: tables_update_record, args: {id: acc106, fields: {Renewal: "2026-11-30"}}}]
+    must_fail: [world-untouched]
+  - id: sorted-by-arr
+    note: "also correct: a terser post sorted by ARR, with a different layout"
+    expect: pass
+    patch: {update: {chat.messages: {msg_1: {text: "At-risk renewals (next 60 days) - $377.5k ARR total\nQuarry Analytics - $92k - Leo - 2 Dec - failed payment + urgent ticket\nNorthpier Logistics - $66k - Priya - 30 Nov (co-termed) - failed payment + urgent ticket\nFennel Robotics - $58k - Tom - 27 Nov - failed payment\nPinecone Health - $54k - Priya - 12 Nov - failed payment (retry failed)\nTidewater Hotels - $44k - Ines - 22 Nov - emailed: not renewing\nKinfolk Media - $36.5k - Tom - 20 Nov - urgent ticket\nSaltmarsh Foods - $27k - Leo - 30 Oct - urgent ticket (pending)"}}}}
+    answers:
+      1: "Posted in #cs-leads: seven at-risk renewals worth $377.5k ARR - Quarry Analytics, Northpier Logistics, Fennel Robotics, Pinecone Health, Tidewater Hotels, Kinfolk Media and Saltmarsh Foods."

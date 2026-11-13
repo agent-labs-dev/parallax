@@ -1,0 +1,27 @@
+steps:
+  turn-01:
+    calls:
+      - tool: scheduler_create_job
+        args:
+          kind: cron
+          spec: "0 8 * * 1-5"
+          tz: Europe/London
+          title: "Helpdesk new-ticket digest"
+          instruction: >-
+            List the helpdesk tickets created since the previous weekday digest (on the first run,
+            the last 24 hours) and email Casey at casey@harbourline.test one message with each
+            ticket's id, subject and priority.
+    answer: "Done: a digest of new helpdesk tickets will be emailed to casey@harbourline.test at 08:00 London time, Monday to Friday (03:00 in New York)."
+  fire-1:
+    calls:
+      - {tool: helpdesk_list_tickets, args: {}}
+      - tool: mail_send
+        args:
+          to: [casey@harbourline.test]
+          subject: "Helpdesk digest - new tickets, Tue 9 June"
+          body: |
+            3 new tickets since yesterday morning:
+            - HD-2106 (urgent): Webhook deliveries delayed by an hour
+            - HD-2105 (high): Mobile app crashes on the login screen
+            - HD-2104 (normal): Invoice PDF shows the wrong VAT number
+    answer: "Sent today's digest to casey@harbourline.test: 3 new tickets (HD-2104, HD-2105, HD-2106)."

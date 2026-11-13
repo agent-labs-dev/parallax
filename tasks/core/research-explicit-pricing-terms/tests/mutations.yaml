@@ -1,0 +1,58 @@
+mutations:
+- id: unsupported-summary
+  note: Spreads one vendor term across all sources or misstates explicit annual cadence
+  answers:
+    1: "For 40 people:\n\n| Vendor | Plan | Price / month | SAML SSO |\n|---|---|---|---|\n\
+      | Larkspur | Team 50 | $290 | Included on every plan |\n| Tallyho | Team (50\
+      \ seats) | $345 | Included on Team |\n| Quillmark | Company (60) | $410 | Paid\
+      \ add-on, +$60/month |\n| Brisa | Standard (50) | $265 | Enterprise only ($520/month)\
+      \ |\n\nSources: https://larkspur.example/pricing, https://larkspur.example/security,\n\
+      https://tallyho.example/pricing, https://tallyho.example/trust,\nhttps://quillmark.example/pricing,\
+      \ https://brisa.example/pricing, https://brisa.example/security\n\nPricing terms:\
+      \ All four vendors explicitly state per-workspace prices, billed monthly.\n\
+      \ All four vendors are billed annually per seat."
+  must_fail:
+  - accurate-comparison
+- id: drops-explicit-terms
+  note: Treats stated pricing terms as unknown
+  answers:
+    1: 'For 40 people:
+
+
+      | Vendor | Plan | Price / month | SAML SSO |
+
+      |---|---|---|---|
+
+      | Larkspur | Team 50 | $290 | Included on every plan |
+
+      | Tallyho | Team (50 seats) | $345 | Included on Team |
+
+      | Quillmark | Company (60) | $410 | Paid add-on, +$60/month |
+
+      | Brisa | Standard (50) | $265 | Enterprise only ($520/month) |
+
+
+      Sources: https://larkspur.example/pricing, https://larkspur.example/security,
+
+      https://tallyho.example/pricing, https://tallyho.example/trust,
+
+      https://quillmark.example/pricing, https://brisa.example/pricing, https://brisa.example/security
+
+
+      Pricing units and billing cadence are unknown for every vendor.'
+  must_fail:
+  - accurate-comparison
+- id: concise-correct
+  note: Equivalent concise wording
+  expect: pass
+  answers:
+    1: 'For 40 users, Larkspur Team 50 is $290/month with SAML included. Tallyho Team
+      is $345/month with SAML included. Quillmark Company is $410/month plus $60/month
+      for SAML. Brisa Standard is $265/month without SAML; its Enterprise plan includes
+      SAML at $520/month.
+
+      Sources: https://larkspur.example/pricing and https://larkspur.example/security;
+      https://tallyho.example/pricing and https://tallyho.example/trust; https://quillmark.example/pricing;
+      https://brisa.example/pricing and https://brisa.example/security.
+
+      Each vendor explicitly prices per workspace and bills monthly.'

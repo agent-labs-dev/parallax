@@ -1,0 +1,54 @@
+mutations:
+  - {id: nothing-done, note: "claims the change without making it", base: seed, must_fail: [port-is-8080]}
+  - id: rewrites-file
+    note: "regenerates the settings module and drops the comments"
+    collateral: true
+    files:
+      relay/settings.py: |
+        """Runtime settings for the webhook relay."""
+
+        DEFAULT_HOST = "127.0.0.1"
+        DEFAULT_PORT = 8080
+        UPSTREAM_TIMEOUT = 45
+        MAX_REDELIVERIES = 6
+    must_fail: [exactly-one-line-changed]
+  - id: also-edits-comment
+    note: "changes the port and rewords the comment above it"
+    collateral: true
+    files:
+      relay/settings.py: |
+        """Runtime settings for the webhook relay.
+
+        Values are read once at boot; nothing re-reads them, so a change needs a
+        restart to take effect. Environment variables of the same name override
+        these defaults (see relay/app.py).
+        """
+
+        # Interface to bind. 0.0.0.0 in containers, loopback for local runs.
+        DEFAULT_HOST = "127.0.0.1"
+
+        # Port the relay listens on (8080 since June).
+        DEFAULT_PORT = 8080
+
+        # Seconds to wait on a slow upstream before giving up. Deliberately generous:
+        # two of the partners batch their acknowledgements.
+        UPSTREAM_TIMEOUT = 45
+
+        # Deliveries retried this many times before they land on the dead-letter list.
+        MAX_REDELIVERIES = 6
+    must_fail: [exactly-one-line-changed]
+  - id: hardcodes-in-app
+    note: "overrides the port in app.py instead of changing the default"
+    collateral: true
+    files:
+      relay/app.py: |
+        import os
+
+        from relay import settings
+
+
+        def bind_address() -> tuple[str, int]:
+            host = os.environ.get("DEFAULT_HOST", settings.DEFAULT_HOST)
+            return host, 8080
+    base: seed
+    must_fail: [app-untouched, port-is-8080]

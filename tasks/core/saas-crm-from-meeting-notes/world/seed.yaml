@@ -1,0 +1,43 @@
+now: 2026-06-03T09:12:00+01:00
+user: {name: Sofia Lind, email: sofia@harborline.test, timezone: Europe/London}
+drive:
+  folders:
+    - {id: f1, name: Sales, parent: null}
+  files:
+    - id: d1
+      name: "Pipeline call - 2 June"
+      folder: f1
+      owner: sofia@harborline.test
+      created: "2026-06-02T15:00:00+01:00"
+      modified: "2026-06-02T15:40:00+01:00"
+      content: |
+        Pipeline call, 2 June
+        - Harbor Logistics: they verbally agreed to 48,000. Moving into negotiation on contract terms.
+        - Nova Retail: expanding the rollout to all three sites, so the deal is now 72k. Moving them to Proposal; the proposal goes out this week.
+        - Brightline Dental: still waiting on their budget sign-off. No change.
+        - Keller & Sons: next call on 10 June.
+    - id: d2
+      name: "Pipeline call - 26 May"
+      folder: f1
+      owner: sofia@harborline.test
+      created: "2026-05-26T15:00:00+01:00"
+      modified: "2026-05-26T15:30:00+01:00"
+      content: |
+        Pipeline call, 26 May
+        - Harbor Logistics: pushing for 44k, proposal sent.
+        - Nova Retail: discovery going well, single site for now.
+        - Fenwick Hotels: signed!
+tables:
+  bases:
+    - {id: b1, name: Deals, fields: [deal, company, stage, amount, owner]}
+  records:
+    - {id: r1, base: b1, created: "2026-03-02T10:00:00+00:00", deal: "Fleet tracking renewal", company: Harbor Logistics,
+       stage: Proposal, amount: 40000, owner: sofia@harborline.test}
+    - {id: r2, base: b1, created: "2026-04-18T10:00:00+01:00", deal: "Store rollout", company: Nova Retail,
+       stage: Discovery, amount: 30000, owner: sofia@harborline.test}
+    - {id: r3, base: b1, created: "2026-04-22T10:00:00+01:00", deal: "Workshop licences", company: Keller & Sons,
+       stage: Negotiation, amount: 25000, owner: sofia@harborline.test}
+    - {id: r4, base: b1, created: "2026-05-05T10:00:00+01:00", deal: "Clinic scheduling", company: Brightline Dental,
+       stage: Proposal, amount: 18000, owner: sofia@harborline.test}
+    - {id: r5, base: b1, created: "2026-02-10T10:00:00+00:00", deal: "Guest wifi", company: Fenwick Hotels,
+       stage: Closed Won, amount: 60000, owner: sofia@harborline.test}

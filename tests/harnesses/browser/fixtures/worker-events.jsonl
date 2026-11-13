@@ -1,0 +1,3 @@
+{"event":"ready","cdp_url":"ws://browser.test/devtools","open_seconds":0.42}
+{"event":"result","status":"done","answer":"The task is complete.","step_log":[{"operation":"browser_click","url":"https://site.test/","observation":"Done"}]}
+{"event":"stopped","stopped":true}

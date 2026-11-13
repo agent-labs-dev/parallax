@@ -1,0 +1,101 @@
+{
+  "schema_version": "parallax.run/2",
+  "run_id": "r1",
+  "created_at": "2026-09-20T04:00:00Z",
+  "parallax_version": "2.0.0.dev0",
+  "harnesses": [
+    {
+      "name": "alpha",
+      "kind": "open",
+      "capabilities": [],
+      "pins_model": true,
+      "cost_source": "metered",
+      "isolation": "host",
+      "install": "",
+      "version_cmd": [],
+      "web_disabled_by": "none",
+      "source_url": "",
+      "credential_env": []
+    },
+    {
+      "name": "beta",
+      "kind": "open",
+      "capabilities": [],
+      "pins_model": true,
+      "cost_source": "harness",
+      "isolation": "host",
+      "install": "",
+      "version_cmd": [],
+      "web_disabled_by": "none",
+      "source_url": "",
+      "credential_env": []
+    },
+    {
+      "name": "oracle",
+      "kind": "control",
+      "capabilities": [],
+      "pins_model": true,
+      "cost_source": "none",
+      "isolation": "host",
+      "install": "",
+      "version_cmd": [],
+      "web_disabled_by": "none",
+      "source_url": "",
+      "credential_env": []
+    },
+    {
+      "name": "null-claim",
+      "kind": "control",
+      "capabilities": [],
+      "pins_model": true,
+      "cost_source": "none",
+      "isolation": "host",
+      "install": "",
+      "version_cmd": [],
+      "web_disabled_by": "none",
+      "source_url": "",
+      "credential_env": []
+    },
+    {
+      "name": "null-refuse",
+      "kind": "control",
+      "capabilities": [],
+      "pins_model": true,
+      "cost_source": "none",
+      "isolation": "host",
+      "install": "",
+      "version_cmd": [],
+      "web_disabled_by": "none",
+      "source_url": "",
+      "credential_env": []
+    }
+  ],
+  "models": [
+    "m1",
+    null
+  ],
+  "tasks": [
+    [
+      "saas-a",
+      "hash-saas-a"
+    ],
+    [
+      "safety-b",
+      "hash-safety-b"
+    ],
+    [
+      "code-c",
+      "hash-code-c"
+    ],
+    [
+      "saas-broken",
+      "hash-saas-broken"
+    ]
+  ],
+  "repeats": 2,
+  "judge": [],
+  "isolation": "host",
+  "selection": "core",
+  "bootstrap_seed": 0,
+  "grading_policy": "fixture-policy"
+}

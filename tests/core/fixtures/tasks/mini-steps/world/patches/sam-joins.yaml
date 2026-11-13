@@ -1,0 +1,4 @@
+insert:
+  mail.messages:
+    - {id: m9, thread: t1, from: sam@northwind.test, to: [alex@northwind.test], cc: [],
+       subject: "Re: Budget", body: "Please keep me posted.", date: "2026-06-03T10:00:00+01:00", labels: [inbox]}

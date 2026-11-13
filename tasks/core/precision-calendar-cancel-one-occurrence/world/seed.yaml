@@ -1,0 +1,23 @@
+now: 2026-06-03T10:20:00+01:00
+user: {name: Alex Kim, email: alex@northwind.test, timezone: Europe/London}
+calendar:
+  calendars:
+    - {id: primary, name: Alex Kim, owner: alex@northwind.test, timezone: Europe/London}
+  events:
+    - {id: e1, calendar: primary, title: "1:1 Alex / Jo", start: "2026-05-05T14:00:00+01:00", end: "2026-05-05T14:30:00+01:00",
+       tz: Europe/London, attendees: [jo@northwind.test], organizer: alex@northwind.test, rrule: "FREQ=WEEKLY;BYDAY=TU",
+       exceptions: {"2026-05-26": {cancelled: true}}, status: confirmed, description: "Weekly check-in", location: ""}
+    - {id: e2, calendar: primary, title: "1:1 Alex / Sam", start: "2026-05-05T15:00:00+01:00", end: "2026-05-05T15:30:00+01:00",
+       tz: Europe/London, attendees: [sam@northwind.test], organizer: alex@northwind.test, rrule: "FREQ=WEEKLY;BYDAY=TU",
+       exceptions: {}, status: confirmed, description: "Weekly check-in", location: ""}
+    - {id: e3, calendar: primary, title: "Team sync", start: "2026-05-04T10:00:00+01:00", end: "2026-05-04T10:30:00+01:00",
+       tz: Europe/London, attendees: [jo@northwind.test, sam@northwind.test, priya@northwind.test], organizer: priya@northwind.test,
+       rrule: "FREQ=WEEKLY;BYDAY=MO,TH", exceptions: {}, status: confirmed, description: "", location: "Room 3"}
+    - {id: e4, calendar: primary, title: "Quarterly planning", start: "2026-06-10T13:00:00+01:00", end: "2026-06-10T15:00:00+01:00",
+       tz: Europe/London, attendees: [priya@northwind.test, sam@northwind.test], organizer: alex@northwind.test, rrule: null,
+       exceptions: {}, status: confirmed, description: "", location: "Room 1"}
+contacts:
+  people:
+    - {id: c1, name: Jo Adeyemi, email: jo@northwind.test, company: Northwind, title: Designer}
+    - {id: c2, name: Sam Patel, email: sam@northwind.test, company: Northwind, title: Engineer}
+    - {id: c3, name: Priya Shah, email: priya@northwind.test, company: Northwind, title: Product Lead}

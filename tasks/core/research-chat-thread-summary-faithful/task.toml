@@ -1,0 +1,11 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "research-chat-thread-summary-faithful"
+version = 1
+area = "research"
+summary = "Summarise a long thread with the corrected date and figure, and name what is still open"
+requires = ["mcp"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "b69619d2-7619-4e3f-93d8-437c40fb840f"

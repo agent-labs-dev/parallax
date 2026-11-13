@@ -1,0 +1,18 @@
+mutations:
+  - id: utc-4pm
+    note: "reads 4pm as UTC"
+    patch: {update: {scheduler.jobs: {job_1: {spec: "2026-06-12T16:00:00+00:00"}}}}
+    must_fail: [job-left-is-the-reminder]
+  - id: weekly-cron
+    note: "makes it a recurring Friday reminder"
+    patch: {update: {scheduler.jobs: {job_1: {kind: cron, spec: "0 16 * * 5"}}}}
+    must_fail: [job-left-is-the-reminder]
+  - id: no-reminder
+    note: "acknowledges but schedules nothing"
+    base: seed
+    must_fail: [once-at-friday-4pm-new-york, reminded-on-fire]
+  - id: calendar-hold
+    note: "also blocks the calendar unasked"
+    collateral: true
+    patch: {insert: {calendar.events: [{id: ev-x, calendar: primary, title: "Call bank", start: "2026-06-12T16:00:00-04:00", end: "2026-06-12T16:30:00-04:00", tz: America/New_York, attendees: [], organizer: morgan@ellery.test, rrule: null, exceptions: {}, status: confirmed, description: "", location: ""}]}}
+    must_fail: [calendar-untouched]

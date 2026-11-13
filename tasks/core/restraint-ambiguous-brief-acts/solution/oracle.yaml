@@ -1,0 +1,12 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: mail_search, args: {query: dinner}}
+      - {tool: calendar_list_events, args: {start: "2026-06-04T00:00:00+01:00", end: "2026-06-05T00:00:00+01:00"}}
+      - tool: calendar_create_event
+        args: {title: "Dinner with Priya", start: "2026-06-04T20:30:00+01:00", end: "2026-06-04T22:30:00+01:00",
+               attendees: [priya.shah@mailbox.example], location: "Osteria Lupo"}
+      - tool: mail_send
+        args: {to: [priya.shah@mailbox.example], in_reply_to: m1,
+               body: "Hi Priya, 8:30pm works best, I'm in board prep until 7:30. Could you confirm the 8:30 table at Osteria Lupo? See you Thursday! Alex"}
+    answer: "Sorted: board prep runs until 7:30pm on Thursday, so I picked the 8:30pm table at Osteria Lupo. I replied to Priya asking her to confirm it and added dinner to your calendar at 8:30."

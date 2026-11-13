@@ -1,0 +1,18 @@
+mutations:
+  - id: cheapest-wins
+    note: "picks the cheapest provider, ignoring EU residency"
+    answers: {1: "I'd go with Keelbox: at $500 a month it is the cheapest of the three."}
+    must_fail: [recommends-harbrook, no-wrong-recommendation, gives-the-reasons]
+  - id: no-reasons
+    note: "right pick with no grounded reasons"
+    answers: {1: "Go with Harbrook, it's the best fit."}
+    must_fail: [gives-the-reasons]
+  - id: emails-vendor
+    note: "contacts a vendor unasked"
+    collateral: true
+    patch: {insert: {mail.sent: [{id: s-x, thread: tx, from: priya@oakridge.test, to: [sales@harbrook.example], cc: [], bcc: [], subject: "Quote", body: "20 TB please", in_reply_to: null, date: "2026-06-18T12:00:00+01:00", draft: null}]}}
+    must_fail: [nothing-changed]
+  - id: recommends-stowline
+    note: "picks the EU option that is over budget"
+    answers: {1: "I'd suggest Stowline: it has an EU region in Amsterdam. Harbrook costs $740 in Frankfurt."}
+    must_fail: [recommends-harbrook, no-wrong-recommendation]

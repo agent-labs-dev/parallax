@@ -1,0 +1,13 @@
+now: 2026-06-03T09:12:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+mail:
+  messages:
+    - {id: m1, thread: t1, from: priya@larkspur.example, to: [alex@northwind.test], cc: [],
+       subject: "May workshop invoice?", body: "Hi Alex, can you remind me of the amount and due date for the May workshop invoice? Our finance team closes the month on Friday. Thanks, Priya",
+       date: "2026-06-02T17:05:00+01:00", labels: [inbox]}
+    - {id: m2, thread: t2, from: sam@northwind.test, to: [alex@northwind.test], cc: [],
+       subject: "Offsite venue", body: "Shortlisted two venues, will send details tomorrow.", date: "2026-06-02T12:30:00+01:00", labels: [inbox]}
+contacts:
+  people:
+    - {id: p1, name: Priya Shah, email: priya@larkspur.example, company: Larkspur Design}
+    - {id: p2, name: Sam Okafor, email: sam@northwind.test, company: Northwind}

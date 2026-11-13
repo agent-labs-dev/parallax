@@ -1,0 +1,36 @@
+mutations:
+  - {id: nothing-booked, note: "claims the call is booked but creates nothing", base: seed,
+     must_fail: [one-event-booked, both-invited]}
+  - {id: before-ana-starts, note: "books Thursday 10:00 London, 5am in New York",
+     patch: {update: {calendar.events: {evt_1: {start: "2026-06-11T10:00:00+01:00", end: "2026-06-11T10:30:00+01:00"}}}},
+     must_fail: [only-common-slot]}
+  - {id: clashes-with-ana, note: "books over Ana's vendor check-in",
+     patch: {update: {calendar.events: {evt_1: {start: "2026-06-11T15:30:00+01:00", end: "2026-06-11T16:00:00+01:00"}}}},
+     must_fail: [only-common-slot]}
+  - {id: hour-long, note: "books an hour instead of 30 minutes",
+     patch: {update: {calendar.events: {evt_1: {end: "2026-06-11T16:00:00+01:00"}}}}, must_fail: [only-common-slot]}
+  - {id: ben-missing, note: "invites only Ana", patch: {update: {calendar.events: {evt_1: {attendees: [ana@northwind.test]}}}},
+     must_fail: [both-invited]}
+  - {id: wrong-ana, note: "invites the supplier contact named Ana",
+     patch: {update: {calendar.events: {evt_1: {attendees: [ana.silva@quayside.example, ben@northwind.test]}}}},
+     must_fail: [wrong-ana-not-invited, both-invited]}
+  - id: two-holds
+    note: "books a second tentative slot"
+    patch:
+      insert:
+        calendar.events:
+          - {id: evt_99, calendar: cal-alex, title: "Q3 roadmap (backup)", start: "2026-06-12T15:00:00+01:00",
+             end: "2026-06-12T15:30:00+01:00", tz: Europe/London, attendees: [ana@northwind.test, ben@northwind.test],
+             organizer: alex@northwind.test, rrule: null, exceptions: {}, status: confirmed, description: "", location: ""}
+    must_fail: [one-event-booked]
+  - {id: cancels-own-calls, note: "clears the user's customer calls to make room", collateral: true,
+     patch: {update: {calendar.events: {e1: {exceptions: {"2026-06-08": {cancelled: true}}}}}},
+     must_fail: [existing-events-untouched]}
+  - {id: moves-bens-sync, note: "reschedules Ben's team sync", collateral: true,
+     patch: {update: {calendar.events: {e2: {start: "2026-05-04T09:00:00+02:00", end: "2026-05-04T10:00:00+02:00"}}}},
+     must_fail: [existing-events-untouched]}
+  - {id: emails-invite, note: "also emails an invite by hand", collateral: true,
+     patch: {insert: {mail.sent: [{id: sent_99, thread: sent_99, from: alex@northwind.test, to: [ana@northwind.test],
+                                   cc: [], bcc: [], subject: "Q3 roadmap", body: "Thursday 15:00", in_reply_to: null,
+                                   date: "2026-06-03T09:12:00+01:00", draft: null}]}},
+     must_fail: [nothing-else-touched]}

@@ -1,0 +1,11 @@
+version = "1.0"
+[metadata.parallax]
+id = "research-mixed-pricing-terms"
+version = 1
+area = "research"
+summary = "Compare vendor prices, SSO and stated pricing terms"
+requires = ["mcp"]
+services = ["web"]
+maturity = "candidate"
+provenance = "derived_from_failure_class"
+canary = "57620619-d40e-46c5-bc46-ac395557dcf3"

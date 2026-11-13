@@ -1,0 +1,51 @@
+now: 2026-06-03T09:12:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+mail:
+  messages:
+    - id: m1
+      thread: t1
+      from: jordan@northwind.test
+      to: [alex@northwind.test]
+      cc: []
+      subject: "Q3 objectives"
+      date: "2026-06-02T18:05:00+01:00"
+      labels: [inbox]
+      body: |
+        Alex, here are the Q3 objectives we agreed. Could you get them onto the wiki?
+
+        1. Make onboarding self-serve - KR: 70% of new workspaces finish setup without a support ticket.
+        2. Launch the mobile app beta - KR: 500 weekly active beta users by 30 September.
+        3. Cut report load times - KR: p95 dashboard load under 2 seconds.
+
+        Thanks, Jordan
+    - {id: m2, thread: t2, from: lee@northwind.test, to: [alex@northwind.test], cc: [], subject: "Lunch Thursday?",
+       date: "2026-06-02T12:30:00+01:00", labels: [inbox], body: "Want to grab lunch on Thursday?"}
+contacts:
+  people:
+    - {id: c1, name: Jordan Blake, email: jordan@northwind.test, company: Northwind, title: VP Product}
+    - {id: c2, name: Lee Park, email: lee@northwind.test, company: Northwind, title: Engineering manager}
+    - {id: c3, name: Leila Haddad, email: leila@northwind.test, company: Northwind, title: Designer}
+wiki:
+  pages:
+    - id: p1
+      title: "Q2 OKRs"
+      space: Product
+      parent: null
+      author: jordan@northwind.test
+      created: "2026-03-28T10:00:00+00:00"
+      updated: "2026-04-02T10:00:00+01:00"
+      url: "https://wiki.example/pages/p1"
+      body: |
+        # Q2 OKRs
+        Owner: Product team
+        ## Objective 1: Grow team plans
+        - KR: 300 new team workspaces
+        ## Objective 2: Improve reliability
+        - KR: 99.9% monthly uptime
+        ## Status
+        Draft - pending review
+    - {id: p2, title: "Team handbook", space: Product, parent: null, author: alex@northwind.test,
+       created: "2025-09-01T10:00:00+01:00", updated: "2026-01-15T10:00:00+00:00", url: "https://wiki.example/pages/p2",
+       body: "How the product team works."}
+  comments:
+    - {id: wc1, page: p1, author: lee@northwind.test, body: "Looks good to me.", mentions: [], created: "2026-04-01T10:00:00+01:00"}

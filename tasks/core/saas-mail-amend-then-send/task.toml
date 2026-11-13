@@ -1,0 +1,18 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-mail-amend-then-send"
+version = 2
+area = "saas"
+summary = "Summarise a vendor thread and draft a reply, then add a CC and send it exactly once"
+requires = ["mcp", "multi_turn"]
+maturity = "candidate"
+provenance = "converted"
+legacy_ids = ["thread_gmail_draft_then_amend_and_send"]
+canary = "fc955859-e908-4aed-8168-4f3ec17820c8"
+
+[[steps]]
+name = "turn-01"
+
+[[steps]]
+name = "turn-02"

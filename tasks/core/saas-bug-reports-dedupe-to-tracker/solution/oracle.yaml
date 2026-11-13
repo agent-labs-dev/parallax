@@ -1,0 +1,54 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: user_clock_now, args: {}}
+      - {tool: wiki_search, args: {query: bug sweep}}
+      - {tool: wiki_get_page, args: {id: pg-triage}}
+      - {tool: wiki_get_page, args: {id: pg-intake-oct}}
+      - {tool: mail_search, args: {query: sweep}}
+      - {tool: mail_get, args: {id: m1}}
+      - {tool: helpdesk_list_conversations, args: {limit: 100}}
+      - {tool: tracker_search_issues, args: {limit: 100}}
+      - {tool: tracker_get_issue, args: {id: LSP-109}}
+      - {tool: tracker_get_issue, args: {id: LSP-112}}
+      - {tool: tracker_get_issue, args: {id: LSP-131}}
+      - {tool: tracker_get_issue, args: {id: LSP-147}}
+      - {tool: tracker_get_issue, args: {id: LSP-166}}
+      - {tool: tracker_get_issue, args: {id: LSP-126}}
+      - {tool: tracker_comment, args: {issue: LSP-112, body: "Support triage w/c 12 Oct: ZD-4023, ZD-4035, ZD-4039, ZD-4067 (2 accounts)."}}
+      - {tool: tracker_comment, args: {issue: LSP-118, body: "Support triage w/c 12 Oct: ZD-4020, ZD-4042, ZD-4064, ZD-4068 (4 accounts)."}}
+      - {tool: tracker_comment, args: {issue: LSP-131, body: "Support triage w/c 12 Oct: ZD-4036 (1 account). Opened Tuesday 13 Oct ET, before 4.14."}}
+      - {tool: tracker_comment, args: {issue: LSP-140, body: "Support triage w/c 12 Oct: ZD-4026, ZD-4048, ZD-4056 (2 accounts)."}}
+      - {tool: tracker_comment, args: {issue: LSP-166, body: "Support triage w/c 12 Oct (late Slack notifications, LSP-147 was closed as a duplicate of this): ZD-4034, ZD-4062 (2 accounts)."}}
+      - {tool: tracker_update_issue, args: {id: LSP-109, status: open}}
+      - {tool: tracker_comment, args: {issue: LSP-109, body: "Regression after 4.13: duplicates are back. Support triage w/c 12 Oct: ZD-4025, ZD-4029, ZD-4050 (3 accounts)."}}
+      - {tool: tracker_get_issue, args: {id: LSP-112}}
+      - {tool: tracker_get_issue, args: {id: LSP-118}}
+      - {tool: tracker_get_issue, args: {id: LSP-131}}
+      - {tool: tracker_get_issue, args: {id: LSP-140}}
+      - {tool: tracker_get_issue, args: {id: LSP-166}}
+      - {tool: tracker_get_issue, args: {id: LSP-109}}
+      - {tool: tracker_comment, args: {issue: LSP-131, body: "Support triage w/c 12 Oct: ZD-4036 (1 account). Opened Tuesday 13 Oct ET, before 4.14."}}
+      - {tool: tracker_get_issue, args: {id: LSP-131}}
+      - {tool: tracker_create_issue, args: {title: "CSV import silently skips rows with accented characters in names", labels: [bug, support, import], body: "Comma-separated imports drop every row whose name has an accent (José, Zoë, Müller, Łukasz) with no error. Zendesk: ZD-4032, ZD-4049 (2 accounts)."}}
+      - {tool: tracker_create_issue, args: {title: "Android: tapping a push notification opens the wrong project", labels: [bug, support, mobile], body: "Tapping a comment/mention push notification lands in a different project. Zendesk: ZD-4021, ZD-4040 (1 account)."}}
+      - {tool: tracker_create_issue, args: {title: "Password reset link says expired as soon as it is opened", labels: [bug, support, auth], body: "Fresh reset emails show 'This link has expired' on first click. Zendesk: ZD-4047, ZD-4066 (2 accounts)."}}
+      - {tool: tracker_create_issue, args: {title: "Invoice PDF still shows the old VAT number after 4.14", labels: [bug, support, billing], body: "Reported after the LSP-131 fix shipped in 4.14 (per Chen, likely the per-invoice PDF cache). Zendesk: ZD-4058 (1 account)."}}
+    answer: |-
+      Bug sweep for the week of 12 Oct is done, using the October intake rules (count accounts by email domain, add an area label) and Chen's email about VAT reports.
+
+      Comments added to existing issues:
+      - LSP-112 CSV export times out: ZD-4023, 4035, 4039, 4067 (2 accounts). I left out ZD-4055: the customer found it was their office proxy.
+      - LSP-118 Okta SSO loop: ZD-4020, 4042, 4064, 4068 (4 accounts). ZD-4068 came in Friday at 21:05 your time (it shows as Saturday in UTC).
+      - LSP-131 old VAT number on invoice PDF: ZD-4036 (1 account). It was opened Tuesday 22:15 ET, before 4.14, so it stays on 131; I did not reopen it. The first comment call reported success but the comment never appeared, so I posted it again and checked it is there now.
+      - LSP-140 iOS crash attaching a photo: ZD-4026, 4048, 4056 (2 accounts)
+      - LSP-166 notification queue: ZD-4034, 4062 (2 accounts). LSP-147 is closed as its duplicate, so I left it closed.
+      - LSP-109 duplicate recurring events in Google Calendar: reopened as a regression after 4.13, with ZD-4025, 4029, 4050 (3 accounts).
+
+      New issues (bug, support + area):
+      - CSV import silently skips rows with accented names (import): ZD-4032, 4049 (2 accounts)
+      - Android push notification opens the wrong project (mobile): ZD-4021, 4040 (1 account)
+      - Password reset link says expired on first click (auth): ZD-4047, 4066 (2 accounts)
+      - Invoice PDF still shows the old VAT number after 4.14 (billing): ZD-4058 (1 account), opened Thursday, so per Chen it is a new bug, not LSP-131
+
+      How-tos and feature requests stay in Zendesk. I didn't reply to any customer.

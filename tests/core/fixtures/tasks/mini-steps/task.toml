@@ -1,0 +1,17 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "mini-steps"
+version = 1
+area = "saas"
+summary = "Draft a reply, then send it with a CC after a new message arrives"
+requires = ["mcp", "multi_turn"]
+provenance = "hand_authored"
+canary = "8d7c6b5a-4f3e-4d2c-9b1a-0e9f8d7c6b5a"
+
+[[steps]]
+name = "turn-01"
+
+[[steps]]
+name = "turn-02"
+patch = "sam-joins"

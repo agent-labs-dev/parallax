@@ -1,0 +1,7 @@
+mutations:
+  - {id: never-created, note: "claims completion without changing the world", base: seed, must_fail: [design-created, work-queued]}
+  - {id: empty-channel, note: "creates the channel but forgets its work", patch: {delete: {chat.work: [work_2]}}, must_fail: [work-queued]}
+  - {id: wrong-channel, note: "starts work in the caller's channel", patch: {update: {chat.work: {work_2: {channel: general}}}}, must_fail: [work-queued]}
+  - {id: edits-existing, note: "overwrites the existing greeting", collateral: true, patch: {update: {chat.messages: {hello: {text: Changed}}}}, must_fail: [messages-unchanged]}
+  - {id: terse-report, note: "the outcome does not depend on a fixed confirmation wording", expect: pass, answers: {1: "Created design and posted the request there."}}
+  - {id: message-only, note: "a channel message does not start the requested work", patch: {delete: {chat.work: [work_2]}, insert: {chat.messages: [{id: msg_2, channel: ch_1, text: "Please review the dashboard empty-state mocks."}]}}, must_fail: [work-queued]}

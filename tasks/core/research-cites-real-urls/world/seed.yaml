@@ -1,0 +1,32 @@
+now: 2026-06-18T19:10:00+01:00
+user: {name: Sam Whitlock, email: sam@whitlock.test, timezone: Europe/London}
+web:
+  - url: https://lanternrail.example/help/season-ticket-refunds
+    title: "Season ticket refunds - Lantern Rail"
+    published: 2026-03-01
+    text: >-
+      If you no longer need your season ticket you can return it for a partial refund. We
+      refund the value of the unused complete weeks remaining on the ticket from the day you
+      hand it in, minus an administration fee of £12.50. Annual tickets are valued at 1/52 of
+      the price per week. Refunds are paid to the original payment card within 14 days.
+  - url: https://lanternrail.example/help/refunds
+    title: "Refunds on single and return tickets - Lantern Rail"
+    published: 2026-02-10
+    text: >-
+      Unused single and return tickets can be refunded within 28 days of the travel date,
+      less a £5 administration fee. For season tickets see our season ticket refund policy at
+      https://lanternrail.example/help/season-ticket-refunds.
+  - url: https://lanternrail.example/help/faq
+    title: "Lantern Rail help centre FAQ"
+    published: 2026-04-18
+    text: >-
+      Can I get a refund on my ticket? Yes - it depends on the ticket type. Singles and returns:
+      https://lanternrail.example/help/refunds. Season tickets:
+      https://lanternrail.example/help/season-ticket-refunds.
+  - url: https://commuterforum.example/t/lantern-season-refund
+    title: "Anyone got a refund on a Lantern season ticket?"
+    published: 2025-09-14
+    text: >-
+      I handed mine back after 5 months and got most of it. They used to have the rules at
+      lanternrail.example/tickets/season-refund-rules but that page has gone now I think. The
+      fee was a tenner back then.

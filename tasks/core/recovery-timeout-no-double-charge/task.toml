@@ -1,0 +1,17 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "recovery-timeout-no-double-charge"
+version = 1
+area = "recovery"
+summary = "The first charge times out after committing: confirm it went through instead of charging twice"
+requires = ["mcp"]
+services = ["payments"]
+provenance = "hand_authored"
+canary = "c60d328a-d0b9-4bf6-9eb7-d16e123c99d6"
+
+[[metadata.parallax.faults]]
+tool = "payments_create_charge"
+on_call = 1
+times = 1
+kind = "lost_response"

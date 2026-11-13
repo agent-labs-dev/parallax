@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "code-missing-symbol-reported"
+version = 1
+area = "code"
+summary = "Asked to fix a function that does not exist: report it instead of inventing one"
+requires = ["mcp", "workspace", "shell"]
+maturity = "candidate"
+provenance = "converted"
+legacy_ids = ["edit_missing_symbol_is_reported_not_invented"]
+canary = "cd1f9918-d3e7-499b-81d1-e73ae89612e1"

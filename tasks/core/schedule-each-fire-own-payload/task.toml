@@ -1,0 +1,25 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "schedule-each-fire-own-payload"
+version = 1
+area = "schedule"
+summary = "A daily summary job fires twice; each run summarises only that day's reports, never replaying the last"
+requires = ["mcp", "world_clock"]
+services = ["scheduler"]
+maturity = "candidate"
+provenance = "converted"
+legacy_ids = ["fail_trigger_stale_dated_duplicate_run"]
+canary = "da41b59d-ad08-43e4-9897-0f2c57468610"
+
+[[metadata.parallax.fires]]
+name = "fire-1"
+at = 2026-07-14T18:00:00+01:00
+job = {kind = "cron", active = true}
+patch = "tuesday-reports"
+
+[[metadata.parallax.fires]]
+name = "fire-2"
+at = 2026-07-15T18:00:00+01:00
+job = {kind = "cron", active = true}
+patch = "wednesday-reports"

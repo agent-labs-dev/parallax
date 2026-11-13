@@ -1,0 +1,48 @@
+now: 2026-06-08T08:40:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+scheduler:
+  jobs:
+    - {id: job-invoice-chase, kind: cron, spec: "0 7 * * 1-5", tz: Europe/London, title: "Invoice chase",
+       instruction: "List invoices more than 14 days overdue and email each customer a payment reminder.",
+       active: true, created: "2026-06-02T06:15:00+01:00"}
+    - {id: job-pipeline-report, kind: cron, spec: "0 9 * * 1", tz: Europe/London, title: "Weekly pipeline report",
+       instruction: "Summarise the open deals in the CRM and email the report to alex@northwind.test.",
+       active: true, created: "2026-05-18T08:30:00+01:00"}
+    - {id: job-acme-watch, kind: watch, spec: "mail: from jordan.kell@acme.example", tz: Europe/London,
+       title: "Acme reply watch", instruction: "Tell Alex the moment Acme replies to the renewal thread.",
+       active: true, created: "2026-06-02T11:05:00+01:00"}
+    - {id: job-quarterly-export, kind: once, spec: "2026-06-01T22:00:00+01:00", tz: Europe/London,
+       title: "Quarterly export", instruction: "Export the Q2 deal history to a spreadsheet and email Alex the link.",
+       active: false, created: "2026-05-20T14:00:00+01:00"}
+  runs:
+    - {id: run-chase-0602, job: job-invoice-chase, at: "2026-06-02T07:00:00+01:00", trigger: schedule,
+       status: succeeded, started: "2026-06-02T07:00:00+01:00", finished: "2026-06-02T07:00:06+01:00",
+       duration_ms: 6420, attempt: 1, exit_code: 0, error_code: null, error: null}
+    - {id: run-chase-0603, job: job-invoice-chase, at: "2026-06-03T07:00:00+01:00", trigger: schedule,
+       status: failed, started: "2026-06-03T07:00:00+01:00", finished: "2026-06-03T07:00:02+01:00",
+       duration_ms: 1800, attempt: 1, exit_code: null, error_code: device_offline,
+       error: "No device was online when the run came due, so it never started."}
+    - {id: run-chase-0604, job: job-invoice-chase, at: "2026-06-04T07:00:00+01:00", trigger: schedule,
+       status: failed, started: "2026-06-04T07:00:00+01:00", finished: "2026-06-04T07:00:02+01:00",
+       duration_ms: 1900, attempt: 1, exit_code: null, error_code: device_offline,
+       error: "No device was online when the run came due, so it never started."}
+    - {id: run-chase-0605, job: job-invoice-chase, at: "2026-06-05T07:00:00+01:00", trigger: schedule,
+       status: failed, started: "2026-06-05T07:00:00+01:00", finished: "2026-06-05T07:00:03+01:00",
+       duration_ms: 2100, attempt: 1, exit_code: null, error_code: device_offline,
+       error: "No device was online when the run came due, so it never started."}
+    - {id: run-chase-0608, job: job-invoice-chase, at: "2026-06-08T07:00:00+01:00", trigger: schedule,
+       status: failed, started: "2026-06-08T07:00:00+01:00", finished: "2026-06-08T07:00:02+01:00",
+       duration_ms: 1700, attempt: 1, exit_code: null, error_code: device_offline,
+       error: "No device was online when the run came due, so it never started."}
+    - {id: run-pipeline-0518, job: job-pipeline-report, at: "2026-05-18T09:00:00+01:00", trigger: schedule,
+       status: succeeded, started: "2026-05-18T09:00:00+01:00", finished: "2026-05-18T09:00:08+01:00",
+       duration_ms: 8120, attempt: 1, exit_code: 0, error_code: null, error: null}
+    - {id: run-pipeline-0525, job: job-pipeline-report, at: "2026-05-25T09:00:00+01:00", trigger: schedule,
+       status: succeeded, started: "2026-05-25T09:00:00+01:00", finished: "2026-05-25T09:00:07+01:00",
+       duration_ms: 7340, attempt: 1, exit_code: 0, error_code: null, error: null}
+    - {id: run-pipeline-0601, job: job-pipeline-report, at: "2026-06-01T09:00:00+01:00", trigger: schedule,
+       status: succeeded, started: "2026-06-01T09:00:00+01:00", finished: "2026-06-01T09:00:09+01:00",
+       duration_ms: 9010, attempt: 1, exit_code: 0, error_code: null, error: null}
+    - {id: run-export-0601, job: job-quarterly-export, at: "2026-06-01T22:00:00+01:00", trigger: schedule,
+       status: succeeded, started: "2026-06-01T22:00:00+01:00", finished: "2026-06-01T22:00:45+01:00",
+       duration_ms: 45120, attempt: 1, exit_code: 0, error_code: null, error: null}

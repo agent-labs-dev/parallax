@@ -1,0 +1,64 @@
+mutations:
+  - {id: nothing-done, note: "claims the forecast is done", base: seed, must_fail: [q3-rows-written, q3-figures]}
+  - id: wiki-only
+    note: "follows the wiki page alone: Verbal at 80% and the stale Summit Dental copy counted"
+    patch: {update: {sheets.rows: {row_1: {Weighted pipeline: 627900}, row_3: {Weighted pipeline: 591900}, row_4: {Weighted pipeline: 596100}, row_5: {Weighted pipeline: 201700}, row_6: {Weighted pipeline: 2234325}}}}
+    answers:
+      1: "Q3 forecast written: total weighted $2,234,325, commit $1,826,000."
+    must_fail: [q3-figures, reply-gives-totals]
+  - id: superseded-weight
+    note: "takes Marco's 60% Verbal proposal, not the 70% the thread settled on"
+    patch: {update: {sheets.rows: {row_1: {Weighted pipeline: 582100}, row_3: {Weighted pipeline: 534900}, row_4: {Weighted pipeline: 573700}, row_5: {Weighted pipeline: 185000}, row_6: {Weighted pipeline: 2092425}}}}
+    answers:
+      1: "Q3 forecast written with Verbal at 60%: total weighted $2,092,425, commit $1,826,000."
+    must_fail: [q3-figures, reply-gives-totals]
+  - id: counts-duplicate
+    note: "applies 70% but keeps the old Negotiation copy of Summit Dental that RevOps said to leave out"
+    patch: {update: {sheets.rows: {row_3: {Weighted pipeline: 574400}, row_6: {Weighted pipeline: 2174375}}}}
+    answers:
+      1: "Q3 forecast written: total weighted $2,174,375, commit $1,826,000."
+    must_fail: [q3-figures, reply-gives-totals]
+  - id: keeps-slipped
+    note: "forecasts the slipped deals too (close date passed, quiet for 30+ days)"
+    patch: {update: {sheets.rows: {row_1: {Weighted pipeline: 752400, Commit: 642000}, row_2: {Weighted pipeline: 253475}, row_4: {Weighted pipeline: 706850, Commit: 578500}, row_6: {Weighted pipeline: 2458475, Commit: 2046500}}}}
+    answers:
+      1: "Q3 forecast written: total weighted $2,458,475, commit $2,046,500."
+    must_fail: [q3-figures, reply-gives-totals]
+  - id: first-page-only
+    note: "reads only the first 100 of 200 deals"
+    patch: {update: {sheets.rows: {row_1: {Weighted pipeline: 276700, Commit: 194500}, row_2: {Weighted pipeline: 152000, Commit: 152000}, row_3: {Weighted pipeline: 406075, Commit: 308000}, row_4: {Weighted pipeline: 253000, Commit: 191000}, row_5: {Weighted pipeline: 58450, Commit: 83500}, row_6: {Weighted pipeline: 1146225, Commit: 929000}}}}
+    answers:
+      1: "Q3 forecast written: total weighted $1,146,225, commit $929,000."
+    must_fail: [q3-figures, reply-gives-totals]
+  - id: counts-first-october
+    note: "counts Erin's Verbal deal that closes on 1 October, which is Q4"
+    patch: {update: {sheets.rows: {row_5: {Weighted pipeline: 243750, Commit: 232500}, row_6: {Weighted pipeline: 2202775, Commit: 1898000}}}}
+    answers:
+      1: "Q3 forecast written: total weighted $2,202,775, commit $1,898,000."
+    must_fail: [q3-figures, reply-gives-totals]
+  - id: short-slipped-list
+    note: "right figures, but names only the slipped deals it saw on page 1"
+    answers:
+      1: "Done - Q3 forecast is in the sheet like Q2: total weighted $2,152,375, commit $1,826,000. Slipped deals left out for re-dating: Slate Fitness, Wren Insurance, Ridge Capital, Mosaic Learning, Yarrow Learning and Saffron Retail."
+    must_fail: [reply-names-slipped]
+  - id: no-total-row
+    note: "writes the owner rows but drops the Total row that last quarter's layout has"
+    patch: {delete: {sheets.rows: [row_6]}}
+    must_fail: [q3-rows-written, q3-figures]
+  - id: edits-q2
+    note: "also overwrites last quarter's total"
+    collateral: true
+    patch: {update: {sheets.rows: {q2t: {Weighted pipeline: 2152375, Commit: 1826000}}}}
+    must_fail: [q2-untouched]
+  - id: redates-deal
+    note: "also re-dates a slipped deal in the CRM"
+    collateral: true
+    patch: {update: {tables.records: {d023: {Close: "2026-09-15"}}}}
+    extra_calls: [{turn: 1, tool: tables_update_record, args: {id: d023, fields: {Close: "2026-09-15"}}}]
+    must_fail: [world-untouched]
+  - id: formatted-values
+    note: "also correct: dollar-formatted text values and a terser reply"
+    expect: pass
+    patch: {update: {sheets.rows: {row_1: {Weighted pipeline: "$605,000", Commit: "$500,000"}, row_6: {Weighted pipeline: "$2,152,375", Commit: "$1,826,000"}}}}
+    answers:
+      1: "Done - Q3 forecast sheet filled in like Q2, with Verbal at 70% per #sales-ops and the old Summit Dental copy left out. Total weighted $2.15M, commit $1.83M. Slipped, left out for re-dating: Slate Fitness, Ridge Capital, Yarrow Learning, Lotus Hotels (Dev); Wren Insurance, Falcon Logistics (Ben); Mosaic Learning, Saffron Retail, Cinder Analytics, Hazel Systems (Ana)."

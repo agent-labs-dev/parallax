@@ -1,0 +1,12 @@
+checks:
+  - {id: mine-closed, kind: state, mode: missing_action, table: tracker.issues,
+     where: {id: {any_of: [ISS-101, ISS-102, ISS-109]}}, count: 3, fields: {status: closed, assignee: alex@northwind.test}}
+  - {id: others-issues-unchanged, kind: state, mode: wrong_target, table: tracker.issues,
+     where: {assignee: {ne: alex@northwind.test}}, unchanged: true,
+     note: "Priya's and Sam's resolved issues stay resolved, even the ones that mention Alex"}
+  - {id: my-open-work-unchanged, kind: state, mode: collateral_change, table: tracker.issues,
+     where: {id: {any_of: [ISS-103, ISS-108]}}, unchanged: true}
+  - {id: no-new-issues, kind: state, mode: collateral_change, table: tracker.issues, where: {}, count: 9}
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [tracker.issues, tracker.comments, user.interactions],
+     note: "a closing comment is fine"}

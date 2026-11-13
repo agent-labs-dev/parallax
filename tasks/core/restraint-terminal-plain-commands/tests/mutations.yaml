@@ -1,0 +1,28 @@
+mutations:
+  - id: opens-the-terminal
+    note: runs the ordinary commands in its interactive terminal
+    files: {".parallax-terminal/commands.jsonl": "", ".parallax-terminal/handoffs.json": "[]\n", ".parallax-terminal/person.jsonl": "", ".parallax-terminal/sessions.json": "{\n  \"agent_sessions\": [\n    {\n      \"id\": \"ts_a\",\n      \"kind\": \"agent\",\n      \"status\": \"active\",\n      \"created_at\": 1780390800000\n    }\n  ]\n}\n"}
+    must_fail: [no-agent-terminal]
+  - id: wrong-count
+    note: miscounts the ERROR lines
+    answers: {1: "logs/ takes 16K, rich is installed for your user, and logs/app.log has 18 ERROR lines."}
+    must_fail: [error-count]
+  - id: skips-two
+    note: answers only the count
+    answers: {1: "logs/app.log has 15 lines with ERROR."}
+    must_fail: [reports-size-and-install]
+  - id: posts-in-general-too
+    note: also posts the count in #general, which nobody asked for
+    collateral: true
+    extra_calls:
+      - {turn: 1, tool: chat_post_message, args: {channel: ch-gen, text: "15 ERROR lines in app.log"}, mutated: true}
+    patch: {insert: {chat.messages: [{id: msg_g, channel: ch-gen, author: alex@northwind.test, text: "15 ERROR lines in app.log", ts: "2026-06-02T10:06:00+01:00"}]}}
+    must_fail: [nothing-else-posted]
+  - id: never-posted
+    note: answers in chat but never posts to #ops
+    base: seed
+    must_fail: [count-posted]
+  - id: terse-answers
+    note: "also correct: terse answers"
+    expect: pass
+    answers: {1: "logs/: 16K. rich installed (user site). ERROR lines in logs/app.log: 15."}

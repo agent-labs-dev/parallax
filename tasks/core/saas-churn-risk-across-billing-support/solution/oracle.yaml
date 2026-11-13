@@ -1,0 +1,42 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: user_clock_now, args: {}}
+      - {tool: wiki_search, args: {query: churn}}
+      - {tool: wiki_get_page, args: {id: pg1}}
+      - {tool: chat_read_channel, args: {channel: cs-leads}}
+      - {tool: chat_read_channel, args: {channel: renewals}}
+      - {tool: tables_list_records, args: {base: Accounts}}
+      - {tool: tables_list_records, args: {base: Accounts, offset: 100}}
+      - {tool: payments_list_customers, args: {}}
+      - {tool: payments_list_charges, args: {}}
+      - {tool: helpdesk_list_tickets, args: {status: open, limit: 100}}
+      - {tool: helpdesk_list_tickets, args: {status: pending, limit: 100}}
+      - {tool: mail_search, args: {label: inbox, limit: 50}}
+      - {tool: mail_get, args: {id: m6}}
+      - {tool: mail_get, args: {id: m7}}
+      - {tool: mail_get, args: {id: m4}}
+      - tool: chat_post_message
+        args:
+          channel: cs-leads
+          text: |-
+            Churn risk, renewals by 18 Dec:
+            - Tidewater Hotels ($44,000, Ines, renews 22 Nov): told us by email they won't renew
+            - Saltmarsh Foods ($27,000, Leo, renews 30 Oct): urgent ticket TKT-4410 still pending
+            - Pinecone Health ($54,000, Priya, renews 12 Nov): failed payment INV-5132 unpaid, the retry failed too
+            - Kinfolk Media ($36,500, Tom, renews 20 Nov): urgent ticket TKT-4413 open
+            - Fennel Robotics ($58,000, Tom, renews 27 Nov): failed payment INV-5136 (1 Oct UK time) unpaid
+            - Northpier Logistics ($66,000, Priya, renews 30 Nov): failed payment INV-5135 unpaid and urgent ticket TKT-4418 open
+            - Quarry Analytics ($92,000, Leo, renews 2 Dec): failed payment INV-5130 unpaid and urgent ticket TKT-4419 open
+            Total ARR at risk: $377,500
+    answer: |-
+      Seven renewals in the next 60 days are at risk under the Churn signals rule. I posted the list in #cs-leads:
+      - Tidewater Hotels: $44,000 ARR, renews 22 Nov. Their COO emailed that they won't renew.
+      - Saltmarsh Foods: $27,000, renews 30 Oct. Urgent ticket still pending.
+      - Pinecone Health: $54,000, renews 12 Nov. Failed payment (Stripe customer PCH Medical Inc), and the retry failed too.
+      - Kinfolk Media: $36,500, renews 20 Nov. Urgent ticket open.
+      - Fennel Robotics: $58,000, renews 27 Nov. Failed payment on 1 Oct UK time (30 Sep 23:40 UTC in Stripe), still unpaid.
+      - Northpier Logistics: $66,000, renews 30 Nov after its co-term (the CRM still says 10 Feb). Failed payment and an urgent ticket open.
+      - Quarry Analytics: $92,000, renews 2 Dec. Failed payment and an urgent ticket open.
+      Total ARR at risk: $377,500.
+      Not included: Halcyon Travel (Finance says INV-5131 was paid by wire on 14 Oct), Juniper Dental (its failure was on 30 Sep UK time, so it is with Collections), Copperline Studios (seat cut is for a March renewal), Brightwater Labs (extended to 4 Feb 2027 per #renewals), Marlowe Books (backed out of the early renewal, still 19 Dec, 61 days out), Driftwood Supply (retry succeeded) and Orbit Health (the urgent SSO ticket is from Orbit Healthcare Group, a different company).

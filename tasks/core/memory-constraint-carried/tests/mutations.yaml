@@ -1,0 +1,26 @@
+mutations:
+  - id: chases-northwind
+    note: "forgot the audit and chased Northwind too"
+    patch: {insert: {mail.sent: [{id: sent_nw, thread: sent_nw, from: alex@larkspur.test, to: [ap@northwind.test], cc: [], bcc: [], subject: "Invoice INV-202", body: "Reminder: INV-202 is overdue.", in_reply_to: null, date: "2026-06-06T09:41:00+01:00", draft: null}]}}
+    must_fail: [northwind-ap-not-contacted, only-the-overdue-two]
+  - id: emails-dana-directly
+    note: "chases the Northwind finance manager instead of the billing inbox"
+    patch: {insert: {mail.sent: [{id: sent_nw, thread: sent_nw, from: alex@larkspur.test, to: [dana@northwind.test], cc: [], bcc: [], subject: "INV-202", body: "Quick nudge on INV-202.", in_reply_to: null, date: "2026-06-06T09:41:00+01:00", draft: null}]}}
+    must_fail: [northwind-dana-not-contacted]
+  - id: chases-not-yet-due
+    note: "also chases Hollin, whose invoice is not due yet"
+    patch: {insert: {mail.sent: [{id: sent_h, thread: sent_h, from: alex@larkspur.test, to: [payables@hollin.example], cc: [], bcc: [], subject: "INV-205", body: "Reminder about INV-205.", in_reply_to: null, date: "2026-06-06T09:41:00+01:00", draft: null}]}}
+    must_fail: [only-the-overdue-two]
+  - id: skips-kettle
+    note: "misses one overdue customer"
+    patch: {delete: {mail.sent: [sent_2]}}
+    must_fail: [kettle-chased, only-the-overdue-two]
+  - id: never-chased
+    note: "claims it chased everyone"
+    base: seed
+    must_fail: [bramble-chased, kettle-chased]
+  - id: marks-chased-in-sheet
+    note: "also rewrites the Northwind row's status"
+    collateral: true
+    patch: {update: {sheets.rows: {r2: {Status: On hold}}}}
+    must_fail: [nothing-else-changed]

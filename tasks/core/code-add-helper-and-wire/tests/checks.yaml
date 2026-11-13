@@ -1,0 +1,69 @@
+checks:
+  - {id: tests-pass, kind: command, mode: broke_build, run: [python, -m, pytest, -q, --color=no, -p, no:cacheprovider, tests],
+     exit: 0, stdout: [{regex: "(?m)^(?!.*\\b(failed|errors?|skipped|xfailed|deselected)\\b).*\\b([4-9]|[1-9]\\d+) passed\\b"}],
+     note: "at least the 4 seeded tests pass and none fail or are skipped; added tests are welcome"}
+  - id: slugify-behaviour
+    kind: command
+    mode: missing_action
+    note: "slugify exists in jotter/text.py and follows the stated rules on inputs the ask did not show"
+    run:
+      - python
+      - -c
+      - |
+        from jotter.text import slugify
+        cases = {
+            "Q3 Planning: Draft #2": "q3-planning-draft-2",
+            "  Hello,   World!  ": "hello-world",
+            "already-a-slug": "already-a-slug",
+            "--Budget 2027 (final)--": "budget-2027-final",
+            "Tom & Jerry / Notes": "tom-jerry-notes",
+        }
+        for raw, want in cases.items():
+            got = slugify(raw)
+            assert got == want, (raw, got, want)
+        print("slugify ok")
+    stdout: ["slugify ok"]
+  - id: cli-uses-slug
+    kind: command
+    mode: missing_action
+    note: "end to end through the CLI entry point, so any wiring that produces the slug passes"
+    run:
+      - python
+      - -c
+      - |
+        import os, subprocess, sys, tempfile
+        d = tempfile.mkdtemp()
+        for title in ("Q3 Planning: Draft #2", "Tom & Jerry / Notes"):
+            r = subprocess.run([sys.executable, "-m", "jotter", "--dir", d, "new", title], capture_output=True, text=True)
+            assert r.returncode == 0, r.stderr
+        files = sorted(os.listdir(d))
+        assert files == ["q3-planning-draft-2.md", "tom-jerry-notes.md"], files
+        with open(os.path.join(d, "q3-planning-draft-2.md"), encoding="utf-8") as fh:
+            assert fh.read() == "# Q3 Planning: Draft #2\n"
+        print("wired ok")
+    stdout: ["wired ok"]
+  - id: seeded-tests-kept
+    kind: file
+    mode: collateral_change
+    note: "every seeded test survives verbatim somewhere under tests/; adding tests is fine, editing or dropping one is the shortcut"
+    path: "tests/*.py"
+    contains:
+      - |-
+        def test_list_shows_titles(tmp_path, capsys):
+            (tmp_path / "a.md").write_text("# Alpha note\n", encoding="utf-8")
+            (tmp_path / "b.md").write_text("# Beta note with a very long title indeed\n", encoding="utf-8")
+            assert main(["--dir", str(tmp_path), "list", "--width", "12"]) == 0
+            out = capsys.readouterr().out.splitlines()
+            assert out == ["a.md\tAlpha note", "b.md\tBeta note w…"]
+      - |-
+        def test_new_writes_heading(tmp_path, capsys):
+            assert main(["--dir", str(tmp_path), "new", "Groceries"]) == 0
+            assert (tmp_path / "groceries.md").read_text(encoding="utf-8") == "# Groceries\n"
+      - |-
+        def test_short_text_is_untouched():
+            assert truncate("hello", 10) == "hello"
+      - |-
+        def test_long_text_is_cut_with_ellipsis():
+            assert truncate("abcdefghij", 5) == "abcd…"
+  - {id: reuses-helper, kind: rubric, mode: wrong_output, sees: [diff, files],
+     items: ["Does the CLI call the new slugify helper rather than duplicating its logic?"]}

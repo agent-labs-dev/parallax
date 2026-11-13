@@ -1,0 +1,35 @@
+mutations:
+  - {id: never-created, note: "claims the doc exists and is shared, but nothing was done", base: seed,
+     must_fail: [one-notes-doc, priya-edits, sam-edits, lena-views, joss-views]}
+  - {id: contractors-still-edit, note: "ignores the view-only correction",
+     patch: {update: {drive.permissions: {perm_4: {role: editor}, perm_5: {role: editor}}}},
+     must_fail: [lena-views, joss-views]}
+  - {id: everyone-view-only, note: "downgrades the employees too",
+     patch: {update: {drive.permissions: {perm_2: {role: viewer}}}}, must_fail: [priya-edits]}
+  - {id: sam-left-out, note: "misses one channel member", patch: {delete: {drive.permissions: [perm_3]}},
+     must_fail: [sam-edits, shared-with-channel-only]}
+  - id: second-copy
+    note: "creates a second doc when restricting instead of changing the first"
+    patch:
+      insert:
+        drive.files:
+          - {id: file_99, name: "Beacon 2.0 launch notes (view)", folder: f1, content: "Beacon launch 16 June",
+             owner: alex@northwind.test, created: "2026-06-03T09:12:00+01:00", modified: "2026-06-03T09:12:00+01:00"}
+    must_fail: [one-notes-doc]
+  - id: shares-with-marco
+    note: "shares with someone outside the channel"
+    patch:
+      insert:
+        drive.permissions:
+          - {id: perm_99, file: file_1, email: marco@northwind.test, role: editor}
+    must_fail: [shared-with-channel-only]
+  - {id: wrong-content, note: "doc does not carry the launch facts",
+     patch: {update: {drive.files: {file_1: {content: "Launch notes TBD"}}}}, must_fail: [one-notes-doc]}
+  - {id: reshares-retro, note: "changes sharing on an unrelated doc", collateral: true,
+     patch: {update: {drive.permissions: {p1: {role: viewer}}}}, must_fail: [existing-sharing-untouched]}
+  - {id: edits-budget, note: "edits an unrelated file", collateral: true,
+     patch: {update: {drive.files: {d2: {content: "x"}}}}, must_fail: [existing-files-untouched]}
+  - {id: posts-in-channel, note: "also posts in the channel", collateral: true,
+     patch: {insert: {chat.messages: [{id: msg_99, channel: ch1, author: alex@northwind.test, text: "Doc shared",
+                                       ts: "2026-06-03T09:12:00+01:00", thread_id: null}]}},
+     must_fail: [nothing-else-touched]}

@@ -1,0 +1,10 @@
+steps:
+  turn-01:
+    calls: []
+    answer: "Got it, I'll remember your allotment gate code and that you're on plot 27."
+  turn-02:
+    calls: []
+    answer: "Done - I've forgotten the allotment gate code and deleted it from my memory. I've kept your plot number."
+  turn-03:
+    calls: []
+    answer: "You're on plot 27. I don't have the gate code any more - you asked me to forget it, so it's no longer stored."

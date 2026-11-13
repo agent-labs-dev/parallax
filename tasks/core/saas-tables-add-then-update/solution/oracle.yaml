@@ -1,0 +1,15 @@
+steps:
+  turn-01:
+    calls:
+      - tool: tables_create_record
+        save: lead
+        args:
+          base: b1
+          fields: {company: Ortiz Foods, contact: Maria Ortiz, email: maria@ortizfoods.example, stage: Lead,
+                   annual_value: 12000, owner: sofia@harborline.test}
+    answer: "Added Ortiz Foods to Leads (contact Maria Ortiz, maria@ortizfoods.example, ~12,000 a year) at stage Lead."
+  turn-02:
+    calls:
+      - tool: tables_update_record
+        args: {id: "{{saved.lead.id}}", fields: {stage: Proposal}}
+    answer: "Moved Ortiz Foods to Proposal."

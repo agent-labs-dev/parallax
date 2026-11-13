@@ -1,0 +1,12 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: drive_search, args: {query: Q3 launch plan}}
+      - {tool: drive_update_file, args: {id: doc_q3, append: "\n## Timeline\n- Design freeze: 22 June\n- Beta opens: 6 July\n- Public launch: 20 July\n"}}
+    answer: "Added a Timeline section to the Q3 launch plan: design freeze 22 June, beta opens 6 July, public launch 20 July."
+  turn-02:
+    calls:
+      - {tool: drive_update_file, args: {id: doc_q3, append: "\n## Budget\n- Contract design work: £18k\n- Launch ads: £6k\n"}}
+      - {tool: drive_search, args: {query: Q3 launch plan}}
+      - {tool: drive_update_file, args: {id: doc_q3_m2, append: "\n## Budget\n- Contract design work: £18k\n- Launch ads: £6k\n"}}
+    answer: "Added a Budget section to the Q3 launch plan: £18k for contract design work and £6k for launch ads (£24k total). The doc's id had changed since the last edit, so I looked it up again and edited the same doc rather than making a new one."

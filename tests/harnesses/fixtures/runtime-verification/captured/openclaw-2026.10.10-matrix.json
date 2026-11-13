@@ -1,0 +1,9 @@
+{
+  "harness": "openclaw 2026.10.10 (Node 24.22.2, npm i -g --allow-scripts=openclaw)",
+  "session_carry": {"turn1_session_id": "s-carry", "turn2_request_n_messages": 14, "note": "turn 2 on the same --session-id resumed the full turn-1 history (fresh sessions carry ~2-6 messages)"},
+  "memory_injection": {"surface": "workspace USER.md", "sentinel": "LOCKER-99-OPENCLAW1010", "sentinel_seen_in_fresh_session_request": true},
+  "web_isolation": {"inlined_tools": 12, "web_tools_denied": ["web_search", "web_fetch", "x_search", "browser"], "web_tools_present": false, "bridge_tools": ["tool_search", "tool_describe", "dispatch_action"]},
+  "openai_wire": {"path": "POST /v1/chat/completions", "model": "gpt-x", "meter_auth": "fake-openai-key"},
+  "anthropic_wire": {"path": "POST /v1/messages", "model": "claude-sonnet-5", "meter_auth": "fake-anthropic-key"},
+  "meter_report": {"models": ["gpt-x", "claude-sonnet-5"], "upstream_errors": 0, "unpriced_requests": 16, "cost_usd": null}
+}

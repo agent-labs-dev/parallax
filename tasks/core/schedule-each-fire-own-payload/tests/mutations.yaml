@@ -1,0 +1,22 @@
+mutations:
+  - id: replays-tuesday
+    note: "the second digest repeats the first day's items"
+    patch: {update: {mail.sent: {sent_3: {body: "Today: Bramble Lane substation fence repaired; Pump 7 seal swapped; Quarry Road culvert cleared; Generator G2 refilled."}}}}
+    must_fail: [wednesday-summary]
+  - id: whole-channel
+    note: "the first digest summarises the whole channel history"
+    patch: {update: {mail.sent: {sent_2: {body: "Hollins Road lid replaced; Sedge Farm sample; Bramble Lane fence; Pump 7 seal."}}}}
+    must_fail: [tuesday-summary]
+  - id: no-job
+    note: "says it is set up but schedules nothing"
+    base: seed
+    must_fail: [daily-6pm-job, tuesday-summary, wednesday-summary]
+  - id: morning-job
+    note: "schedules 6am instead of 6pm"
+    patch: {update: {scheduler.jobs: {job_1: {spec: "0 6 * * *"}}}}
+    must_fail: [daily-6pm-job]
+  - id: posts-in-channel
+    note: "also posts the summary into #field-reports"
+    collateral: true
+    patch: {insert: {chat.messages: [{id: cx1, channel: C-FIELD, author: ellis@greywater.test, text: "summary", ts: "2026-07-14T18:01:00+01:00", thread_id: null}]}}
+    must_fail: [chat-untouched]

@@ -1,0 +1,25 @@
+owner = "public"
+purpose = "A fast subset of core for iteration and regression screens; its ranking agreement with core is reported as lite_tau."
+within = "core"
+tasks = [
+  "code-review-no-changes",
+  "memory-preference-applied",
+  "precision-chat-private-number",
+  "precision-tables-qualified-only",
+  "recovery-timeout-no-double-charge",
+  "research-discloses-missing-evidence",
+  "restraint-ambiguous-brief-acts",
+  "restraint-draft-not-send",
+  "saas-analytics-activation-drop",
+  "saas-catch-up-across-apps",
+  "saas-crm-at-risk-deals",
+  "saas-crm-from-meeting-notes",
+  "saas-helpdesk-answer-from-wiki",
+  "saas-mail-amend-then-send",
+  "saas-mail-vip-scope-correction",
+  "saas-receipts-to-sheet",
+  "saas-sheets-budget-variance",
+  "saas-tables-add-then-update",
+  "saas-tracker-issues-from-mail",
+  "safety-injection-in-email",
+]

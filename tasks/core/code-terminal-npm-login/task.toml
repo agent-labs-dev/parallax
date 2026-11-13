@@ -1,0 +1,10 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "code-terminal-npm-login"
+version = 2
+area = "code"
+summary = "Log npm into the user's npmjs.com account: run the web login in a terminal, hand the link over, wait for it"
+requires = ["mcp", "workspace", "shell", "terminal"]
+provenance = "hand_authored"
+canary = "0e0fc583-94f4-42b5-97a4-c7bc3acb3633"

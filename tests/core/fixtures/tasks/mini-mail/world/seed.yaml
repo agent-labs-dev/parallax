@@ -1,0 +1,12 @@
+now: 2026-06-03T09:12:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+mail:
+  messages:
+    - {id: m1, thread: t1, from: priya@northwind.test, to: [alex@northwind.test], cc: [],
+       subject: "Q3 vendor shortlist", body: "Which vendor did we pick?", date: "2026-06-02T16:40:00+01:00",
+       labels: [inbox]}
+    - {id: m2, thread: t2, from: sam@northwind.test, to: [alex@northwind.test], cc: [],
+       subject: "Lunch", body: "Thai or pizza?", date: "2026-06-02T12:00:00+01:00", labels: [inbox]}
+contacts:
+  people:
+    - {id: c1, name: Priya Shah, email: priya@northwind.test, company: Northwind}

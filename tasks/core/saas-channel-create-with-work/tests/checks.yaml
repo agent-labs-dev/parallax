@@ -1,0 +1,6 @@
+checks:
+  - {id: design-created, kind: state, mode: missing_action, table: chat.channels, where: {name: design}, count: 1}
+  - {id: work-queued, kind: rubric, mode: missing_action, sees: [diff, calls], items: ["Exactly one queued work item requests review of the dashboard empty-state mocks, and its channel reference resolves to the newly created channel named design. A channel message alone does not start work."]}
+  - {id: general-unchanged, kind: state, mode: collateral_change, table: chat.channels, where: {id: general}, unchanged: true}
+  - {id: messages-unchanged, kind: state, mode: collateral_change, table: chat.messages, where: {id: hello}, unchanged: true}
+  - {id: other-state-unchanged, kind: state, mode: collateral_change, table: "*", unchanged: true, except_tables: [chat.channels, chat.work]}

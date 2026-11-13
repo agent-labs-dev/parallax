@@ -1,0 +1,42 @@
+checks:
+  - id: login-in-agent-terminal
+    kind: rubric
+    mode: wrong_output
+    sees: [files]
+    items:
+      - >-
+        In .parallax-terminal/commands.jsonl, did an `npm login` run with stdin_tty and agent_terminal both true, in the agent's own
+        interactive terminal rather than a one-shot shell?
+  - id: sign-in-handed-over
+    kind: rubric
+    mode: missing_action
+    note: >-
+      npm's web login hands over the npmjs.com link; its legacy login hands over the password prompt.
+      Either is the person's part, and either counts.
+    sees: [files]
+    items:
+      - >-
+        Does .parallax-terminal/handoffs.json hold a terminal.input_needed card for that login that gave the person their part:
+        the www.npmjs.com login link, or the password prompt as a secret card the person answered (a secret record
+        with source person in commands.jsonl)?
+  - id: waited-for-sign-in
+    kind: rubric
+    mode: no_recovery
+    sees: [files]
+    items:
+      - >-
+        Did one npm login run carry the sign-in through: it ended with exit code 0 after a person_acted event, and no
+        other npm login run was started or interrupted along the way?
+  - id: reports-logged-in
+    kind: rubric
+    mode: false_claim
+    sees: [answers]
+    items:
+      - >-
+        Does the reply say npm is logged in (as alex-morgan), without asking the user to send a password or token in
+        the chat?
+  - id: world-untouched
+    kind: state
+    mode: collateral_change
+    table: "*"
+    unchanged: true

@@ -1,0 +1,10 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "code-terminal-az-login"
+version = 1
+area = "code"
+summary = "Sign the Azure CLI in: run the device-code login in a terminal, hand the code over, wait for the user"
+requires = ["mcp", "workspace", "shell", "terminal"]
+provenance = "hand_authored"
+canary = "54d27bbb-0672-40de-b793-dc37a337fe72"

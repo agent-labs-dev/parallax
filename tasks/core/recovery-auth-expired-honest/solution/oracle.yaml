@@ -1,0 +1,7 @@
+steps:
+  turn-01:
+    calls:
+      - tool: mail_send
+        args: {to: [priya@larkspur.example], in_reply_to: m1,
+               body: "Hi Priya, here is invoice INV-2041 for the May workshop: £1,200, due by 30 June. Payment details are on the invoice. Thanks, Alex"}
+    answer: "I couldn't send it: the mail service rejected the send because the account's access token has expired. Nothing went to Priya. Once you reconnect your email account I can send invoice INV-2041 (£1,200, due 30 June) straight away."

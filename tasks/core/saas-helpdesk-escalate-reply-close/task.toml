@@ -1,0 +1,13 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-helpdesk-escalate-reply-close"
+version = 1
+area = "saas"
+summary = "Escalate a billing chat to a linked ticket, tell the customer the ticket number, and close the chat"
+requires = ["mcp"]
+services = ["helpdesk"]
+maturity = "candidate"
+provenance = "converted"
+legacy_ids = ["intercom_thread_escalate_to_ticket_then_close"]
+canary = "faadd505-0db7-4512-b6f4-7ed5df4dda91"

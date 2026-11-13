@@ -1,0 +1,41 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: wiki_search, args: {query: CRM hygiene}}
+      - {tool: wiki_get_page, args: {id: pg_hygiene}}
+      - {tool: chat_read_channel, args: {channel: sales}}
+      - {tool: tables_list_records, args: {base: Deals}}
+      - {tool: tables_list_records, args: {base: Deals, offset: 100}}
+      - {tool: tables_update_record, args: {id: rec027, fields: {Owner: Priya}}}
+      - {tool: tables_update_record, args: {id: rec118, fields: {Owner: Dana}}}
+      - {tool: tables_update_record, args: {id: rec134, fields: {Owner: Ben}}}
+    answer: |-
+      I followed the CRM hygiene page in Notion: I made only the fixes it allows, and I deleted and merged nothing.
+
+      Fixed: missing owners, from Rosa's assignment in #sales (with her correction in the thread)
+      - rec027 Harbor Dental -> Priya
+      - rec118 Kestrel Foods -> Dana (Rosa corrected Tom to Dana; Tom is on leave)
+      - rec134 Larchmont Freight -> Ben
+
+      Still without an owner (no Sales Ops assignment, so I left them blank)
+      - rec062 Quillon Health (Ben only wondered if it is his; not an assignment)
+      - rec149 Tessera Bio
+
+      Duplicates: need the owner's OK to merge. Proposed record to keep in brackets.
+      - Harlow Freight, Renewal: rec012 and rec057, exact copies (keep rec012). Owner Tom.
+      - Pellucid Media, Platform: rec033 and rec121, exact copies (keep rec033). Owner Lucia.
+      - Saltmarsh Energy, Pilot: rec109 and rec140, exact copies (keep rec109). Owner Omar.
+      - Acme Inc (rec008) and ACME, Inc. (rec116), Platform $64,000 (keep rec116, later Stage since). Owner Dana.
+      - Northwind Traders Ltd (rec046) and Northwind Traders (rec088), Expansion $27,500 (keep rec046). Owner Ben.
+      Bluefin Labs' Renewal (rec064) and Expansion (rec131) are two real deals, and Acme Logistics (rec021) is a different company, so they are not duplicates.
+
+      Stale deals: open, no stage change for 90+ days (I did not change their stage)
+      - rec104 Ember Systems, Add-on, Negotiation since 19 Mar (Dana)
+      - rec077 Jasper Capital, Pilot, Discovery since 2 Apr (Lucia)
+      - rec019 Birch Energy, Expansion, Negotiation since 14 May (Tom)
+      - rec127 Elm Labs, Expansion, Prospecting since 5 Jun (Dana)
+      - rec041 Zephyr Media, Renewal, Proposal since 30 Jun (Priya)
+      - rec146 Umber Dental, Platform, Discovery since 2 Jul (Dana)
+      - rec095 Cedar Retail, Platform, Proposal since 21 Jul, exactly 90 days (Priya)
+
+      Proposal: ask Tom, Lucia, Omar, Dana and Ben to OK the five merges, and ask the stale-deal owners to update or close those seven deals before Wednesday night's board pull.

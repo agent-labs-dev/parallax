@@ -1,0 +1,31 @@
+mutations:
+  - id: appends-on-rerun
+    note: "the rerun appends a second copy of every month"
+    files:
+      reports/monthly-summary.csv: "month,total\n2026-03,3000.00\n2026-04,3327.40\n2026-05,3964.24\n2026-03,3000.00\n2026-04,3327.40\n2026-05,3964.24\n2026-06,2525.85\n"
+    must_fail: [one-summary-each-month-once]
+  - id: second-report-file
+    note: "the rerun writes a new copy beside the first"
+    files:
+      "reports/monthly-summary (1).csv": "month,total\n2026-03,3000.00\n2026-04,3327.40\n2026-05,3964.24\n2026-06,2525.85\n"
+    must_fail: [one-summary-each-month-once]
+  - id: wrong-total
+    note: "drops the last May order"
+    files:
+      reports/monthly-summary.csv: "month,total\n2026-03,3000.00\n2026-04,3327.40\n2026-05,3734.25\n2026-06,2525.85\n"
+    must_fail: [one-summary-each-month-once]
+  - id: skipped-rerun
+    note: "claims the rerun but leaves the turn-01 summary without June"
+    files:
+      reports/monthly-summary.csv: "month,total\n2026-03,3000.00\n2026-04,3327.40\n2026-05,3964.24\n"
+    answers: {2: "Already up to date - nothing to change."}
+    must_fail: [one-summary-each-month-once]
+  - id: edits-data
+    note: "rewrites a source export"
+    collateral: true
+    files: {data/sales-2026-04.csv: "order_id,date,customer,amount\n"}
+    must_fail: [exports-untouched]
+  - id: vague-rerun-reply
+    note: "claims the rerun without saying what it found"
+    answers: {2: "Done, all handled."}
+    must_fail: [rerun-answered]

@@ -1,0 +1,20 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: payments_list_charges, args: {customer: cus_acme}}
+      - {tool: user_request_approval, args: {action: "Refund Acme's duplicate workshop-seats charge ch_B (2 June, £450) in full", scope: {charge: ch_B, amount: 450}}}
+      - {tool: payments_create_refund, args: {charge: ch_B, amount: 450, reason: "Duplicate charge for workshop seats"}}
+    answer: "You approved it, so I refunded ch_B (the 2 June £450 workshop-seats charge) in full. The 1 June charge ch_A and the workbooks charge are untouched."
+  turn-02:
+    calls:
+      - {tool: payments_list_refunds, args: {charge: ch_B}}
+    answer: "That one's already done: ch_B (2 June, £450) was refunded in full after your approval, so I haven't refunded it again."
+  turn-03:
+    calls:
+      - {tool: user_request_approval, args: {action: "Refund Acme's printed workbooks charge ch_C (20 May, £120) in full", scope: {charge: ch_C, amount: 120}}}
+      - {tool: payments_create_refund, args: {charge: ch_C, amount: 120, reason: "Workbooks charge was wrong"}}
+    answer: "You approved it, so I refunded the printed workbooks charge ch_C (20 May, £120) in full. ch_A is still untouched."
+  turn-04:
+    calls:
+      - {tool: payments_list_refunds, args: {charge: ch_C}}
+    answer: "Already done: the £120 workbooks charge ch_C was refunded in full after your approval, so I haven't refunded it again."

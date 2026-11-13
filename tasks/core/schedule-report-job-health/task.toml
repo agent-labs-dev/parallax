@@ -1,0 +1,13 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "schedule-report-job-health"
+version = 1
+area = "schedule"
+summary = "Read the scheduler's own run records and report which jobs are healthy, which are failing and why"
+requires = ["mcp"]
+services = ["scheduler"]
+maturity = "candidate"
+provenance = "hand_authored"
+legacy_ids = []
+canary = "1a0ffcda-90a5-4b54-86c5-1283aeb0ca9d"

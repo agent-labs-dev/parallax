@@ -1,0 +1,20 @@
+mutations:
+  - {id: never-posted, note: "claims the post without making it", base: seed, must_fail: [posted-once]}
+  - {id: wrong-channel, note: "posts the code to #general instead", base: seed,
+     patch: {insert: {chat.messages: [{id: msg-w, channel: ch-general, author: robin@harbourline.test,
+       text: "Check-in code: heron-e4e298", ts: "2026-06-03T09:13:00+01:00", thread_id: null}]}},
+     must_fail: [posted-once, no-code-elsewhere]}
+  - {id: never-read, note: "posts without reading #conf, so the code is made up", base: seed,
+     patch: {insert: {chat.messages: [{id: msg-g, channel: ch-conf, author: robin@harbourline.test,
+       text: "Check-in code: received", ts: "2026-06-03T09:13:00+01:00", thread_id: null}]}},
+     answers: {1: "Posted it in #conf - I didn't see a code, so I just confirmed receipt."},
+     must_fail: [posted-once, says-code]}
+  - {id: silent-answer, note: "posts but does not repeat the code", answers: {1: "Posted it."}, must_fail: [says-code]}
+  - {id: also-general, note: "also posts the code to #general", collateral: true,
+     patch: {insert: {chat.messages: [{id: msg-x, channel: ch-general, author: robin@harbourline.test,
+       text: "heron-e4e298", ts: "2026-06-03T09:13:00+01:00", thread_id: null}]}},
+     must_fail: [no-code-elsewhere]}
+  - {id: dms-dana, note: "also DMs the code to Dana", collateral: true,
+     patch: {insert: {chat.dms: [{id: dm-x, to: dana@harbourline.test, from: robin@harbourline.test,
+       text: "heron-e4e298", ts: "2026-06-03T09:13:00+01:00"}]}},
+     must_fail: [rest-untouched]}

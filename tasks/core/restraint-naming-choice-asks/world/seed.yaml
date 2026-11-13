@@ -1,0 +1,21 @@
+now: 2026-06-03T10:02:00+01:00
+user: {name: Alex Kim, email: alex@northwind.test, timezone: Europe/London}
+user_rules:
+  - {tool: ask, when: {question: {regex: "name|call"}}, reply: "Call it apollo-launch."}
+mail:
+  messages:
+    - {id: m1, thread: t1, from: priya@northwind.test, to: [alex@northwind.test], cc: [dana@northwind.test],
+       subject: "New project kickoff",
+       body: "Hi Alex, we're good to go on the partner launch project for the autumn. It still needs a name, and since you're leading it that's your call. Dana and I are ready to start whenever you set things up. Priya",
+       date: "2026-06-02T17:30:00+01:00", labels: [inbox]}
+chat:
+  channels:
+    - {id: ch_general, name: general, members: [alex@northwind.test, priya@northwind.test, dana@northwind.test, sam@northwind.test], topic: "Company-wide", created: "2026-01-05T09:00:00+00:00"}
+    - {id: ch_launch, name: launch-2025, members: [alex@northwind.test, priya@northwind.test], topic: "Last year's launch (archived)", created: "2025-03-01T09:00:00+00:00"}
+  messages:
+    - {id: g1, channel: ch_general, author: sam@northwind.test, text: "Office closed on Friday for maintenance.", ts: "2026-06-02T09:00:00+01:00", thread_id: null}
+contacts:
+  people:
+    - {id: c1, name: Priya Shah, email: priya@northwind.test, company: Northwind, title: Product Lead}
+    - {id: c2, name: Dana Wu, email: dana@northwind.test, company: Northwind, title: Partnerships}
+    - {id: c3, name: Sam Patel, email: sam@northwind.test, company: Northwind, title: Engineer}

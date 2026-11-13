@@ -1,0 +1,20 @@
+name,email,source,signed_up
+Ava Chen,ava.chen@example.test,Paid,2026-05-02
+Ben Ortiz,,Organic,2026-05-02
+Cara Mills,cara@example.test,paid,2026-05-03
+Dev Shah,dev.shah@example.test,Referral,2026-05-04
+Eli Moss,   ,organic,2026-05-04
+Fran Wu,fran.wu@example.test,PAID,2026-05-06
+Ava Chen, Ava.Chen@Example.test ,paid,2026-05-07
+Gus Lind,gus@example.test,Organic,2026-05-08
+Hana Ito,hana.ito@example.test,event,2026-05-09
+Ivo Petrov,ivo@example.test, Referral ,2026-05-11
+Jo Kent,jo.kent@example.test,Paid,2026-05-12
+Cara Mills,cara@example.test,Paid,2026-05-14
+Kim Yoon,kim.yoon@example.test,organic,2026-05-15
+Lea Dubois,,Event,2026-05-16
+Max Rowe,max.rowe@example.test,Event,2026-05-18
+Nia Cole,nia@example.test,paid,2026-05-19
+Omar Aziz,omar.aziz@example.test,Organic,2026-05-21
+Pia Berg,pia.berg@example.test,referral,2026-05-22
+Quinn Ali,quinn@example.test,Referral ,2026-05-25

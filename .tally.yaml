@@ -1,0 +1,38 @@
+warnDays: 30
+staleDays: 365
+idleDays: 90
+secretPatterns: []
+ignore:
+  - LANGFUSE_PUBLIC_KEY
+  - PUBLIC_SCAN_DENYLIST
+credentialNames: []
+ignorePaths: []
+sources: []
+keys:
+  - id: openrouter-parallax-ci
+    service: openrouter
+    group: ci
+    owner: agent-labs-dev
+    locations:
+      - github: OPENROUTER_API_KEY
+      - pass: openrouter/parallax-ci
+    expires: 2027-02-11
+    expiresNote: expires_at from the OpenRouter key endpoint, read 2026-11-13
+    limit: $50/day
+    note: parallax.yml also passes it as PARALLAX_JUDGE_API_KEY
+  - id: langfuse-secret-key
+    service: langfuse
+    group: ci
+    owner: agent-labs-dev
+    locations:
+      - github: LANGFUSE_SECRET_KEY
+    expires: unknown
+    limit: unknown
+  - id: parallax-upstream-openai-key
+    service: openai
+    group: ci
+    owner: agent-labs-dev
+    locations:
+      - github: PARALLAX_UPSTREAM_OPENAI_KEY
+    expires: unknown
+    limit: unknown

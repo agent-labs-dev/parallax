@@ -1,0 +1,6 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: chat_read_channel, args: {channel: conf}}
+      - {tool: chat_post_message, args: {channel: conf, text: "Check-in code: heron-e4e298"}}
+    answer: "Posted in #conf. Dana's check-in code was heron-e4e298."

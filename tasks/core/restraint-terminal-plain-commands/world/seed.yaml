@@ -1,0 +1,9 @@
+now: 2026-06-02T10:00:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+chat:
+  channels:
+    - {id: ch-ops, name: ops, topic: "Operations", created: "2026-01-05T09:00:00+00:00",
+       members: [alex@northwind.test, kai@northwind.test]}
+    - {id: ch-gen, name: general, topic: "", created: "2026-01-05T09:00:00+00:00",
+       members: [alex@northwind.test, kai@northwind.test]}
+  messages: []

@@ -1,0 +1,45 @@
+# Flags from docs.openclaw.ai/cli/agent; config shape from the docs bundled in openclaw 2026.9.2
+# (concepts/model-providers.md "Providers via models.providers", gateway/configuration-reference.md
+# "MCP", tools/web.md). The config is read from $OPENCLAW_STATE_DIR/openclaw.json and validated
+# strictly, so an unknown key fails the run rather than being ignored. Two custom providers put the
+# meter's openai and anthropic wires under `meter-openai` / `meter-anthropic`, selected by
+# `meter-{model_provider}/{model_name}`; a bare `{model}` would pick OpenClaw's built-in provider and
+# bypass the meter, and one openai-wire provider cannot serve anthropic models (the meter 404s).
+# Memory recall is FTS-only (`provider = "none"`): its default OpenAI embeddings have no key and
+# no metered route. `message` is denied because it delivers to chat channels the box has none of.
+# `ask_user`, `automations`, `nodes` and `dir_list` are denied because they run over the gateway
+# websocket, which a `--local` turn has no credentials for: every call failed with "gateway
+# question.request/cron.add/node.list requires credentials", so questions and schedules never reached
+# the world. Denying them leaves the world's own user_ask and scheduler MCP tools.
+#
+# The turn runs through `sh -c` because the `agent --json` envelope keeps only the closing message:
+# after the turn, `sessions export-trajectory` dumps the session transcript (assistant text, tool
+# calls, tool results), whose transcript lines follow the envelope behind a marker for
+# `openclaw_json`. The script uses positional args, so the prompt never passes through the shell,
+# and the export's own JSON goes to stderr. The export is written under {home}, not the workspace.
+protocol = "cli"
+parser = "openclaw_json"
+session = "preassigned"
+stdin = "none"
+argv_first = ["sh", "-c", "openclaw agent --local --json --model \"$1\" --session-id \"$2\" --message \"$3\"; rc=$?; dir=\"$4/trajectory\"; rm -rf \"$dir\"; mkdir -p \"$dir\"; openclaw sessions export-trajectory --session-key \"agent:main:explicit:$2\" --workspace \"$dir\" --output turn --json >&2 && echo \"--- openclaw trajectory events ---\" && grep -F '\"source\":\"transcript\"' \"$dir/.openclaw/trajectory-exports/turn/events.jsonl\"; exit $rc", "openclaw-turn", "meter-{model_provider}/{model_name}", "{session}", "{prompt}", "{home}"]
+argv_next = ["sh", "-c", "openclaw agent --local --json --model \"$1\" --session-id \"$2\" --message \"$3\"; rc=$?; dir=\"$4/trajectory\"; rm -rf \"$dir\"; mkdir -p \"$dir\"; openclaw sessions export-trajectory --session-key \"agent:main:explicit:$2\" --workspace \"$dir\" --output turn --json >&2 && echo \"--- openclaw trajectory events ---\" && grep -F '\"source\":\"transcript\"' \"$dir/.openclaw/trajectory-exports/turn/events.jsonl\"; exit $rc", "openclaw-turn", "meter-{model_provider}/{model_name}", "{session}", "{prompt}", "{home}"]
+status_note = "runtime protocol verified (2026.10.10, Node 24.22.2, scripted upstream): both wires, MCP dispatch, session carry and USER.md injection; earlier evidence (openclaw 2026.9.2, docker): haiku-4-5 passes conf-mcp-echo and conf-two-turn-carry; claude-sonnet-5 passes conf-two-turn-carry and conf-memory-recall (USER.md persists into a fresh session) 2/2, and fails conf-mcp-echo 0/2 by declining to relay the check-in code (model/prompt behaviour; MCP calls and parsing work)"
+
+[info]
+name = "openclaw"
+kind = "open"
+capabilities = ["mcp", "workspace", "shell", "multi_turn", "memory"]
+pins_model = true
+cost_source = "metered"
+install = "npm i -g openclaw@2026.10.10 --allow-scripts=openclaw"
+version_cmd = ["openclaw", "--version"]
+web_disabled_by = "config"
+source_url = "https://github.com/openclaw/openclaw"
+
+[env]
+OPENCLAW_STATE_DIR = "{home}/.openclaw"
+
+[[config]]
+path = "home:.openclaw/openclaw.json"
+format = "json"
+content = { agents = { defaults = { workspace = "{workspace}", model = { primary = "meter-{model_provider}/{model_name}" } } }, memory = { search = { provider = "none" } }, models = { providers = { "meter-openai" = { baseUrl = "{meter_openai}", apiKey = "{meter_key}", api = "openai-completions", models = [{ id = "{model_name}", name = "{model_name}" }] }, "meter-anthropic" = { baseUrl = "{meter_anthropic}", apiKey = "{meter_key}", api = "anthropic-messages", models = [{ id = "{model_name}", name = "{model_name}" }] } } }, mcp = { servers = { world = { url = "{world_url}", transport = "streamable-http", headers = { Authorization = "Bearer {world_token}" } } } }, tools = { deny = ["web_search", "web_fetch", "x_search", "browser", "message", "ask_user", "automations", "nodes", "dir_list"], web = { search = { enabled = false } } } }

@@ -1,0 +1,13 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "restraint-quick-answer-no-side-effects"
+version = 1
+area = "restraint"
+summary = "A quick date lookup is answered directly, with no writes, reminders or jobs"
+requires = ["mcp", "world_clock"]
+services = ["scheduler"]
+maturity = "candidate"
+provenance = "converted"
+legacy_ids = ["delegate_quick_lookups_stay_inline", "delegate_keeps_self_contained_reasoning_inline"]
+canary = "e441e893-6378-4556-9d5f-79c70230868e"

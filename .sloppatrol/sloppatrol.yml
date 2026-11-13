@@ -1,0 +1,24 @@
+version: 1
+project: { name: parallax }
+prepare: [uv sync --locked]
+# The offline checks CI runs, as CI runs them (.github/workflows/ci.yml). Paid runs go through the
+# Parallax evals workflow and are not checks.
+checks:
+  - name: format
+    run: uv run ruff format --check parallax tests/core tests/world tests/harnesses scripts/scan_public.py ci/rules/run.py ci/rules/checks
+  - name: lint
+    run: uv run ruff check parallax tests/core tests/world tests/harnesses scripts/scan_public.py ci/rules/run.py ci/rules/checks
+  - name: typecheck
+    run: uv run ty check --error-on-warning parallax
+  - name: test
+    run: uv run pytest -q -n auto --dist worksteal
+    tests: true
+  - name: controls
+    run: uv run parallax check core conformance --lint-only
+  - name: repository-rules
+    run: uv run --no-project python ci/rules/run.py --test && uv run --no-project python ci/rules/run.py
+# The Langfuse tier needs Docker and runs only with `-m langfuse`, which no check passes.
+uncheckedTests: [tests/smoke/test_langfuse.py]
+focus: [parallax/**, scripts/**, ci/rules/**]
+# Task worlds and fixtures are data, the workflow file is generated from parallax/ci.py, and the lockfile is uv's.
+ignore: [tasks/**, "**/fixtures/**", ci/rules/check-tests/**, .github/workflows/parallax.yml, uv.lock]

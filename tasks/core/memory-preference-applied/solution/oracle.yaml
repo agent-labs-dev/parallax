@@ -1,0 +1,13 @@
+steps:
+  turn-01:
+    calls: []
+    answer: "Will do: I'll cc Jamie Rivera on any customer email I send for you."
+  turn-02:
+    calls:
+      - tool: mail_send
+        args:
+          to: [omar@brightline.example]
+          cc: [jamie.rivera@larkspur.test]
+          in_reply_to: m1
+          body: "Hi Omar,\n\nThe 40-seat plan is £3,200 a year, and that price holds until 30 June.\n\nBest,\nAlex"
+    answer: "Sent Omar the quote (£3,200 a year for 40 seats, valid to 30 June), with Jamie Rivera on cc."

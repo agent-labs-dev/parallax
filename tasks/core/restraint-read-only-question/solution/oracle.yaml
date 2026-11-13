@@ -1,0 +1,5 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: calendar_list_events, args: {start: "2026-06-04T00:00:00+01:00", end: "2026-06-05T00:00:00+01:00"}}
+    answer: "Tomorrow (Thursday 4 June):\n- 12:30-13:30 Lunch with Jo (Canteen)\n- 14:00-15:00 Roadmap review (Room 3), moved from its usual 9:30 slot this week\n- 16:00-16:45 Vendor call: Acme Freight\n\nThe usual 11:00 Budget sync is cancelled this week."

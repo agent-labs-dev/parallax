@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parallax brand</title>
+<style>
+  :root {
+    --ink: #14161d;
+    --paper: #e9edf3;
+    --accent: #e35ba0;
+    --muted: #8b93a3;
+    --light-bg: #f4f6fa;
+    --line: #2a2f3a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    background: #fff;
+    line-height: 1.5;
+  }
+  header {
+    padding: 40px 32px 24px;
+    border-bottom: 1px solid #e5e9f0;
+  }
+  h1 { margin: 0 0 6px; font-size: 26px; letter-spacing: -0.02em; }
+  h2 { margin: 0 0 16px; font-size: 18px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); max-width: 720px; margin: 0; }
+  main { padding: 24px 32px 56px; max-width: 1180px; }
+  section { margin: 0 0 40px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .card { border: 1px solid #e5e9f0; border-radius: 10px; overflow: hidden; }
+  .card .stage { display: flex; align-items: center; justify-content: center; padding: 20px; min-height: 150px; }
+  .stage.light { background: var(--light-bg); }
+  .stage.dark { background: var(--ink); }
+  .stage.neutral { background: repeating-conic-gradient(#f1f3f7 0 25%, #fff 0 50%) 0 0 / 24px 24px; }
+  .card .cap { padding: 10px 12px; border-top: 1px solid #eef1f6; font-size: 12px; color: var(--muted); }
+  .cap code { color: var(--ink); }
+  .stage img { display: block; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 16px; }
+  .swatch { width: 150px; }
+  .chip { height: 64px; border-radius: 10px; border: 1px solid #e5e9f0; margin-bottom: 8px; }
+  .swatch .name { font-weight: 600; font-size: 13px; }
+  .swatch .hex { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); }
+  .notes { color: var(--muted); font-size: 13px; max-width: 720px; }
+  .notes li { margin: 4px 0; }
+  footer { padding: 16px 32px; border-top: 1px solid #e5e9f0; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Parallax brand</h1>
+  <p class="sub">Parallax is the apparent shift of one object seen from two lines of sight: a solid
+  accent disc (the object) and a hollow echo disc offset horizontally (the same object from the second
+  viewpoint). No orbit rings, no sparkle.</p>
+</header>
+<main>
+
+  <section>
+    <h2>Palette</h2>
+    <div class="swatches">
+      <div class="swatch"><div class="chip" style="background:#14161d"></div><div class="name">ink</div><div class="hex">#14161d</div></div>
+      <div class="swatch"><div class="chip" style="background:#e9edf3"></div><div class="name">paper</div><div class="hex">#e9edf3</div></div>
+      <div class="swatch"><div class="chip" style="background:#e35ba0"></div><div class="name">accent</div><div class="hex">#e35ba0</div></div>
+      <div class="swatch"><div class="chip" style="background:#8b93a3"></div><div class="name">muted</div><div class="hex">#8b93a3</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Mark</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="stage light"><img src="mark.svg" width="128" height="128" alt="mark on light"></div>
+        <div class="cap">on light &middot; <code>mark.svg</code></div>
+      </div>
+      <div class="card">
+        <div class="stage dark"><img src="mark-dark.svg" width="128" height="128" alt="mark on dark"></div>
+        <div class="cap">on dark &middot; <code>mark-dark.svg</code></div>
+      </div>
+      <div class="card">
+        <div class="stage neutral"><img src="mark-512.png" width="128" height="128" alt="mark png"></div>
+        <div class="cap">raster &middot; <code>mark-512.png</code></div>
+      </div>
+      <div class="card">
+        <div class="stage neutral"><img src="mark-dark-512.png" width="128" height="128" alt="mark dark png"></div>
+        <div class="cap">raster &middot; <code>mark-dark-512.png</code></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>App icon</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="stage neutral"><img src="logo.svg" width="160" height="160" alt="icon svg"></div>
+        <div class="cap">vector &middot; <code>logo.svg</code></div>
+      </div>
+      <div class="card">
+        <div class="stage neutral"><img src="icon-512.png" width="160" height="160" alt="icon 512"></div>
+        <div class="cap"><code>icon-512.png</code></div>
+      </div>
+      <div class="card">
+        <div class="stage neutral"><img src="icon-256.png" width="160" height="160" alt="icon 256"></div>
+        <div class="cap"><code>icon-256.png</code></div>
+      </div>
+      <div class="card">
+        <div class="stage neutral"><img src="icon-128.png" width="160" height="160" alt="icon 128"></div>
+        <div class="cap"><code>icon-128.png</code></div>
+      </div>
+      <div class="card">
+        <div class="stage neutral"><img src="icon-64.png" width="96" height="96" alt="icon 64"></div>
+        <div class="cap"><code>icon-64.png</code></div>
+      </div>
+      <div class="card">
+        <div class="stage neutral"><img src="icon-32.png" width="64" height="64" alt="icon 32"></div>
+        <div class="cap"><code>icon-32.png</code></div>
+      </div>
+      <div class="card">
+        <div class="stage neutral"><img src="icon-16.png" width="32" height="32" alt="icon 16"></div>
+        <div class="cap"><code>icon-16.png</code> &middot; favicon scale</div>
+      </div>
+      <div class="card">
+        <div class="stage neutral"><img src="favicon.ico" width="32" height="32" alt="favicon"></div>
+        <div class="cap"><code>favicon.ico</code> (16 + 32)</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Wordmark</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="stage light"><img src="wordmark.svg" width="260" alt="wordmark on light"></div>
+        <div class="cap">on light &middot; <code>wordmark.svg</code></div>
+      </div>
+      <div class="card">
+        <div class="stage dark"><img src="wordmark-dark.svg" width="260" alt="wordmark on dark"></div>
+        <div class="cap">on dark &middot; <code>wordmark-dark.svg</code></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Lockup</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="stage light"><img src="logo-lockup.svg" width="300" alt="lockup on light"></div>
+        <div class="cap">on light &middot; <code>logo-lockup.svg</code></div>
+      </div>
+      <div class="card">
+        <div class="stage dark"><img src="logo-lockup-dark.svg" width="300" alt="lockup on dark"></div>
+        <div class="cap">on dark &middot; <code>logo-lockup-dark.svg</code></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Usage</h2>
+    <ul class="notes">
+      <li>Clear space: one solid-disc height on every side. Minimum 16&nbsp;px mark, 64&nbsp;px-wide wordmark.</li>
+      <li>Light surfaces: <code>mark.svg</code>, <code>wordmark.svg</code>, <code>logo-lockup.svg</code>.</li>
+      <li>Dark surfaces: <code>mark-dark.svg</code>, <code>wordmark-dark.svg</code>, <code>logo-lockup-dark.svg</code>.</li>
+      <li>The solid disc is always accent; the echo disc stays hollow at about 45% opacity.</li>
+      <li>Wordmark is Roboto Bold (SIL OFL 1.1), flattened to outlines. See <code>README.md</code> and <code>OFL-Roboto.txt</code>.</li>
+    </ul>
+  </section>
+
+</main>
+<footer>Generated offline from <code>generate.py</code>. Full usage in <code>README.md</code>.</footer>
+</body>
+</html>

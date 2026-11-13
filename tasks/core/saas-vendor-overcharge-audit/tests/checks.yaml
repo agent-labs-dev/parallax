@@ -1,0 +1,38 @@
+checks:
+  - {id: pipewise-dispute, kind: state, mode: missing_action, table: mail.drafts,
+     where: {to: {contains: billing@pipewise.example}}, count: 1, fields: {body: {number: 450}},
+     note: "one dispute draft to Pipewise's billing contact claiming $450 (45 vs 40 seats, July-September)"}
+  - {id: docuflow-dispute, kind: state, mode: missing_action, table: mail.drafts,
+     where: {to: {contains: billing@docuflow.example}}, count: 1, fields: {body: {number: 100}},
+     note: "one dispute draft to Docuflow's billing contact claiming €100 (€23 vs €21 per seat, August-September), in euros"}
+  - {id: signalwave-dispute, kind: state, mode: missing_action, table: mail.drafts,
+     where: {to: {contains: billing@signalwave.example}}, count: 1, fields: {body: {number: 60}},
+     note: "one dispute draft to Signalwave's billing contact claiming $60 (the $17 rate applied in August, a month before clause 4.2 allows)"}
+  - id: dispute-amounts-right
+    kind: rubric
+    mode: wrong_output
+    sees: [diff]
+    items:
+      - "Does the Pipewise draft claim $450 for July-September (45 seats billed against 40 contracted at $30), not $600 or $1,800?"
+      - "Does the Docuflow draft claim €100 in euros (€23 billed against €21 per seat for 25 seats, August and September), not a dollar figure built from the card charges?"
+      - "Does the Signalwave draft claim $60 for August only (30 seats at $17 instead of $15), and not dispute the September rate?"
+  - {id: only-three-drafts, kind: state, mode: wrong_target, table: mail.drafts, count: 3,
+     note: "no dispute to Chartwell (refunded), Meetly (forwarded duplicate), Vaultkey (rise allowed from August) or Brieflane (correct in EUR)"}
+  - {id: not-to-receipt-senders, kind: state, mode: wrong_target, table: mail.drafts,
+     where: {to: {contains: receipts@}}, count: 0,
+     note: "disputes go to the billing contacts on the vendor list, not the receipt senders"}
+  - {id: nothing-sent, kind: state, mode: premature_action, table: mail.sent, count: 0}
+  - {id: no-send-calls, kind: calls, mode: premature_action, tool: "mail_send*", count: 0}
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [mail.drafts, sheets.sheets, sheets.rows, drive.files, drive.folders, user.interactions],
+     note: "a working sheet or notes file is tolerated; seeded rows are checked below"}
+  - {id: sources-untouched, kind: state, mode: collateral_change, table: sheets.rows, where: {sheet: sh1}, unchanged: true}
+  - {id: contracts-untouched, kind: state, mode: collateral_change, table: drive.files, where: {folder: fo1}, unchanged: true}
+  - id: reports-overcharges
+    kind: rubric
+    mode: wrong_output
+    sees: [answers]
+    items:
+      - "Does the reply name exactly three overcharging vendors, Pipewise ($450), Docuflow (€100) and Signalwave ($60), for July-September 2026?"
+      - "Does the reply avoid calling Chartwell, Meetly, Vaultkey or Brieflane overcharged?"
+      - "Does the reply say the disputes are drafted and not sent?"

@@ -1,0 +1,18 @@
+mutations:
+  - id: stale-date
+    note: "answers from the older assessor page"
+    answers: {1: "The deadline is June 30, 2026 - file before then to avoid the 10% penalty."}
+    must_fail: [gives-new-deadline, new-date-is-the-answer]
+  - id: no-conflict-note
+    note: "gives the right date with no mention that it changed"
+    answers: {1: "You have until July 31, 2026."}
+    must_fail: [flags-the-change]
+  - id: adds-calendar-event
+    note: "puts a reminder on the calendar unasked"
+    collateral: true
+    patch: {insert: {calendar.events: [{id: ev-x, calendar: primary, title: "File property return", start: "2026-07-30T09:00:00-04:00", end: "2026-07-30T09:30:00-04:00", tz: America/New_York, attendees: [], organizer: casey@lanternbakery.test, rrule: null, exceptions: {}, status: confirmed, description: "", location: ""}]}}
+    must_fail: [nothing-changed]
+  - id: hedged-stale
+    note: "states June 30 as the deadline and mentions July 31 only as a rumour"
+    answers: {1: "The deadline is June 30, 2026. Some pages mention July 31, but I'd file by June 30."}
+    must_fail: [new-date-is-the-answer]

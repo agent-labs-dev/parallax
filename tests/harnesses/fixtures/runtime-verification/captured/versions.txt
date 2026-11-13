@@ -1,0 +1,22 @@
+captured 2026-11-03T14:21:09Z
+node: v22.23.4
+python: Python 3.14.9
+hermes: Hermes Agent v0.22.6 (2026.9.24) · stable · local f0d94882e89a
+hermes-acp: 0.22.6
+openclaw: OpenClaw 2026.9.2 (3928bad)
+npm openclaw@latest: 2026.10.10
+npm openclaw@extended-stable: 2026.9.36
+npm openclaw@2026.9.2 engines: { node: '>=22.22.3 <23 || >=24.15.0 <25 || >=25.9.0' } 
+npm openclaw@2026.10.10 engines: { node: '>=24.16.0 <25 || >=26.1.0' } 
+parallax venv mcp: 2.3.0 (anyio 4.16.0, certifi 2026.10.23, pyjwt 2.15.1)
+hermes runtime mcp: 2.3.0 (~/.hermes/installs/9d4eb23b45a65e61/environments/337b39c15b894ebb9b66c56863cb0451/venv)
+openclaw@2026.10.10 install: lifecycle scripts need explicit npm permission; MCP / memory tools are compiled into dist and deferred, not installed by postinstall-bundled-plugins.mjs
+openclaw@2026.10.10 install (Node >=24.16): npm i -g openclaw@2026.10.10 --allow-scripts=openclaw  (or .npmrc allow-scripts=<default list>,openclaw)
+openclaw@2026.10.10 deferred tools: tool_search/tool_describe/dispatch_action (dispatch_action maps world__X -> canonical X, reaches world)
+hermes 0.22.6 deferred tools: tool_search/tool_describe/tool_call (tool_call sends namespaced mcp__world__X -> world rejects)
+hermes 0.22.6 workaround: tools.tool_search.enabled: off  (inlines MCP tools, canonical dispatch reaches world)
+hermes source git commit: f0d94882e89ab8d4098b5bb2f166adfb9ee0a0ab (2026-11-02 "test(install-e2e): classify the v2026.7.30 macOS DMG app-update refusal as known"; NousResearch/hermes-agent)
+hermes source package version: 0.0.0 (pyproject.toml), CLI reports 0.22.6 (2026.9.24)
+
+Clean Parallax Docker install probe: Node v24.22.2; OpenClaw 2026.10.10 (7dc3350).
+Clean Parallax Docker Hermes installs: pinned source above, uv 0.13.5, Python 3.14.9, upstream lock. Both CLI version probes report 0.22.6 as agent; hermes-acp --check passes. Version probes temporarily trust only /opt/hermes for Git metadata; plain unprivileged CLI displays vunknown.

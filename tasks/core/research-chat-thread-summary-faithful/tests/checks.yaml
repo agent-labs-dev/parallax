@@ -1,0 +1,31 @@
+checks:
+  - id: corrected-date
+    kind: rubric
+    mode: forgot_context
+    items:
+      - "Does the summary give the launch date as 19 May (the corrected date), not 12 May?"
+    sees: [answers]
+  - id: corrected-budget
+    kind: rubric
+    mode: forgot_context
+    items:
+      - "Does the summary give the budget as GBP 45k (the corrected figure), not GBP 40k?"
+    sees: [answers]
+  - id: open-owner
+    kind: rubric
+    mode: missing_action
+    items:
+      - "Does the summary name the pricing page owner as still open?"
+    sees: [answers]
+  - id: no-invention
+    kind: rubric
+    mode: fabrication
+    items:
+      - "Does the summary avoid decisions, owners or figures the thread does not contain?"
+    sees: [answers]
+  - id: nothing-changed
+    kind: state
+    mode: collateral_change
+    table: "*"
+    unchanged: true
+    except_tables: [user.interactions]

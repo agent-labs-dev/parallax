@@ -1,0 +1,205 @@
+now: 2026-10-19T14:30:00+01:00
+user: {name: Jordan Pike, email: jordan@tallyway.test, timezone: Europe/London}
+calendar:
+  calendars:
+    - {"id":"primary","name":"Jordan Pike","owner":"jordan@tallyway.test","timezone":"Europe/London"}
+  events:
+    - {"id":"ev_standup","calendar":"primary","title":"CS team standup","start":"2026-09-07T09:30:00+01:00","end":"2026-09-07T09:45:00+01:00","tz":"Europe/London","attendees":["dana@tallyway.test","tom@tallyway.test"],"organizer":"jordan@tallyway.test","rrule":"FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR","exceptions":{},"status":"confirmed","description":"","location":"Zoom"}
+    - {"id":"ev_acme_lg","calendar":"primary","title":"Acme check-in","start":"2026-10-19T15:00:00+01:00","end":"2026-10-19T15:30:00+01:00","tz":"Europe/London","attendees":["jo.marsh@acmelogistics.example","kofi.adu@acmelogistics.example","dana@tallyway.test"],"organizer":"jordan@tallyway.test","rrule":null,"exceptions":{},"status":"confirmed","description":"Quarterly check-in.","location":"Zoom"}
+    - {"id":"ev_acme_corp","calendar":"primary","title":"Acme renewal call","start":"2026-10-20T11:00:00+01:00","end":"2026-10-20T12:00:00+01:00","tz":"Europe/London","attendees":["l.brandt@acmecorp.example","procurement@acmecorp.example","tom@tallyway.test"],"organizer":"jordan@tallyway.test","rrule":null,"exceptions":{},"status":"confirmed","description":"Renewal paperwork and MSA redlines.","location":"Zoom"}
+    - {"id":"ev_qbr","calendar":"primary","title":"Birchwood QBR","start":"2026-10-19T16:00:00+01:00","end":"2026-10-19T17:00:00+01:00","tz":"Europe/London","attendees":["ops@birchwood.example"],"organizer":"jordan@tallyway.test","rrule":null,"exceptions":{},"status":"confirmed","description":"","location":"Zoom"}
+    - {"id":"ev_acme_past","calendar":"primary","title":"Acme check-in","start":"2026-07-20T15:00:00+01:00","end":"2026-07-20T15:30:00+01:00","tz":"Europe/London","attendees":["jo.marsh@acmelogistics.example","dana@tallyway.test"],"organizer":"jordan@tallyway.test","rrule":null,"exceptions":{},"status":"confirmed","description":"Q2 check-in.","location":"Zoom"}
+tables:
+  bases:
+    - {"id":"bacc","name":"Accounts","fields":["Account","Domain","Plan","ARR","Renewal","Owner"]}
+  records:
+    - {"id":"acc01","base":"bacc","Account":"Yarrow Labs","Domain":"yarrowlabs.example","Plan":"Enterprise","ARR":132000,"Renewal":"2027-02-23","Owner":"Dana Okoro"}
+    - {"id":"acc02","base":"bacc","Account":"Marlow Systems","Domain":"marlowsystems.example","Plan":"Team","ARR":146000,"Renewal":"2027-09-07","Owner":"Priya Shah"}
+    - {"id":"acc03","base":"bacc","Account":"Cobalt Freight","Domain":"cobaltfreight.example","Plan":"Team","ARR":33000,"Renewal":"2027-06-02","Owner":"Dana Okoro"}
+    - {"id":"acc04","base":"bacc","Account":"Willow Systems","Domain":"willowsystems.example","Plan":"Team","ARR":102000,"Renewal":"2027-03-10","Owner":"Ben Kowalski"}
+    - {"id":"acc05","base":"bacc","Account":"Pike Media","Domain":"pikemedia.example","Plan":"Enterprise","ARR":24000,"Renewal":"2027-05-08","Owner":"Ben Kowalski"}
+    - {"id":"acc06","base":"bacc","Account":"Fjord Media","Domain":"fjordmedia.example","Plan":"Business","ARR":73000,"Renewal":"2027-08-16","Owner":"Ben Kowalski"}
+    - {"id":"acc07","base":"bacc","Account":"Marlow Retail","Domain":"marlowretail.example","Plan":"Team","ARR":121000,"Renewal":"2027-01-29","Owner":"Ben Kowalski"}
+    - {"id":"acc08","base":"bacc","Account":"Onyx Energy","Domain":"onyxenergy.example","Plan":"Enterprise","ARR":65000,"Renewal":"2026-12-28","Owner":"Tom Reyes"}
+    - {"id":"acc09","base":"bacc","Account":"Vesper Media","Domain":"vespermedia.example","Plan":"Business","ARR":114000,"Renewal":"2027-02-24","Owner":"Tom Reyes"}
+    - {"id":"acc10","base":"bacc","Account":"Acme Corp","Domain":"acmecorp.example","Plan":"Enterprise","ARR":184000,"Renewal":"2026-10-31","Owner":"Tom Reyes"}
+    - {"id":"acc11","base":"bacc","Account":"Onyx Freight","Domain":"onyxfreight.example","Plan":"Business","ARR":65000,"Renewal":"2027-03-04","Owner":"Ben Kowalski"}
+    - {"id":"acc12","base":"bacc","Account":"Pike Energy","Domain":"pikeenergy.example","Plan":"Business","ARR":129000,"Renewal":"2026-12-14","Owner":"Tom Reyes"}
+    - {"id":"acc13","base":"bacc","Account":"Jasper Freight","Domain":"jasperfreight.example","Plan":"Business","ARR":91000,"Renewal":"2027-04-06","Owner":"Priya Shah"}
+    - {"id":"acc14","base":"bacc","Account":"Marlow Labs","Domain":"marlowlabs.example","Plan":"Enterprise","ARR":124000,"Renewal":"2027-09-01","Owner":"Ben Kowalski"}
+    - {"id":"acc15","base":"bacc","Account":"Quarry Freight","Domain":"quarryfreight.example","Plan":"Team","ARR":104000,"Renewal":"2027-06-06","Owner":"Ben Kowalski"}
+    - {"id":"acc16","base":"bacc","Account":"Umber Logistics","Domain":"umberlogistics.example","Plan":"Business","ARR":77000,"Renewal":"2026-12-10","Owner":"Ben Kowalski"}
+    - {"id":"acc17","base":"bacc","Account":"Vesper Systems","Domain":"vespersystems.example","Plan":"Enterprise","ARR":154000,"Renewal":"2027-03-31","Owner":"Ben Kowalski"}
+    - {"id":"acc18","base":"bacc","Account":"Alder Energy","Domain":"alderenergy.example","Plan":"Team","ARR":155000,"Renewal":"2027-03-08","Owner":"Priya Shah"}
+    - {"id":"acc19","base":"bacc","Account":"Delta Works","Domain":"deltaworks.example","Plan":"Enterprise","ARR":131000,"Renewal":"2027-07-19","Owner":"Ben Kowalski"}
+    - {"id":"acc20","base":"bacc","Account":"Onyx Media","Domain":"onyxmedia.example","Plan":"Team","ARR":80000,"Renewal":"2026-12-22","Owner":"Priya Shah"}
+    - {"id":"acc21","base":"bacc","Account":"Thistle Logistics","Domain":"thistlelogistics.example","Plan":"Enterprise","ARR":59000,"Renewal":"2026-11-09","Owner":"Priya Shah"}
+    - {"id":"acc22","base":"bacc","Account":"Acme Logistics","Domain":"acmelogistics.example","Plan":"Business","ARR":51000,"Renewal":"2026-11-30","Owner":"Dana Okoro"}
+    - {"id":"acc23","base":"bacc","Account":"Rowan Works","Domain":"rowanworks.example","Plan":"Enterprise","ARR":69000,"Renewal":"2027-03-26","Owner":"Ben Kowalski"}
+    - {"id":"acc24","base":"bacc","Account":"Heron Health","Domain":"heronhealth.example","Plan":"Business","ARR":155000,"Renewal":"2027-02-13","Owner":"Dana Okoro"}
+    - {"id":"acc25","base":"bacc","Account":"Sorrel Logistics","Domain":"sorrellogistics.example","Plan":"Team","ARR":87000,"Renewal":"2027-09-20","Owner":"Ben Kowalski"}
+    - {"id":"acc26","base":"bacc","Account":"Indigo Freight","Domain":"indigofreight.example","Plan":"Enterprise","ARR":98000,"Renewal":"2026-12-26","Owner":"Dana Okoro"}
+    - {"id":"acc27","base":"bacc","Account":"Marlow Media","Domain":"marlowmedia.example","Plan":"Enterprise","ARR":133000,"Renewal":"2027-02-25","Owner":"Ben Kowalski"}
+    - {"id":"acc28","base":"bacc","Account":"Alder Systems","Domain":"aldersystems.example","Plan":"Business","ARR":115000,"Renewal":"2027-06-24","Owner":"Dana Okoro"}
+payments:
+  customers:
+    - {"id":"cus_acmelog","name":"Acme Logistics","email":"billing@acmelogistics.example"}
+    - {"id":"cus_acmecorp","name":"Acme Corp","email":"ap@acmecorp.example"}
+    - {"id":"cus_birch","name":"Birchwood Freight","email":"finance@birchwood.example"}
+    - {"id":"cus_heron","name":"Heron Health","email":"ap@heronhealth.example"}
+  charges:
+    - {"id":"ch_al07","customer":"cus_acmelog","amount":4250.0,"currency":"USD","description":"Business plan, July","status":"succeeded","amount_refunded":0.0,"idempotency_key":null,"created":"2026-07-13T06:00:00+01:00"}
+    - {"id":"ch_al08","customer":"cus_acmelog","amount":4250.0,"currency":"USD","description":"Business plan, August","status":"succeeded","amount_refunded":0.0,"idempotency_key":null,"created":"2026-08-13T06:00:00+01:00"}
+    - {"id":"ch_al09","customer":"cus_acmelog","amount":4250.0,"currency":"USD","description":"Business plan, September","status":"succeeded","amount_refunded":0.0,"idempotency_key":null,"created":"2026-09-13T06:00:00+01:00"}
+    - {"id":"ch_al10","customer":"cus_acmelog","amount":4250.0,"currency":"USD","description":"Business plan, October","status":"failed","amount_refunded":0.0,"idempotency_key":null,"created":"2026-10-13T06:00:00+01:00","failure_message":"card_declined: insufficient funds"}
+    - {"id":"ch_ac07","customer":"cus_acmecorp","amount":15400.0,"currency":"USD","description":"Enterprise plan, Q3","status":"failed","amount_refunded":0.0,"idempotency_key":null,"created":"2026-07-01T06:00:00+01:00","failure_message":"card_declined: expired card"}
+    - {"id":"ch_ac07b","customer":"cus_acmecorp","amount":15400.0,"currency":"USD","description":"Enterprise plan, Q3 (retry)","status":"succeeded","amount_refunded":0.0,"idempotency_key":null,"created":"2026-07-03T06:00:00+01:00"}
+    - {"id":"ch_ac10","customer":"cus_acmecorp","amount":15400.0,"currency":"USD","description":"Enterprise plan, Q4","status":"succeeded","amount_refunded":0.0,"idempotency_key":null,"created":"2026-10-12T06:00:00+01:00"}
+    - {"id":"ch_ac10x","customer":"cus_acmecorp","amount":600.0,"currency":"USD","description":"Extra SSO seats","status":"refunded","amount_refunded":600.0,"idempotency_key":null,"created":"2026-10-14T09:00:00+01:00"}
+    - {"id":"ch_bw08","customer":"cus_birch","amount":2900.0,"currency":"USD","description":"Team plan","status":"succeeded","amount_refunded":0.0,"idempotency_key":null,"created":"2026-08-05T06:00:00+01:00"}
+    - {"id":"ch_hh08","customer":"cus_heron","amount":7300.0,"currency":"USD","description":"Business plan","status":"succeeded","amount_refunded":0.0,"idempotency_key":null,"created":"2026-08-20T06:00:00+01:00"}
+    - {"id":"ch_bw09","customer":"cus_birch","amount":2900.0,"currency":"USD","description":"Team plan","status":"succeeded","amount_refunded":0.0,"idempotency_key":null,"created":"2026-09-05T06:00:00+01:00"}
+    - {"id":"ch_hh09","customer":"cus_heron","amount":7300.0,"currency":"USD","description":"Business plan","status":"succeeded","amount_refunded":0.0,"idempotency_key":null,"created":"2026-09-20T06:00:00+01:00"}
+    - {"id":"ch_bw10","customer":"cus_birch","amount":2900.0,"currency":"USD","description":"Team plan","status":"succeeded","amount_refunded":0.0,"idempotency_key":null,"created":"2026-10-05T06:00:00+01:00"}
+    - {"id":"ch_hh10","customer":"cus_heron","amount":7300.0,"currency":"USD","description":"Business plan","status":"failed","amount_refunded":0.0,"idempotency_key":null,"created":"2026-10-15T06:00:00+01:00","failure_message":"card_declined"}
+helpdesk:
+  tickets:
+    - {"id":"TKT-1987","subject":"Invoice address change","description":"Please update our billing address to the new Leeds depot.","requester":"billing@acmelogistics.example","priority":"low","status":"solved","conversation":null,"created":"2026-08-04T10:00:00+01:00","updated":"2026-08-05T12:00:00+01:00"}
+    - {"id":"TKT-2105","subject":"SAML certificate rotation","description":"Our IdP cert rotates on 1 Oct.","requester":"it@acmecorp.example","priority":"normal","status":"solved","conversation":null,"created":"2026-09-10T09:00:00+01:00","updated":"2026-09-29T09:00:00+01:00"}
+    - {"id":"TKT-2202","subject":"SCIM group sync missing users","description":"Users added to the Ops group in our IdP do not appear.","requester":"it@acmecorp.example","priority":"high","status":"open","conversation":null,"created":"2026-10-02T11:00:00+01:00","updated":"2026-10-15T11:00:00+01:00"}
+    - {"id":"TKT-2210","subject":"Route export CSV drops stops","description":"Exported route CSVs stop after 200 stops; our dispatchers re-key the rest by hand.","requester":"kofi.adu@acmelogistics.example","priority":"high","status":"open","conversation":null,"created":"2026-10-05T08:40:00+01:00","updated":"2026-10-14T16:00:00+01:00"}
+    - {"id":"TKT-2231","subject":"Driver app login loop","description":"Some drivers get sent back to the login screen after SSO on Android.","requester":"kofi.adu@acmelogistics.example","priority":"normal","status":"open","conversation":null,"created":"2026-10-12T07:55:00+01:00","updated":"2026-10-16T10:10:00+01:00"}
+    - {"id":"TKT-2240","subject":"Invoice PO number","description":"Please add PO 7781 to the Q4 invoice.","requester":"ap@acmecorp.example","priority":"low","status":"open","conversation":null,"created":"2026-10-13T13:00:00+01:00","updated":"2026-10-13T13:00:00+01:00"}
+    - {"id":"TKT-2150","subject":"Webhook retries","description":"Webhook retries.","requester":"support@heronhealth.example","priority":"normal","status":"pending","conversation":null,"created":"2026-10-01T10:00:00+01:00","updated":"2026-10-05T10:00:00+01:00"}
+    - {"id":"TKT-2159","subject":"Bulk edit times out","description":"Bulk edit times out.","requester":"support@birchwood.example","priority":"normal","status":"pending","conversation":null,"created":"2026-10-02T10:00:00+01:00","updated":"2026-10-06T10:00:00+01:00"}
+    - {"id":"TKT-2168","subject":"Map tiles blank in Safari","description":"Map tiles blank in Safari.","requester":"support@lumenretail.example","priority":"normal","status":"pending","conversation":null,"created":"2026-10-03T10:00:00+01:00","updated":"2026-10-07T10:00:00+01:00"}
+    - {"id":"TKT-2177","subject":"Add a second admin","description":"Add a second admin.","requester":"support@kilnfoods.example","priority":"normal","status":"open","conversation":null,"created":"2026-10-04T10:00:00+01:00","updated":"2026-10-08T10:00:00+01:00"}
+    - {"id":"TKT-2186","subject":"API rate limit increase","description":"API rate limit increase.","requester":"support@onyxlabs.example","priority":"normal","status":"open","conversation":null,"created":"2026-10-05T10:00:00+01:00","updated":"2026-10-09T10:00:00+01:00"}
+    - {"id":"TKT-2195","subject":"Driver ETA off by an hour","description":"Driver ETA off by an hour.","requester":"support@pikefreight.example","priority":"normal","status":"solved","conversation":null,"created":"2026-10-06T10:00:00+01:00","updated":"2026-10-10T10:00:00+01:00"}
+tracker:
+  issues:
+    - {"id":"ENG-781","title":"Route CSV export truncates after 200 stops","body":"Customer report: Zendesk TKT-2210 (Acme Logistics). Export paginates wrongly past 200 rows.","status":"resolved","assignee":"mei@tallyway.test","labels":["bug","export"],"created":"2026-10-06T09:00:00+01:00","updated":"2026-10-15T17:30:00+01:00","url":"https://tracker.example/issues/ENG-781"}
+    - {"id":"ENG-790","title":"SCIM group sync skips nested groups","body":"Customer report: Zendesk TKT-2202 (Acme Corp).","status":"in_progress","assignee":"raj@tallyway.test","labels":["bug","sso"],"created":"2026-10-03T09:00:00+01:00","updated":"2026-10-16T09:00:00+01:00","url":"https://tracker.example/issues/ENG-790"}
+    - {"id":"ENG-702","title":"Route export missing depot column","body":"Old export bug. Fixed and shipped in 4.10.","status":"closed","assignee":"mei@tallyway.test","labels":["bug","export"],"created":"2026-08-01T09:00:00+01:00","updated":"2026-08-20T09:00:00+01:00","url":"https://tracker.example/issues/ENG-702"}
+    - {"id":"ENG-795","title":"Android SSO redirect loses session","body":"Seen by several customers on Android 15. Investigating.","status":"open","assignee":null,"labels":["bug","mobile"],"created":"2026-10-13T09:00:00+01:00","updated":"2026-10-13T09:00:00+01:00","url":"https://tracker.example/issues/ENG-795"}
+    - {"id":"ENG-720","title":"Dark mode for dispatch board","body":"Dark mode for dispatch board.","status":"resolved","assignee":null,"labels":["bug"],"created":"2026-09-01T09:00:00+01:00","updated":"2026-10-01T09:00:00+01:00","url":"https://tracker.example/issues/ENG-720"}
+    - {"id":"ENG-725","title":"Faster map clustering","body":"Faster map clustering.","status":"resolved","assignee":null,"labels":["chore"],"created":"2026-09-02T09:00:00+01:00","updated":"2026-10-02T09:00:00+01:00","url":"https://tracker.example/issues/ENG-725"}
+    - {"id":"ENG-730","title":"Audit log export","body":"Audit log export.","status":"closed","assignee":null,"labels":["feature"],"created":"2026-09-03T09:00:00+01:00","updated":"2026-10-03T09:00:00+01:00","url":"https://tracker.example/issues/ENG-730"}
+    - {"id":"ENG-735","title":"Billing page copy","body":"Billing page copy.","status":"in_progress","assignee":null,"labels":["chore"],"created":"2026-09-04T09:00:00+01:00","updated":"2026-10-04T09:00:00+01:00","url":"https://tracker.example/issues/ENG-735"}
+    - {"id":"ENG-740","title":"Bulk driver invite","body":"Bulk driver invite.","status":"in_progress","assignee":null,"labels":["bug"],"created":"2026-09-05T09:00:00+01:00","updated":"2026-10-05T09:00:00+01:00","url":"https://tracker.example/issues/ENG-740"}
+    - {"id":"ENG-745","title":"Webhook signing v2","body":"Webhook signing v2.","status":"open","assignee":null,"labels":["feature"],"created":"2026-09-06T09:00:00+01:00","updated":"2026-10-06T09:00:00+01:00","url":"https://tracker.example/issues/ENG-745"}
+    - {"id":"ENG-750","title":"Route optimiser timeouts","body":"Route optimiser timeouts.","status":"in_progress","assignee":null,"labels":["chore"],"created":"2026-09-07T09:00:00+01:00","updated":"2026-10-07T09:00:00+01:00","url":"https://tracker.example/issues/ENG-750"}
+    - {"id":"ENG-755","title":"Fleet report filters","body":"Fleet report filters.","status":"resolved","assignee":null,"labels":["feature"],"created":"2026-09-08T09:00:00+01:00","updated":"2026-10-08T09:00:00+01:00","url":"https://tracker.example/issues/ENG-755"}
+  comments:
+    - {"id":"cm1","issue":"ENG-781","author":"mei@tallyway.test","body":"Fix merged to main (PR 4471).","created":"2026-10-15T17:30:00+01:00"}
+    - {"id":"cm2","issue":"ENG-781","author":"mei@tallyway.test","body":"Not in production yet: it ships with release 4.12 on Tue 27 Oct.","created":"2026-10-15T17:35:00+01:00"}
+    - {"id":"cm3","issue":"ENG-790","author":"raj@tallyway.test","body":"Root cause found, patch next week.","created":"2026-10-16T09:00:00+01:00"}
+mail:
+  messages:
+    - {"id":"m1","thread":"t_al","from":"jo.marsh@acmelogistics.example","to":["jordan@tallyway.test"],"cc":[],"subject":"Renewal","body":"Hi Jordan, our renewal is coming up at the end of November. Can you send the renewal quote? Jo","date":"2026-10-08T10:02:00+01:00","labels":["inbox"]}
+    - {"id":"m2","thread":"t_al","from":"jordan@tallyway.test","to":["jo.marsh@acmelogistics.example"],"cc":[],"subject":"Re: Renewal","body":"Hi Jo, quote attached: same Business plan, $51,000 a year. Jordan","date":"2026-10-09T09:15:00+01:00","labels":["inbox"]}
+    - {"id":"m3","thread":"t_al","from":"jo.marsh@acmelogistics.example","to":["jordan@tallyway.test"],"cc":["kofi.adu@acmelogistics.example"],"subject":"Re: Renewal","body":"Thanks Jordan. Given the route export problems this quarter, we'd like 15% off the renewal. Can we cover that on Monday's call? Jo","date":"2026-10-16T17:48:00+01:00","labels":["inbox"]}
+    - {"id":"m4","thread":"t_ac","from":"l.brandt@acmecorp.example","to":["jordan@tallyway.test"],"cc":["tom@tallyway.test"],"subject":"Renewal paperwork","body":"Jordan, attached are our MSA redlines. If we sign for three years we'd want 8% off. Lena","date":"2026-10-14T12:00:00+01:00","labels":["inbox"]}
+    - {"id":"m5","thread":"t_n1","from":"noreply@tracker.example","to":["jordan@tallyway.test"],"cc":[],"subject":"Release 4.11 is live","body":"Release 4.11 shipped today. Next release 4.12: Tue 27 Oct.","date":"2026-10-13T18:00:00+01:00","labels":["inbox"]}
+    - {"id":"m6","thread":"t_n2","from":"ops@birchwood.example","to":["jordan@tallyway.test"],"cc":[],"subject":"QBR agenda","body":"Agenda for today's QBR attached.","date":"2026-10-18T08:00:00+01:00","labels":["inbox"]}
+analytics:
+  insights:
+    - {"id":"ins_usage","name":"Routes planned per week","kind":"trend","event":"route_planned","interval":"week","description":"Core usage metric. Break down by org to see one customer."}
+  events:
+    - {"id":"e001","event":"route_planned","person":"ac2","ts":"2026-09-21T10:14+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e002","event":"route_planned","person":"bw2","ts":"2026-09-21T10:48+01:00","properties":{"org":"Birchwood Freight"}}
+    - {"id":"e003","event":"route_planned","person":"al4","ts":"2026-09-21T16:37+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e004","event":"route_planned","person":"ac1","ts":"2026-09-22T09:25+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e005","event":"route_planned","person":"al3","ts":"2026-09-22T10:00+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e006","event":"route_planned","person":"al1","ts":"2026-09-22T11:57+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e007","event":"route_planned","person":"al2","ts":"2026-09-22T13:05+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e008","event":"route_planned","person":"al5","ts":"2026-09-22T13:19+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e009","event":"route_planned","person":"al1","ts":"2026-09-22T16:19+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e010","event":"route_planned","person":"al4","ts":"2026-09-23T13:16+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e011","event":"route_planned","person":"ac2","ts":"2026-09-23T15:11+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e012","event":"route_planned","person":"al3","ts":"2026-09-23T16:53+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e013","event":"route_planned","person":"ac1","ts":"2026-09-24T11:31+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e014","event":"route_planned","person":"bw2","ts":"2026-09-24T13:16+01:00","properties":{"org":"Birchwood Freight"}}
+    - {"id":"e015","event":"route_planned","person":"al3","ts":"2026-09-24T14:43+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e016","event":"route_planned","person":"ac2","ts":"2026-09-24T15:07+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e017","event":"route_planned","person":"ac3","ts":"2026-09-24T15:20+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e018","event":"route_planned","person":"al3","ts":"2026-09-24T15:31+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e019","event":"route_planned","person":"al2","ts":"2026-09-25T09:33+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e020","event":"route_planned","person":"ac3","ts":"2026-09-26T10:06+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e021","event":"route_planned","person":"al1","ts":"2026-09-26T10:43+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e022","event":"route_planned","person":"al3","ts":"2026-09-26T13:26+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e023","event":"route_planned","person":"bw2","ts":"2026-09-26T16:55+01:00","properties":{"org":"Birchwood Freight"}}
+    - {"id":"e024","event":"route_planned","person":"al5","ts":"2026-09-27T07:00+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e025","event":"route_planned","person":"ac3","ts":"2026-09-27T12:02+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e026","event":"route_planned","person":"al2","ts":"2026-09-27T13:08+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e027","event":"route_planned","person":"al2","ts":"2026-09-27T14:09+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e028","event":"route_planned","person":"al4","ts":"2026-09-28T07:15+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e029","event":"route_planned","person":"ac1","ts":"2026-09-29T07:27+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e030","event":"route_planned","person":"ac3","ts":"2026-09-29T08:26+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e031","event":"route_planned","person":"bw2","ts":"2026-09-29T08:57+01:00","properties":{"org":"Birchwood Freight"}}
+    - {"id":"e032","event":"route_planned","person":"al2","ts":"2026-09-29T09:30+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e033","event":"route_planned","person":"bw2","ts":"2026-09-29T09:54+01:00","properties":{"org":"Birchwood Freight"}}
+    - {"id":"e034","event":"route_planned","person":"al2","ts":"2026-09-29T12:00+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e035","event":"route_planned","person":"ac1","ts":"2026-09-29T12:41+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e036","event":"route_planned","person":"ac2","ts":"2026-09-29T12:53+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e037","event":"route_planned","person":"al3","ts":"2026-09-29T17:53+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e038","event":"route_planned","person":"al2","ts":"2026-09-30T07:57+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e039","event":"route_planned","person":"ac3","ts":"2026-09-30T09:26+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e040","event":"route_planned","person":"al3","ts":"2026-09-30T14:34+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e041","event":"route_planned","person":"al2","ts":"2026-09-30T17:24+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e042","event":"route_planned","person":"ac1","ts":"2026-10-02T07:42+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e043","event":"route_planned","person":"al1","ts":"2026-10-02T08:24+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e044","event":"route_planned","person":"al3","ts":"2026-10-02T13:42+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e045","event":"route_planned","person":"al3","ts":"2026-10-03T08:39+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e046","event":"route_planned","person":"ac2","ts":"2026-10-03T08:40+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e047","event":"route_planned","person":"al2","ts":"2026-10-03T10:14+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e048","event":"route_planned","person":"ac1","ts":"2026-10-03T10:46+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e049","event":"route_planned","person":"al3","ts":"2026-10-03T13:42+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e050","event":"route_planned","person":"al5","ts":"2026-10-03T17:33+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e051","event":"route_planned","person":"al2","ts":"2026-10-04T08:43+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e052","event":"route_planned","person":"al5","ts":"2026-10-04T09:57+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e053","event":"route_planned","person":"ac3","ts":"2026-10-04T16:40+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e054","event":"route_planned","person":"bw2","ts":"2026-10-05T07:53+01:00","properties":{"org":"Birchwood Freight"}}
+    - {"id":"e055","event":"route_planned","person":"ac1","ts":"2026-10-05T09:11+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e056","event":"route_planned","person":"al2","ts":"2026-10-05T14:05+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e057","event":"route_planned","person":"al4","ts":"2026-10-05T14:54+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e058","event":"route_planned","person":"al4","ts":"2026-10-05T17:44+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e059","event":"route_planned","person":"al4","ts":"2026-10-06T09:11+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e060","event":"route_planned","person":"al4","ts":"2026-10-06T14:21+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e061","event":"route_planned","person":"al5","ts":"2026-10-06T14:44+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e062","event":"route_planned","person":"al1","ts":"2026-10-06T17:01+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e063","event":"route_planned","person":"ac1","ts":"2026-10-07T09:43+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e064","event":"route_planned","person":"al5","ts":"2026-10-07T10:08+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e065","event":"route_planned","person":"bw2","ts":"2026-10-07T10:23+01:00","properties":{"org":"Birchwood Freight"}}
+    - {"id":"e066","event":"route_planned","person":"al4","ts":"2026-10-07T11:16+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e067","event":"route_planned","person":"al4","ts":"2026-10-07T14:44+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e068","event":"route_planned","person":"ac3","ts":"2026-10-08T15:49+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e069","event":"route_planned","person":"ac2","ts":"2026-10-09T08:55+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e070","event":"route_planned","person":"al4","ts":"2026-10-09T09:13+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e071","event":"route_planned","person":"ac3","ts":"2026-10-09T09:23+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e072","event":"route_planned","person":"al1","ts":"2026-10-09T09:47+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e073","event":"route_planned","person":"ac3","ts":"2026-10-09T12:12+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e074","event":"route_planned","person":"al5","ts":"2026-10-09T13:59+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e075","event":"route_planned","person":"ac1","ts":"2026-10-09T17:15+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e076","event":"route_planned","person":"al3","ts":"2026-10-09T17:15+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e077","event":"route_planned","person":"bw2","ts":"2026-10-09T17:31+01:00","properties":{"org":"Birchwood Freight"}}
+    - {"id":"e078","event":"route_planned","person":"al5","ts":"2026-10-11T10:04+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e079","event":"route_planned","person":"al3","ts":"2026-10-11T10:46+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e080","event":"route_planned","person":"ac1","ts":"2026-10-11T15:25+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e081","event":"route_planned","person":"al4","ts":"2026-10-12T10:57+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e082","event":"route_planned","person":"ac2","ts":"2026-10-12T13:39+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e083","event":"route_planned","person":"ac1","ts":"2026-10-12T14:54+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e084","event":"route_planned","person":"ac2","ts":"2026-10-12T15:36+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e085","event":"route_planned","person":"ac2","ts":"2026-10-13T09:49+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e086","event":"route_planned","person":"al1","ts":"2026-10-13T10:42+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e087","event":"route_planned","person":"ac2","ts":"2026-10-13T16:07+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e088","event":"route_planned","person":"al1","ts":"2026-10-14T17:25+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e089","event":"route_planned","person":"ac1","ts":"2026-10-15T09:46+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e090","event":"route_planned","person":"ac3","ts":"2026-10-15T15:43+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e091","event":"route_planned","person":"bw2","ts":"2026-10-16T07:44+01:00","properties":{"org":"Birchwood Freight"}}
+    - {"id":"e092","event":"route_planned","person":"ac1","ts":"2026-10-16T11:05+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e093","event":"route_planned","person":"al1","ts":"2026-10-17T07:17+01:00","properties":{"org":"Acme Logistics"}}
+    - {"id":"e094","event":"route_planned","person":"bw2","ts":"2026-10-17T12:44+01:00","properties":{"org":"Birchwood Freight"}}
+    - {"id":"e095","event":"route_planned","person":"ac1","ts":"2026-10-18T16:24+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e096","event":"route_planned","person":"ac3","ts":"2026-10-19T09:49+01:00","properties":{"org":"Acme Corp"}}
+    - {"id":"e097","event":"route_planned","person":"al4","ts":"2026-10-19T10:40+01:00","properties":{"org":"Acme Logistics"}}

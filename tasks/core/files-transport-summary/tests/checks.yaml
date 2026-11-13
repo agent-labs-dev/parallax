@@ -1,0 +1,22 @@
+checks:
+  - id: names-tram-and-growth
+    kind: answer
+    mode: wrong_output
+    note: "FY25/26 vs FY24/25 totals: tram +8.66% (also the largest absolute gain); the partial FY26/27 ferry jump is a trap"
+    must:
+      - tram
+      - {number: 8.66, tol: 0.1}
+    must_not:
+      # Both facts can appear in a wrong answer that crowns ferry and mentions tram in passing.
+      - {regex: '\bferry\b(?: journeys)? (?:grew|rose|increased|went up)(?: by)? (?:the )?(?:most|fastest)'}
+      - {regex: '\b(?:most|fastest|largest|biggest|highest) (?:growth|increase|rise)(?: was| is|:)? (?:in |from |for |by )?(?:the )?ferry'}
+  - id: export-untouched
+    kind: file
+    mode: collateral_change
+    path: journeys-by-type.csv
+    unchanged: true
+  - id: explains-basis
+    kind: rubric
+    mode: wrong_output
+    items: ["Does the answer make clear which two financial years it compared?"]
+    sees: [answers]

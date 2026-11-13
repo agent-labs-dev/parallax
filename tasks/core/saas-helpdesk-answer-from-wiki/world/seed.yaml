@@ -1,0 +1,54 @@
+now: 2026-06-03T09:12:00+01:00
+user: {name: Chris Adeyemi, email: chris@tallyho.test, timezone: Europe/London}
+helpdesk:
+  conversations:
+    - id: cv1
+      customer: omar@saffron-kitchen.example
+      customer_name: Omar Haddad
+      subject: "Getting invoices out for my accountant"
+      status: open
+      ticket: null
+      updated: "2026-06-03T08:20:00+01:00"
+      messages:
+        - {from: omar@saffron-kitchen.example, at: "2026-06-03T08:20:00+01:00",
+           body: "Hi, my accountant wants all of last year's invoices in a spreadsheet. Is there a way to download them all at once rather than one by one?"}
+    - id: cv2
+      customer: beth@lantern-yoga.example
+      customer_name: Beth Moore
+      subject: "Contacts"
+      status: open
+      ticket: null
+      updated: "2026-06-02T15:00:00+01:00"
+      messages:
+        - {from: beth@lantern-yoga.example, at: "2026-06-02T15:00:00+01:00", body: "How do I merge duplicate contacts?"}
+wiki:
+  pages:
+    - id: p1
+      title: "Exporting invoices"
+      space: Help Centre
+      parent: null
+      author: support@tallyho.test
+      created: "2026-01-12T10:00:00+00:00"
+      updated: "2026-05-02T10:00:00+01:00"
+      url: "https://help.tallyho.example/articles/exporting-invoices"
+      body: |
+        You can export invoices in bulk from Billing > Invoices. Choose a date range, click Export, and pick CSV
+        (opens in any spreadsheet) or a ZIP of PDFs. Exports of more than 500 invoices are emailed to you when ready.
+    - id: p2
+      title: "Exporting your contacts"
+      space: Help Centre
+      parent: null
+      author: support@tallyho.test
+      created: "2026-01-12T10:00:00+00:00"
+      updated: "2026-03-10T10:00:00+00:00"
+      url: "https://help.tallyho.example/articles/exporting-contacts"
+      body: "Go to Contacts, select the contacts you want, and click Export to download a CSV file."
+    - id: p3
+      title: "Downloading a single invoice"
+      space: Help Centre
+      parent: null
+      author: support@tallyho.test
+      created: "2026-01-12T10:00:00+00:00"
+      updated: "2026-02-01T10:00:00+00:00"
+      url: "https://help.tallyho.example/articles/download-invoice"
+      body: "Open the invoice and click Download PDF. To export many invoices at once, see Exporting invoices."

@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "research-cites-real-urls"
+version = 1
+area = "research"
+summary = "Find the specific refund policy page, state its terms and link the real URL"
+requires = ["mcp"]
+services = ["web"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "1a4a2fd1-d470-486f-97f4-a4b47843d0ca"

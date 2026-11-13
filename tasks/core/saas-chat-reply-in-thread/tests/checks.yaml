@@ -1,0 +1,14 @@
+checks:
+  - {id: replied-in-thread, kind: state, mode: missing_action, table: chat.messages,
+     where: {thread_id: x2, author: alex@northwind.test}, count: {min: 1}}
+  - {id: reply-has-status, kind: state, mode: wrong_output, table: chat.messages,
+     where: {thread_id: x2, author: alex@northwind.test},
+     fields: {text: {regex: "roll(ed)?[ -]?back|reverted"}}}
+  - {id: no-top-level-post, kind: state, mode: wrong_target, table: chat.messages,
+     where: {author: alex@northwind.test, thread_id: null}, count: 0}
+  - {id: nothing-else-touched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [chat.messages, user.interactions]}
+  - {id: seed-messages-untouched, kind: state, mode: collateral_change, table: chat.messages,
+     where: {id: {regex: "^x\\d+$"}}, unchanged: true}
+  - {id: reply-accuracy, kind: rubric, mode: wrong_output, gate: false, sees: [diff],
+     items: ["Does the reply say error rates are back to normal and that a postmortem is planned for Friday?"]}

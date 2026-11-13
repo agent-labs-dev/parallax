@@ -1,0 +1,23 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "memory-agent-operating-contract"
+version = 1
+area = "memory"
+summary = "Keep a saved agent voice and decision rule across conversations"
+requires = ["multi_turn", "memory"]
+maturity = "candidate"
+provenance = "derived_from_failure_class"
+canary = "4f3472fb-ff4d-4c0f-a580-b620eec2dbee"
+
+[[steps]]
+name = "configure"
+[[steps]]
+name = "decision"
+session = "new"
+[[steps]]
+name = "detail"
+session = "continue"
+[[steps]]
+name = "status"
+session = "continue"

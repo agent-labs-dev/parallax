@@ -1,0 +1,73 @@
+mutations:
+  - {id: nothing-done, note: "claims the change without making it", base: seed,
+     must_fail: [slugify-behaviour, cli-uses-slug]}
+  - id: helper-not-wired
+    note: "adds slugify but the CLI still builds filenames the old way"
+    files:
+      jotter/cli.py: |
+        """jotter: a tiny notes CLI. `new TITLE` creates a note, `list` shows them."""
+
+        import argparse
+        from pathlib import Path
+
+        from jotter.text import truncate
+
+
+        def note_filename(title: str) -> str:
+            return title.lower().replace(" ", "-") + ".md"
+
+
+        def cmd_new(args: argparse.Namespace) -> int:
+            folder = Path(args.dir)
+            folder.mkdir(parents=True, exist_ok=True)
+            path = folder / note_filename(args.title)
+            path.write_text(f"# {args.title}\n", encoding="utf-8")
+            print(path)
+            return 0
+
+
+        def cmd_list(args: argparse.Namespace) -> int:
+            for path in sorted(Path(args.dir).glob("*.md")):
+                first = path.read_text(encoding="utf-8").splitlines()[0].removeprefix("# ")
+                print(f"{path.name}\t{truncate(first, args.width)}")
+            return 0
+
+
+        def main(argv: list[str]) -> int:
+            parser = argparse.ArgumentParser(prog="jotter")
+            parser.add_argument("--dir", default=".")
+            sub = parser.add_subparsers(dest="command", required=True)
+            new = sub.add_parser("new")
+            new.add_argument("title")
+            new.set_defaults(func=cmd_new)
+            ls = sub.add_parser("list")
+            ls.add_argument("--width", type=int, default=40)
+            ls.set_defaults(func=cmd_list)
+            args = parser.parse_args(argv)
+            return args.func(args)
+    must_fail: [cli-uses-slug]
+  - id: naive-slugify
+    note: "only swaps spaces for hyphens, so punctuation survives"
+    files:
+      jotter/text.py: |
+        """Small text helpers used by the CLI."""
+
+
+        def truncate(text: str, width: int) -> str:
+            """Shorten text to width characters, marking the cut with an ellipsis."""
+            if len(text) <= width:
+                return text
+            return text[: max(width - 1, 0)] + "…"
+
+
+        def slugify(text: str) -> str:
+            return "-".join(text.lower().split())
+    must_fail: [slugify-behaviour, cli-uses-slug]
+  - id: rewrites-cli-test
+    note: "changes an existing test to fit"
+    collateral: true
+    files:
+      tests/test_cli.py: |
+        def test_nothing():
+            assert True
+    must_fail: [seeded-tests-kept, tests-pass]

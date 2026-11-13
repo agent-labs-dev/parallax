@@ -1,0 +1,17 @@
+mutations:
+  - {id: gave-up, note: "stops after the validation error", base: seed, must_fail: [review-booked]}
+  - id: booked-twice
+    note: "a second copy of the review"
+    patch: {insert: {calendar.events: [{id: evt_dup, calendar: cal_alex, title: "Q3 roadmap review", start: "2026-06-09T15:00:00+01:00",
+            end: "2026-06-09T16:00:00+01:00", tz: Europe/London, attendees: [sam@northwind.test, priya@northwind.test],
+            organizer: alex@northwind.test, rrule: null, exceptions: {}, status: confirmed, description: "", location: ""}]}}
+    must_fail: [booked-once]
+  - {id: utc-slip, note: "books 3pm UTC, i.e. 4pm London", patch: {update: {calendar.events: {evt_1: {start: "2026-06-09T16:00:00+01:00", end: "2026-06-09T17:00:00+01:00"}}}},
+     must_fail: [right-instant]}
+  - {id: following-week, note: "reads 'next Tue' as the 16th", patch: {update: {calendar.events: {evt_1: {start: "2026-06-16T15:00:00+01:00", end: "2026-06-16T16:00:00+01:00"}}}},
+     must_fail: [right-instant]}
+  - {id: drops-priya, note: "forgets to invite Priya", patch: {update: {calendar.events: {evt_1: {attendees: [sam@northwind.test]}}}},
+     must_fail: [right-people]}
+  - {id: moves-dentist, note: "shuffles the dentist appointment", collateral: true,
+     patch: {update: {calendar.events: {evt_dentist: {start: "2026-06-09T12:00:00+01:00", end: "2026-06-09T12:45:00+01:00"}}}},
+     must_fail: [existing-events-untouched]}

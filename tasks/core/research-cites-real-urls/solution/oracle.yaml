@@ -1,0 +1,11 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: web_search, args: {query: "Lantern Rail season ticket refund"}}
+      - {tool: web_fetch, args: {url: "https://lanternrail.example/help/season-ticket-refunds"}}
+    answer: |
+      You get back the value of the unused complete weeks left on the ticket from the day you hand
+      it in (an annual ticket is valued at 1/52 of its price per week), minus a £12.50
+      administration fee. It is paid to your original card within 14 days.
+
+      Policy: https://lanternrail.example/help/season-ticket-refunds

@@ -1,0 +1,13 @@
+steps:
+  turn-01:
+    calls:
+      - tool: tracker_create_issue
+        args: {title: "Login failing with 502 after password entry", labels: [bug, incident],
+               body: "Since about 08:50 some customers get a 502 after entering their password on the login page. Reported 3 June."}
+        save: first
+      - {tool: tracker_get_issue, args: {id: "{{saved.first.id}}"}}
+      - {tool: tracker_search_issues, args: {query: login}}
+      - tool: tracker_create_issue
+        args: {title: "Login failing with 502 after password entry", labels: [bug, incident],
+               body: "Since about 08:50 some customers get a 502 after entering their password on the login page. Reported 3 June."}
+    answer: "Filed: https://tracker.example/issues/ISS-2 (Login failing with 502 after password entry). The tracker said the first create worked, but the issue it returned didn't exist when I opened it, so I filed it again and checked this one is really there."

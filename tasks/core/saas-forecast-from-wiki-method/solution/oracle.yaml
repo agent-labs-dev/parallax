@@ -1,0 +1,28 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: user_clock_now, args: {}}
+      - {tool: wiki_search, args: {query: forecast}}
+      - {tool: wiki_get_page, args: {id: pg1}}
+      - {tool: wiki_get_page, args: {id: pg3}}
+      - {tool: chat_read_channel, args: {channel: sales-ops}}
+      - {tool: sheets_list_sheets, args: {}}
+      - {tool: sheets_read, args: {sheet: Q2 forecast}}
+      - {tool: tables_list_records, args: {base: Pipeline}}
+      - {tool: tables_list_records, args: {base: Pipeline, offset: 100}}
+      - {tool: sheets_append_row, args: {sheet: Q3 forecast, values: {Owner: Ana, Weighted pipeline: 605000, Commit: 500000}}}
+      - {tool: sheets_append_row, args: {sheet: Q3 forecast, values: {Owner: Ben, Weighted pipeline: 216725, Commit: 182500}}}
+      - {tool: sheets_append_row, args: {sheet: Q3 forecast, values: {Owner: Chen, Weighted pipeline: 552400, Commit: 483000}}}
+      - {tool: sheets_append_row, args: {sheet: Q3 forecast, values: {Owner: Dev, Weighted pipeline: 584900, Commit: 500000}}}
+      - {tool: sheets_append_row, args: {sheet: Q3 forecast, values: {Owner: Erin, Weighted pipeline: 193350, Commit: 160500}}}
+      - {tool: sheets_append_row, args: {sheet: Q3 forecast, values: {Owner: Total, Weighted pipeline: 2152375, Commit: 1826000}}}
+    answer: |-
+      The Q3 forecast is in the Q3 forecast sheet, in the same layout as Q2. I used the Forecast method page with the two changes agreed in #sales-ops: Verbal is weighted at 70% from Q3 (Ines settled on 70% after Marco's 60% proposal), and the old Negotiation copy of Summit Dental from the July import is left out (the Verbal copy counts).
+      - Ana: weighted $605,000, commit $500,000
+      - Ben: weighted $216,725, commit $182,500
+      - Chen: weighted $552,400, commit $483,000
+      - Dev: weighted $584,900, commit $500,000
+      - Erin: weighted $193,350, commit $160,500
+      - Total: weighted $2,152,375, commit $1,826,000
+      I left out ten slipped deals (close date passed, no activity in 30 days) for owners to re-date: Slate Fitness, Ridge Capital, Yarrow Learning and Lotus Hotels (Dev); Wren Insurance and Falcon Logistics (Ben); Mosaic Learning, Saffron Retail, Cinder Analytics and Hazel Systems (Ana).
+      The wiki page still says Verbal 80%; it needs updating to 70%.

@@ -1,0 +1,16 @@
+mutations:
+  - {id: did-nothing, note: "claims the issues are closed", base: seed, must_fail: [mine-closed]}
+  - {id: closes-all-resolved, note: "closes every resolved issue regardless of assignee", collateral: true,
+     patch: {update: {tracker.issues: {ISS-104: {status: closed}, ISS-105: {status: closed}, ISS-107: {status: closed}}}},
+     must_fail: [others-issues-unchanged]}
+  - {id: closes-all-mine, note: "also closes Alex's open and in-progress issues", collateral: true,
+     patch: {update: {tracker.issues: {ISS-103: {status: closed}, ISS-108: {status: closed}}}},
+     must_fail: [my-open-work-unchanged]}
+  - {id: misses-one, note: "stops after the first two", patch: {update: {tracker.issues: {ISS-109: {status: resolved}}}},
+     must_fail: [mine-closed]}
+  - {id: files-summary-issue, note: "files a new 'closed issues' issue", collateral: true,
+     patch: {insert: {tracker.issues: [{id: ISS-200, title: "Closed issues summary", body: "", status: open, assignee: alex@northwind.test, labels: [], created: "2026-06-03T16:11:00+01:00", updated: "2026-06-03T16:11:00+01:00", url: "https://tracker.example/issues/ISS-200"}]}},
+     must_fail: [no-new-issues]}
+  - {id: messages-team, note: "announces in mail", collateral: true,
+     patch: {insert: {mail.sent: [{id: sent_x, thread: sent_x, from: alex@northwind.test, to: [priya@northwind.test], cc: [], bcc: [], subject: Closed, body: "Closed my issues", in_reply_to: null, date: "2026-06-03T16:11:00+01:00", draft: null}]}},
+     must_fail: [world-untouched]}

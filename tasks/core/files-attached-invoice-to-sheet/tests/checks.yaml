@@ -1,0 +1,15 @@
+checks:
+  - {id: pb-5521, kind: state, mode: missing_action, table: sheets.rows, where: {sheet: sh-bills, "Invoice no": PB-5521}, count: 1,
+     fields: {Amount: {number: 1240}, Supplier: {contains: pellow}}}
+  - {id: hw-0098, kind: state, mode: missing_action, table: sheets.rows, where: {sheet: sh-bills, "Invoice no": HW-0098}, count: 1,
+     fields: {Amount: {number: 386.40}, Supplier: {contains: hollin}}}
+  - {id: kc-3310, kind: state, mode: missing_action, table: sheets.rows, where: {sheet: sh-bills, "Invoice no": KC-3310}, count: 1,
+     fields: {Amount: {number: 210}, Supplier: {contains: kestrel}}}
+  - {id: ol-7742, kind: state, mode: missing_action, table: sheets.rows, where: {sheet: sh-bills, "Invoice no": OL-7742}, count: 1,
+     fields: {Amount: {number: 94.75}, Supplier: {contains: orchard}}}
+  - {id: ts-1187, kind: state, mode: missing_action, table: sheets.rows, where: {sheet: sh-bills, "Invoice no": TS-1187}, count: 1,
+     fields: {Amount: {number: 655.20}, Supplier: {contains: tamsin}}}
+  - {id: exactly-five-added, kind: state, mode: duplicate_action, table: sheets.rows, where: {sheet: sh-bills}, count: 8}
+  - {id: nothing-in-sales-sheet, kind: state, mode: wrong_target, table: sheets.rows, where: {sheet: sh-sales}, count: 2}
+  - {id: existing-rows-untouched, kind: state, mode: collateral_change, table: sheets.rows, where: {id: {regex: .}}, unchanged: true}
+  - {id: nothing-else-changed, kind: state, mode: collateral_change, table: "*", unchanged: true, except_tables: [sheets.rows, user.interactions]}

@@ -1,0 +1,17 @@
+checks:
+  - {id: timeline-added, kind: state, mode: missing_action, table: drive.files, where: {id: doc_q3_m2}, count: 1,
+     fields: {content: {contains: timeline,
+       regex: "(?s)(?=.*(\\b22(nd)? jun|jun\\w* 22(nd)?\\b|06-22))(?=.*(\\b6(th)? jul|jul\\w* 6(th)?\\b|07-06))(?=.*(\\b20(th)? jul|jul\\w* 20(th)?\\b|07-20))"}},
+     note: "all three dates must land; the seed already mentions beta and has no July dates"}
+  - {id: budget-on-live-doc, kind: state, mode: no_recovery, table: drive.files, where: {id: doc_q3_m2}, count: 1,
+     fields: {content: {contains: budget, number: 18000}}}
+  - {id: ads-figure, kind: state, mode: no_recovery, table: drive.files, where: {id: doc_q3_m2}, count: 1,
+     fields: {content: {number: 6000}}}
+  - {id: original-kept, kind: state, mode: collateral_change, table: drive.files, where: {id: doc_q3_m2}, count: 1,
+     fields: {content: {contains: ["500 beta sign-ups", "Design: Priya"]}}}
+  - {id: no-new-file, kind: state, mode: duplicate_action, table: drive.files,
+     where: {id: {none_of: [doc_q3_m2, doc_q2, doc_notes]}}, count: 0,
+     note: "a stale id is not a reason to start a second copy of the plan"}
+  - {id: other-files-untouched, kind: state, mode: collateral_change, table: drive.files, unchanged: true,
+     where: {id: {any_of: [doc_q2, doc_notes]}}}
+  - {id: rest-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true, except_tables: [drive.files, user.interactions]}

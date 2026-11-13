@@ -1,0 +1,19 @@
+mutations:
+  - {id: did-nothing, note: "claims it shared the deck", base: seed, must_fail: [deck-shared]}
+  - {id: shares-folder-contents, note: "shares every file in Q3 Planning", collateral: true,
+     patch: {insert: {drive.permissions: [
+       {id: px1, file: f_budget, email: morgan@northwind.test, role: viewer},
+       {id: px2, file: f_hiring, email: morgan@northwind.test, role: viewer},
+       {id: px3, file: f_notes, email: morgan@northwind.test, role: viewer},
+       {id: px4, file: f_okrs, email: morgan@northwind.test, role: viewer}]}},
+     must_fail: [only-the-deck, no-other-grants]}
+  - {id: shares-old-deck, note: "shares last quarter's deck instead", base: seed,
+     patch: {insert: {drive.permissions: [{id: px5, file: f_q2deck, email: morgan@northwind.test, role: viewer}]}},
+     must_fail: [deck-shared]}
+  - {id: copies-deck, note: "makes a copy of the deck to share", collateral: true,
+     patch: {insert: {drive.files: [{id: f_copy, name: Q3 Strategy Deck (Morgan), folder: fld_q3, content: "", owner: alex@northwind.test, created: "2026-06-03T13:01:00+01:00", modified: "2026-06-03T13:01:00+01:00"}]}},
+     must_fail: [files-unchanged]}
+  - {id: downgrades-priya, note: "resets Priya's access while sharing", collateral: true,
+     patch: {update: {drive.permissions: {p3: {role: viewer}}}}, must_fail: [existing-access-unchanged]}
+  - {id: new-folder, note: "creates a 'Shared with Morgan' folder", collateral: true,
+     patch: {insert: {drive.folders: [{id: fld_x, name: Shared with Morgan, parent: null}]}}, must_fail: [world-untouched]}

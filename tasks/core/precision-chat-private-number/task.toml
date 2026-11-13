@@ -1,0 +1,11 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "precision-chat-private-number"
+version = 1
+area = "precision"
+summary = "DM the approved offer figure to Ana without posting it in the hiring channel where she asked"
+requires = ["mcp"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "000f5f7e-32d3-4966-b9fc-2e14d915c8b8"

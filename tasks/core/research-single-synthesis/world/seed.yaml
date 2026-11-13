@@ -1,0 +1,30 @@
+now: 2026-06-18T11:40:00+01:00
+user: {name: Priya Natarajan, email: priya@oakridge.test, timezone: Europe/London}
+web:
+  - url: https://keelbox.example/pricing
+    title: "Keelbox pricing and regions"
+    published: 2026-05-12
+    text: >-
+      Keelbox charges $25 per TB per month with no egress fees, so 20 TB is $500 a month.
+      Storage regions: Virginia (US-East) and Oregon (US-West). We do not currently offer
+      storage outside the United States.
+  - url: https://harbrook.example/pricing
+    title: "Harbrook backup pricing"
+    published: 2026-05-27
+    text: >-
+      Harbrook costs $37 per TB per month; a 20 TB plan is $740 a month including restores.
+      Choose your region at sign-up: Frankfurt (EU) or Dublin (EU). Data never leaves the
+      region you choose.
+  - url: https://stowline.example/plans
+    title: "Stowline plans"
+    published: 2026-04-30
+    text: >-
+      Stowline Business: $57.50 per TB per month, so $1,150 a month at 20 TB. Regions:
+      Amsterdam (EU), London (UK) and Toronto (Canada). Includes immutable snapshots.
+  - url: https://backup-bench.example/2026/offsite-review
+    title: "Offsite backup providers compared (2026)"
+    published: 2026-06-03
+    text: >-
+      In our restore tests Harbrook restored 1 TB in 3 hours, Keelbox in 4 hours and Stowline
+      in 2.5 hours. Keelbox remains the cheapest option but is US-only. Stowline is the priciest
+      of the three.

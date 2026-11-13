@@ -1,0 +1,126 @@
+now: 2026-06-10T09:30:00+01:00
+user: {name: Jordan Ellis, email: jordan@kestrelhq.test, timezone: Europe/London}
+tables:
+  bases:
+    - {id: b1, name: Deals, fields: [Company, Deal, Owner, Stage, Amount, Close, "Last activity", Health]}
+  records:
+    - {id: rec001, base: b1, Company: "Juniper Studios", Deal: Rollout, Owner: Jordan, Stage: Discovery, Amount: 21000, Close: "2026-08-07", "Last activity": "2026-05-27", Health: "On track"}
+    - {id: rec002, base: b1, Company: "Juniper Clinics", Deal: Licence, Owner: Felix, Stage: "Closed Won", Amount: 45250, Close: "2026-03-16", "Last activity": "2026-05-16", Health: "On track"}
+    - {id: rec003, base: b1, Company: "Harbor Clinics", Deal: Expansion, Owner: Felix, Stage: Discovery, Amount: 8250, Close: "2026-06-12", "Last activity": "2026-06-02", Health: "On track"}
+    - {id: rec004, base: b1, Company: "Blue Freight", Deal: Expansion, Owner: Jordan, Stage: Proposal, Amount: 19500, Close: "2026-06-18", "Last activity": "2026-05-06", Health: "On track"}
+    - {id: rec005, base: b1, Company: "Juniper Energy", Deal: Licence, Owner: Nina, Stage: "Closed Won", Amount: 23300, Close: "2026-06-01", "Last activity": "2026-05-20", Health: "On track"}
+    - {id: rec006, base: b1, Company: "Falcon Health", Deal: Pilot, Owner: Nina, Stage: Negotiation, Amount: 27500, Close: "2026-07-09", "Last activity": "2026-05-07", Health: "On track"}
+    - {id: rec007, base: b1, Company: "Tidal Robotics", Deal: Seats, Owner: Amara, Stage: "Closed Won", Amount: 45750, Close: "2026-02-18", "Last activity": "2026-03-03", Health: "On track"}
+    - {id: rec008, base: b1, Company: "Maple Studios", Deal: Expansion, Owner: Jordan, Stage: "Closed Won", Amount: 84250, Close: "2026-06-01", "Last activity": "2026-06-09", Health: "On track"}
+    - {id: rec009, base: b1, Company: "Silver Clinics", Deal: Renewal, Owner: Nina, Stage: Discovery, Amount: 69000, Close: "2026-07-03", "Last activity": "2026-05-18", Health: "On track"}
+    - {id: rec010, base: b1, Company: "Summit Analytics", Deal: Seats, Owner: Nina, Stage: "Closed Won", Amount: 14500, Close: "2026-05-21", "Last activity": "2026-04-04", Health: "On track"}
+    - {id: rec011, base: b1, Company: "Juniper Logistics", Deal: Pilot, Owner: Jordan, Stage: Discovery, Amount: 23000, Close: "2026-08-18", "Last activity": "2026-04-28", Health: "On track"}
+    - {id: rec012, base: b1, Company: "Vale Studios", Deal: Pilot, Owner: Amara, Stage: Negotiation, Amount: 10750, Close: "2026-07-09", "Last activity": "2026-05-07", Health: "On track"}
+    - {id: rec013, base: b1, Company: "Tidal Clinics", Deal: Renewal, Owner: Nina, Stage: Discovery, Amount: 30250, Close: "2026-06-15", "Last activity": "2026-06-03", Health: "On track"}
+    - {id: rec014, base: b1, Company: "Harbor Hotels", Deal: Expansion, Owner: Nina, Stage: Negotiation, Amount: 56250, Close: "2026-06-11", "Last activity": "2026-06-04", Health: "On track"}
+    - {id: rec015, base: b1, Company: "Redwood Labs", Deal: Add-on, Owner: Nina, Stage: Proposal, Amount: 41750, Close: "2026-07-04", "Last activity": "2026-05-04", Health: "On track"}
+    - {id: rec016, base: b1, Company: "Falcon Hotels", Deal: Seats, Owner: Felix, Stage: Negotiation, Amount: 77000, Close: "2026-07-08", "Last activity": "2026-06-09", Health: "On track"}
+    - {id: rec017, base: b1, Company: "Orchard Logistics", Deal: Rollout, Owner: Nina, Stage: "Closed Lost", Amount: 34000, Close: "2026-03-04", "Last activity": "2026-05-07", Health: "On track"}
+    - {id: rec018, base: b1, Company: "Maple Robotics", Deal: Expansion, Owner: Nina, Stage: "Closed Lost", Amount: 83750, Close: "2026-01-14", "Last activity": "2026-04-16", Health: "On track"}
+    - {id: rec019, base: b1, Company: "Redwood Freight", Deal: Renewal, Owner: Nina, Stage: "Closed Lost", Amount: 36750, Close: "2026-02-26", "Last activity": "2026-02-13", Health: "On track"}
+    - {id: rec020, base: b1, Company: "Tidal Labs", Deal: Rollout, Owner: Felix, Stage: Negotiation, Amount: 14500, Close: "2026-07-01", "Last activity": "2026-04-18", Health: "On track"}
+    - {id: rec021, base: b1, Company: "Granite Studios", Deal: Expansion, Owner: Felix, Stage: Discovery, Amount: 118250, Close: "2026-07-24", "Last activity": "2026-04-16", Health: "On track"}
+    - {id: rec022, base: b1, Company: "Lumen Dental", Deal: Licence, Owner: Felix, Stage: Proposal, Amount: 44250, Close: "2026-08-22", "Last activity": "2026-05-15", Health: "On track"}
+    - {id: rec023, base: b1, Company: "North Energy", Deal: Seats, Owner: Nina, Stage: "Closed Won", Amount: 108250, Close: "2026-04-18", "Last activity": "2026-06-06", Health: "On track"}
+    - {id: rec024, base: b1, Company: "Granite Analytics", Deal: Rollout, Owner: Felix, Stage: Proposal, Amount: 21800, Close: "2026-06-15", "Last activity": "2026-05-01", Health: "On track"}
+    - {id: rec025, base: b1, Company: "Cedar Dental", Deal: Rollout, Owner: Nina, Stage: Negotiation, Amount: 4750, Close: "2026-07-09", "Last activity": "2026-04-17", Health: "On track"}
+    - {id: rec026, base: b1, Company: "Sable Systems", Deal: Renewal, Owner: Jordan, Stage: Proposal, Amount: 52750, Close: "2026-06-29", "Last activity": "2026-05-03", Health: "On track"}
+    - {id: rec027, base: b1, Company: "Vale Dental", Deal: Rollout, Owner: Jordan, Stage: Proposal, Amount: 7000, Close: "2026-06-28", "Last activity": "2026-06-06", Health: "On track"}
+    - {id: rec028, base: b1, Company: "Summit Energy", Deal: Renewal, Owner: Amara, Stage: "Closed Won", Amount: 71250, Close: "2026-03-03", "Last activity": "2026-04-26", Health: "On track"}
+    - {id: rec029, base: b1, Company: "North Labs", Deal: Licence, Owner: Felix, Stage: "Closed Lost", Amount: 75250, Close: "2026-02-12", "Last activity": "2026-03-29", Health: "On track"}
+    - {id: rec030, base: b1, Company: "Willow Foods", Deal: Pilot, Owner: Nina, Stage: Discovery, Amount: 12000, Close: "2026-07-17", "Last activity": "2026-05-13", Health: "On track"}
+    - {id: rec031, base: b1, Company: "Copper Media", Deal: Pilot, Owner: Amara, Stage: "Closed Lost", Amount: 7250, Close: "2026-03-21", "Last activity": "2026-05-22", Health: "On track"}
+    - {id: rec032, base: b1, Company: "Pioneer Analytics", Deal: Rollout, Owner: Felix, Stage: Discovery, Amount: 104000, Close: "2026-09-11", "Last activity": "2026-05-14", Health: "On track"}
+    - {id: rec033, base: b1, Company: "Falcon Partners", Deal: Rollout, Owner: Jordan, Stage: Proposal, Amount: 54000, Close: "2026-08-20", "Last activity": "2026-06-06", Health: "On track"}
+    - {id: rec034, base: b1, Company: "Quarry Labs", Deal: Pilot, Owner: Jordan, Stage: "Closed Won", Amount: 68000, Close: "2026-05-29", "Last activity": "2026-01-23", Health: "On track"}
+    - {id: rec035, base: b1, Company: "Copper Freight", Deal: Add-on, Owner: Nina, Stage: "Closed Won", Amount: 63500, Close: "2026-03-12", "Last activity": "2026-06-04", Health: "On track"}
+    - {id: rec036, base: b1, Company: "Iron Hotels", Deal: Rollout, Owner: Jordan, Stage: Proposal, Amount: 90000, Close: "2026-07-21", "Last activity": "2026-05-12", Health: "On track"}
+    - {id: rec037, base: b1, Company: "Tidal Logistics", Deal: Expansion, Owner: Jordan, Stage: Proposal, Amount: 111000, Close: "2026-08-25", "Last activity": "2026-05-18", Health: "On track"}
+    - {id: rec038, base: b1, Company: "Maple Health", Deal: Add-on, Owner: Nina, Stage: "Closed Lost", Amount: 17500, Close: "2026-01-19", "Last activity": "2026-05-05", Health: "On track"}
+    - {id: rec039, base: b1, Company: "Copper Robotics", Deal: Renewal, Owner: Amara, Stage: Discovery, Amount: 48000, Close: "2026-06-21", "Last activity": "2026-05-17", Health: "On track"}
+    - {id: rec040, base: b1, Company: "Sable Health", Deal: Seats, Owner: Nina, Stage: Proposal, Amount: 28900, Close: "2026-06-28", "Last activity": "2026-04-27", Health: "On track"}
+    - {id: rec041, base: b1, Company: "Redwood Energy", Deal: Rollout, Owner: Felix, Stage: Proposal, Amount: 78500, Close: "2026-09-26", "Last activity": "2026-06-01", Health: "On track"}
+    - {id: rec042, base: b1, Company: "Sable Studios", Deal: Seats, Owner: Jordan, Stage: "Closed Lost", Amount: 60750, Close: "2026-02-23", "Last activity": "2026-04-19", Health: "On track"}
+    - {id: rec043, base: b1, Company: "Lumen Clinics", Deal: Rollout, Owner: Felix, Stage: Proposal, Amount: 95000, Close: "2026-06-27", "Last activity": "2026-06-08", Health: "On track"}
+    - {id: rec044, base: b1, Company: "Tidal Energy", Deal: Licence, Owner: Nina, Stage: "Closed Lost", Amount: 27250, Close: "2026-06-06", "Last activity": "2026-06-02", Health: "On track"}
+    - {id: rec045, base: b1, Company: "Cedar Clinics", Deal: Expansion, Owner: Felix, Stage: Discovery, Amount: 8500, Close: "2026-06-27", "Last activity": "2026-06-07", Health: "On track"}
+    - {id: rec046, base: b1, Company: "Redwood Media", Deal: Licence, Owner: Felix, Stage: "Closed Won", Amount: 79000, Close: "2026-02-04", "Last activity": "2026-05-28", Health: "On track"}
+    - {id: rec047, base: b1, Company: "Orchard Analytics", Deal: Rollout, Owner: Amara, Stage: Negotiation, Amount: 20000, Close: "2026-06-26", "Last activity": "2026-05-03", Health: "On track"}
+    - {id: rec048, base: b1, Company: "Tidal Systems", Deal: Rollout, Owner: Nina, Stage: Proposal, Amount: 85000, Close: "2026-06-25", "Last activity": "2026-05-10", Health: "On track"}
+    - {id: rec049, base: b1, Company: "Cedar Robotics", Deal: Rollout, Owner: Jordan, Stage: Discovery, Amount: 76500, Close: "2026-08-06", "Last activity": "2026-04-17", Health: "On track"}
+    - {id: rec050, base: b1, Company: "Blue Health", Deal: Licence, Owner: Felix, Stage: Proposal, Amount: 118750, Close: "2026-07-13", "Last activity": "2026-04-18", Health: "On track"}
+    - {id: rec051, base: b1, Company: "Silver Studios", Deal: Pilot, Owner: Nina, Stage: Discovery, Amount: 21500, Close: "2026-06-30", "Last activity": "2026-06-06", Health: "On track"}
+    - {id: rec052, base: b1, Company: "Granite Freight", Deal: Renewal, Owner: Felix, Stage: Proposal, Amount: 100250, Close: "2026-07-16", "Last activity": "2026-04-02", Health: "On track"}
+    - {id: rec053, base: b1, Company: "Pioneer Studios", Deal: Expansion, Owner: Felix, Stage: "Closed Won", Amount: 78250, Close: "2026-04-14", "Last activity": "2026-06-04", Health: "On track"}
+    - {id: rec054, base: b1, Company: "Blue Labs", Deal: Seats, Owner: Felix, Stage: Discovery, Amount: 94000, Close: "2026-08-01", "Last activity": "2026-05-05", Health: "On track"}
+    - {id: rec055, base: b1, Company: "Falcon Dental", Deal: Pilot, Owner: Amara, Stage: Proposal, Amount: 55750, Close: "2026-09-22", "Last activity": "2026-05-27", Health: "On track"}
+    - {id: rec056, base: b1, Company: "Silver Foods", Deal: Renewal, Owner: Amara, Stage: Negotiation, Amount: 62000, Close: "2026-07-16", "Last activity": "2026-04-15", Health: "On track"}
+    - {id: rec057, base: b1, Company: "Orchard Clinics", Deal: Renewal, Owner: Nina, Stage: Discovery, Amount: 12750, Close: "2026-08-18", "Last activity": "2026-05-26", Health: "On track"}
+    - {id: rec058, base: b1, Company: "Ember Robotics", Deal: Renewal, Owner: Amara, Stage: "Closed Lost", Amount: 29000, Close: "2026-03-05", "Last activity": "2026-03-11", Health: "On track"}
+    - {id: rec059, base: b1, Company: "Orchard Health", Deal: Expansion, Owner: Nina, Stage: Negotiation, Amount: 112750, Close: "2026-06-11", "Last activity": "2026-06-04", Health: "On track"}
+    - {id: rec060, base: b1, Company: "North Retail", Deal: Licence, Owner: Nina, Stage: "Closed Lost", Amount: 119000, Close: "2026-03-19", "Last activity": "2026-04-22", Health: "On track"}
+    - {id: rec061, base: b1, Company: "Pioneer Health", Deal: Licence, Owner: Nina, Stage: Negotiation, Amount: 45800, Close: "2026-06-30", "Last activity": "2026-06-04", Health: "On track"}
+    - {id: rec062, base: b1, Company: "Redwood Robotics", Deal: Pilot, Owner: Nina, Stage: Negotiation, Amount: 43500, Close: "2026-08-23", "Last activity": "2026-05-20", Health: "On track"}
+    - {id: rec063, base: b1, Company: "Sable Clinics", Deal: Rollout, Owner: Amara, Stage: "Closed Won", Amount: 96500, Close: "2026-02-16", "Last activity": "2026-05-13", Health: "On track"}
+    - {id: rec064, base: b1, Company: "Harbor Media", Deal: Rollout, Owner: Nina, Stage: "Closed Lost", Amount: 109000, Close: "2026-04-07", "Last activity": "2026-01-11", Health: "On track"}
+    - {id: rec065, base: b1, Company: "Iron Media", Deal: Rollout, Owner: Nina, Stage: "Closed Lost", Amount: 69750, Close: "2026-02-23", "Last activity": "2026-05-12", Health: "On track"}
+    - {id: rec066, base: b1, Company: "Copper Analytics", Deal: Rollout, Owner: Jordan, Stage: "Closed Lost", Amount: 25250, Close: "2026-05-01", "Last activity": "2026-02-01", Health: "On track"}
+    - {id: rec067, base: b1, Company: "Ember Partners", Deal: Rollout, Owner: Amara, Stage: Discovery, Amount: 81750, Close: "2026-08-28", "Last activity": "2026-04-06", Health: "On track"}
+    - {id: rec068, base: b1, Company: "Granite Partners", Deal: Pilot, Owner: Amara, Stage: Proposal, Amount: 12000, Close: "2026-09-29", "Last activity": "2026-05-23", Health: "On track"}
+    - {id: rec069, base: b1, Company: "Iron Logistics", Deal: Rollout, Owner: Nina, Stage: Proposal, Amount: 30250, Close: "2026-09-05", "Last activity": "2026-04-12", Health: "On track"}
+    - {id: rec070, base: b1, Company: "Vale Health", Deal: Add-on, Owner: Felix, Stage: Proposal, Amount: 72000, Close: "2026-07-08", "Last activity": "2026-04-23", Health: "On track"}
+    - {id: rec071, base: b1, Company: "Granite Labs", Deal: Add-on, Owner: Felix, Stage: "Closed Won", Amount: 52000, Close: "2026-06-03", "Last activity": "2026-05-14", Health: "On track"}
+    - {id: rec072, base: b1, Company: "Tidal Analytics", Deal: Add-on, Owner: Nina, Stage: Proposal, Amount: 72000, Close: "2026-06-27", "Last activity": "2026-06-04", Health: "On track"}
+    - {id: rec073, base: b1, Company: "Summit Systems", Deal: Rollout, Owner: Jordan, Stage: Negotiation, Amount: 93750, Close: "2026-07-20", "Last activity": "2026-06-03", Health: "On track"}
+    - {id: rec074, base: b1, Company: "North Dental", Deal: Rollout, Owner: Nina, Stage: Negotiation, Amount: 26000, Close: "2026-06-12", "Last activity": "2026-06-02", Health: "On track"}
+    - {id: rec075, base: b1, Company: "Tidal Media", Deal: Add-on, Owner: Felix, Stage: Negotiation, Amount: 26400, Close: "2026-06-27", "Last activity": "2026-06-01", Health: "On track"}
+    - {id: rec076, base: b1, Company: "North Robotics", Deal: Renewal, Owner: Amara, Stage: Proposal, Amount: 45500, Close: "2026-09-20", "Last activity": "2026-04-28", Health: "On track"}
+    - {id: rec077, base: b1, Company: "Cedar Logistics", Deal: Expansion, Owner: Jordan, Stage: "Closed Won", Amount: 113750, Close: "2026-02-06", "Last activity": "2026-01-13", Health: "On track"}
+    - {id: rec078, base: b1, Company: "Harbor Foods", Deal: Pilot, Owner: Jordan, Stage: Discovery, Amount: 86500, Close: "2026-08-03", "Last activity": "2026-05-13", Health: "On track"}
+    - {id: rec079, base: b1, Company: "Silver Dental", Deal: Rollout, Owner: Nina, Stage: "Closed Won", Amount: 18750, Close: "2026-02-22", "Last activity": "2026-05-16", Health: "On track"}
+    - {id: rec080, base: b1, Company: "Maple Labs", Deal: Pilot, Owner: Felix, Stage: Negotiation, Amount: 13500, Close: "2026-09-13", "Last activity": "2026-05-26", Health: "On track"}
+    - {id: rec081, base: b1, Company: "Summit Freight", Deal: Expansion, Owner: Jordan, Stage: "Closed Won", Amount: 72250, Close: "2026-02-21", "Last activity": "2026-05-21", Health: "On track"}
+    - {id: rec082, base: b1, Company: "Ember Media", Deal: Seats, Owner: Felix, Stage: Discovery, Amount: 42000, Close: "2026-07-30", "Last activity": "2026-06-07", Health: "On track"}
+    - {id: rec083, base: b1, Company: "Falcon Labs", Deal: Seats, Owner: Felix, Stage: "Closed Lost", Amount: 72500, Close: "2026-05-03", "Last activity": "2026-03-09", Health: "On track"}
+    - {id: rec084, base: b1, Company: "Tidal Foods", Deal: Add-on, Owner: Jordan, Stage: "Closed Lost", Amount: 58000, Close: "2026-06-08", "Last activity": "2026-04-25", Health: "On track"}
+    - {id: rec085, base: b1, Company: "Juniper Labs", Deal: Rollout, Owner: Jordan, Stage: Proposal, Amount: 104000, Close: "2026-07-14", "Last activity": "2026-06-03", Health: "On track"}
+    - {id: rec086, base: b1, Company: "Maple Clinics", Deal: Pilot, Owner: Nina, Stage: "Closed Won", Amount: 9750, Close: "2026-04-24", "Last activity": "2026-01-20", Health: "On track"}
+    - {id: rec087, base: b1, Company: "Blue Foods", Deal: Licence, Owner: Nina, Stage: Discovery, Amount: 15250, Close: "2026-07-16", "Last activity": "2026-04-18", Health: "On track"}
+    - {id: rec088, base: b1, Company: "Ember Clinics", Deal: Pilot, Owner: Felix, Stage: Discovery, Amount: 62500, Close: "2026-08-04", "Last activity": "2026-05-12", Health: "On track"}
+    - {id: rec089, base: b1, Company: "Blue Media", Deal: Seats, Owner: Nina, Stage: Discovery, Amount: 25250, Close: "2026-07-17", "Last activity": "2026-04-24", Health: "On track"}
+    - {id: rec090, base: b1, Company: "Falcon Logistics", Deal: Pilot, Owner: Jordan, Stage: Negotiation, Amount: 39400, Close: "2026-06-26", "Last activity": "2026-05-18", Health: "On track"}
+    - {id: rec091, base: b1, Company: "Cedar Hotels", Deal: Renewal, Owner: Jordan, Stage: "Closed Won", Amount: 36000, Close: "2026-06-05", "Last activity": "2026-05-05", Health: "On track"}
+    - {id: rec092, base: b1, Company: "Redwood Studios", Deal: Rollout, Owner: Jordan, Stage: "Closed Won", Amount: 50750, Close: "2026-02-19", "Last activity": "2026-03-22", Health: "On track"}
+    - {id: rec093, base: b1, Company: "Iron Energy", Deal: Licence, Owner: Felix, Stage: Negotiation, Amount: 98500, Close: "2026-06-20", "Last activity": "2026-06-09", Health: "On track"}
+    - {id: rec094, base: b1, Company: "Quarry Logistics", Deal: Rollout, Owner: Jordan, Stage: Negotiation, Amount: 69250, Close: "2026-07-13", "Last activity": "2026-05-19", Health: "On track"}
+    - {id: rec095, base: b1, Company: "Lumen Systems", Deal: Pilot, Owner: Felix, Stage: Proposal, Amount: 17250, Close: "2026-09-06", "Last activity": "2026-04-21", Health: "On track"}
+    - {id: rec096, base: b1, Company: "Pioneer Foods", Deal: Expansion, Owner: Jordan, Stage: "Closed Won", Amount: 104250, Close: "2026-02-12", "Last activity": "2026-05-29", Health: "On track"}
+    - {id: rec097, base: b1, Company: "Copper Energy", Deal: Pilot, Owner: Amara, Stage: Discovery, Amount: 118500, Close: "2026-09-23", "Last activity": "2026-04-13", Health: "On track"}
+    - {id: rec098, base: b1, Company: "Quarry Dental", Deal: Pilot, Owner: Amara, Stage: "Closed Lost", Amount: 34000, Close: "2026-05-22", "Last activity": "2026-04-19", Health: "On track"}
+    - {id: rec099, base: b1, Company: "North Foods", Deal: Expansion, Owner: Jordan, Stage: Discovery, Amount: 12000, Close: "2026-06-11", "Last activity": "2026-04-20", Health: "On track"}
+    - {id: rec100, base: b1, Company: "Silver Hotels", Deal: Renewal, Owner: Amara, Stage: Discovery, Amount: 66000, Close: "2026-06-15", "Last activity": "2026-06-09", Health: "On track"}
+    - {id: rec101, base: b1, Company: "Blue Energy", Deal: Pilot, Owner: Felix, Stage: Discovery, Amount: 61000, Close: "2026-07-09", "Last activity": "2026-05-01", Health: "On track"}
+    - {id: rec102, base: b1, Company: "Harbor Labs", Deal: Pilot, Owner: Felix, Stage: Negotiation, Amount: 31000, Close: "2026-06-20", "Last activity": "2026-05-07", Health: "On track"}
+    - {id: rec103, base: b1, Company: "Granite Foods", Deal: Renewal, Owner: Jordan, Stage: Proposal, Amount: 116750, Close: "2026-06-18", "Last activity": "2026-06-02", Health: "On track"}
+    - {id: rec104, base: b1, Company: "Orchard Energy", Deal: Add-on, Owner: Amara, Stage: "Closed Won", Amount: 104500, Close: "2026-03-16", "Last activity": "2026-04-10", Health: "On track"}
+    - {id: rec105, base: b1, Company: "Silver Analytics", Deal: Expansion, Owner: Felix, Stage: Discovery, Amount: 15750, Close: "2026-06-29", "Last activity": "2026-06-01", Health: "On track"}
+    - {id: rec106, base: b1, Company: "Pioneer Freight", Deal: Renewal, Owner: Jordan, Stage: Negotiation, Amount: 63000, Close: "2026-08-28", "Last activity": "2026-04-09", Health: "On track"}
+    - {id: rec107, base: b1, Company: "Iron Partners", Deal: Expansion, Owner: Nina, Stage: "Closed Won", Amount: 35000, Close: "2026-01-28", "Last activity": "2026-02-14", Health: "On track"}
+    - {id: rec108, base: b1, Company: "Maple Freight", Deal: Renewal, Owner: Jordan, Stage: Negotiation, Amount: 24500, Close: "2026-06-12", "Last activity": "2026-05-19", Health: "On track"}
+    - {id: rec109, base: b1, Company: "Harbor Studios", Deal: Add-on, Owner: Felix, Stage: Proposal, Amount: 67200, Close: "2026-06-11", "Last activity": "2026-04-30", Health: "On track"}
+    - {id: rec110, base: b1, Company: "Quarry Hotels", Deal: Add-on, Owner: Felix, Stage: "Closed Lost", Amount: 5000, Close: "2026-03-19", "Last activity": "2026-02-09", Health: "On track"}
+    - {id: rec111, base: b1, Company: "Harbor Dental", Deal: Pilot, Owner: Amara, Stage: "Closed Won", Amount: 66750, Close: "2026-01-18", "Last activity": "2026-04-21", Health: "On track"}
+    - {id: rec112, base: b1, Company: "Willow Hotels", Deal: Seats, Owner: Jordan, Stage: Negotiation, Amount: 33100, Close: "2026-06-15", "Last activity": "2026-06-08", Health: "On track"}
+    - {id: rec113, base: b1, Company: "Iron Retail", Deal: Renewal, Owner: Nina, Stage: Negotiation, Amount: 105250, Close: "2026-07-27", "Last activity": "2026-04-05", Health: "On track"}
+    - {id: rec114, base: b1, Company: "Pioneer Partners", Deal: Pilot, Owner: Nina, Stage: Negotiation, Amount: 83500, Close: "2026-08-11", "Last activity": "2026-05-31", Health: "On track"}
+    - {id: rec115, base: b1, Company: "Orchard Partners", Deal: Rollout, Owner: Felix, Stage: Discovery, Amount: 44000, Close: "2026-07-01", "Last activity": "2026-04-20", Health: "On track"}
+    - {id: rec116, base: b1, Company: "Vale Media", Deal: Pilot, Owner: Felix, Stage: Negotiation, Amount: 115500, Close: "2026-06-22", "Last activity": "2026-06-01", Health: "On track"}
+    - {id: rec117, base: b1, Company: "Copper Partners", Deal: Rollout, Owner: Jordan, Stage: Proposal, Amount: 86750, Close: "2026-09-02", "Last activity": "2026-04-06", Health: "On track"}
+    - {id: rec118, base: b1, Company: "Iron Freight", Deal: Add-on, Owner: Felix, Stage: "Closed Lost", Amount: 74500, Close: "2026-03-22", "Last activity": "2026-03-17", Health: "On track"}
+    - {id: rec119, base: b1, Company: "Ember Hotels", Deal: Rollout, Owner: Amara, Stage: "Closed Lost", Amount: 12750, Close: "2026-02-06", "Last activity": "2026-03-04", Health: "On track"}
+    - {id: rec120, base: b1, Company: "Summit Media", Deal: Add-on, Owner: Nina, Stage: Proposal, Amount: 31250, Close: "2026-06-19", "Last activity": "2026-06-03", Health: "On track"}

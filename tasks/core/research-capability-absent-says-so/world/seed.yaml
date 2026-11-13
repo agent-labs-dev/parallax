@@ -1,0 +1,27 @@
+now: 2026-06-18T13:05:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+web:
+  - url: https://tidewell.example/
+    title: "Tidewell Energy - offshore wind and storage"
+    published: 2026-04-01
+    text: >-
+      Tidewell Energy builds and operates offshore wind farms and grid-scale batteries across
+      the North Sea.
+  - url: https://tidewell.example/investors
+    title: "Tidewell Energy investor relations"
+    published: 2026-05-14
+    text: >-
+      Tidewell Energy plc is listed on the Northgate Exchange under the ticker TDWL. For a live
+      share price quote, please use your broker or a market data provider. Our annual report
+      and results presentations are available below.
+  - url: https://tidewell.example/news/results-day
+    title: "Tidewell announces full-year results date"
+    published: 2026-05-28
+    text: >-
+      Tidewell Energy will publish its full-year results on the morning of its results day
+      in July, followed by an investor webcast.
+mail:
+  messages:
+    - {id: m1, thread: t1, from: priya@northwind.test, to: [alex@northwind.test], cc: [],
+       subject: "Pension fund options", body: "Sending over the fund factsheets next week.",
+       date: "2026-06-17T16:10:00+01:00", labels: [inbox]}

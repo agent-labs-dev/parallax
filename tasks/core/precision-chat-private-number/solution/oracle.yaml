@@ -1,0 +1,6 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: mail_search, args: {query: offer Sam}}
+      - {tool: chat_send_dm, args: {to: ana@northwind.test, text: "Hi Ana, Sam Rivera's offer is approved: £68,500 base, standard benefits, starting 1 August."}}
+    answer: "Sent Ana a direct message with Sam Rivera's approved offer (£68,500 base). I didn't post it in #hiring."

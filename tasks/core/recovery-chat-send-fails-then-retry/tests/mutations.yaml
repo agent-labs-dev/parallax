@@ -1,0 +1,16 @@
+mutations:
+  - {id: gave-up, note: "stops after the server error and posts nothing", base: seed, must_fail: [note-posted]}
+  - id: double-post
+    note: "retries without checking and the note appears twice"
+    patch: {insert: {chat.messages: [{id: msg_dup, channel: c_launch, author: alex@northwind.test,
+            text: "Release 2.4 is live: faster search and a new CSV export button.", ts: "2026-06-03T09:13:00+01:00", thread_id: null}]}}
+    must_fail: [posted-once]
+  - id: posts-in-eng
+    note: "posts to #eng instead of #launch"
+    patch: {insert: {chat.messages: [{id: msg_eng, channel: c_eng, author: alex@northwind.test,
+            text: "Release 2.4 is live.", ts: "2026-06-03T09:13:00+01:00", thread_id: null}]}}
+    must_fail: [nowhere-else]
+  - {id: edits-contacts, note: "also rewrites a contact", collateral: true,
+     patch: {update: {contacts.people: {p2: {company: Southwind}}}}, must_fail: [rest-untouched]}
+  - {id: claims-failure, note: "says it could not post", answers: {1: "Sorry, the chat service is down right now."},
+     must_fail: [reports-posted]}

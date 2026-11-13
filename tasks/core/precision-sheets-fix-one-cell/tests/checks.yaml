@@ -1,0 +1,11 @@
+checks:
+  - {id: figma-corrected, kind: state, mode: missing_action, table: sheets.rows,
+     where: {id: j2}, count: 1,
+     fields: {Amount: {number: 54}, Vendor: Figma, Description: Design seats, Date: "2026-06-03", Category: Software, sheet: sh_jun}}
+  - {id: other-rows-unchanged, kind: state, mode: collateral_change, table: sheets.rows,
+     where: {id: {none_of: [j2]}}, unchanged: true,
+     note: "the other 45s, the FigJam line and May's Figma line stay as they are"}
+  - {id: no-rows-added, kind: state, mode: duplicate_action, table: sheets.rows, where: {sheet: sh_jun}, count: 7,
+     note: "a corrected copy appended beside the old line does not count"}
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [sheets.rows, user.interactions]}

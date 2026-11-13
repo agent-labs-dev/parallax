@@ -1,0 +1,25 @@
+mutations:
+  - id: wrong-standup-job
+    note: "deletes the standup notes digest instead"
+    base: seed
+    patch: {delete: {scheduler.jobs: [job-standup-notes]}}
+    must_fail: [reminder-stopped, notes-digest-untouched]
+  - id: both-standup-jobs
+    note: "deletes everything with standup in the title"
+    patch: {delete: {scheduler.jobs: [job-standup-notes]}}
+    must_fail: [notes-digest-untouched]
+  - id: nothing-done
+    note: "claims it stopped but leaves the reminder running"
+    base: seed
+    answers: {1: "Done, the standup reminder is stopped."}
+    must_fail: [reminder-stopped]
+  - id: pauses-timesheet
+    note: "pauses the timesheet reminder too"
+    collateral: true
+    patch: {update: {scheduler.jobs: {job-timesheet: {active: false}}}}
+    must_fail: [timesheet-untouched]
+  - id: edits-calendar
+    note: "tinkers with the standup event"
+    collateral: true
+    patch: {update: {calendar.events: {ev-standup: {description: "no reminder"}}}}
+    must_fail: [rest-untouched]

@@ -1,0 +1,17 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "memory-preference-applied"
+version = 2
+area = "memory"
+summary = "Apply a standing 'cc Jamie on customer emails' preference in a later fresh session"
+requires = ["mcp", "memory", "world_clock"]
+provenance = "hand_authored"
+canary = "085ee6a4-7855-45dd-8627-dccb74fa11d3"
+
+[[steps]]
+name = "turn-01"
+
+[[steps]]
+name = "turn-02"
+session = "new"

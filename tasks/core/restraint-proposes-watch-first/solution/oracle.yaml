@@ -1,0 +1,11 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: mail_search, args: {query: invoice, label: inbox}}
+    answer: "You have two invoices in your inbox right now: Paperstack INV-3381 (240.00 GBP, due 17 June) and Cloudhost CH-0602 (45.00 GBP, due 30 June). If you like, I can set up a watch that alerts you as soon as a new invoice email arrives, so they stop getting buried. Want me to?"
+  turn-02:
+    calls:
+      - tool: scheduler_create_job
+        args: {kind: watch, spec: "mail: new message mentioning an invoice", title: "Invoice alert",
+               instruction: "Tell me about the new invoice email: who it is from, the amount and the due date."}
+    answer: "Done. I've set up a watch on your mail: whenever an invoice email arrives, I'll flag it with the sender, amount and due date."

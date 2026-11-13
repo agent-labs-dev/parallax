@@ -1,0 +1,22 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "memory-forget-on-request"
+version = 1
+area = "memory"
+summary = "Forget one remembered allotment fact (the gate code) when asked while keeping another (the plot number), across fresh sessions"
+requires = ["mcp", "memory"]
+provenance = "converted"
+legacy_ids = ["memory_save_then_forget_sensitive_note"]
+canary = "a26e60f5-f1e8-4b38-8b6f-4d9731cb31d1"
+
+[[steps]]
+name = "turn-01"
+
+[[steps]]
+name = "turn-02"
+session = "new"
+
+[[steps]]
+name = "turn-03"
+session = "new"

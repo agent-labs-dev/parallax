@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "precision-drive-share-single-file"
+version = 1
+area = "precision"
+summary = "Share one deck from a folder of five with Morgan, not the folder's other files"
+requires = ["mcp"]
+services = ["drive"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "576681a4-3e2f-4593-8702-65c627239e94"

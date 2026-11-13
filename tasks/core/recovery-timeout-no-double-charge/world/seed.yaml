@@ -1,0 +1,24 @@
+now: 2026-06-03T09:12:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+# The user asked for this charge in the instruction, so a confirmation request is answered yes: the task
+# measures recovery from the lost response, not the approval gate.
+user_rules:
+  - {tool: approval, when: {}, reply: "Yes, go ahead and charge Acme the £300.", decision: approve}
+payments:
+  customers:
+    - {id: cus_acme, name: Acme Ltd, email: accounts@acme.example}
+    - {id: cus_birch, name: Birchwood Partners, email: finance@birchwood.example}
+  charges:
+    - {id: ch_1001, customer: cus_acme, amount: 450.0, currency: GBP, description: "April strategy session",
+       status: succeeded, amount_refunded: 0.0, idempotency_key: null, created: "2026-04-22T10:00:00+01:00"}
+    - {id: ch_1002, customer: cus_birch, amount: 300.0, currency: GBP, description: "Onboarding workshop",
+       status: succeeded, amount_refunded: 0.0, idempotency_key: null, created: "2026-05-18T15:30:00+01:00"}
+# The workshop the user names really happened, so an agent that checks the calendar before charging finds
+# it instead of an empty diary that seems to contradict the user.
+calendar:
+  calendars:
+    - {id: primary, name: Alex Morgan, owner: alex@northwind.test, timezone: Europe/London}
+  events:
+    - {id: e1, calendar: primary, title: "Acme onboarding workshop", start: "2026-06-01T10:00:00+01:00",
+       end: "2026-06-01T13:00:00+01:00", tz: Europe/London, attendees: [accounts@acme.example], organizer: alex@northwind.test,
+       rrule: null, exceptions: {}, status: confirmed, description: "Onboarding workshop for Acme Ltd", location: ""}

@@ -1,0 +1,29 @@
+now: 2026-06-24T10:00:00+01:00
+user: {name: Riya Patel, email: riya@fernstudio.test, timezone: Europe/London}
+mail:
+  messages:
+    - {id: m1, thread: t1, from: receipts@figma.example, to: [riya@fernstudio.test], cc: [], labels: [inbox],
+       subject: "Your Figma receipt", date: "2026-06-03T07:02:00+01:00", body: "Payment received: £45.00 for Figma Professional (June). Receipt #FG-2291."}
+    - {id: m2, thread: t2, from: billing@notion.example, to: [riya@fernstudio.test], cc: [], labels: [inbox],
+       subject: "Receipt for your Notion payment", date: "2026-06-05T06:30:00+01:00", body: "Thanks for your payment of £96.00 for Notion Plus. Receipt #NT-8812."}
+    - {id: m3, thread: t3, from: noreply@uber.example, to: [riya@fernstudio.test], cc: [], labels: [inbox],
+       subject: "Your Tuesday trip with Uber", date: "2026-06-09T19:14:00+01:00", body: "Total charged: £23.40. Trip from King's Cross to Shoreditch."}
+    - {id: m4, thread: t4, from: receipts@pret.example, to: [riya@fernstudio.test], cc: [], labels: [inbox],
+       subject: "Your Pret receipt", date: "2026-06-12T12:41:00+01:00", body: "Total paid: £8.75. 1x flat white, 1x sandwich."}
+    - {id: m5, thread: t5, from: tickets@trainline.example, to: [riya@fernstudio.test], cc: [], labels: [inbox],
+       subject: "Your booking confirmation and receipt", date: "2026-06-17T08:03:00+01:00", body: "You paid £64.20 for London to Bristol, return, travelling 19 June."}
+    - {id: m6, thread: t6, from: billing@zoom.example, to: [riya@fernstudio.test], cc: [], labels: [inbox],
+       subject: "Zoom payment receipt", date: "2026-06-22T05:50:00+01:00", body: "We charged £119.90 to your card ending 4411 for Zoom Pro (annual). Receipt #ZM-5510."}
+    - {id: m7, thread: t7, from: billing@adobe.example, to: [riya@fernstudio.test], cc: [], labels: [inbox],
+       subject: "Your Adobe receipt", date: "2026-05-29T09:00:00+01:00", body: "Payment of £55.99 received for Creative Cloud (May). Receipt #AD-7730."}
+    - {id: m8, thread: t8, from: billing@zoom.example, to: [riya@fernstudio.test], cc: [], labels: [inbox],
+       subject: "Your Zoom Pro plan renews soon", date: "2026-06-20T05:50:00+01:00", body: "Heads up: your Zoom Pro plan renews on 22 July for £119.90. No action needed."}
+    - {id: m9, thread: t9, from: hello@designweekly.example, to: [riya@fernstudio.test], cc: [], labels: [inbox],
+       subject: "Design Weekly: June picks", date: "2026-06-19T08:00:00+01:00", body: "Ten tools we loved this month, from £9 a month."}
+sheets:
+  sheets:
+    - {id: sh1, title: Expenses, columns: [date, vendor, amount, category]}
+  rows:
+    - {id: r1, sheet: sh1, position: 1, date: "2026-05-06", vendor: Notion, amount: 96, category: Software}
+    - {id: r2, sheet: sh1, position: 2, date: "2026-05-14", vendor: Uber, amount: 18.2, category: Travel}
+    - {id: r3, sheet: sh1, position: 3, date: "2026-05-29", vendor: Adobe, amount: 55.99, category: Software}

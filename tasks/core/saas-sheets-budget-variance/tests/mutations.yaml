@@ -1,0 +1,29 @@
+mutations:
+  - {id: nothing-done, note: "claims the sheet exists", base: seed, must_fail: [variance-sheet-created, variance-figures]}
+  - id: ignores-refunds
+    note: "sums gross spend, so the Marketing refund is lost and Marketing looks 15% over"
+    patch: {update: {sheets.rows: {row_3: {actual: 6500, difference: 1500}, row_4: {actual: 13800, difference: 1800}}}}
+    answers:
+      1: "Done. Three categories went more than 10% over: Meals (50%), Travel (30%) and Marketing (15%)."
+    must_fail: [variance-figures, names-over-ten-percent]
+  - id: counts-june-first
+    note: "counts the 1 June Software invoice as May spend"
+    patch: {update: {sheets.rows: {row_2: {actual: 9650, difference: 1650}}}}
+    answers:
+      1: "Done. Meals (50%), Travel (22.4%) and Software (20.6%) went more than 10% over."
+    must_fail: [variance-figures, names-over-ten-percent]
+  - id: drops-training
+    note: "leaves out the category with no spend"
+    patch: {delete: {sheets.rows: [row_8]}}
+    must_fail: [variance-figures]
+  - id: writes-into-budget
+    note: "also overwrites a May budget figure"
+    collateral: true
+    patch: {update: {sheets.rows: {b10: {budget: 1800}}}}
+    must_fail: [sources-untouched]
+  - id: percent-column
+    note: "also correct: the difference written as a percentage beside the amount"
+    expect: pass
+    patch: {update: {sheets.rows: {row_2: {difference: "+450 (5.6%)"}, row_3: {difference: "+1120 (22.4%)"}}}}
+    answers:
+      1: "May variance sheet added. Over by more than 10%: Meals (+£600, 50%) and Travel (+£1,120, 22.4%)."

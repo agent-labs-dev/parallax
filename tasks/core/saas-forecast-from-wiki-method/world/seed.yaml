@@ -1,0 +1,264 @@
+now: 2026-08-13T10:00:00+01:00
+user: {name: Dana Reyes, email: dana@quayside.test, timezone: Europe/London}
+tables:
+  bases:
+    - {id: b1, name: Pipeline, fields: [Deal, Owner, Stage, Amount, Close, Activity]}
+  records:
+    - {id: d001, base: b1, Deal: "Summit Dental", Owner: Chen, Stage: Negotiation, Amount: 44000, Close: "2026-09-18", Activity: "2026-07-21"}
+    - {id: d002, base: b1, Deal: "Yarrow Dental", Owner: Dev, Stage: Discovery, Amount: 27000, Close: "2026-10-12", Activity: "2026-07-07"}
+    - {id: d003, base: b1, Deal: "Meadow Outdoor", Owner: Chen, Stage: "Closed Won", Amount: 52500, Close: "2026-07-17", Activity: "2026-06-17"}
+    - {id: d004, base: b1, Deal: "Slate Fitness", Owner: Dev, Stage: Verbal, Amount: 78500, Close: "2026-07-02", Activity: "2026-06-11"}
+    - {id: d005, base: b1, Deal: "Spruce Freight", Owner: Ana, Stage: "Closed Lost", Amount: 80500, Close: "2026-05-07", Activity: "2026-03-10"}
+    - {id: d006, base: b1, Deal: "Linden Clinics", Owner: Erin, Stage: Proposal, Amount: 74000, Close: "2026-10-24", Activity: "2026-08-01"}
+    - {id: d007, base: b1, Deal: "Jasper Farms", Owner: Dev, Stage: Discovery, Amount: 74000, Close: "2026-04-07", Activity: "2026-03-06"}
+    - {id: d008, base: b1, Deal: "Pebble Analytics", Owner: Ana, Stage: "Closed Won", Amount: 116500, Close: "2026-07-03", Activity: "2026-06-02"}
+    - {id: d009, base: b1, Deal: "Willow Bank", Owner: Ben, Stage: "Closed Won", Amount: 10500, Close: "2026-04-01", Activity: "2026-03-22"}
+    - {id: d010, base: b1, Deal: "Tundra Hotels", Owner: Ana, Stage: "Closed Lost", Amount: 106000, Close: "2026-06-13", Activity: "2026-04-29"}
+    - {id: d011, base: b1, Deal: "Silver Dental", Owner: Ben, Stage: "Closed Won", Amount: 15500, Close: "2026-05-26", Activity: "2026-04-17"}
+    - {id: d012, base: b1, Deal: "Sequoia Robotics", Owner: Dev, Stage: Negotiation, Amount: 107500, Close: "2026-09-22", Activity: "2026-06-29"}
+    - {id: d013, base: b1, Deal: "Delta Robotics", Owner: Chen, Stage: Discovery, Amount: 86000, Close: "2026-11-09", Activity: "2026-08-10"}
+    - {id: d014, base: b1, Deal: "Osprey Software", Owner: Ana, Stage: "Closed Won", Amount: 36000, Close: "2026-05-03", Activity: "2026-04-11"}
+    - {id: d015, base: b1, Deal: "Summit Health", Owner: Ana, Stage: "Closed Lost", Amount: 119500, Close: "2026-05-19", Activity: "2026-05-11"}
+    - {id: d016, base: b1, Deal: "Ember Works", Owner: Dev, Stage: Discovery, Amount: 70000, Close: "2026-10-31", Activity: "2026-07-11"}
+    - {id: d017, base: b1, Deal: "Delta Clinics", Owner: Ana, Stage: Proposal, Amount: 27000, Close: "2026-11-08", Activity: "2026-07-28"}
+    - {id: d018, base: b1, Deal: "Sierra Farms", Owner: Chen, Stage: "Closed Won", Amount: 54000, Close: "2026-07-19", Activity: "2026-07-06"}
+    - {id: d019, base: b1, Deal: "Lagoon Studios", Owner: Erin, Stage: "Closed Won", Amount: 108000, Close: "2026-04-14", Activity: "2026-04-13"}
+    - {id: d020, base: b1, Deal: "Nimbus Outdoor", Owner: Dev, Stage: "Closed Won", Amount: 90000, Close: "2026-07-23", Activity: "2026-06-23"}
+    - {id: d021, base: b1, Deal: "Pebble Farms", Owner: Erin, Stage: "Closed Won", Amount: 68000, Close: "2026-06-19", Activity: "2026-06-23"}
+    - {id: d022, base: b1, Deal: "Ember Clinics", Owner: Ana, Stage: Negotiation, Amount: 61000, Close: "2026-11-19", Activity: "2026-07-06"}
+    - {id: d023, base: b1, Deal: "Wren Insurance", Owner: Ben, Stage: Negotiation, Amount: 64000, Close: "2026-07-20", Activity: "2026-06-18"}
+    - {id: d024, base: b1, Deal: "Ivory Freight", Owner: Dev, Stage: "Closed Lost", Amount: 90000, Close: "2026-04-11", Activity: "2026-03-07"}
+    - {id: d025, base: b1, Deal: "Tundra Software", Owner: Ben, Stage: "Closed Lost", Amount: 71000, Close: "2026-07-12", Activity: "2026-05-21"}
+    - {id: d026, base: b1, Deal: "Lagoon Retail", Owner: Dev, Stage: Negotiation, Amount: 75000, Close: "2026-12-19", Activity: "2026-07-12"}
+    - {id: d027, base: b1, Deal: "Vertex Farms", Owner: Dev, Stage: Verbal, Amount: 71000, Close: "2026-10-14", Activity: "2026-07-17"}
+    - {id: d028, base: b1, Deal: "Rowan Labs", Owner: Chen, Stage: Proposal, Amount: 5500, Close: "2026-09-03", Activity: "2026-07-12"}
+    - {id: d029, base: b1, Deal: "Meadow Retail", Owner: Chen, Stage: Discovery, Amount: 71500, Close: "2026-10-27", Activity: "2026-08-04"}
+    - {id: d030, base: b1, Deal: "Summit Travel", Owner: Ben, Stage: Negotiation, Amount: 81500, Close: "2026-06-06", Activity: "2026-05-09"}
+    - {id: d031, base: b1, Deal: "Birch Clinics", Owner: Chen, Stage: "Closed Lost", Amount: 61500, Close: "2026-06-18", Activity: "2026-05-09"}
+    - {id: d032, base: b1, Deal: "Spruce Farms", Owner: Ben, Stage: "Closed Won", Amount: 52500, Close: "2026-05-19", Activity: "2026-04-26"}
+    - {id: d033, base: b1, Deal: "Fjord Insurance", Owner: Chen, Stage: "Closed Won", Amount: 5000, Close: "2026-08-04", Activity: "2026-06-10"}
+    - {id: d034, base: b1, Deal: "Clover Software", Owner: Dev, Stage: "Closed Won", Amount: 20500, Close: "2026-07-18", Activity: "2026-06-12"}
+    - {id: d035, base: b1, Deal: "Bramble Clinics", Owner: Chen, Stage: Discovery, Amount: 13000, Close: "2026-11-07", Activity: "2026-07-21"}
+    - {id: d036, base: b1, Deal: "Tundra Studios", Owner: Chen, Stage: Discovery, Amount: 109500, Close: "2026-11-20", Activity: "2026-07-11"}
+    - {id: d037, base: b1, Deal: "Flint Logistics", Owner: Chen, Stage: Negotiation, Amount: 50500, Close: "2026-08-17", Activity: "2026-07-28"}
+    - {id: d038, base: b1, Deal: "Tidal Partners", Owner: Ana, Stage: "Closed Lost", Amount: 31500, Close: "2026-07-25", Activity: "2026-06-26"}
+    - {id: d039, base: b1, Deal: "Summit Logistics", Owner: Ana, Stage: Negotiation, Amount: 86500, Close: "2026-05-25", Activity: "2026-04-12"}
+    - {id: d040, base: b1, Deal: "Cinder Games", Owner: Ben, Stage: "Closed Won", Amount: 60500, Close: "2026-08-05", Activity: "2026-07-23"}
+    - {id: d041, base: b1, Deal: "Sparrow Robotics", Owner: Ana, Stage: "Closed Won", Amount: 78000, Close: "2026-07-08", Activity: "2026-06-27"}
+    - {id: d042, base: b1, Deal: "Shale Insurance", Owner: Chen, Stage: Discovery, Amount: 17500, Close: "2026-11-02", Activity: "2026-07-04"}
+    - {id: d043, base: b1, Deal: "Fern Logistics", Owner: Ben, Stage: "Closed Won", Amount: 106500, Close: "2026-05-30", Activity: "2026-04-06"}
+    - {id: d044, base: b1, Deal: "Pike Freight", Owner: Ben, Stage: "Closed Won", Amount: 82000, Close: "2026-04-07", Activity: "2026-03-27"}
+    - {id: d045, base: b1, Deal: "Hazel Labs", Owner: Erin, Stage: Negotiation, Amount: 73000, Close: "2026-11-16", Activity: "2026-06-24"}
+    - {id: d046, base: b1, Deal: "Ridge Capital", Owner: Dev, Stage: Proposal, Amount: 64000, Close: "2026-07-04", Activity: "2026-06-10"}
+    - {id: d047, base: b1, Deal: "Indigo Dental", Owner: Chen, Stage: Discovery, Amount: 51000, Close: "2026-10-21", Activity: "2026-07-31"}
+    - {id: d048, base: b1, Deal: "Oak Farms", Owner: Erin, Stage: "Closed Won", Amount: 59500, Close: "2026-05-08", Activity: "2026-04-27"}
+    - {id: d049, base: b1, Deal: "Sequoia Analytics", Owner: Chen, Stage: "Closed Lost", Amount: 106500, Close: "2026-04-17", Activity: "2026-03-03"}
+    - {id: d050, base: b1, Deal: "Indigo Legal", Owner: Erin, Stage: Discovery, Amount: 17000, Close: "2026-12-06", Activity: "2026-07-12"}
+    - {id: d051, base: b1, Deal: "Glacier Energy", Owner: Ben, Stage: Negotiation, Amount: 84500, Close: "2026-04-02", Activity: "2026-02-12"}
+    - {id: d052, base: b1, Deal: "Arbor Dental", Owner: Dev, Stage: "Closed Won", Amount: 16500, Close: "2026-04-28", Activity: "2026-03-11"}
+    - {id: d053, base: b1, Deal: "Ivory Media", Owner: Chen, Stage: Proposal, Amount: 68000, Close: "2026-08-30", Activity: "2026-07-30"}
+    - {id: d054, base: b1, Deal: "Nimbus Fitness", Owner: Dev, Stage: Discovery, Amount: 13500, Close: "2026-11-15", Activity: "2026-07-08"}
+    - {id: d055, base: b1, Deal: "Harbor Learning", Owner: Chen, Stage: Verbal, Amount: 68500, Close: "2026-11-22", Activity: "2026-07-29"}
+    - {id: d056, base: b1, Deal: "Bramble Freight", Owner: Ben, Stage: "Closed Won", Amount: 38500, Close: "2026-05-22", Activity: "2026-05-21"}
+    - {id: d057, base: b1, Deal: "Thistle Robotics", Owner: Ana, Stage: Verbal, Amount: 38000, Close: "2026-06-26", Activity: "2026-05-26"}
+    - {id: d058, base: b1, Deal: "Mosaic Learning", Owner: Ana, Stage: Verbal, Amount: 48000, Close: "2026-08-05", Activity: "2026-07-02"}
+    - {id: d059, base: b1, Deal: "Juniper Clinics", Owner: Dev, Stage: Proposal, Amount: 113500, Close: "2026-10-13", Activity: "2026-06-24"}
+    - {id: d060, base: b1, Deal: "Mosaic Games", Owner: Ana, Stage: Discovery, Amount: 64500, Close: "2026-09-10", Activity: "2026-07-02"}
+    - {id: d061, base: b1, Deal: "Garnet Energy", Owner: Ana, Stage: Proposal, Amount: 108000, Close: "2026-09-19", Activity: "2026-07-17"}
+    - {id: d062, base: b1, Deal: "Dune Games", Owner: Erin, Stage: "Closed Lost", Amount: 85000, Close: "2026-04-15", Activity: "2026-03-12"}
+    - {id: d063, base: b1, Deal: "Dune Retail", Owner: Ben, Stage: "Closed Lost", Amount: 88000, Close: "2026-06-01", Activity: "2026-05-27"}
+    - {id: d064, base: b1, Deal: "Hazel Insurance", Owner: Ana, Stage: Negotiation, Amount: 111500, Close: "2026-12-01", Activity: "2026-06-30"}
+    - {id: d065, base: b1, Deal: "Garnet Robotics", Owner: Erin, Stage: Negotiation, Amount: 115500, Close: "2026-04-10", Activity: "2026-04-08"}
+    - {id: d066, base: b1, Deal: "Opal Outdoor", Owner: Ana, Stage: Negotiation, Amount: 97500, Close: "2026-08-09", Activity: "2026-08-08"}
+    - {id: d067, base: b1, Deal: "Lumen Freight", Owner: Erin, Stage: Negotiation, Amount: 115000, Close: "2026-05-10", Activity: "2026-03-25"}
+    - {id: d068, base: b1, Deal: "Topaz Capital", Owner: Erin, Stage: Discovery, Amount: 52000, Close: "2026-11-18", Activity: "2026-08-02"}
+    - {id: d069, base: b1, Deal: "Saffron Insurance", Owner: Ben, Stage: Negotiation, Amount: 97500, Close: "2026-06-23", Activity: "2026-05-14"}
+    - {id: d070, base: b1, Deal: "Fjord Hotels", Owner: Dev, Stage: "Closed Won", Amount: 80500, Close: "2026-08-10", Activity: "2026-06-21"}
+    - {id: d071, base: b1, Deal: "Yarrow Learning", Owner: Dev, Stage: Discovery, Amount: 105000, Close: "2026-07-17", Activity: "2026-07-01"}
+    - {id: d072, base: b1, Deal: "Saffron Freight", Owner: Erin, Stage: Verbal, Amount: 83500, Close: "2026-08-14", Activity: "2026-07-29"}
+    - {id: d073, base: b1, Deal: "Shale Fitness", Owner: Erin, Stage: Proposal, Amount: 99000, Close: "2026-11-14", Activity: "2026-07-12"}
+    - {id: d074, base: b1, Deal: "Tamarack Hotels", Owner: Dev, Stage: "Closed Won", Amount: 88500, Close: "2026-04-23", Activity: "2026-03-29"}
+    - {id: d075, base: b1, Deal: "Cedar Partners", Owner: Ben, Stage: "Closed Won", Amount: 91500, Close: "2026-07-14", Activity: "2026-06-02"}
+    - {id: d076, base: b1, Deal: "Apex Outdoor", Owner: Dev, Stage: Negotiation, Amount: 89500, Close: "2026-05-19", Activity: "2026-05-03"}
+    - {id: d077, base: b1, Deal: "Wren Travel", Owner: Chen, Stage: Proposal, Amount: 36000, Close: "2026-07-28", Activity: "2026-08-10"}
+    - {id: d078, base: b1, Deal: "Slate Energy", Owner: Dev, Stage: Proposal, Amount: 33000, Close: "2026-09-28", Activity: "2026-07-29"}
+    - {id: d079, base: b1, Deal: "Sequoia Media", Owner: Chen, Stage: "Closed Won", Amount: 117000, Close: "2026-05-10", Activity: "2026-05-01"}
+    - {id: d080, base: b1, Deal: "Sequoia Learning", Owner: Erin, Stage: "Closed Won", Amount: 105500, Close: "2026-06-03", Activity: "2026-05-20"}
+    - {id: d081, base: b1, Deal: "Flint Systems", Owner: Ben, Stage: Discovery, Amount: 77500, Close: "2026-10-20", Activity: "2026-06-27"}
+    - {id: d082, base: b1, Deal: "Umber Fitness", Owner: Chen, Stage: Proposal, Amount: 24000, Close: "2026-07-27", Activity: "2026-07-30"}
+    - {id: d083, base: b1, Deal: "Saffron Retail", Owner: Ana, Stage: Verbal, Amount: 6500, Close: "2026-07-06", Activity: "2026-06-05"}
+    - {id: d084, base: b1, Deal: "Birch Dental", Owner: Ana, Stage: Proposal, Amount: 99000, Close: "2026-10-21", Activity: "2026-07-22"}
+    - {id: d085, base: b1, Deal: "Dune Foods", Owner: Dev, Stage: Discovery, Amount: 75500, Close: "2026-10-07", Activity: "2026-08-04"}
+    - {id: d086, base: b1, Deal: "Ember Bank", Owner: Chen, Stage: Negotiation, Amount: 34000, Close: "2026-09-13", Activity: "2026-06-27"}
+    - {id: d087, base: b1, Deal: "Arbor Bank", Owner: Chen, Stage: "Closed Won", Amount: 110000, Close: "2026-07-27", Activity: "2026-07-11"}
+    - {id: d088, base: b1, Deal: "Heron Clinics", Owner: Chen, Stage: "Closed Won", Amount: 13500, Close: "2026-07-02", Activity: "2026-05-07"}
+    - {id: d089, base: b1, Deal: "Vertex Systems", Owner: Dev, Stage: "Closed Lost", Amount: 6000, Close: "2026-07-10", Activity: "2026-06-04"}
+    - {id: d090, base: b1, Deal: "Pike Logistics", Owner: Chen, Stage: "Closed Won", Amount: 73000, Close: "2026-08-01", Activity: "2026-06-29"}
+    - {id: d091, base: b1, Deal: "Harbor Freight", Owner: Ana, Stage: "Closed Lost", Amount: 29500, Close: "2026-05-24", Activity: "2026-05-16"}
+    - {id: d092, base: b1, Deal: "Slate Media", Owner: Chen, Stage: "Closed Won", Amount: 37500, Close: "2026-06-15", Activity: "2026-06-16"}
+    - {id: d093, base: b1, Deal: "Redwood Health", Owner: Chen, Stage: Proposal, Amount: 75000, Close: "2026-09-21", Activity: "2026-06-25"}
+    - {id: d094, base: b1, Deal: "Tidal Studios", Owner: Dev, Stage: Proposal, Amount: 102000, Close: "2026-10-30", Activity: "2026-06-29"}
+    - {id: d095, base: b1, Deal: "Vertex Dental", Owner: Chen, Stage: "Closed Won", Amount: 31000, Close: "2026-05-03", Activity: "2026-04-18"}
+    - {id: d096, base: b1, Deal: "Tamarack Energy", Owner: Dev, Stage: "Closed Lost", Amount: 90000, Close: "2026-08-03", Activity: "2026-08-03"}
+    - {id: d097, base: b1, Deal: "Redwood Insurance", Owner: Erin, Stage: Discovery, Amount: 61500, Close: "2026-10-22", Activity: "2026-08-03"}
+    - {id: d098, base: b1, Deal: "Sable Freight", Owner: Dev, Stage: Negotiation, Amount: 48000, Close: "2026-05-11", Activity: "2026-03-28"}
+    - {id: d099, base: b1, Deal: "Cobalt Analytics", Owner: Chen, Stage: Discovery, Amount: 37000, Close: "2026-09-20", Activity: "2026-07-30"}
+    - {id: d100, base: b1, Deal: "Iris Robotics", Owner: Ana, Stage: "Closed Won", Amount: 119500, Close: "2026-06-28", Activity: "2026-06-28"}
+    - {id: d101, base: b1, Deal: "Sierra Media", Owner: Ben, Stage: "Closed Lost", Amount: 29500, Close: "2026-07-28", Activity: "2026-06-11"}
+    - {id: d102, base: b1, Deal: "Mesa Fitness", Owner: Chen, Stage: Verbal, Amount: 54500, Close: "2026-08-21", Activity: "2026-08-11"}
+    - {id: d103, base: b1, Deal: "Boulder Software", Owner: Chen, Stage: Negotiation, Amount: 18000, Close: "2026-11-03", Activity: "2026-08-03"}
+    - {id: d104, base: b1, Deal: "Copper Travel", Owner: Ana, Stage: Verbal, Amount: 117000, Close: "2026-08-31", Activity: "2026-08-03"}
+    - {id: d105, base: b1, Deal: "Bramble Media", Owner: Chen, Stage: Discovery, Amount: 57500, Close: "2026-11-21", Activity: "2026-07-30"}
+    - {id: d106, base: b1, Deal: "Cobalt Robotics", Owner: Dev, Stage: Verbal, Amount: 8000, Close: "2026-04-16", Activity: "2026-03-17"}
+    - {id: d107, base: b1, Deal: "Vale Labs", Owner: Ana, Stage: "Closed Won", Amount: 76500, Close: "2026-08-01", Activity: "2026-07-27"}
+    - {id: d108, base: b1, Deal: "Fjord Travel", Owner: Dev, Stage: Proposal, Amount: 38000, Close: "2026-11-14", Activity: "2026-07-03"}
+    - {id: d109, base: b1, Deal: "Opal Capital", Owner: Chen, Stage: "Closed Lost", Amount: 19000, Close: "2026-04-23", Activity: "2026-03-29"}
+    - {id: d110, base: b1, Deal: "Clover Learning", Owner: Ana, Stage: Discovery, Amount: 106000, Close: "2026-12-24", Activity: "2026-07-24"}
+    - {id: d111, base: b1, Deal: "Apex Health", Owner: Chen, Stage: Proposal, Amount: 110500, Close: "2026-04-16", Activity: "2026-04-18"}
+    - {id: d112, base: b1, Deal: "Cedar Outdoor", Owner: Ana, Stage: "Closed Won", Amount: 47500, Close: "2026-05-04", Activity: "2026-04-28"}
+    - {id: d113, base: b1, Deal: "Oak Health", Owner: Ana, Stage: "Closed Lost", Amount: 95500, Close: "2026-06-05", Activity: "2026-04-10"}
+    - {id: d114, base: b1, Deal: "Osprey Robotics", Owner: Chen, Stage: "Closed Lost", Amount: 40000, Close: "2026-06-01", Activity: "2026-04-10"}
+    - {id: d115, base: b1, Deal: "Indigo Farms", Owner: Ben, Stage: Negotiation, Amount: 22500, Close: "2026-11-03", Activity: "2026-08-03"}
+    - {id: d116, base: b1, Deal: "Birch Travel", Owner: Erin, Stage: Verbal, Amount: 38000, Close: "2026-10-07", Activity: "2026-07-07"}
+    - {id: d117, base: b1, Deal: "Shale Travel", Owner: Erin, Stage: "Closed Lost", Amount: 12500, Close: "2026-05-21", Activity: "2026-03-29"}
+    - {id: d118, base: b1, Deal: "Arbor Capital", Owner: Ben, Stage: "Closed Won", Amount: 25500, Close: "2026-04-14", Activity: "2026-02-20"}
+    - {id: d119, base: b1, Deal: "Shale Retail", Owner: Dev, Stage: Proposal, Amount: 77000, Close: "2026-12-15", Activity: "2026-07-20"}
+    - {id: d120, base: b1, Deal: "Beacon Partners", Owner: Ben, Stage: Verbal, Amount: 39500, Close: "2026-12-10", Activity: "2026-08-09"}
+    - {id: d121, base: b1, Deal: "Lumen Energy", Owner: Erin, Stage: Verbal, Amount: 72000, Close: "2026-10-01", Activity: "2026-08-11"}
+    - {id: d122, base: b1, Deal: "Linden Logistics", Owner: Ana, Stage: "Closed Won", Amount: 64500, Close: "2026-04-13", Activity: "2026-02-16"}
+    - {id: d123, base: b1, Deal: "Spruce Outdoor", Owner: Dev, Stage: "Closed Won", Amount: 11500, Close: "2026-06-17", Activity: "2026-04-18"}
+    - {id: d124, base: b1, Deal: "Copper Labs", Owner: Ana, Stage: Negotiation, Amount: 98000, Close: "2026-10-22", Activity: "2026-08-02"}
+    - {id: d125, base: b1, Deal: "Saffron Dental", Owner: Dev, Stage: "Closed Won", Amount: 95500, Close: "2026-07-14", Activity: "2026-06-03"}
+    - {id: d126, base: b1, Deal: "Apex Analytics", Owner: Chen, Stage: Discovery, Amount: 92000, Close: "2026-08-16", Activity: "2026-06-28"}
+    - {id: d127, base: b1, Deal: "Wren Analytics", Owner: Erin, Stage: Negotiation, Amount: 113000, Close: "2026-09-04", Activity: "2026-08-01"}
+    - {id: d128, base: b1, Deal: "Quill Labs", Owner: Dev, Stage: Negotiation, Amount: 80000, Close: "2026-12-14", Activity: "2026-08-04"}
+    - {id: d129, base: b1, Deal: "Garnet Media", Owner: Ana, Stage: Negotiation, Amount: 11000, Close: "2026-12-25", Activity: "2026-07-21"}
+    - {id: d130, base: b1, Deal: "Falcon Analytics", Owner: Dev, Stage: Negotiation, Amount: 90500, Close: "2026-10-31", Activity: "2026-07-11"}
+    - {id: d131, base: b1, Deal: "Willow Games", Owner: Erin, Stage: Proposal, Amount: 110000, Close: "2026-12-15", Activity: "2026-07-21"}
+    - {id: d132, base: b1, Deal: "Oak Bank", Owner: Ana, Stage: Verbal, Amount: 112000, Close: "2026-09-07", Activity: "2026-06-27"}
+    - {id: d133, base: b1, Deal: "Bramble Capital", Owner: Chen, Stage: "Closed Lost", Amount: 99500, Close: "2026-06-10", Activity: "2026-05-19"}
+    - {id: d134, base: b1, Deal: "Redwood Robotics", Owner: Ana, Stage: Negotiation, Amount: 52000, Close: "2026-09-30", Activity: "2026-08-06"}
+    - {id: d135, base: b1, Deal: "Pebble Outdoor", Owner: Ana, Stage: "Closed Lost", Amount: 19500, Close: "2026-08-06", Activity: "2026-08-05"}
+    - {id: d136, base: b1, Deal: "Ridge Health", Owner: Ana, Stage: Negotiation, Amount: 115000, Close: "2026-12-19", Activity: "2026-07-12"}
+    - {id: d137, base: b1, Deal: "Rowan Farms", Owner: Erin, Stage: Negotiation, Amount: 36500, Close: "2026-10-08", Activity: "2026-07-31"}
+    - {id: d138, base: b1, Deal: "Cobalt Games", Owner: Dev, Stage: Negotiation, Amount: 23000, Close: "2026-09-17", Activity: "2026-07-12"}
+    - {id: d139, base: b1, Deal: "Redwood Systems", Owner: Dev, Stage: Proposal, Amount: 106000, Close: "2026-11-04", Activity: "2026-07-11"}
+    - {id: d140, base: b1, Deal: "Clover Logistics", Owner: Erin, Stage: "Closed Won", Amount: 68000, Close: "2026-06-07", Activity: "2026-05-31"}
+    - {id: d141, base: b1, Deal: "Tidal Farms", Owner: Chen, Stage: Discovery, Amount: 90000, Close: "2026-09-02", Activity: "2026-06-27"}
+    - {id: d142, base: b1, Deal: "Willow Legal", Owner: Ana, Stage: "Closed Won", Amount: 54500, Close: "2026-06-18", Activity: "2026-04-25"}
+    - {id: d143, base: b1, Deal: "Sequoia Software", Owner: Erin, Stage: Discovery, Amount: 25000, Close: "2026-10-14", Activity: "2026-07-09"}
+    - {id: d144, base: b1, Deal: "Cypress Analytics", Owner: Ben, Stage: "Closed Won", Amount: 12500, Close: "2026-07-23", Activity: "2026-07-27"}
+    - {id: d145, base: b1, Deal: "Jasper Labs", Owner: Ben, Stage: Proposal, Amount: 92500, Close: "2026-09-15", Activity: "2026-07-10"}
+    - {id: d146, base: b1, Deal: "Topaz Foods", Owner: Ben, Stage: Discovery, Amount: 71500, Close: "2026-11-03", Activity: "2026-07-17"}
+    - {id: d147, base: b1, Deal: "Spruce Capital", Owner: Erin, Stage: Proposal, Amount: 93500, Close: "2026-11-10", Activity: "2026-08-12"}
+    - {id: d148, base: b1, Deal: "Pike Retail", Owner: Dev, Stage: Negotiation, Amount: 75000, Close: "2026-09-26", Activity: "2026-07-21"}
+    - {id: d149, base: b1, Deal: "Apex Freight", Owner: Erin, Stage: Verbal, Amount: 80000, Close: "2026-10-28", Activity: "2026-07-10"}
+    - {id: d150, base: b1, Deal: "Ridge Robotics", Owner: Ben, Stage: Proposal, Amount: 47500, Close: "2026-11-24", Activity: "2026-07-21"}
+    - {id: d151, base: b1, Deal: "Iris Fitness", Owner: Erin, Stage: Negotiation, Amount: 106500, Close: "2026-12-14", Activity: "2026-06-25"}
+    - {id: d152, base: b1, Deal: "Lotus Hotels", Owner: Dev, Stage: Negotiation, Amount: 81000, Close: "2026-07-31", Activity: "2026-06-29"}
+    - {id: d153, base: b1, Deal: "Tundra Farms", Owner: Ana, Stage: Negotiation, Amount: 83500, Close: "2026-09-08", Activity: "2026-07-05"}
+    - {id: d154, base: b1, Deal: "Cypress Capital", Owner: Erin, Stage: Negotiation, Amount: 39000, Close: "2026-06-22", Activity: "2026-05-31"}
+    - {id: d155, base: b1, Deal: "Summit Bank", Owner: Dev, Stage: "Closed Lost", Amount: 64000, Close: "2026-05-27", Activity: "2026-05-31"}
+    - {id: d156, base: b1, Deal: "Bramble Fitness", Owner: Ben, Stage: Proposal, Amount: 72000, Close: "2026-12-21", Activity: "2026-08-11"}
+    - {id: d157, base: b1, Deal: "Pebble Robotics", Owner: Erin, Stage: Discovery, Amount: 14000, Close: "2026-08-21", Activity: "2026-07-02"}
+    - {id: d158, base: b1, Deal: "Lotus Insurance", Owner: Ana, Stage: Proposal, Amount: 83000, Close: "2026-08-21", Activity: "2026-07-12"}
+    - {id: d159, base: b1, Deal: "Oak Partners", Owner: Dev, Stage: "Closed Won", Amount: 101500, Close: "2026-07-26", Activity: "2026-06-27"}
+    - {id: d160, base: b1, Deal: "Arbor Logistics", Owner: Erin, Stage: Negotiation, Amount: 55500, Close: "2026-04-25", Activity: "2026-03-29"}
+    - {id: d161, base: b1, Deal: "Indigo Software", Owner: Ben, Stage: "Closed Lost", Amount: 49500, Close: "2026-04-02", Activity: "2026-03-29"}
+    - {id: d162, base: b1, Deal: "Tamarack Partners", Owner: Dev, Stage: Proposal, Amount: 30000, Close: "2026-09-17", Activity: "2026-08-03"}
+    - {id: d163, base: b1, Deal: "Osprey Bank", Owner: Chen, Stage: Negotiation, Amount: 114500, Close: "2026-11-27", Activity: "2026-07-09"}
+    - {id: d164, base: b1, Deal: "Saffron Fitness", Owner: Erin, Stage: "Closed Won", Amount: 113000, Close: "2026-06-18", Activity: "2026-05-27"}
+    - {id: d165, base: b1, Deal: "Quill Analytics", Owner: Ben, Stage: Discovery, Amount: 53500, Close: "2026-10-10", Activity: "2026-08-12"}
+    - {id: d166, base: b1, Deal: "Lotus Retail", Owner: Chen, Stage: Verbal, Amount: 95000, Close: "2026-04-11", Activity: "2026-03-16"}
+    - {id: d167, base: b1, Deal: "Topaz Media", Owner: Ben, Stage: "Closed Won", Amount: 58000, Close: "2026-06-30", Activity: "2026-06-30"}
+    - {id: d168, base: b1, Deal: "Spruce Learning", Owner: Chen, Stage: Verbal, Amount: 21000, Close: "2026-11-04", Activity: "2026-07-08"}
+    - {id: d169, base: b1, Deal: "Delta Dental", Owner: Erin, Stage: "Closed Won", Amount: 64500, Close: "2026-04-18", Activity: "2026-03-13"}
+    - {id: d170, base: b1, Deal: "Oak Logistics", Owner: Ben, Stage: Proposal, Amount: 9000, Close: "2026-09-29", Activity: "2026-07-21"}
+    - {id: d171, base: b1, Deal: "Lumen Partners", Owner: Ana, Stage: "Closed Lost", Amount: 95000, Close: "2026-06-01", Activity: "2026-04-17"}
+    - {id: d172, base: b1, Deal: "Yarrow Insurance", Owner: Chen, Stage: Proposal, Amount: 22500, Close: "2026-09-23", Activity: "2026-07-31"}
+    - {id: d173, base: b1, Deal: "Copper Analytics", Owner: Chen, Stage: "Closed Won", Amount: 59000, Close: "2026-05-29", Activity: "2026-05-09"}
+    - {id: d174, base: b1, Deal: "Cinder Analytics", Owner: Ana, Stage: Negotiation, Amount: 96000, Close: "2026-07-14", Activity: "2026-07-06"}
+    - {id: d175, base: b1, Deal: "Slate Works", Owner: Ben, Stage: Verbal, Amount: 117500, Close: "2026-06-27", Activity: "2026-04-30"}
+    - {id: d176, base: b1, Deal: "Shale Clinics", Owner: Chen, Stage: Verbal, Amount: 76500, Close: "2026-08-19", Activity: "2026-08-01"}
+    - {id: d177, base: b1, Deal: "Zephyr Analytics", Owner: Erin, Stage: Negotiation, Amount: 51500, Close: "2026-10-04", Activity: "2026-07-09"}
+    - {id: d178, base: b1, Deal: "Birch Fitness", Owner: Erin, Stage: Proposal, Amount: 89500, Close: "2026-10-28", Activity: "2026-08-05"}
+    - {id: d179, base: b1, Deal: "Atlas Systems", Owner: Ana, Stage: "Closed Lost", Amount: 75500, Close: "2026-04-18", Activity: "2026-04-16"}
+    - {id: d180, base: b1, Deal: "Cypress Partners", Owner: Erin, Stage: Proposal, Amount: 106500, Close: "2026-12-26", Activity: "2026-08-04"}
+    - {id: d181, base: b1, Deal: "Granite Learning", Owner: Dev, Stage: Negotiation, Amount: 107000, Close: "2026-11-23", Activity: "2026-08-10"}
+    - {id: d182, base: b1, Deal: "Falcon Logistics", Owner: Ben, Stage: Discovery, Amount: 47500, Close: "2026-07-07", Activity: "2026-06-08"}
+    - {id: d183, base: b1, Deal: "Crescent Retail", Owner: Ben, Stage: "Closed Won", Amount: 36000, Close: "2026-06-29", Activity: "2026-05-04"}
+    - {id: d184, base: b1, Deal: "Dune Freight", Owner: Ana, Stage: Discovery, Amount: 47500, Close: "2026-10-25", Activity: "2026-07-18"}
+    - {id: d185, base: b1, Deal: "Birch Farms", Owner: Ben, Stage: "Closed Lost", Amount: 73000, Close: "2026-04-02", Activity: "2026-03-20"}
+    - {id: d186, base: b1, Deal: "Thistle Logistics", Owner: Ben, Stage: Discovery, Amount: 88500, Close: "2026-09-20", Activity: "2026-07-08"}
+    - {id: d187, base: b1, Deal: "Crescent Dental", Owner: Dev, Stage: Verbal, Amount: 84500, Close: "2026-04-07", Activity: "2026-02-06"}
+    - {id: d188, base: b1, Deal: "Summit Dental", Owner: Chen, Stage: Verbal, Amount: 44000, Close: "2026-09-18", Activity: "2026-08-12"}
+    - {id: d189, base: b1, Deal: "Cedar Works", Owner: Chen, Stage: Negotiation, Amount: 6500, Close: "2026-12-11", Activity: "2026-07-19"}
+    - {id: d190, base: b1, Deal: "Hazel Systems", Owner: Ana, Stage: Verbal, Amount: 87500, Close: "2026-07-22", Activity: "2026-07-11"}
+    - {id: d191, base: b1, Deal: "Cedar Travel", Owner: Erin, Stage: "Closed Won", Amount: 94000, Close: "2026-05-17", Activity: "2026-04-06"}
+    - {id: d192, base: b1, Deal: "Lumen Health", Owner: Ben, Stage: Discovery, Amount: 104000, Close: "2026-10-24", Activity: "2026-07-24"}
+    - {id: d193, base: b1, Deal: "Falcon Travel", Owner: Ana, Stage: Proposal, Amount: 12000, Close: "2026-08-16", Activity: "2026-07-21"}
+    - {id: d194, base: b1, Deal: "Glacier Insurance", Owner: Ben, Stage: "Closed Lost", Amount: 17500, Close: "2026-06-21", Activity: "2026-06-26"}
+    - {id: d195, base: b1, Deal: "Birch Games", Owner: Ben, Stage: "Closed Won", Amount: 18000, Close: "2026-07-14", Activity: "2026-05-21"}
+    - {id: d196, base: b1, Deal: "Sequoia Farms", Owner: Dev, Stage: Verbal, Amount: 112000, Close: "2026-08-31", Activity: "2026-08-03"}
+    - {id: d197, base: b1, Deal: "Falcon Foods", Owner: Erin, Stage: "Closed Won", Amount: 77000, Close: "2026-07-07", Activity: "2026-06-08"}
+    - {id: d198, base: b1, Deal: "Cedar Legal", Owner: Ben, Stage: "Closed Lost", Amount: 102500, Close: "2026-08-07", Activity: "2026-07-27"}
+    - {id: d199, base: b1, Deal: "Quill Outdoor", Owner: Chen, Stage: "Closed Lost", Amount: 98500, Close: "2026-04-24", Activity: "2026-03-08"}
+    - {id: d200, base: b1, Deal: "Hazel Legal", Owner: Chen, Stage: "Closed Lost", Amount: 96000, Close: "2026-07-15", Activity: "2026-07-09"}
+wiki:
+  pages:
+    - id: pg1
+      title: Forecast method
+      space: Sales
+      author: dana@quayside.test
+      created: "2025-12-01T10:00:00+00:00"
+      updated: "2026-04-02T09:15:00+01:00"
+      url: https://wiki.example/pages/pg1
+      body: |-
+        How we build the quarterly forecast for the Monday sales meeting.
+
+        Scope: deals in the Pipeline base whose Close date falls inside the calendar quarter (Q1 Jan-Mar, Q2 Apr-Jun, Q3 Jul-Sep, Q4 Oct-Dec). Closed Lost deals are out.
+
+        Slipped deals: leave out any open deal whose Close date has already passed and that has had no activity in the last 30 days. Those need re-dating by their owner, not forecasting. Closed Won deals always count.
+
+        Stage weights: Discovery 10%, Proposal 25%, Negotiation 50%, Verbal 80%, Closed Won 100%.
+
+        Weighted pipeline = sum of Amount x stage weight over the deals in scope (Closed Won at 100%).
+        Commit = Closed Won + Verbal deals in scope, at full Amount.
+
+        Write one row per owner plus a Total row into that quarter's forecast sheet, in the same layout as last quarter's. Whole dollars.
+    - id: pg2
+      title: Forecast method (old)
+      space: Archive
+      author: dana@quayside.test
+      created: "2025-01-10T10:00:00+00:00"
+      updated: "2025-01-10T10:00:00+00:00"
+      url: https://wiki.example/pages/pg2
+      body: "Replaced by the Sales page 'Forecast method'. Old weights: Discovery 20%, Proposal 40%, Negotiation 60%, Verbal 90%. Commit was Verbal + Negotiation."
+    - id: pg3
+      title: Sales meeting agenda
+      space: Sales
+      author: dana@quayside.test
+      created: "2026-01-05T10:00:00+00:00"
+      updated: "2026-08-10T08:00:00+01:00"
+      url: https://wiki.example/pages/pg3
+      body: "Mondays 9:30. 1) Forecast walk-through by owner 2) Deals needing help 3) Slipped deals to re-date. Method tweaks and data fixes get agreed in #sales-ops."
+chat:
+  channels:
+    - {id: ch_ops, name: sales-ops, members: [dana@quayside.test, marco@quayside.test, ines@quayside.test, sol@quayside.test, ana@quayside.test, ben@quayside.test, chen@quayside.test, dev@quayside.test, erin@quayside.test], topic: "Pipeline, forecast method and CRM hygiene", created: "2025-11-03T09:00:00+00:00"}
+  messages:
+    - {id: o1, channel: ch_ops, author: "marco@quayside.test", text: "Verbal deals keep slipping a quarter. Proposal: weight Verbal at 60% instead of 80% in the forecast, starting with Q3.", ts: "2026-07-01T16:10:00+01:00", thread_id: null}
+    - {id: o2, channel: ch_ops, author: "ines@quayside.test", text: "Agree 80 is too high, but 60 is harsh. Let's settle on 70% for Verbal from the Q3 forecast on. Everything else in the method stays, commit included.", ts: "2026-07-02T09:05:00+01:00", thread_id: o1}
+    - {id: o3, channel: ch_ops, author: "marco@quayside.test", text: "Fine, 70 it is. Dana, can you fold it into the wiki page when you get a minute?", ts: "2026-07-02T09:40:00+01:00", thread_id: o1}
+    - {id: o4, channel: ch_ops, author: "sol@quayside.test", text: "Heads up: the July import made a second copy of Summit Dental in Pipeline. The Negotiation one is the old copy, the Verbal one is current. Leave the old copy out of anything you build until I delete it.", ts: "2026-08-06T14:22:00+01:00", thread_id: null}
+  dms: []
+sheets:
+  sheets:
+    - {id: s1, title: Q2 forecast, columns: [Owner, Weighted pipeline, Commit]}
+    - {id: s2, title: Q3 forecast, columns: [Owner, Weighted pipeline, Commit]}
+  rows:
+    - {id: q2a, sheet: s1, position: 1, Owner: Ana, Weighted pipeline: 212350, Commit: 168500}
+    - {id: q2b, sheet: s1, position: 2, Owner: Ben, Weighted pipeline: 187400, Commit: 121000}
+    - {id: q2c, sheet: s1, position: 3, Owner: Chen, Weighted pipeline: 243900, Commit: 190500}
+    - {id: q2d, sheet: s1, position: 4, Owner: Dev, Weighted pipeline: 156750, Commit: 98000}
+    - {id: q2e, sheet: s1, position: 5, Owner: Erin, Weighted pipeline: 201125, Commit: 144500}
+    - {id: q2t, sheet: s1, position: 6, Owner: Total, Weighted pipeline: 1001525, Commit: 722500}

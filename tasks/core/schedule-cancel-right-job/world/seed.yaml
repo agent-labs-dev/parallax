@@ -1,0 +1,21 @@
+now: 2026-06-15T08:50:00+01:00
+user: {name: Jamie Okoro, email: jamie@larchway.test, timezone: Europe/London}
+scheduler:
+  jobs:
+    - {id: job-standup-reminder, kind: cron, spec: "25 9 * * 1-5", tz: Europe/London, title: "Standup reminder",
+       instruction: "Remind Jamie that standup starts at 9:30.", active: true, created: "2026-04-06T10:00:00+01:00"}
+    - {id: job-standup-notes, kind: cron, spec: "0 10 * * 1-5", tz: Europe/London, title: "Standup notes digest",
+       instruction: "Summarise today's standup notes from #team and email them to jamie@larchway.test.",
+       active: true, created: "2026-04-06T10:05:00+01:00"}
+    - {id: job-timesheet, kind: cron, spec: "0 16 * * 5", tz: Europe/London, title: "Timesheet reminder",
+       instruction: "Remind Jamie to submit this week's timesheet.", active: true, created: "2026-03-02T09:00:00+00:00"}
+  runs:
+    - {id: run-1, job: job-standup-reminder, at: "2026-06-12T09:25:00+01:00"}
+calendar:
+  calendars:
+    - {id: primary, name: Jamie, owner: jamie@larchway.test, timezone: Europe/London}
+  events:
+    - {id: ev-standup, calendar: primary, title: "Team standup", start: "2026-06-15T09:30:00+01:00",
+       end: "2026-06-15T09:45:00+01:00", tz: Europe/London, attendees: [jamie@larchway.test],
+       organizer: jamie@larchway.test, rrule: "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR", exceptions: {},
+       status: confirmed, description: "", location: ""}

@@ -1,0 +1,26 @@
+mutations:
+  - id: copies-note-dates
+    note: "keeps the notes' informal dates"
+    answers: {1: "- Tue 2 June: shipped the billing export fix\n- 3/6: Kestrel contract review with legal (blocker)\n- Next: portal cutover on 12 June\n"}
+    must_fail: [iso-dates, no-other-date-formats]
+  - id: prose-paragraph
+    note: "right dates, but written as a paragraph"
+    answers: {1: "This week I kicked off the supplier portal migration on 2026-06-01, shipped the billing export fix on 2026-06-02, and ran the onboarding workshop; the Kestrel contract review is still with legal and blocking the renewal, and the portal cutover is planned for 2026-06-12."}
+    must_fail: [bullets-not-prose]
+  - id: table-format
+    note: "puts the update in a table"
+    answers: {1: "| Date | Item |\n|---|---|\n| 2026-06-02 | billing export fix shipped |\n| 2026-06-03 | Kestrel review with legal |\n| 2026-06-12 | portal cutover |\n"}
+    must_fail: [bullets-not-prose]
+  - id: ordinal-slips-in
+    note: "one ordinal date slips through"
+    answers: {1: "- 2026-06-02: shipped the billing export fix\n- Kestrel review with legal since the 3rd (blocker)\n- Next: portal cutover 2026-06-12\n"}
+    must_fail: [no-other-date-formats]
+  - id: rewrites-house-rules
+    note: "edits AGENTS.md instead of following it"
+    collateral: true
+    files: {AGENTS.md: "# Notes\n"}
+    must_fail: [rules-untouched]
+  - id: omits-past-dates
+    expect: pass
+    note: "real codex answer: drops the past days' dates, keeps the upcoming cutover in ISO 8601"
+    answers: {1: "- Started the Hollin Wholesale supplier portal migration; stakeholder engagement is positive.\n- Shipped the billing export fix, with support from Priya.\n- Ran a successful onboarding workshop for six new starters.\n- Kestrel contract review remains with Legal, blocking renewal; follow-up is needed.\n- Portal cutover is tentatively scheduled for 2026-06-12, pending Hollin confirmation by 2026-06-10."}

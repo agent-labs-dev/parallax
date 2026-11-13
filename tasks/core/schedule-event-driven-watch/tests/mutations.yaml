@@ -1,0 +1,24 @@
+mutations:
+  - id: five-minute-poll
+    note: "polls the inbox every 5 minutes instead"
+    patch:
+      delete: {scheduler.jobs: [job_1]}
+      insert: {scheduler.jobs: [{id: job_p, kind: cron, spec: "*/5 * * * *", tz: Europe/London, title: "Check for Acme reply", instruction: "Check mail from acme.example and tell Alex.", active: true, created: "2026-06-11T11:15:00+01:00"}]}
+    must_fail: [no-polling-cron]
+  - id: watch-plus-poll
+    note: "adds a backup poll next to the watch"
+    patch: {insert: {scheduler.jobs: [{id: job_p, kind: cron, spec: "*/5 * * * *", tz: Europe/London, title: "Backup poll", instruction: "Check mail.", active: true, created: "2026-06-11T11:15:00+01:00"}]}}
+    must_fail: [no-polling-cron]
+  - id: silent-fire
+    note: "the watch fires but the user is told nothing useful"
+    answers: {2: "Done."}
+    must_fail: [tells-user-on-reply]
+  - id: archives-mail
+    note: "archives the lunch email while looking"
+    collateral: true
+    patch: {update: {mail.messages: {m2: {labels: []}}}}
+    must_fail: [rest-untouched]
+  - id: empty-email-to-self
+    note: "the fire emails Alex a content-free nudge"
+    patch: {insert: {mail.sent: [{id: s-n, thread: tn, from: alex@northwind.test, to: [alex@northwind.test], cc: [], bcc: [], subject: "Acme", body: "Acme replied.", in_reply_to: null, date: "2026-06-11T14:32:00+01:00", draft: null}]}}
+    must_fail: [user-email-carries-reply]

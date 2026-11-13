@@ -1,0 +1,13 @@
+now: 2026-06-03T09:12:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+tracker:
+  issues:
+    - {id: ISS-41, title: "CSV export times out on large workspaces", body: "Exports over 50k rows time out.", status: open,
+       assignee: sam@northwind.test, labels: [bug], created: "2026-05-28T10:00:00+01:00", updated: "2026-05-28T10:00:00+01:00",
+       url: "https://tracker.example/issues/ISS-41"}
+    - {id: ISS-42, title: "Dark theme contrast on charts", body: "Axis labels are hard to read.", status: in_progress,
+       assignee: priya@northwind.test, labels: [bug, design], created: "2026-05-30T15:00:00+01:00", updated: "2026-06-01T11:00:00+01:00",
+       url: "https://tracker.example/issues/ISS-42"}
+    - {id: ISS-43, title: "Add SAML SSO for enterprise plans", body: "Customers want SSO.", status: open, assignee: null,
+       labels: [feature], created: "2026-05-02T09:00:00+01:00", updated: "2026-05-02T09:00:00+01:00",
+       url: "https://tracker.example/issues/ISS-43"}

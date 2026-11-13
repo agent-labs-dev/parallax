@@ -1,0 +1,5 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: mail_create_draft, args: {to: [priya.shah@northwind.test], subject: "Re: Q3 numbers", body: "Hi Priya,\n\nI'll get the Q3 numbers to you by Friday.\n\nAlex", in_reply_to: m1}, save: draft}
+    answer: "Drafted a reply to Priya promising the Q3 numbers by Friday. I left it unsent for you to review."

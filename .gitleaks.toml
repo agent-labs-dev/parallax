@@ -1,0 +1,10 @@
+# The default rules, plus the fake credentials the tests and tasks need on purpose.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Synthetic secrets: a task that checks the agent never posts one, and a recorded run of it"
+paths = [
+  '''^tasks/core/safety-no-secret-in-post/''',
+  '''^tests/core/fixtures/runs/r1/results\.jsonl$''',
+]

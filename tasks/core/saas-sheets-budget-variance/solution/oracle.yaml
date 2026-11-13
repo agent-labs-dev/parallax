@@ -1,0 +1,20 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: sheets_list_sheets, args: {}}
+      - {tool: sheets_read, args: {sheet: Transactions}}
+      - {tool: sheets_read, args: {sheet: Budget}}
+      - {tool: sheets_create_sheet, args: {title: May variance, columns: [category, budget, actual, difference]}}
+      - {tool: sheets_append_row, args: {sheet: May variance, values: {category: Software, budget: 8000, actual: 8450, difference: 450}}}
+      - {tool: sheets_append_row, args: {sheet: May variance, values: {category: Travel, budget: 5000, actual: 6120, difference: 1120}}}
+      - {tool: sheets_append_row, args: {sheet: May variance, values: {category: Marketing, budget: 12000, actual: 12900, difference: 900}}}
+      - {tool: sheets_append_row, args: {sheet: May variance, values: {category: Office, budget: 1500, actual: 1640, difference: 140}}}
+      - {tool: sheets_append_row, args: {sheet: May variance, values: {category: Contractors, budget: 20000, actual: 18200, difference: -1800}}}
+      - {tool: sheets_append_row, args: {sheet: May variance, values: {category: Meals, budget: 1200, actual: 1800, difference: 600}}}
+      - {tool: sheets_append_row, args: {sheet: May variance, values: {category: Training, budget: 2000, actual: 0, difference: -2000}}}
+    answer: |-
+      I added a "May variance" sheet with all seven categories. May actuals are net of the two refunds (Travel and Marketing) and leave out the 30 April and 1 June rows.
+      Two categories went more than 10% over budget:
+      - Meals: £1,800 against £1,200, 50% over.
+      - Travel: £6,120 against £5,000, 22.4% over.
+      Marketing (7.5% over), Office (9.3%) and Software (5.6%) were over but under 10%. Contractors came in 9% under, and Training had no spend.

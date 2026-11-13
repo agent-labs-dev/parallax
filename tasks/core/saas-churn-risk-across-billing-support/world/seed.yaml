@@ -1,0 +1,273 @@
+now: 2026-10-19T09:00:00+01:00
+user: {name: Maya Brooks, email: maya@lumenly.test, timezone: Europe/London}
+tables:
+  bases:
+    - {id: b1, name: Accounts, fields: [Account, Domain, CSM, ARR, Renewal]}
+  records:
+    - {id: acc001, base: b1, Account: "Sparrow Fitness", Domain: "sparrowfitness.example", CSM: Priya, ARR: 25000, Renewal: "2027-04-01"}
+    - {id: acc002, base: b1, Account: "Tundra Health", Domain: "tundrahealth.example", CSM: Sam, ARR: 141500, Renewal: "2027-04-22"}
+    - {id: acc003, base: b1, Account: "Glacier Clinics", Domain: "glacierclinics.example", CSM: Tom, ARR: 130000, Renewal: "2027-09-11"}
+    - {id: acc004, base: b1, Account: "Birch Foods", Domain: "birchfoods.example", CSM: Ines, ARR: 106000, Renewal: "2027-07-14"}
+    - {id: acc005, base: b1, Account: "Delta Robotics", Domain: "deltarobotics.example", CSM: Tom, ARR: 136500, Renewal: "2027-03-17"}
+    - {id: acc006, base: b1, Account: "Vale Clinics", Domain: "valeclinics.example", CSM: Sam, ARR: 97000, Renewal: "2027-02-04"}
+    - {id: acc007, base: b1, Account: "Amber Partners", Domain: "amberpartners.example", CSM: Priya, ARR: 67500, Renewal: "2026-12-06"}
+    - {id: acc008, base: b1, Account: "Tidewater Hotels", Domain: "tidewaterhotels.example", CSM: Ines, ARR: 44000, Renewal: "2026-11-22"}
+    - {id: acc009, base: b1, Account: "Shale Insurance", Domain: "shaleinsurance.example", CSM: Priya, ARR: 11000, Renewal: "2026-12-07"}
+    - {id: acc010, base: b1, Account: "Tamarack Software", Domain: "tamaracksoftware.example", CSM: Priya, ARR: 106500, Renewal: "2027-02-02"}
+    - {id: acc011, base: b1, Account: "Crescent Fitness", Domain: "crescentfitness.example", CSM: Ines, ARR: 26000, Renewal: "2027-02-11"}
+    - {id: acc012, base: b1, Account: "Brightwater Labs", Domain: "brightwaterlabs.example", CSM: Priya, ARR: 48000, Renewal: "2026-11-04"}
+    - {id: acc013, base: b1, Account: "Sparrow Media", Domain: "sparrowmedia.example", CSM: Sam, ARR: 53500, Renewal: "2027-05-14"}
+    - {id: acc014, base: b1, Account: "Osprey Insurance", Domain: "ospreyinsurance.example", CSM: Leo, ARR: 96500, Renewal: "2026-11-02"}
+    - {id: acc015, base: b1, Account: "Onyx Media", Domain: "onyxmedia.example", CSM: Sam, ARR: 99000, Renewal: "2026-12-03"}
+    - {id: acc016, base: b1, Account: "Glacier Logistics", Domain: "glacierlogistics.example", CSM: Leo, ARR: 95000, Renewal: "2027-09-06"}
+    - {id: acc017, base: b1, Account: "Garnet Retail", Domain: "garnetretail.example", CSM: Sam, ARR: 91000, Renewal: "2027-05-22"}
+    - {id: acc018, base: b1, Account: "Oak Labs", Domain: "oaklabs.example", CSM: Leo, ARR: 141000, Renewal: "2026-12-23"}
+    - {id: acc019, base: b1, Account: "Yarrow Retail", Domain: "yarrowretail.example", CSM: Priya, ARR: 131000, Renewal: "2027-07-18"}
+    - {id: acc020, base: b1, Account: "Tallyho Events", Domain: "tallyhoevents.example", CSM: Sam, ARR: 33000, Renewal: "2026-11-25"}
+    - {id: acc021, base: b1, Account: "Cedar Energy", Domain: "cedarenergy.example", CSM: Leo, ARR: 107500, Renewal: "2027-06-24"}
+    - {id: acc022, base: b1, Account: "Flint Software", Domain: "flintsoftware.example", CSM: Priya, ARR: 109000, Renewal: "2027-06-30"}
+    - {id: acc023, base: b1, Account: "Maple Clinics", Domain: "mapleclinics.example", CSM: Ines, ARR: 137500, Renewal: "2027-04-15"}
+    - {id: acc024, base: b1, Account: "Pebble Software", Domain: "pebblesoftware.example", CSM: Sam, ARR: 120000, Renewal: "2026-11-11"}
+    - {id: acc025, base: b1, Account: "Bluebell Labs", Domain: "bluebelllabs.example", CSM: Priya, ARR: 75000, Renewal: "2027-07-23"}
+    - {id: acc026, base: b1, Account: "Bramble Robotics", Domain: "bramblerobotics.example", CSM: Ines, ARR: 11000, Renewal: "2027-01-12"}
+    - {id: acc027, base: b1, Account: "Kinfolk Media", Domain: "kinfolkmedia.example", CSM: Tom, ARR: 36500, Renewal: "2026-11-20"}
+    - {id: acc028, base: b1, Account: "Kestrel Studios", Domain: "kestrelstudios.example", CSM: Tom, ARR: 8000, Renewal: "2027-01-15"}
+    - {id: acc029, base: b1, Account: "Jasper Studios", Domain: "jasperstudios.example", CSM: Sam, ARR: 51500, Renewal: "2027-08-25"}
+    - {id: acc030, base: b1, Account: "Dune Labs", Domain: "dunelabs.example", CSM: Leo, ARR: 99500, Renewal: "2027-07-18"}
+    - {id: acc031, base: b1, Account: "Iris Travel", Domain: "iristravel.example", CSM: Leo, ARR: 71500, Renewal: "2027-01-14"}
+    - {id: acc032, base: b1, Account: "Thistle Clinics", Domain: "thistleclinics.example", CSM: Ines, ARR: 73500, Renewal: "2027-05-06"}
+    - {id: acc033, base: b1, Account: "Slate Media", Domain: "slatemedia.example", CSM: Sam, ARR: 45500, Renewal: "2027-08-04"}
+    - {id: acc034, base: b1, Account: "Falcon Farms", Domain: "falconfarms.example", CSM: Sam, ARR: 6500, Renewal: "2027-02-27"}
+    - {id: acc035, base: b1, Account: "Driftwood Supply", Domain: "driftwoodsupply.example", CSM: Ines, ARR: 72000, Renewal: "2026-11-08"}
+    - {id: acc036, base: b1, Account: "Linden Labs", Domain: "lindenlabs.example", CSM: Leo, ARR: 127000, Renewal: "2027-06-11"}
+    - {id: acc037, base: b1, Account: "Beacon Software", Domain: "beaconsoftware.example", CSM: Sam, ARR: 51000, Renewal: "2026-11-12"}
+    - {id: acc038, base: b1, Account: "Mesa Games", Domain: "mesagames.example", CSM: Sam, ARR: 123500, Renewal: "2026-11-17"}
+    - {id: acc039, base: b1, Account: "Opal Energy", Domain: "opalenergy.example", CSM: Priya, ARR: 64500, Renewal: "2027-02-11"}
+    - {id: acc040, base: b1, Account: "Harbor Clinics", Domain: "harborclinics.example", CSM: Tom, ARR: 148500, Renewal: "2027-02-02"}
+    - {id: acc041, base: b1, Account: "Garnet Health", Domain: "garnethealth.example", CSM: Tom, ARR: 8000, Renewal: "2027-09-16"}
+    - {id: acc042, base: b1, Account: "Delta Clinics", Domain: "deltaclinics.example", CSM: Sam, ARR: 74500, Renewal: "2027-02-09"}
+    - {id: acc043, base: b1, Account: "Linden Freight", Domain: "lindenfreight.example", CSM: Sam, ARR: 148000, Renewal: "2026-12-14"}
+    - {id: acc044, base: b1, Account: "Quarry Analytics", Domain: "quarryanalytics.example", CSM: Leo, ARR: 92000, Renewal: "2026-12-02"}
+    - {id: acc045, base: b1, Account: "Crescent Logistics", Domain: "crescentlogistics.example", CSM: Ines, ARR: 144500, Renewal: "2026-10-29"}
+    - {id: acc046, base: b1, Account: "Silver Works", Domain: "silverworks.example", CSM: Leo, ARR: 108000, Renewal: "2027-05-31"}
+    - {id: acc047, base: b1, Account: "Iris Retail", Domain: "irisretail.example", CSM: Priya, ARR: 79500, Renewal: "2026-11-11"}
+    - {id: acc048, base: b1, Account: "Yarrow Health", Domain: "yarrowhealth.example", CSM: Sam, ARR: 34000, Renewal: "2027-06-28"}
+    - {id: acc049, base: b1, Account: "Hazel Partners", Domain: "hazelpartners.example", CSM: Sam, ARR: 124000, Renewal: "2027-04-24"}
+    - {id: acc050, base: b1, Account: "Cypress Legal", Domain: "cypresslegal.example", CSM: Ines, ARR: 123000, Renewal: "2026-11-23"}
+    - {id: acc051, base: b1, Account: "Sequoia Learning", Domain: "sequoialearning.example", CSM: Leo, ARR: 11000, Renewal: "2027-01-01"}
+    - {id: acc052, base: b1, Account: "Osprey Farms", Domain: "ospreyfarms.example", CSM: Priya, ARR: 105500, Renewal: "2027-06-06"}
+    - {id: acc053, base: b1, Account: "Tidal Foods", Domain: "tidalfoods.example", CSM: Ines, ARR: 58000, Renewal: "2027-05-22"}
+    - {id: acc054, base: b1, Account: "Lagoon Farms", Domain: "lagoonfarms.example", CSM: Priya, ARR: 76500, Renewal: "2027-02-12"}
+    - {id: acc055, base: b1, Account: "Hazel Foods", Domain: "hazelfoods.example", CSM: Ines, ARR: 56500, Renewal: "2026-11-03"}
+    - {id: acc056, base: b1, Account: "Onyx Logistics", Domain: "onyxlogistics.example", CSM: Tom, ARR: 108000, Renewal: "2027-02-10"}
+    - {id: acc057, base: b1, Account: "Marlowe Books", Domain: "marlowebooks.example", CSM: Sam, ARR: 39000, Renewal: "2026-12-19"}
+    - {id: acc058, base: b1, Account: "Saffron Robotics", Domain: "saffronrobotics.example", CSM: Priya, ARR: 121500, Renewal: "2027-07-02"}
+    - {id: acc059, base: b1, Account: "Harbor Works", Domain: "harborworks.example", CSM: Tom, ARR: 56500, Renewal: "2027-08-29"}
+    - {id: acc060, base: b1, Account: "Linden Legal", Domain: "lindenlegal.example", CSM: Priya, ARR: 52000, Renewal: "2027-03-27"}
+    - {id: acc061, base: b1, Account: "Redwood Labs", Domain: "redwoodlabs.example", CSM: Tom, ARR: 37000, Renewal: "2027-08-16"}
+    - {id: acc062, base: b1, Account: "Copperline Studios", Domain: "copperlinestudios.example", CSM: Leo, ARR: 52000, Renewal: "2027-03-15"}
+    - {id: acc063, base: b1, Account: "Oak Logistics", Domain: "oaklogistics.example", CSM: Tom, ARR: 8500, Renewal: "2027-02-14"}
+    - {id: acc064, base: b1, Account: "Umber Robotics", Domain: "umberrobotics.example", CSM: Tom, ARR: 47000, Renewal: "2026-11-25"}
+    - {id: acc065, base: b1, Account: "Kestrel Legal", Domain: "kestrellegal.example", CSM: Ines, ARR: 82500, Renewal: "2026-11-27"}
+    - {id: acc066, base: b1, Account: "Ember Analytics", Domain: "emberanalytics.example", CSM: Priya, ARR: 6500, Renewal: "2026-11-20"}
+    - {id: acc067, base: b1, Account: "Shale Clinics", Domain: "shaleclinics.example", CSM: Priya, ARR: 123500, Renewal: "2027-04-26"}
+    - {id: acc068, base: b1, Account: "Pinecone Health", Domain: "pineconehealth.example", CSM: Priya, ARR: 54000, Renewal: "2026-11-12"}
+    - {id: acc069, base: b1, Account: "Ridge Partners", Domain: "ridgepartners.example", CSM: Priya, ARR: 31500, Renewal: "2027-08-02"}
+    - {id: acc070, base: b1, Account: "Onyx Games", Domain: "onyxgames.example", CSM: Priya, ARR: 104500, Renewal: "2027-04-27"}
+    - {id: acc071, base: b1, Account: "Prairie Bank", Domain: "prairiebank.example", CSM: Priya, ARR: 14500, Renewal: "2027-05-03"}
+    - {id: acc072, base: b1, Account: "Copper Farms", Domain: "copperfarms.example", CSM: Tom, ARR: 85000, Renewal: "2027-02-13"}
+    - {id: acc073, base: b1, Account: "Prairie Analytics", Domain: "prairieanalytics.example", CSM: Ines, ARR: 14500, Renewal: "2027-04-29"}
+    - {id: acc074, base: b1, Account: "Redwood Logistics", Domain: "redwoodlogistics.example", CSM: Ines, ARR: 50500, Renewal: "2027-01-07"}
+    - {id: acc075, base: b1, Account: "Juniper Dental", Domain: "juniperdental.example", CSM: Ines, ARR: 41000, Renewal: "2026-11-18"}
+    - {id: acc076, base: b1, Account: "Wren Analytics", Domain: "wrenanalytics.example", CSM: Sam, ARR: 76000, Renewal: "2027-04-03"}
+    - {id: acc077, base: b1, Account: "Aspen Media", Domain: "aspenmedia.example", CSM: Ines, ARR: 84000, Renewal: "2026-11-01"}
+    - {id: acc078, base: b1, Account: "Shale Games", Domain: "shalegames.example", CSM: Leo, ARR: 95000, Renewal: "2027-04-11"}
+    - {id: acc079, base: b1, Account: "Bramble Capital", Domain: "bramblecapital.example", CSM: Leo, ARR: 18500, Renewal: "2027-06-24"}
+    - {id: acc080, base: b1, Account: "Tamarack Works", Domain: "tamarackworks.example", CSM: Priya, ARR: 11000, Renewal: "2027-05-04"}
+    - {id: acc081, base: b1, Account: "Orbit Health", Domain: "orbithealth.example", CSM: Tom, ARR: 45000, Renewal: "2026-11-15"}
+    - {id: acc082, base: b1, Account: "Fern Bank", Domain: "fernbank.example", CSM: Leo, ARR: 61500, Renewal: "2027-05-02"}
+    - {id: acc083, base: b1, Account: "Clover Legal", Domain: "cloverlegal.example", CSM: Leo, ARR: 72500, Renewal: "2027-04-10"}
+    - {id: acc084, base: b1, Account: "Zephyr Energy", Domain: "zephyrenergy.example", CSM: Ines, ARR: 22500, Renewal: "2027-05-06"}
+    - {id: acc085, base: b1, Account: "Raven Robotics", Domain: "ravenrobotics.example", CSM: Leo, ARR: 81500, Renewal: "2027-04-13"}
+    - {id: acc086, base: b1, Account: "Heron Works", Domain: "heronworks.example", CSM: Sam, ARR: 33000, Renewal: "2027-01-05"}
+    - {id: acc087, base: b1, Account: "Wren Learning", Domain: "wrenlearning.example", CSM: Ines, ARR: 143000, Renewal: "2027-07-25"}
+    - {id: acc088, base: b1, Account: "Arbor Fitness", Domain: "arborfitness.example", CSM: Priya, ARR: 97500, Renewal: "2027-02-09"}
+    - {id: acc089, base: b1, Account: "Kestrel Systems", Domain: "kestrelsystems.example", CSM: Leo, ARR: 12000, Renewal: "2026-12-17"}
+    - {id: acc090, base: b1, Account: "Whitfield Design", Domain: "whitfielddesign.example", CSM: Ines, ARR: 28500, Renewal: "2026-11-01"}
+    - {id: acc091, base: b1, Account: "Osprey Energy", Domain: "ospreyenergy.example", CSM: Leo, ARR: 149000, Renewal: "2027-09-04"}
+    - {id: acc092, base: b1, Account: "Kestrel Hotels", Domain: "kestrelhotels.example", CSM: Ines, ARR: 45000, Renewal: "2026-10-31"}
+    - {id: acc093, base: b1, Account: "Larch Software", Domain: "larchsoftware.example", CSM: Leo, ARR: 43000, Renewal: "2027-06-17"}
+    - {id: acc094, base: b1, Account: "Lagoon Bank", Domain: "lagoonbank.example", CSM: Sam, ARR: 49000, Renewal: "2027-01-13"}
+    - {id: acc095, base: b1, Account: "Fennel Robotics", Domain: "fennelrobotics.example", CSM: Tom, ARR: 58000, Renewal: "2026-11-27"}
+    - {id: acc096, base: b1, Account: "Mesa Insurance", Domain: "mesainsurance.example", CSM: Ines, ARR: 45500, Renewal: "2027-01-14"}
+    - {id: acc097, base: b1, Account: "Indigo Learning", Domain: "indigolearning.example", CSM: Tom, ARR: 52500, Renewal: "2027-09-05"}
+    - {id: acc098, base: b1, Account: "Cobalt Clinics", Domain: "cobaltclinics.example", CSM: Tom, ARR: 120000, Renewal: "2027-01-20"}
+    - {id: acc099, base: b1, Account: "Delta Legal", Domain: "deltalegal.example", CSM: Leo, ARR: 111500, Renewal: "2027-08-25"}
+    - {id: acc100, base: b1, Account: "Zephyr Outdoor", Domain: "zephyroutdoor.example", CSM: Sam, ARR: 17500, Renewal: "2027-08-28"}
+    - {id: acc101, base: b1, Account: "Ivory Freight", Domain: "ivoryfreight.example", CSM: Tom, ARR: 21500, Renewal: "2027-05-09"}
+    - {id: acc102, base: b1, Account: "Lumen Foods", Domain: "lumenfoods.example", CSM: Leo, ARR: 24000, Renewal: "2026-11-23"}
+    - {id: acc103, base: b1, Account: "Saltmarsh Foods", Domain: "saltmarshfoods.example", CSM: Leo, ARR: 27000, Renewal: "2026-10-30"}
+    - {id: acc104, base: b1, Account: "Prairie Media", Domain: "prairiemedia.example", CSM: Ines, ARR: 77000, Renewal: "2027-08-26"}
+    - {id: acc105, base: b1, Account: "Zephyr Insurance", Domain: "zephyrinsurance.example", CSM: Leo, ARR: 86500, Renewal: "2027-06-04"}
+    - {id: acc106, base: b1, Account: "Northpier Logistics", Domain: "northpierlogistics.example", CSM: Priya, ARR: 66000, Renewal: "2027-02-10"}
+    - {id: acc107, base: b1, Account: "Arbor Hotels", Domain: "arborhotels.example", CSM: Priya, ARR: 145000, Renewal: "2027-06-09"}
+    - {id: acc108, base: b1, Account: "Topaz Partners", Domain: "topazpartners.example", CSM: Leo, ARR: 62500, Renewal: "2027-08-08"}
+    - {id: acc109, base: b1, Account: "Halcyon Travel", Domain: "halcyontravel.example", CSM: Sam, ARR: 61500, Renewal: "2026-12-15"}
+    - {id: acc110, base: b1, Account: "Ridge Software", Domain: "ridgesoftware.example", CSM: Sam, ARR: 8500, Renewal: "2027-03-24"}
+    - {id: acc111, base: b1, Account: "Ridge Logistics", Domain: "ridgelogistics.example", CSM: Priya, ARR: 129500, Renewal: "2027-09-06"}
+    - {id: acc112, base: b1, Account: "Sparrow Foods", Domain: "sparrowfoods.example", CSM: Leo, ARR: 23000, Renewal: "2027-03-01"}
+    - {id: acc113, base: b1, Account: "Sierra Analytics", Domain: "sierraanalytics.example", CSM: Leo, ARR: 55500, Renewal: "2027-01-12"}
+    - {id: acc114, base: b1, Account: "Tamarack Hotels", Domain: "tamarackhotels.example", CSM: Leo, ARR: 74000, Renewal: "2027-09-05"}
+    - {id: acc115, base: b1, Account: "Clover Robotics", Domain: "cloverrobotics.example", CSM: Sam, ARR: 63500, Renewal: "2027-03-07"}
+payments:
+  customers:
+    - {id: cus_001, name: "Tundra Health", email: "billing@tundrahealth.example"}
+    - {id: cus_002, name: "Birch Foods", email: "billing@birchfoods.example"}
+    - {id: cus_003, name: "Delta Robotics", email: "billing@deltarobotics.example"}
+    - {id: cus_004, name: "Amber Partners", email: "billing@amberpartners.example"}
+    - {id: cus_005, name: "Tidewater Hotels", email: "billing@tidewaterhotels.example"}
+    - {id: cus_006, name: "Tamarack Software", email: "billing@tamaracksoftware.example"}
+    - {id: cus_007, name: "Crescent Fitness", email: "billing@crescentfitness.example"}
+    - {id: cus_008, name: "Brightwater Labs", email: "billing@brightwaterlabs.example"}
+    - {id: cus_009, name: "Osprey Insurance", email: "billing@ospreyinsurance.example"}
+    - {id: cus_010, name: "Tallyho Events", email: "billing@tallyhoevents.example"}
+    - {id: cus_011, name: "Cedar Energy", email: "billing@cedarenergy.example"}
+    - {id: cus_012, name: "Bramble Robotics", email: "billing@bramblerobotics.example"}
+    - {id: cus_013, name: "Kinfolk Media", email: "billing@kinfolkmedia.example"}
+    - {id: cus_014, name: "Falcon Farms", email: "billing@falconfarms.example"}
+    - {id: cus_015, name: "Driftwood Supply", email: "billing@driftwoodsupply.example"}
+    - {id: cus_016, name: "Linden Labs", email: "billing@lindenlabs.example"}
+    - {id: cus_017, name: "Beacon Software", email: "billing@beaconsoftware.example"}
+    - {id: cus_018, name: "Mesa Games", email: "billing@mesagames.example"}
+    - {id: cus_019, name: "Quarry Analytics", email: "billing@quarryanalytics.example"}
+    - {id: cus_020, name: "Cypress Legal", email: "billing@cypresslegal.example"}
+    - {id: cus_021, name: "Marlowe Books", email: "billing@marlowebooks.example"}
+    - {id: cus_022, name: "Copperline Studios", email: "billing@copperlinestudios.example"}
+    - {id: cus_023, name: "PCH Medical Inc", email: "billing@pineconehealth.example"}
+    - {id: cus_024, name: "Copper Farms", email: "billing@copperfarms.example"}
+    - {id: cus_025, name: "Juniper Dental", email: "billing@juniperdental.example"}
+    - {id: cus_026, name: "Aspen Media", email: "billing@aspenmedia.example"}
+    - {id: cus_027, name: "Orbit Health", email: "billing@orbithealth.example"}
+    - {id: cus_028, name: "Fern Bank", email: "billing@fernbank.example"}
+    - {id: cus_029, name: "Clover Legal", email: "billing@cloverlegal.example"}
+    - {id: cus_030, name: "Whitfield Design", email: "billing@whitfielddesign.example"}
+    - {id: cus_031, name: "Osprey Energy", email: "billing@ospreyenergy.example"}
+    - {id: cus_032, name: "Fennel Robotics", email: "billing@fennelrobotics.example"}
+    - {id: cus_033, name: "Mesa Insurance", email: "billing@mesainsurance.example"}
+    - {id: cus_034, name: "Zephyr Outdoor", email: "billing@zephyroutdoor.example"}
+    - {id: cus_035, name: "Saltmarsh Foods", email: "billing@saltmarshfoods.example"}
+    - {id: cus_036, name: "Zephyr Insurance", email: "billing@zephyrinsurance.example"}
+    - {id: cus_037, name: "Northpier Logistics", email: "billing@northpierlogistics.example"}
+    - {id: cus_038, name: "Halcyon Group Ltd", email: "billing@halcyontravel.example"}
+    - {id: cus_039, name: "Sierra Analytics", email: "billing@sierraanalytics.example"}
+    - {id: cus_040, name: "Tamarack Hotels", email: "billing@tamarackhotels.example"}
+    - {id: cus_900, name: "Orbit Healthcare Group", email: "billing@orbithealthcare.example"}
+  charges:
+    - {id: ch_001, customer: cus_025, amount: 3416.67, currency: USD, description: "Invoice INV-5137", status: failed, amount_refunded: 0.0, created: "2026-09-30T21:15:00+00:00", failure_message: expired_card}
+    - {id: ch_002, customer: cus_032, amount: 4833.33, currency: USD, description: "Invoice INV-5136", status: failed, amount_refunded: 0.0, created: "2026-09-30T23:40:00+00:00", failure_message: card_declined}
+    - {id: ch_003, customer: cus_023, amount: 4500.0, currency: USD, description: "Invoice INV-5132", status: failed, amount_refunded: 0.0, created: "2026-10-01T07:44:00+00:00", failure_message: card_declined}
+    - {id: ch_004, customer: cus_019, amount: 7666.67, currency: USD, description: "Invoice INV-5130", status: failed, amount_refunded: 0.0, created: "2026-10-01T09:25:00+00:00", failure_message: insufficient_funds}
+    - {id: ch_005, customer: cus_033, amount: 3791.67, currency: USD, description: "Invoice INV-5139", status: failed, amount_refunded: 0.0, created: "2026-10-02T07:23:00+00:00", failure_message: insufficient_funds}
+    - {id: ch_006, customer: cus_015, amount: 6000.0, currency: USD, description: "Invoice INV-5133", status: failed, amount_refunded: 0.0, created: "2026-10-02T07:31:00+00:00", failure_message: expired_card}
+    - {id: ch_007, customer: cus_034, amount: 1458.33, currency: USD, description: "Invoice INV-5138", status: failed, amount_refunded: 0.0, created: "2026-10-02T07:31:00+00:00", failure_message: expired_card}
+    - {id: ch_008, customer: cus_022, amount: 4333.33, currency: USD, description: "Invoice INV-5114", status: succeeded, amount_refunded: 0.0, created: "2026-10-03T06:18:00+00:00"}
+    - {id: ch_009, customer: cus_008, amount: 4000.0, currency: USD, description: "Invoice INV-5129", status: failed, amount_refunded: 0.0, created: "2026-10-03T06:32:00+00:00", failure_message: expired_card}
+    - {id: ch_010, customer: cus_019, amount: 7666.67, currency: USD, description: "Invoice INV-5112", status: succeeded, amount_refunded: 0.0, created: "2026-10-04T06:35:00+00:00"}
+    - {id: ch_011, customer: cus_014, amount: 541.67, currency: USD, description: "Invoice INV-5110", status: succeeded, amount_refunded: 0.0, created: "2026-10-04T07:17:00+00:00"}
+    - {id: ch_012, customer: cus_024, amount: 7083.33, currency: USD, description: "Invoice INV-5141", status: failed, amount_refunded: 0.0, created: "2026-10-05T06:17:00+00:00", failure_message: insufficient_funds}
+    - {id: ch_013, customer: cus_028, amount: 5125.0, currency: USD, description: "Invoice INV-5142", status: failed, amount_refunded: 0.0, created: "2026-10-05T06:42:00+00:00", failure_message: insufficient_funds}
+    - {id: ch_014, customer: cus_900, amount: 2500.0, currency: USD, description: "Invoice INV-5128", status: succeeded, amount_refunded: 0.0, created: "2026-10-05T06:47:00+00:00"}
+    - {id: ch_015, customer: cus_021, amount: 3250.0, currency: USD, description: "Invoice INV-5134", status: failed, amount_refunded: 0.0, created: "2026-10-05T07:32:00+00:00", failure_message: insufficient_funds}
+    - {id: ch_016, customer: cus_026, amount: 7000.0, currency: USD, description: "Invoice INV-5118", status: succeeded, amount_refunded: 0.0, created: "2026-10-05T07:55:00+00:00"}
+    - {id: ch_017, customer: cus_015, amount: 6000.0, currency: USD, description: "Invoice INV-5133", status: succeeded, amount_refunded: 0.0, created: "2026-10-06T07:32:00+00:00"}
+    - {id: ch_018, customer: cus_038, amount: 5125.0, currency: USD, description: "Invoice INV-5131", status: failed, amount_refunded: 0.0, created: "2026-10-06T08:10:00+00:00", failure_message: card_declined}
+    - {id: ch_019, customer: cus_009, amount: 8041.67, currency: USD, description: "Invoice INV-5143", status: failed, amount_refunded: 0.0, created: "2026-10-06T08:24:00+00:00", failure_message: expired_card}
+    - {id: ch_020, customer: cus_031, amount: 12416.67, currency: USD, description: "Invoice INV-5140", status: failed, amount_refunded: 0.0, created: "2026-10-06T09:23:00+00:00", failure_message: insufficient_funds}
+    - {id: ch_021, customer: cus_001, amount: 11791.67, currency: USD, description: "Invoice INV-5101", status: succeeded, amount_refunded: 0.0, created: "2026-10-07T06:58:00+00:00"}
+    - {id: ch_022, customer: cus_004, amount: 5625.0, currency: USD, description: "Invoice INV-5104", status: succeeded, amount_refunded: 0.0, created: "2026-10-07T08:45:00+00:00"}
+    - {id: ch_023, customer: cus_023, amount: 4500.0, currency: USD, description: "Invoice INV-5132", status: failed, amount_refunded: 0.0, created: "2026-10-08T08:11:00+00:00", failure_message: card_declined}
+    - {id: ch_024, customer: cus_037, amount: 5500.0, currency: USD, description: "Invoice INV-5135", status: failed, amount_refunded: 0.0, created: "2026-10-09T09:23:00+00:00", failure_message: insufficient_funds}
+    - {id: ch_025, customer: cus_009, amount: 8041.67, currency: USD, description: "Invoice INV-5107", status: succeeded, amount_refunded: 0.0, created: "2026-10-10T07:26:00+00:00"}
+    - {id: ch_026, customer: cus_032, amount: 4833.33, currency: USD, description: "Invoice INV-5122", status: succeeded, amount_refunded: 0.0, created: "2026-10-11T07:50:00+00:00"}
+    - {id: ch_027, customer: cus_009, amount: 8041.67, currency: USD, description: "Invoice INV-5143", status: succeeded, amount_refunded: 0.0, created: "2026-10-12T08:18:00+00:00"}
+    - {id: ch_028, customer: cus_010, amount: 2750.0, currency: USD, description: "Invoice INV-5108", status: succeeded, amount_refunded: 0.0, created: "2026-10-12T08:31:00+00:00"}
+    - {id: ch_029, customer: cus_024, amount: 7083.33, currency: USD, description: "Invoice INV-5116", status: succeeded, amount_refunded: 0.0, created: "2026-10-15T07:12:00+00:00"}
+helpdesk:
+  tickets:
+    - {id: TKT-4401, subject: "Card on file update", requester: "hana@driftwoodsupply.example", priority: normal, status: solved, created: "2026-10-03T12:35:00+01:00"}
+    - {id: TKT-4402, subject: "How do I add a user?", requester: "gus@beaconsoftware.example", priority: normal, status: solved, created: "2026-10-03T15:50:00+01:00"}
+    - {id: TKT-4403, subject: "Password reset emails delayed", requester: "ivan@zephyroutdoor.example", priority: urgent, status: pending, created: "2026-10-04T16:59:00+01:00"}
+    - {id: TKT-4404, subject: "Event check-in app crashing at the door", requester: "kai@tallyhoevents.example", priority: urgent, status: solved, created: "2026-10-06T14:35:00+01:00"}
+    - {id: TKT-4405, subject: "Dashboard slow to load", requester: "kai@mesagames.example", priority: normal, status: open, created: "2026-10-08T10:30:00+01:00"}
+    - {id: TKT-4406, subject: "Feature request: bulk archive", requester: "elif@orbithealth.example", priority: low, status: open, created: "2026-10-09T12:36:00+01:00"}
+    - {id: TKT-4407, subject: "How do I add a user?", requester: "dev@ospreyinsurance.example", priority: low, status: open, created: "2026-10-10T15:25:00+01:00"}
+    - {id: TKT-4408, subject: "Feature request: dark mode", requester: "dev@ospreyenergy.example", priority: urgent, status: open, created: "2026-10-11T14:55:00+01:00"}
+    - {id: TKT-4409, subject: "Export to Excel misaligned", requester: "lena@cloverlegal.example", priority: urgent, status: open, created: "2026-10-12T11:58:00+01:00"}
+    - {id: TKT-4410, subject: "All scheduled reports stopped sending", requester: "hana@saltmarshfoods.example", priority: urgent, status: pending, created: "2026-10-12T13:31:00+01:00"}
+    - {id: TKT-4411, subject: "Export to Excel misaligned", requester: "ana@fernbank.example", priority: urgent, status: pending, created: "2026-10-13T12:54:00+01:00"}
+    - {id: TKT-4412, subject: "Can't invite contractors to projects", requester: "jo@whitfielddesign.example", priority: high, status: open, created: "2026-10-13T15:56:00+01:00"}
+    - {id: TKT-4413, subject: "Data export failing for every user since the update", requester: "ivan@kinfolkmedia.example", priority: urgent, status: open, created: "2026-10-14T10:15:00+01:00"}
+    - {id: TKT-4414, subject: "Dashboard slow to load", requester: "jo@lindenlabs.example", priority: urgent, status: pending, created: "2026-10-14T11:39:00+01:00"}
+    - {id: TKT-4415, subject: "Export to Excel misaligned", requester: "lena@tamaracksoftware.example", priority: low, status: pending, created: "2026-10-15T12:20:00+01:00"}
+    - {id: TKT-4416, subject: "How do I add a user?", requester: "chloe@birchfoods.example", priority: urgent, status: pending, created: "2026-10-15T12:26:00+01:00"}
+    - {id: TKT-4417, subject: "Password reset emails delayed", requester: "ana@mesainsurance.example", priority: high, status: closed, created: "2026-10-15T13:42:00+01:00"}
+    - {id: TKT-4418, subject: "Route optimiser returning errors", requester: "lena@northpierlogistics.example", priority: urgent, status: open, created: "2026-10-15T16:11:00+01:00"}
+    - {id: TKT-4419, subject: "Production sync down - blocking month-end close", requester: "ben@quarryanalytics.example", priority: urgent, status: open, created: "2026-10-15T17:20:00+01:00"}
+    - {id: TKT-4420, subject: "Orbit Healthcare: SSO login down for all clinicians", requester: "mo@orbithealthcare.example", priority: urgent, status: open, created: "2026-10-16T13:41:00+01:00"}
+    - {id: TKT-4421, subject: "Invoice address change", requester: "lena@amberpartners.example", priority: normal, status: open, created: "2026-10-16T16:57:00+01:00"}
+    - {id: TKT-4422, subject: "Dashboard slow to load", requester: "nia@sierraanalytics.example", priority: urgent, status: pending, created: "2026-10-17T10:49:00+01:00"}
+mail:
+  messages:
+    - {id: m1, thread: t1, from: "news@saasweekly.example", to: ["maya@lumenly.test"], subject: "SaaS Weekly: 7 renewal plays for Q4", body: "This week: why churn spikes at renewal, and seven plays to stop it.", date: "2026-10-02T10:14:00+01:00", labels: [inbox]}
+    - {id: m2, thread: t2, from: "ar@lumenly.test", to: ["maya@lumenly.test"], subject: "Driftwood Supply payment", body: "Hi Maya, FYI the card retry for Driftwood Supply went through on 6 Oct, nothing outstanding. Dana, Finance", date: "2026-10-07T09:31:00+01:00", labels: [inbox]}
+    - {id: m3, thread: t3, from: "sam@lumenly.test", to: ["maya@lumenly.test"], subject: "QBR deck for Tallyho", body: "Maya, can you look over the Tallyho QBR deck before Thursday? It's in the CS drive.", date: "2026-10-09T16:02:00+01:00", labels: [inbox]}
+    - {id: m4, thread: t4, from: "ops@copperlinestudios.example", to: ["maya@lumenly.test"], subject: "Seats at renewal", body: "Hi Maya, a heads-up for next spring: we'll probably cut down to 10 seats when our renewal comes up in March. Will confirm in the new year. Raj, Copperline Studios", date: "2026-10-13T11:47:00+01:00", labels: [inbox]}
+    - {id: m5, thread: t5, from: "it@lumenly.test", to: ["maya@lumenly.test"], subject: "Laptop refresh", body: "Your laptop is due for replacement. Book a slot with IT this month.", date: "2026-10-14T08:20:00+01:00", labels: [inbox]}
+    - {id: m6, thread: t6, from: "grace.holt@tidewaterhotels.example", to: ["maya@lumenly.test"], subject: "Our Lumenly renewal", body: "Hi Maya, after our budget review we've decided not to renew in November. The group is consolidating on one platform across all hotels. Please make sure nothing auto-renews. Thanks, Grace Holt, COO, Tidewater Hotels", date: "2026-10-15T17:05:00+01:00", labels: [inbox]}
+    - {id: m7, thread: t7, from: "ar@lumenly.test", to: ["maya@lumenly.test"], subject: "Halcyon Group - INV-5131 paid", body: "Hi Maya, Halcyon Group Ltd paid INV-5131 in full by bank transfer on 14 Oct. Stripe still shows the failed card charge because wires are booked outside Stripe, so please treat it as paid. Dana, Finance", date: "2026-10-16T14:22:00+01:00", labels: [inbox]}
+    - {id: m8, thread: t8, from: "priya@lumenly.test", to: ["maya@lumenly.test"], subject: "Kinfolk call notes", body: "Spoke to Kinfolk today. Still waiting on the export fix, otherwise they're happy with the product.", date: "2026-10-17T12:10:00+01:00", labels: [inbox]}
+wiki:
+  pages:
+    - id: pg1
+      title: Churn signals
+      space: Customer Success
+      author: maya@lumenly.test
+      created: "2026-03-02T10:00:00+00:00"
+      updated: "2026-09-14T16:20:00+01:00"
+      url: https://wiki.example/pages/pg1
+      body: |-
+        How we decide which renewals are at risk. Run this before each CS leads sync.
+
+        An account is a churn risk when its renewal date falls within the next 60 days AND at least one of these is true:
+        1. Payments: it has a failed charge from this calendar month (UK time) that is still unpaid. A failed charge is resolved once a later charge for the same invoice succeeds, or once Finance confirms it was paid another way; a retry that fails again is still unpaid. Failures from earlier months are already with Collections, so leave them out.
+        2. Support: it has an urgent ticket that is still open or pending. Solved or closed tickets don't count, and neither do high, normal or low priority ones.
+        3. Notice: the customer has told us in writing that they won't renew or will cut back.
+
+        Renewal dates and ARR come from the Accounts base. Payment history is in Stripe, tickets are in Zendesk. Stripe and Zendesk use legal names and people's emails, so match on the account's domain.
+
+        Share the list in #cs-leads: one line per account with its ARR, CSM, renewal date and which signal fired, then the total ARR at risk.
+    - id: pg3
+      title: Churn signals (2025 draft)
+      space: Archive
+      author: tom@lumenly.test
+      created: "2025-02-10T10:00:00+00:00"
+      updated: "2025-02-10T10:00:00+00:00"
+      url: https://wiki.example/pages/pg3
+      body: "SUPERSEDED by the Customer Success page 'Churn signals'. Old idea: flag any account with a support ticket of high priority or above in the last 90 days, regardless of renewal date."
+chat:
+  channels:
+    - {id: c1, name: cs-leads, members: [maya@lumenly.test, sam@lumenly.test, priya@lumenly.test, tom@lumenly.test, ines@lumenly.test, leo@lumenly.test], topic: "CS leads - churn risk list before each Monday sync"}
+    - {id: c3, name: renewals, members: [maya@lumenly.test, sam@lumenly.test, priya@lumenly.test, tom@lumenly.test, ines@lumenly.test, leo@lumenly.test], topic: "Renewal date changes: co-terms, extensions, early renewals"}
+    - {id: c2, name: general, members: [maya@lumenly.test, sam@lumenly.test, priya@lumenly.test], topic: Company-wide}
+  messages:
+    - {id: x1, channel: c1, author: maya@lumenly.test, ts: "2026-09-21T08:40:00+01:00", thread_id: null, text: "Churn risk, renewals by 20 Nov:\n- Coral Fitness ($41,000, Ines, renews 2 Oct): urgent ticket open\n- Vertex Bank ($88,500, Leo, renews 30 Oct): failed payment unpaid\nTotal ARR at risk: $129,500"}
+    - {id: x2, channel: c1, author: sam@lumenly.test, ts: "2026-09-21T09:02:00+01:00", thread_id: x1, text: "Coral Fitness ticket is fixed, they renewed."}
+    - {id: x4, channel: c1, author: maya@lumenly.test, ts: "2026-10-01T08:55:00+01:00", thread_id: null, text: "Process change for the churn list: the Accounts base only syncs renewal dates at month end. Co-terms, extensions and early renewals agreed since then are posted in #renewals, and the latest note there wins over the base."}
+    - {id: r1, channel: c3, author: "ines@lumenly.test", ts: "2026-09-24T10:12:00+01:00", thread_id: null, text: "Driftwood Supply renewal confirmed for 8 Nov, no change to dates."}
+    - {id: r2, channel: c3, author: "priya@lumenly.test", ts: "2026-10-02T14:05:00+01:00", thread_id: null, text: "Northpier Logistics co-termed with their new EU entity. Renewal moves from 10 Feb 2027 to 30 Nov 2026."}
+    - {id: r3, channel: c3, author: "sam@lumenly.test", ts: "2026-10-05T11:40:00+01:00", thread_id: null, text: "Marlowe Books asked to pull their renewal forward to 10 Dec."}
+    - {id: r4, channel: c3, author: "priya@lumenly.test", ts: "2026-10-07T16:22:00+01:00", thread_id: null, text: "Brightwater Labs signed a 3-month extension, so their renewal is now 4 Feb 2027."}
+    - {id: r5, channel: c3, author: "sam@lumenly.test", ts: "2026-10-09T09:15:00+01:00", thread_id: null, text: "Update on Marlowe Books: they backed out of the early renewal, it stays on 19 Dec."}
+    - {id: r6, channel: c3, author: "leo@lumenly.test", ts: "2026-10-12T13:30:00+01:00", thread_id: null, text: "Quarry Analytics renewal call booked for 25 Nov with their CFO."}
+    - {id: r7, channel: c3, author: "tom@lumenly.test", ts: "2026-10-15T15:48:00+01:00", thread_id: null, text: "Tallyho Events renewal paperwork is out for signature, date unchanged (25 Nov)."}
+    - {id: x3, channel: c2, author: priya@lumenly.test, ts: "2026-10-16T17:30:00+01:00", thread_id: null, text: "Reminder: office closed Friday afternoon for the offsite."}

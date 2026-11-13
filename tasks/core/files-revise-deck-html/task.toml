@@ -1,0 +1,10 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "files-revise-deck-html"
+version = 1
+area = "files"
+summary = "Make two targeted edits to slide 2 of an HTML deck and leave every other slide and style untouched"
+requires = ["mcp", "workspace", "shell"]
+provenance = "hand_authored"
+canary = "519178a0-935a-4e51-a7ec-9dcdb432ffad"

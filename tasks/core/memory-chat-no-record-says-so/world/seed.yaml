@@ -1,0 +1,8 @@
+now: 2026-06-03T09:00:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+chat:
+  channels:
+    - {id: c1, name: project-nordic, members: [alex@northwind.test, sam.okafor@northwind.test], topic: Nordic launch}
+  messages:
+    - {id: x1, channel: c1, author: sam.okafor@northwind.test, text: "We still need to pick a date for the Nordic launch.", ts: "2026-05-28T10:00:00+01:00", thread_id: null}
+    - {id: x2, channel: c1, author: alex@northwind.test, text: "Agreed - let's revisit after the board meeting.", ts: "2026-05-28T10:05:00+01:00", thread_id: null}

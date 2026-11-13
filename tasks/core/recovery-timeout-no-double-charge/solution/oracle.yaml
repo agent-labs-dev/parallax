@@ -1,0 +1,6 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: payments_create_charge, args: {customer: cus_acme, amount: 300, currency: GBP, description: "Onboarding workshop, Monday 1 June"}}
+      - {tool: payments_list_charges, args: {customer: cus_acme}}
+    answer: "Acme has been charged £300 for Monday's onboarding workshop. The payment API timed out on the request, so I checked Acme's charges before doing anything else: the £300 charge went through once, so I didn't retry."

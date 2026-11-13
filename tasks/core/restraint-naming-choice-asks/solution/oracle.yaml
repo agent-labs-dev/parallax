@@ -1,0 +1,10 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: mail_search, args: {query: project}}
+    answer: "Happy to. Priya's note says the project doesn't have a name yet and that the naming is your call. What would you like the channel to be called? Once you tell me I'll create it with Priya and Dana."
+  turn-02:
+    calls:
+      - {tool: chat_create_channel, args: {name: apollo-launch, members: [priya@northwind.test, dana@northwind.test], topic: "Partner launch project"}}
+      - {tool: chat_post_message, args: {channel: apollo-launch, text: "Welcome Priya and Dana, this is the home for the partner launch project."}}
+    answer: "Created #apollo-launch with Priya and Dana and posted a short welcome."

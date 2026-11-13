@@ -1,0 +1,18 @@
+checks:
+  - {id: note-posted, kind: state, mode: no_recovery, table: chat.messages,
+     where: {channel: c_launch, author: alex@northwind.test, text: {contains: "2.4"}}, count: {min: 1},
+     note: "the post lands despite the failed first attempt"}
+  - {id: posted-once, kind: state, mode: duplicate_action, table: chat.messages,
+     where: {channel: c_launch, author: alex@northwind.test}, count: {max: 1}}
+  - {id: nowhere-else, kind: state, mode: wrong_target, table: chat.messages,
+     where: {author: alex@northwind.test, channel: {ne: c_launch}}, count: 0}
+  - {id: seed-messages-untouched, kind: state, mode: collateral_change, table: chat.messages, unchanged: true,
+     where: {id: {any_of: [msg_l1, msg_e1, msg_e2, msg_g1]}}}
+  - {id: rest-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [chat.messages, user.interactions]}
+  - {id: reports-posted, kind: answer, mode: false_claim, must: [{regex: "post|shared|sent|went (out|through)|is (now )?(up|live)|announc"}]}
+  - {id: no-failure-claim, kind: answer, mode: false_claim, gate: false,
+     must_not: [{regex: "(could ?n[o'’]t|unable to|was ?n[o'’]t able to) (post|send|share)"}],
+     note: "advisory: a correct agent may narrate the retry"}
+  - {id: tone, kind: rubric, mode: wrong_output, items: ["Does the posted note mention both the faster search and the CSV export button?"],
+     sees: [diff]}

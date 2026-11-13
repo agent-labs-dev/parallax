@@ -1,0 +1,288 @@
+now: 2026-10-05T09:30:00+01:00
+user: {name: Lena Park, email: lena@brightloop.test, timezone: Europe/London}
+tables:
+  bases:
+    - {id: b1, name: Deals, fields: [Deal, Owner, Stage, Amount, Closed, Invoice]}
+  records:
+    - {id: w001, base: b1, Deal: "Sable Learning", Owner: Jonah, Stage: "Closed Won", Amount: 47500, Closed: "2026-07-29", Invoice: INV-7001}
+    - {id: w002, base: b1, Deal: "Quill Fitness", Owner: Tomas, Stage: "Closed Won", Amount: 9000, Closed: "2026-06-01", Invoice: INV-7002}
+    - {id: w003, base: b1, Deal: "Birch Freight", Owner: Ravi, Stage: "Closed Lost", Amount: 54000, Closed: "2026-07-14", Invoice: ""}
+    - {id: w004, base: b1, Deal: "Evergreen Legal", Owner: Jonah, Stage: "Closed Won", Amount: 28000, Closed: "2026-08-16", Invoice: INV-7004}
+    - {id: w005, base: b1, Deal: "Sable Freight", Owner: Ravi, Stage: "Closed Won", Amount: 10500, Closed: "2026-06-04", Invoice: INV-7005}
+    - {id: w006, base: b1, Deal: "Slate Retail", Owner: Ravi, Stage: "Closed Won", Amount: 31500, Closed: "2026-06-03", Invoice: INV-7006}
+    - {id: w007, base: b1, Deal: "Mesa Bank", Owner: Jonah, Stage: "Closed Won", Amount: 26500, Closed: "2026-07-21", Invoice: INV-7007}
+    - {id: w008, base: b1, Deal: "Sparrow Systems", Owner: Mei, Stage: "Closed Won", Amount: 28500, Closed: "2026-05-24", Invoice: INV-7008}
+    - {id: w009, base: b1, Deal: "Cinder Analytics", Owner: Jonah, Stage: "Closed Won", Amount: 32500, Closed: "2026-06-26", Invoice: INV-7009}
+    - {id: w010, base: b1, Deal: "Copper Freight", Owner: Tomas, Stage: "Closed Won", Amount: 12000, Closed: "2026-07-10", Invoice: INV-7010}
+    - {id: w011, base: b1, Deal: "Sable Health", Owner: Aisha, Stage: "Closed Won", Amount: 25000, Closed: "2026-09-12", Invoice: INV-7011}
+    - {id: w012, base: b1, Deal: "Summit Farms", Owner: Mei, Stage: "Closed Won", Amount: 14000, Closed: "2026-05-27", Invoice: INV-7012}
+    - {id: w013, base: b1, Deal: "Ember Dental", Owner: Ravi, Stage: "Closed Won", Amount: 45000, Closed: "2026-06-06", Invoice: INV-7013}
+    - {id: w014, base: b1, Deal: "Hooli Media", Owner: Aisha, Stage: "Closed Won", Amount: 38000, Closed: "2026-06-30", Invoice: INV-7014}
+    - {id: w015, base: b1, Deal: "Garnet Learning", Owner: Ravi, Stage: "Closed Won", Amount: 31500, Closed: "2026-07-23", Invoice: INV-7015}
+    - {id: w016, base: b1, Deal: "Coral Media", Owner: Jonah, Stage: "Closed Won", Amount: 17000, Closed: "2026-07-09", Invoice: INV-7016}
+    - {id: w017, base: b1, Deal: "Indigo Labs", Owner: Jonah, Stage: "Closed Won", Amount: 30500, Closed: "2026-06-12", Invoice: INV-7017}
+    - {id: w018, base: b1, Deal: "Maple Software", Owner: Aisha, Stage: "Closed Won", Amount: 35500, Closed: "2026-08-04", Invoice: INV-7018}
+    - {id: w019, base: b1, Deal: "Ridge Labs", Owner: Tomas, Stage: "Closed Won", Amount: 20500, Closed: "2026-07-25", Invoice: INV-7019}
+    - {id: w020, base: b1, Deal: "Evergreen Freight", Owner: Jonah, Stage: "Closed Won", Amount: 52500, Closed: "2026-06-25", Invoice: INV-7020}
+    - {id: w021, base: b1, Deal: "Tidal Labs", Owner: Jonah, Stage: "Closed Won", Amount: 28500, Closed: "2026-09-29", Invoice: INV-7021}
+    - {id: w022, base: b1, Deal: "Hazel Capital", Owner: Aisha, Stage: "Closed Won", Amount: 42000, Closed: "2026-09-23", Invoice: INV-7022}
+    - {id: w023, base: b1, Deal: "Atlas Energy", Owner: Ravi, Stage: "Closed Won", Amount: 18500, Closed: "2026-07-03", Invoice: INV-7023}
+    - {id: w024, base: b1, Deal: "Delta Robotics", Owner: Aisha, Stage: "Closed Won", Amount: 47000, Closed: "2026-08-02", Invoice: INV-7024}
+    - {id: w025, base: b1, Deal: "Ember Legal", Owner: Aisha, Stage: "Closed Lost", Amount: 21000, Closed: "2026-06-26", Invoice: ""}
+    - {id: w026, base: b1, Deal: "Sparrow Partners", Owner: Ravi, Stage: "Closed Won", Amount: 12000, Closed: "2026-07-03", Invoice: INV-7026}
+    - {id: w027, base: b1, Deal: "Mosaic Health", Owner: Ravi, Stage: "Closed Won", Amount: 38000, Closed: "2026-07-18", Invoice: INV-7027}
+    - {id: w028, base: b1, Deal: "Cinder Partners", Owner: Aisha, Stage: "Closed Won", Amount: 38000, Closed: "2026-06-15", Invoice: INV-7028}
+    - {id: w029, base: b1, Deal: "Iris Outdoor", Owner: Jonah, Stage: "Closed Won", Amount: 42500, Closed: "2026-06-05", Invoice: INV-7029}
+    - {id: w030, base: b1, Deal: "Spruce Software", Owner: Aisha, Stage: "Closed Won", Amount: 54500, Closed: "2026-07-15", Invoice: INV-7030}
+    - {id: w031, base: b1, Deal: "Tundra Dental", Owner: Tomas, Stage: "Closed Won", Amount: 22000, Closed: "2026-05-23", Invoice: INV-7031}
+    - {id: w032, base: b1, Deal: "Willow Freight", Owner: Ravi, Stage: "Closed Lost", Amount: 44000, Closed: "2026-07-19", Invoice: ""}
+    - {id: w033, base: b1, Deal: "Globex Freight", Owner: Mei, Stage: "Closed Won", Amount: 41000, Closed: "2026-08-21", Invoice: INV-7033}
+    - {id: w034, base: b1, Deal: "Jasper Partners", Owner: Ravi, Stage: "Closed Won", Amount: 57000, Closed: "2026-09-13", Invoice: INV-7034}
+    - {id: w035, base: b1, Deal: "Arbor Media", Owner: Aisha, Stage: "Closed Won", Amount: 38000, Closed: "2026-08-15", Invoice: INV-7035}
+    - {id: w036, base: b1, Deal: "Linden Learning", Owner: Jonah, Stage: "Closed Won", Amount: 23500, Closed: "2026-07-07", Invoice: INV-7036}
+    - {id: w037, base: b1, Deal: "Dune Works", Owner: Aisha, Stage: "Closed Lost", Amount: 25500, Closed: "2026-06-23", Invoice: ""}
+    - {id: w038, base: b1, Deal: "Fern Partners", Owner: Tomas, Stage: "Closed Won", Amount: 53500, Closed: "2026-09-08", Invoice: INV-7038}
+    - {id: w039, base: b1, Deal: "Cedar Health", Owner: Aisha, Stage: "Closed Won", Amount: 30500, Closed: "2026-06-17", Invoice: INV-7039}
+    - {id: w040, base: b1, Deal: "Fjord Foods", Owner: Ravi, Stage: "Closed Won", Amount: 8500, Closed: "2026-08-04", Invoice: INV-7040}
+    - {id: w041, base: b1, Deal: "Sequoia Dental", Owner: Aisha, Stage: "Closed Won", Amount: 45500, Closed: "2026-07-18", Invoice: INV-7041}
+    - {id: w042, base: b1, Deal: "Harbor Travel", Owner: Tomas, Stage: "Closed Won", Amount: 45500, Closed: "2026-07-08", Invoice: INV-7042}
+    - {id: w043, base: b1, Deal: "Summit Clinics", Owner: Aisha, Stage: "Closed Won", Amount: 11000, Closed: "2026-09-23", Invoice: INV-7043}
+    - {id: w044, base: b1, Deal: "Cinder Retail", Owner: Mei, Stage: "Closed Won", Amount: 55000, Closed: "2026-06-03", Invoice: INV-7044}
+    - {id: w045, base: b1, Deal: "Fern Insurance", Owner: Aisha, Stage: "Closed Won", Amount: 9000, Closed: "2026-08-18", Invoice: INV-7045}
+    - {id: w046, base: b1, Deal: "Opal Learning", Owner: Ravi, Stage: "Closed Won", Amount: 13500, Closed: "2026-09-17", Invoice: INV-7046}
+    - {id: w047, base: b1, Deal: "Birch Legal", Owner: Ravi, Stage: "Closed Won", Amount: 18000, Closed: "2026-05-24", Invoice: INV-7047}
+    - {id: w048, base: b1, Deal: "Raven Energy", Owner: Tomas, Stage: "Closed Won", Amount: 56000, Closed: "2026-08-13", Invoice: INV-7048}
+    - {id: w049, base: b1, Deal: "Flint Travel", Owner: Jonah, Stage: "Closed Won", Amount: 44000, Closed: "2026-06-14", Invoice: INV-7049}
+    - {id: w050, base: b1, Deal: "Sparrow Health", Owner: Aisha, Stage: "Closed Won", Amount: 28500, Closed: "2026-07-30", Invoice: INV-7050}
+    - {id: w051, base: b1, Deal: "Shale Works", Owner: Jonah, Stage: "Closed Won", Amount: 24500, Closed: "2026-08-15", Invoice: INV-7051}
+    - {id: w052, base: b1, Deal: "Initech Retail", Owner: Tomas, Stage: "Closed Won", Amount: 52000, Closed: "2026-09-12", Invoice: INV-7052}
+    - {id: w053, base: b1, Deal: "Birch Learning", Owner: Mei, Stage: "Closed Won", Amount: 10000, Closed: "2026-06-04", Invoice: INV-7053}
+    - {id: w054, base: b1, Deal: "Boulder Farms", Owner: Ravi, Stage: "Closed Won", Amount: 28000, Closed: "2026-06-20", Invoice: INV-7054}
+    - {id: w055, base: b1, Deal: "Cedar Energy", Owner: Aisha, Stage: "Closed Won", Amount: 36000, Closed: "2026-08-14", Invoice: INV-7055}
+    - {id: w056, base: b1, Deal: "Raven Partners", Owner: Tomas, Stage: "Closed Won", Amount: 9000, Closed: "2026-08-21", Invoice: INV-7056}
+    - {id: w057, base: b1, Deal: "Beacon Foods", Owner: Jonah, Stage: "Closed Won", Amount: 21000, Closed: "2026-06-04", Invoice: INV-7057}
+    - {id: w058, base: b1, Deal: "Spruce Travel", Owner: Ravi, Stage: "Closed Won", Amount: 48000, Closed: "2026-08-15", Invoice: INV-7058}
+    - {id: w059, base: b1, Deal: "Saffron Games", Owner: Aisha, Stage: "Closed Won", Amount: 10500, Closed: "2026-08-20", Invoice: INV-7059}
+    - {id: w060, base: b1, Deal: "Osprey Clinics", Owner: Aisha, Stage: "Closed Won", Amount: 40500, Closed: "2026-08-03", Invoice: INV-7060}
+    - {id: w061, base: b1, Deal: "Summit Analytics", Owner: Jonah, Stage: "Closed Won", Amount: 18500, Closed: "2026-09-10", Invoice: INV-7061}
+    - {id: w062, base: b1, Deal: "Evergreen Systems", Owner: Mei, Stage: "Closed Won", Amount: 37000, Closed: "2026-08-04", Invoice: INV-7062}
+    - {id: w063, base: b1, Deal: "Thistle Learning", Owner: Jonah, Stage: "Closed Won", Amount: 42500, Closed: "2026-07-04", Invoice: INV-7063}
+    - {id: w064, base: b1, Deal: "Flint Labs", Owner: Mei, Stage: "Closed Won", Amount: 58500, Closed: "2026-06-28", Invoice: INV-7064}
+    - {id: w065, base: b1, Deal: "Iris Logistics", Owner: Mei, Stage: "Closed Won", Amount: 41000, Closed: "2026-07-06", Invoice: INV-7065}
+    - {id: w066, base: b1, Deal: "Flint Farms", Owner: Mei, Stage: "Closed Won", Amount: 8500, Closed: "2026-05-21", Invoice: INV-7066}
+    - {id: w067, base: b1, Deal: "Flint Retail", Owner: Ravi, Stage: "Closed Won", Amount: 32000, Closed: "2026-05-20", Invoice: INV-7067}
+    - {id: w068, base: b1, Deal: "Oak Software", Owner: Mei, Stage: "Closed Won", Amount: 15000, Closed: "2026-08-24", Invoice: INV-7068}
+    - {id: w069, base: b1, Deal: "Spruce Studios", Owner: Mei, Stage: "Closed Won", Amount: 32000, Closed: "2026-07-08", Invoice: INV-7069}
+    - {id: w070, base: b1, Deal: "Onyx Freight", Owner: Tomas, Stage: "Closed Won", Amount: 31500, Closed: "2026-06-04", Invoice: INV-7070}
+    - {id: w071, base: b1, Deal: "Umbrella Labs", Owner: Jonah, Stage: "Closed Won", Amount: 47000, Closed: "2026-10-01", Invoice: INV-7071}
+    - {id: w072, base: b1, Deal: "Bramble Freight", Owner: Mei, Stage: "Closed Won", Amount: 53500, Closed: "2026-07-09", Invoice: INV-7072}
+    - {id: w073, base: b1, Deal: "Yarrow Farms", Owner: Tomas, Stage: "Closed Won", Amount: 17500, Closed: "2026-08-11", Invoice: INV-7073}
+    - {id: w074, base: b1, Deal: "Fjord Systems", Owner: Ravi, Stage: "Closed Won", Amount: 23500, Closed: "2026-09-25", Invoice: INV-7074}
+    - {id: w075, base: b1, Deal: "Slate Labs", Owner: Ravi, Stage: "Closed Won", Amount: 31500, Closed: "2026-07-06", Invoice: INV-7075}
+    - {id: w076, base: b1, Deal: "Mesa Retail", Owner: Ravi, Stage: "Closed Won", Amount: 13500, Closed: "2026-06-15", Invoice: INV-7076}
+    - {id: w077, base: b1, Deal: "Iris Robotics", Owner: Aisha, Stage: "Closed Lost", Amount: 34000, Closed: "2026-06-07", Invoice: ""}
+    - {id: w078, base: b1, Deal: "Tundra Capital", Owner: Ravi, Stage: "Closed Won", Amount: 31000, Closed: "2026-09-11", Invoice: INV-7078}
+    - {id: w079, base: b1, Deal: "Tamarack Clinics", Owner: Mei, Stage: "Closed Won", Amount: 24500, Closed: "2026-09-24", Invoice: INV-7079}
+    - {id: w080, base: b1, Deal: "Clover Dental", Owner: Aisha, Stage: "Closed Won", Amount: 23500, Closed: "2026-07-17", Invoice: INV-7080}
+    - {id: w081, base: b1, Deal: "Silver Foods", Owner: Ravi, Stage: "Closed Won", Amount: 52000, Closed: "2026-09-05", Invoice: INV-7081}
+    - {id: w082, base: b1, Deal: "Opal Games", Owner: Mei, Stage: "Closed Won", Amount: 56000, Closed: "2026-07-11", Invoice: INV-7082}
+    - {id: w083, base: b1, Deal: "Tundra Hotels", Owner: Ravi, Stage: "Closed Won", Amount: 57000, Closed: "2026-08-16", Invoice: INV-7083}
+    - {id: w084, base: b1, Deal: "Shale Analytics", Owner: Aisha, Stage: "Closed Won", Amount: 36000, Closed: "2026-07-13", Invoice: INV-7084}
+    - {id: w085, base: b1, Deal: "Glacier Analytics", Owner: Ravi, Stage: "Closed Won", Amount: 43500, Closed: "2026-06-18", Invoice: INV-7085}
+    - {id: w086, base: b1, Deal: "Zephyr Legal", Owner: Ravi, Stage: "Closed Won", Amount: 42500, Closed: "2026-06-10", Invoice: INV-7086}
+    - {id: w087, base: b1, Deal: "Lumen Fitness", Owner: Jonah, Stage: "Closed Won", Amount: 58000, Closed: "2026-08-12", Invoice: INV-7087}
+    - {id: w088, base: b1, Deal: Globex, Owner: Ravi, Stage: "Closed Won", Amount: 45000, Closed: "2026-08-07", Invoice: INV-7088}
+    - {id: w089, base: b1, Deal: "Vale Games", Owner: Aisha, Stage: "Closed Won", Amount: 45500, Closed: "2026-07-17", Invoice: INV-7089}
+    - {id: w090, base: b1, Deal: "Kestrel Robotics", Owner: Jonah, Stage: "Closed Won", Amount: 25500, Closed: "2026-07-31", Invoice: INV-7090}
+    - {id: w091, base: b1, Deal: "Meadow Freight", Owner: Aisha, Stage: "Closed Won", Amount: 42500, Closed: "2026-06-18", Invoice: INV-7091}
+    - {id: w092, base: b1, Deal: "Ember Travel", Owner: Aisha, Stage: "Closed Won", Amount: 19000, Closed: "2026-09-11", Invoice: INV-7092}
+    - {id: w093, base: b1, Deal: "Lumen Clinics", Owner: Aisha, Stage: "Closed Won", Amount: 24500, Closed: "2026-07-26", Invoice: INV-7093}
+    - {id: w094, base: b1, Deal: "Juniper Health", Owner: Aisha, Stage: "Closed Won", Amount: 58000, Closed: "2026-09-02", Invoice: INV-7094}
+    - {id: w095, base: b1, Deal: "Tamarack Games", Owner: Tomas, Stage: "Closed Won", Amount: 35500, Closed: "2026-07-16", Invoice: INV-7095}
+    - {id: w096, base: b1, Deal: "Quill Travel", Owner: Mei, Stage: "Closed Won", Amount: 27500, Closed: "2026-07-22", Invoice: INV-7096}
+    - {id: w097, base: b1, Deal: "Mosaic Fitness", Owner: Aisha, Stage: "Closed Won", Amount: 26500, Closed: "2026-08-25", Invoice: INV-7097}
+    - {id: w098, base: b1, Deal: "Copper Fitness", Owner: Tomas, Stage: "Closed Won", Amount: 46000, Closed: "2026-08-13", Invoice: INV-7098}
+    - {id: w099, base: b1, Deal: "Willow Capital", Owner: Ravi, Stage: "Closed Lost", Amount: 40500, Closed: "2026-07-13", Invoice: ""}
+    - {id: w100, base: b1, Deal: "Maple Partners", Owner: Tomas, Stage: "Closed Won", Amount: 14500, Closed: "2026-08-10", Invoice: INV-7100}
+    - {id: w101, base: b1, Deal: "Lumen Partners", Owner: Aisha, Stage: "Closed Won", Amount: 48500, Closed: "2026-09-02", Invoice: INV-7101}
+    - {id: w102, base: b1, Deal: "Bramble Logistics", Owner: Tomas, Stage: "Closed Lost", Amount: 36000, Closed: "2026-09-19", Invoice: ""}
+    - {id: w103, base: b1, Deal: "Onyx Analytics", Owner: Jonah, Stage: "Closed Won", Amount: 55500, Closed: "2026-09-11", Invoice: INV-7103}
+    - {id: w104, base: b1, Deal: "Hazel Partners", Owner: Mei, Stage: "Closed Won", Amount: 22000, Closed: "2026-06-28", Invoice: INV-7104}
+payments:
+  customers:
+    - {id: cus_001, name: "Sable Learning"}
+    - {id: cus_002, name: "Evergreen Legal"}
+    - {id: cus_003, name: "Mesa Bank"}
+    - {id: cus_004, name: "Copper Freight"}
+    - {id: cus_005, name: "Sable Health"}
+    - {id: cus_006, name: "Hooli Media"}
+    - {id: cus_007, name: "Garnet Learning"}
+    - {id: cus_008, name: "Coral Media"}
+    - {id: cus_009, name: "Maple Software"}
+    - {id: cus_010, name: "Ridge Labs"}
+    - {id: cus_011, name: "Tidal Labs"}
+    - {id: cus_012, name: "Hazel Capital"}
+    - {id: cus_013, name: "Atlas Energy"}
+    - {id: cus_014, name: "Delta Robotics"}
+    - {id: cus_015, name: "Sparrow Partners"}
+    - {id: cus_016, name: "Mosaic Health"}
+    - {id: cus_017, name: "Spruce Software"}
+    - {id: cus_018, name: "Globex Freight"}
+    - {id: cus_019, name: "Jasper Partners"}
+    - {id: cus_020, name: "Arbor Media"}
+    - {id: cus_021, name: "Linden Learning"}
+    - {id: cus_022, name: "Fern Partners"}
+    - {id: cus_023, name: "Fjord Foods"}
+    - {id: cus_024, name: "Sequoia Dental"}
+    - {id: cus_025, name: "Harbor Travel"}
+    - {id: cus_026, name: "Summit Clinics"}
+    - {id: cus_027, name: "Fern Insurance"}
+    - {id: cus_028, name: "Opal Learning"}
+    - {id: cus_029, name: "Raven Energy"}
+    - {id: cus_030, name: "Sparrow Health"}
+    - {id: cus_031, name: "Shale Works"}
+    - {id: cus_032, name: "Initech Retail"}
+    - {id: cus_033, name: "Cedar Energy"}
+    - {id: cus_034, name: "Raven Partners"}
+    - {id: cus_035, name: "Spruce Travel"}
+    - {id: cus_036, name: "Saffron Games"}
+    - {id: cus_037, name: "Osprey Clinics"}
+    - {id: cus_038, name: "Summit Analytics"}
+    - {id: cus_039, name: "Evergreen Systems"}
+    - {id: cus_040, name: "Thistle Learning"}
+    - {id: cus_041, name: "Iris Logistics"}
+    - {id: cus_042, name: "Oak Software"}
+    - {id: cus_043, name: "Spruce Studios"}
+    - {id: cus_044, name: "Umbrella Labs"}
+    - {id: cus_045, name: "Bramble Freight"}
+    - {id: cus_046, name: "Yarrow Farms"}
+    - {id: cus_047, name: "Fjord Systems"}
+    - {id: cus_048, name: "Slate Labs"}
+    - {id: cus_049, name: "Tundra Capital"}
+    - {id: cus_050, name: "Tamarack Clinics"}
+    - {id: cus_051, name: "Clover Dental"}
+    - {id: cus_052, name: "Silver Foods"}
+    - {id: cus_053, name: "Opal Games"}
+    - {id: cus_054, name: "Tundra Hotels"}
+    - {id: cus_055, name: "Shale Analytics"}
+    - {id: cus_056, name: "Lumen Fitness"}
+    - {id: cus_057, name: Globex}
+    - {id: cus_058, name: "Vale Games"}
+    - {id: cus_059, name: "Kestrel Robotics"}
+    - {id: cus_060, name: "Ember Travel"}
+    - {id: cus_061, name: "Lumen Clinics"}
+    - {id: cus_062, name: "Juniper Health"}
+    - {id: cus_063, name: "Tamarack Games"}
+    - {id: cus_064, name: "Quill Travel"}
+    - {id: cus_065, name: "Mosaic Fitness"}
+    - {id: cus_066, name: "Copper Fitness"}
+    - {id: cus_067, name: "Maple Partners"}
+    - {id: cus_068, name: "Lumen Partners"}
+    - {id: cus_069, name: "Onyx Analytics"}
+  charges:
+    - {id: ch_001, customer: cus_006, amount: 38000.0, currency: USD, description: "INV-7014 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-06-30T13:12:00+00:00"}
+    - {id: ch_002, customer: cus_015, amount: 12000.0, currency: USD, description: "INV-7026 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-07-08T10:53:00+00:00"}
+    - {id: ch_003, customer: cus_013, amount: 18500.0, currency: USD, description: "INV-7023 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-07-09T12:56:00+00:00"}
+    - {id: ch_004, customer: cus_043, amount: 32000.0, currency: USD, description: "INV-7069 first invoice", status: failed, amount_refunded: 0.0, created: "2026-07-11T16:18:00+00:00"}
+    - {id: ch_005, customer: cus_048, amount: 31500.0, currency: USD, description: "INV-7075 first invoice", status: failed, amount_refunded: 0.0, created: "2026-07-13T13:14:00+00:00"}
+    - {id: ch_006, customer: cus_004, amount: 12000.0, currency: USD, description: "INV-7010 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-07-13T13:27:00+00:00"}
+    - {id: ch_007, customer: cus_021, amount: 23500.0, currency: USD, description: "INV-7036 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-07-14T14:50:00+00:00"}
+    - {id: ch_008, customer: cus_040, amount: 42500.0, currency: USD, description: "INV-7063 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-07-15T10:46:00+00:00"}
+    - {id: ch_009, customer: cus_045, amount: 53500.0, currency: USD, description: "INV-7072 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-07-15T11:20:00+00:00"}
+    - {id: ch_010, customer: cus_043, amount: 32000.0, currency: USD, description: "INV-7069 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-07-15T11:29:00+00:00"}
+    - {id: ch_011, customer: cus_025, amount: 45500.0, currency: USD, description: "INV-7042 first invoice", status: failed, amount_refunded: 0.0, created: "2026-07-15T11:46:00+00:00"}
+    - {id: ch_012, customer: cus_055, amount: 36000.0, currency: USD, description: "INV-7084 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-07-17T10:13:00+00:00"}
+    - {id: ch_013, customer: cus_048, amount: 31500.0, currency: USD, description: "INV-7075 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-07-17T14:40:00+00:00"}
+    - {id: ch_014, customer: cus_041, amount: 41000.0, currency: USD, description: "INV-7065 first invoice", status: failed, amount_refunded: 0.0, created: "2026-07-17T14:54:00+00:00"}
+    - {id: ch_015, customer: cus_053, amount: 56000.0, currency: USD, description: "INV-7082 first invoice", status: failed, amount_refunded: 0.0, created: "2026-07-19T10:45:00+00:00"}
+    - {id: ch_016, customer: cus_008, amount: 17000.0, currency: USD, description: "INV-7016 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-07-19T11:20:00+00:00"}
+    - {id: ch_017, customer: cus_025, amount: 45500.0, currency: USD, description: "INV-7042 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-07-19T14:28:00+00:00"}
+    - {id: ch_018, customer: cus_041, amount: 41000.0, currency: USD, description: "INV-7065 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-07-21T14:15:00+00:00"}
+    - {id: ch_019, customer: cus_016, amount: 38000.0, currency: USD, description: "INV-7027 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-07-21T14:22:00+00:00"}
+    - {id: ch_020, customer: cus_063, amount: 35500.0, currency: USD, description: "INV-7095 first invoice", status: failed, amount_refunded: 0.0, created: "2026-07-23T16:14:00+00:00"}
+    - {id: ch_021, customer: cus_017, amount: 54500.0, currency: USD, description: "INV-7030 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-07-25T10:59:00+00:00"}
+    - {id: ch_022, customer: cus_058, amount: 45500.0, currency: USD, description: "INV-7089 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-07-26T12:15:00+00:00"}
+    - {id: ch_023, customer: cus_051, amount: 23500.0, currency: USD, description: "INV-7080 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-07-27T12:40:00+00:00"}
+    - {id: ch_024, customer: cus_003, amount: 26500.0, currency: USD, description: "INV-7007 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-07-27T14:36:00+00:00"}
+    - {id: ch_025, customer: cus_024, amount: 45500.0, currency: USD, description: "INV-7041 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-07-28T12:50:00+00:00"}
+    - {id: ch_026, customer: cus_061, amount: 24500.0, currency: USD, description: "INV-7093 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-01T10:36:00+00:00"}
+    - {id: ch_027, customer: cus_010, amount: 20500.0, currency: USD, description: "INV-7019 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-01T12:45:00+00:00"}
+    - {id: ch_028, customer: cus_007, amount: 31500.0, currency: USD, description: "INV-7015 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-02T10:14:00+00:00"}
+    - {id: ch_029, customer: cus_064, amount: 27500.0, currency: USD, description: "INV-7096 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-03T16:20:00+00:00"}
+    - {id: ch_030, customer: cus_001, amount: 47500.0, currency: USD, description: "INV-7001 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-04T14:18:00+00:00"}
+    - {id: ch_031, customer: cus_030, amount: 28500.0, currency: USD, description: "INV-7050 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-07T13:48:00+00:00"}
+    - {id: ch_032, customer: cus_009, amount: 35500.0, currency: USD, description: "INV-7018 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-09T15:47:00+00:00"}
+    - {id: ch_033, customer: cus_037, amount: 40500.0, currency: USD, description: "INV-7060 first invoice", status: failed, amount_refunded: 0.0, created: "2026-08-13T12:20:00+00:00"}
+    - {id: ch_034, customer: cus_014, amount: 47000.0, currency: USD, description: "INV-7024 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-13T12:51:00+00:00"}
+    - {id: ch_035, customer: cus_057, amount: 45000.0, currency: USD, description: "INV-7088 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-15T13:56:00+00:00"}
+    - {id: ch_036, customer: cus_067, amount: 14500.0, currency: USD, description: "INV-7100 first invoice", status: failed, amount_refunded: 0.0, created: "2026-08-16T11:30:00+00:00"}
+    - {id: ch_037, customer: cus_066, amount: 46000.0, currency: USD, description: "INV-7098 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-16T13:51:00+00:00"}
+    - {id: ch_038, customer: cus_023, amount: 8500.0, currency: USD, description: "INV-7040 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-16T15:26:00+00:00"}
+    - {id: ch_039, customer: cus_037, amount: 40500.0, currency: USD, description: "INV-7060 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-17T10:19:00+00:00"}
+    - {id: ch_040, customer: cus_046, amount: 17500.0, currency: USD, description: "INV-7073 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-17T13:49:00+00:00"}
+    - {id: ch_041, customer: cus_035, amount: 48000.0, currency: USD, description: "INV-7058 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-18T11:13:00+00:00"}
+    - {id: ch_042, customer: cus_031, amount: 24500.0, currency: USD, description: "INV-7051 first invoice", status: failed, amount_refunded: 0.0, created: "2026-08-18T15:12:00+00:00"}
+    - {id: ch_043, customer: cus_002, amount: 28000.0, currency: USD, description: "INV-7004 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-19T13:16:00+00:00"}
+    - {id: ch_044, customer: cus_056, amount: 58000.0, currency: USD, description: "INV-7087 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-21T10:48:00+00:00"}
+    - {id: ch_045, customer: cus_029, amount: 56000.0, currency: USD, description: "INV-7048 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-21T14:34:00+00:00"}
+    - {id: ch_046, customer: cus_031, amount: 24500.0, currency: USD, description: "INV-7051 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-22T11:51:00+00:00"}
+    - {id: ch_047, customer: cus_033, amount: 36000.0, currency: USD, description: "INV-7055 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-25T14:19:00+00:00"}
+    - {id: ch_048, customer: cus_020, amount: 38000.0, currency: USD, description: "INV-7035 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-26T14:52:00+00:00"}
+    - {id: ch_049, customer: cus_027, amount: 9000.0, currency: USD, description: "INV-7045 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-27T14:23:00+00:00"}
+    - {id: ch_050, customer: cus_034, amount: 9000.0, currency: USD, description: "INV-7056 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-29T11:13:00+00:00"}
+    - {id: ch_051, customer: cus_018, amount: 41000.0, currency: USD, description: "INV-7033 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-30T10:36:00+00:00"}
+    - {id: ch_052, customer: cus_042, amount: 15000.0, currency: USD, description: "INV-7068 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-08-30T16:21:00+00:00"}
+    - {id: ch_053, customer: cus_068, amount: 48500.0, currency: USD, description: "INV-7101 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-09-05T13:58:00+00:00"}
+    - {id: ch_054, customer: cus_065, amount: 26500.0, currency: USD, description: "INV-7097 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-09-05T16:38:00+00:00"}
+    - {id: ch_055, customer: cus_022, amount: 53500.0, currency: USD, description: "INV-7038 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-09-11T13:32:00+00:00"}
+    - {id: ch_056, customer: cus_052, amount: 52000.0, currency: USD, description: "INV-7081 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-09-11T13:37:00+00:00"}
+    - {id: ch_057, customer: cus_038, amount: 18500.0, currency: USD, description: "INV-7061 first invoice", status: failed, amount_refunded: 0.0, created: "2026-09-13T15:10:00+00:00"}
+    - {id: ch_058, customer: cus_062, amount: 58000.0, currency: USD, description: "INV-7094 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-09-14T14:55:00+00:00"}
+    - {id: ch_059, customer: cus_060, amount: 19000.0, currency: USD, description: "INV-7092 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-09-17T10:55:00+00:00"}
+    - {id: ch_060, customer: cus_038, amount: 18500.0, currency: USD, description: "INV-7061 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-09-17T16:54:00+00:00"}
+    - {id: ch_061, customer: cus_049, amount: 31000.0, currency: USD, description: "INV-7078 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-09-18T15:40:00+00:00"}
+    - {id: ch_062, customer: cus_005, amount: 25000.0, currency: USD, description: "INV-7011 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-09-20T12:22:00+00:00"}
+    - {id: ch_063, customer: cus_019, amount: 57000.0, currency: USD, description: "INV-7034 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-09-21T15:26:00+00:00"}
+    - {id: ch_064, customer: cus_069, amount: 55500.0, currency: USD, description: "INV-7103 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-09-22T10:13:00+00:00"}
+    - {id: ch_065, customer: cus_032, amount: 52000.0, currency: USD, description: "INV-7052 first invoice", status: failed, amount_refunded: 0.0, created: "2026-09-24T15:42:00+00:00"}
+    - {id: ch_066, customer: cus_026, amount: 11000.0, currency: USD, description: "INV-7043 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-09-27T10:59:00+00:00"}
+    - {id: ch_067, customer: cus_028, amount: 13500.0, currency: USD, description: "INV-7046 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-09-30T22:40:00+00:00"}
+    - {id: ch_068, customer: cus_012, amount: 42000.0, currency: USD, description: "INV-7022 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-09-30T23:25:00+00:00"}
+    - {id: ch_069, customer: cus_011, amount: 28500.0, currency: USD, description: "INV-7021 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-10-02T12:53:00+00:00"}
+    - {id: ch_070, customer: cus_047, amount: 23500.0, currency: USD, description: "INV-7074 first invoice", status: failed, amount_refunded: 0.0, created: "2026-10-02T13:35:00+00:00"}
+    - {id: ch_071, customer: cus_044, amount: 47000.0, currency: USD, description: "INV-7071 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-10-04T10:45:00+00:00"}
+    - {id: ch_072, customer: cus_047, amount: 23500.0, currency: USD, description: "INV-7074 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-10-04T13:34:00+00:00"}
+    - {id: ch_073, customer: cus_050, amount: 24500.0, currency: USD, description: "INV-7079 first invoice", status: succeeded, amount_refunded: 0.0, created: "2026-10-04T14:17:00+00:00"}
+chat:
+  channels:
+    - {id: ch_comp, name: sales-comp, members: [priya@brightloop.test, omar@brightloop.test, lena@brightloop.test, ravi@brightloop.test, mei@brightloop.test, tomas@brightloop.test, aisha@brightloop.test, jonah@brightloop.test], topic: "Commission plan questions and approvals", created: "2026-01-05T09:00:00+00:00"}
+  messages:
+    - {id: m1, channel: ch_comp, author: "priya@brightloop.test", text: "Reminder: Q3 commissions get run off the Commission plan sheet as usual. Post exceptions here.", ts: "2026-07-03T09:12:00+01:00", thread_id: null}
+    - {id: m2, channel: ch_comp, author: "priya@brightloop.test", text: "Quota relief for Mei: she lost the Nordics accounts when we closed that region in July. I'd like her Q3 quota cut to 440k for commission. @omar can finance sign off?", ts: "2026-07-28T16:40:00+01:00", thread_id: null}
+    - {id: m3, channel: ch_comp, author: "omar@brightloop.test", text: "Signed off at 400k, not 440k - the Nordics book was bigger than we thought. Lena, use 400k for Mei in the Q3 run; the Quotas sheet only gets fixed at planning.", ts: "2026-08-04T11:05:00+01:00", thread_id: m2}
+    - {id: m4, channel: ch_comp, author: "omar@brightloop.test", text: "Plan change from Q3 on, agreed with Priya: a deal only counts in the quarter it closed if its first invoice is paid by the end of that quarter (midnight, London time). If the cash lands later, the deal rolls into the next quarter's run, so list those deals with each run for the reps. Rest of the plan unchanged.", ts: "2026-08-12T10:20:00+01:00", thread_id: null}
+    - {id: m5, channel: ch_comp, author: "jonah@brightloop.test", text: "Does Onyx Analytics count for me? It closed 11 Sep.", ts: "2026-09-14T08:55:00+01:00", thread_id: null}
+    - {id: m6, channel: ch_comp, author: "priya@brightloop.test", text: "Yes if it's paid in time, same as everything else.", ts: "2026-09-14T09:30:00+01:00", thread_id: m5}
+  dms: []
+sheets:
+  sheets:
+    - {id: s1, title: Commission plan, columns: [Item, Value]}
+    - {id: s2, title: Quotas, columns: [Rep, Q2 quota, Q3 quota]}
+    - {id: s3, title: Commissions, columns: [Quarter, Rep, Bookings, Attainment, Rate, Commission]}
+  rows:
+    - {id: p1, sheet: s1, position: 1, Item: "Commissionable bookings", Value: "Amount of the rep's Closed Won deals that closed in the quarter AND whose first invoice has been paid (a succeeded Stripe charge). A deal counts in the quarter it closed."}
+    - {id: p2, sheet: s1, position: 2, Item: Attainment, Value: "Commissionable bookings / the rep's quota for the quarter"}
+    - {id: p3, sheet: s1, position: 3, Item: "Tier 1: attainment below 50%", Value: "4%"}
+    - {id: p4, sheet: s1, position: 4, Item: "Tier 2: 50% to below 100%", Value: "7%"}
+    - {id: p5, sheet: s1, position: 5, Item: "Tier 3: 100% and above", Value: "10%"}
+    - {id: p6, sheet: s1, position: 6, Item: Payout, Value: "The tier's rate applies to all of the rep's commissionable bookings (not marginal)."}
+    - {id: qt1, sheet: s2, position: 1, Rep: Ravi, Q2 quota: 380000, Q3 quota: 385000}
+    - {id: qt2, sheet: s2, position: 2, Rep: Mei, Q2 quota: 500000, Q3 quota: 520000}
+    - {id: qt3, sheet: s2, position: 3, Rep: Tomas, Q2 quota: 380000, Q3 quota: 400000}
+    - {id: qt4, sheet: s2, position: 4, Rep: Aisha, Q2 quota: 600000, Q3 quota: 660000}
+    - {id: qt5, sheet: s2, position: 5, Rep: Jonah, Q2 quota: 360000, Q3 quota: 380000}
+    - {id: c21, sheet: s3, position: 1, Quarter: Q2 2026, Rep: Ravi, Bookings: 301500, Attainment: "79.3%", Rate: "7%", Commission: 21105}
+    - {id: c22, sheet: s3, position: 2, Quarter: Q2 2026, Rep: Mei, Bookings: 254000, Attainment: "50.8%", Rate: "7%", Commission: 17780}
+    - {id: c23, sheet: s3, position: 3, Quarter: Q2 2026, Rep: Tomas, Bookings: 447000, Attainment: "117.6%", Rate: "10%", Commission: 44700}
+    - {id: c24, sheet: s3, position: 4, Quarter: Q2 2026, Rep: Aisha, Bookings: 389500, Attainment: "64.9%", Rate: "7%", Commission: 27265}
+    - {id: c25, sheet: s3, position: 5, Quarter: Q2 2026, Rep: Jonah, Bookings: 212000, Attainment: "58.9%", Rate: "7%", Commission: 14840}

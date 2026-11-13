@@ -1,0 +1,7 @@
+[queue]
+name = "dispatch"
+visibility_timeout_s = 120
+
+[retry]
+limit = 5
+backoff_s = 30

@@ -1,0 +1,15 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "files-attached-invoice-to-sheet"
+version = 2
+area = "files"
+summary = "Log five supplier invoices from an attached CSV into the right spreadsheet, once each"
+requires = ["mcp", "workspace"]
+services = ["sheets"]
+provenance = "hand_authored"
+canary = "44099f55-4de8-4ccd-88c2-fa13522693f2"
+
+[[steps]]
+name = "turn-01"
+attachments = [{path = "attachments/invoices.csv"}]

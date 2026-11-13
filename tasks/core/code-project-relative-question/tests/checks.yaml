@@ -1,0 +1,32 @@
+checks:
+- id: no-first-turn-edits
+  kind: file
+  mode: premature_action
+  path: '**/*'
+  unchanged: true
+  turn: 1
+- id: source-unchanged
+  kind: file
+  mode: collateral_change
+  path: '**/*.py'
+  unchanged: true
+- id: readme-unchanged
+  kind: file
+  mode: collateral_change
+  path: '**/*.md'
+  unchanged: true
+- id: project-answer
+  kind: rubric
+  mode: wrong_output
+  sees:
+  - answers
+  - files
+  items:
+  - The final answer says svc/src/worker.py allows three attempts. A bare "Three." or "3." is sufficient in this
+    conversation. An unrelated numbered list or the root project's 91 attempts is not an answer about the selected
+    svc project.
+- id: world-untouched
+  kind: state
+  mode: collateral_change
+  table: '*'
+  unchanged: true

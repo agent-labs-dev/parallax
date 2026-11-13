@@ -1,0 +1,11 @@
+checks:
+  - {id: qualified-now-contacted, kind: state, mode: missing_action, table: tables.records,
+     where: {id: {any_of: [rec02, rec05, rec08, rec11]}}, count: 4, fields: {Status: Contacted},
+     note: "all four Qualified leads, including the one owned by Priya, are Contacted"}
+  - {id: no-qualified-left, kind: state, mode: missing_action, table: tables.records,
+     where: {Status: Qualified}, count: 0}
+  - {id: other-leads-unchanged, kind: state, mode: collateral_change, table: tables.records,
+     where: {id: {none_of: [rec02, rec05, rec08, rec11]}}, unchanged: true,
+     note: "Disqualified, New, Proposal, Won and already-Contacted records are untouched"}
+  - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [tables.records, user.interactions]}

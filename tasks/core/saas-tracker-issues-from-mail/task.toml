@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-tracker-issues-from-mail"
+version = 1
+area = "saas"
+summary = "File one tracker issue per distinct bug reported by email this week, skipping duplicates and feature requests"
+requires = ["mcp", "world_clock"]
+services = ["tracker"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "de8fb81a-64c8-4173-8dc3-fcd8de60eb33"

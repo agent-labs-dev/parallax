@@ -1,0 +1,29 @@
+steps:
+  turn-01:
+    calls:
+      - tool: scheduler_create_job
+        args: {kind: cron, spec: "0 18 * * *", tz: Europe/London, title: "Field reports daily summary",
+               instruction: "Read #field-reports and email ellis@greywater.test a short summary of only the posts made today (since midnight London time). Do not include earlier days."}
+    answer: "Scheduled: every day at 18:00 London time you'll get an email summary of that day's #field-reports posts."
+  fire-1:
+    calls:
+      - {tool: chat_read_channel, args: {channel: field-reports}}
+      - tool: mail_send
+        args:
+          to: [ellis@greywater.test]
+          subject: "Field reports - Tue 14 July"
+          body: |
+            - Bramble Lane substation: fence panel down, made safe, repair booked.
+            - Pump 7 at Ketter Mill: leaking seal swapped, running normally.
+    answer: "Emailed Tuesday's field report summary (2 posts)."
+  fire-2:
+    calls:
+      - {tool: chat_read_channel, args: {channel: field-reports}}
+      - tool: mail_send
+        args:
+          to: [ellis@greywater.test]
+          subject: "Field reports - Wed 15 July"
+          body: |
+            - Quarry Road culvert: storm debris cleared by 11.
+            - Generator G2 at Oxlow depot: refilled, next check Friday.
+    answer: "Emailed Wednesday's field report summary (2 posts)."

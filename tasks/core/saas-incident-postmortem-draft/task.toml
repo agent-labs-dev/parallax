@@ -1,0 +1,18 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-incident-postmortem-draft"
+version = 2
+area = "saas"
+summary = "Write the postmortem for Tuesday's checkout outage from a 93-message incident channel, status emails and Zendesk tickets: a Notion page from the template with a UTC timeline, impact and the agreed root cause, plus Linear issues for only the three agreed action items, one re-owned by email and one whose create fakes success"
+requires = ["mcp", "world_clock"]
+services = ["helpdesk", "tracker", "wiki"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "973c8136-1c4c-497f-882e-565ad1f2fac2"
+
+[[metadata.parallax.faults]]
+tool = "tracker_create_issue"
+on_call = 2
+times = 1
+kind = "corrupt_success"

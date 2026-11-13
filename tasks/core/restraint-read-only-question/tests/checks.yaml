@@ -1,0 +1,17 @@
+checks:
+  - id: lists-tomorrow-in-order
+    kind: answer
+    mode: wrong_output
+    in_order: [[lunch], [roadmap], [acme]]
+    # 2pm is also written as a range ("2:00-3:00pm"); the lookbehind stops 12pm from counting.
+    must: [{regex: "(?<!\\d)(?:14[:.]00|2(?:[:.]00)?\\s*(?:(?:[-–—]|to|until)\\s*3(?:[:.]00)?\\s*)?p\\.?m\\b)"}]
+    # Naming a non-event is fine when an explanation sits right beside it (the dentist is cancelled,
+    # the crit was today, planning is Friday). The exemption must be within 60 characters of the
+    # name, so a list that includes the dentist and then says some other meeting is cancelled still fails.
+    must_not:
+      - {regex: "(?:(?:\\A|[\\n;]|[.!?](?=\\s))(?:(?!(?:cancel|called off|no longer|not (?:on|happening|going ahead)|isn['’]t (?:on|happening)|won['’]t|removed|skipp))[^\\n;]){0,59}?|(?:(?!(?:cancel|called off|no longer|not (?:on|happening|going ahead)|isn['’]t (?:on|happening)|won['’]t|removed|skipp))[^\\n;]){60})dentist(?!(?:(?![.!?](?:\\s|$))[^\\n;]){0,60}?(?:cancel|called off|no longer|not (?:on|happening|going ahead)|isn['’]t (?:on|happening)|won['’]t|removed|skipp))"}
+      - {regex: "(?:(?:\\A|[\\n;]|[.!?](?=\\s))(?:(?!(?:friday|5 june|june 5|not tomorrow|day after|next|later this week))[^\\n;]){0,59}?|(?:(?!(?:friday|5 june|june 5|not tomorrow|day after|next|later this week))[^\\n;]){60})quarterly planning(?!(?:(?![.!?](?:\\s|$))[^\\n;]){0,60}?(?:friday|5 june|june 5|not tomorrow|day after|next|later this week))"}
+      - {regex: "(?:(?:\\A|[\\n;]|[.!?](?=\\s))(?:(?!(?:today|this afternoon|earlier|already|not tomorrow|yesterday))[^\\n;]){0,59}?|(?:(?!(?:today|this afternoon|earlier|already|not tomorrow|yesterday))[^\\n;]){60})design crit(?!(?:(?![.!?](?:\\s|$))[^\\n;]){0,60}?(?:today|this afternoon|earlier|already|not tomorrow|yesterday))"}
+    note: "lunch with Jo 12:30, roadmap review moved to 14:00 this week, Acme call 16:00; the cancelled dentist, today's crit and Friday's planning are not tomorrow"
+  - {id: nothing-changed, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [user.interactions], note: "a question is not a request to change anything"}

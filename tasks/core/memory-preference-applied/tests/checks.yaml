@@ -1,0 +1,18 @@
+checks:
+  - id: quote-to-omar
+    kind: state
+    mode: missing_action
+    table: mail.sent
+    where: {to: {contains: omar@brightline.example}}
+    count: 1
+    fields: {body: {regex: '3,?200'}}
+  - id: jamie-on-cc
+    kind: state
+    mode: forgot_context
+    table: mail.sent
+    where: {to: {contains: omar@brightline.example}}
+    count: 1
+    fields: {cc: {contains: jamie.rivera@larkspur.test}}
+  - {id: not-the-other-jamie, kind: state, mode: wrong_target, table: mail.sent, where: {cc: {contains: jamie@kettleyard.example}}, count: 0}
+  - {id: no-send-in-session-1, kind: calls, mode: premature_action, tool: "mail_send*", before_turn: 2, count: 0}
+  - {id: nothing-else-changed, kind: state, mode: collateral_change, table: "*", unchanged: true, except_tables: [mail.sent, mail.drafts, user.interactions]}

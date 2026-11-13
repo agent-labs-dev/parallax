@@ -1,0 +1,49 @@
+mutations:
+  - {id: nothing-done, note: "claims a draft exists", base: seed, must_fail: [one-draft]}
+  - id: sends-it
+    note: "sends the update instead of leaving a draft"
+    extra_calls: [{turn: 1, tool: mail_send_draft, args: {id: draft_1}}]
+    patch:
+      delete: {mail.drafts: [draft_1]}
+      insert:
+        mail.sent:
+          - {id: sent_9, thread: sent_9, from: nadia@fernly.test, to: [nadia@fernly.test], cc: [], bcc: [priya@northbeam.example, jo@northbeam.example, alex.kim@halcyonvc.example, mira@angelcircle.example, dev.patel@foundry12.example, lucia@olivegrove.example, sam.osei@redbrickvc.example], subject: "Fernly - October update", body: "MRR £44,275", in_reply_to: null, date: "2026-11-03T10:10:00+00:00", draft: draft_1}
+    must_fail: [one-draft, nothing-sent, no-send-call]
+  - id: old-list
+    note: "reuses September's list unchanged"
+    patch: {update: {mail.drafts: {draft_1: {bcc: [priya@northbeam.example, tom@larchcapital.example, alex.kim@halcyonvc.example, mira@angelcircle.example, dev.patel@foundry12.example, lucia@olivegrove.example, sam.osei@redbrickvc.example]}}}}
+    must_fail: [recipients-updated]
+  - id: jo-personal-address
+    note: "adds Jo from contacts (personal address) instead of the address Priya gave"
+    patch: {update: {mail.drafts: {draft_1: {bcc: [priya@northbeam.example, jo.feld@mailbox.example, alex.kim@halcyonvc.example, mira@angelcircle.example, dev.patel@foundry12.example, lucia@olivegrove.example, sam.osei@redbrickvc.example]}}}}
+    must_fail: [recipients-updated]
+  - id: counts-one-offs
+    note: "adds every October charge, one-off services included"
+    patch: {update: {mail.drafts: {draft_1: {body: "Hi all,\n\nHere's Fernly's October update.\n\nHighlights\n- [to fill]\n\nMetrics (October)\n- MRR: £49,975 (+20.8% MoM)\n- Weekly active accounts (last full week, 19-25 Oct): 56\n- Cash in bank (31 Oct): £1,801,100\n- Net burn: £124,900\n- Runway: 14 months\n\nLowlights\n- [to fill]\n\nAsks\n- [to fill]\n\nThanks,\nNadia\n\nMRR = recurring subscription charges billed in the month, net of refunds; one-off services are excluded. Runway = cash / net burn."}}}}
+    must_fail: [mrr-figure]
+  - id: keeps-refunded-charge
+    note: "counts the cancelled Pro subscription that was refunded"
+    patch: {update: {mail.drafts: {draft_1: {body: "Hi all,\n\nHere's Fernly's October update.\n\nHighlights\n- [to fill]\n\nMetrics (October)\n- MRR: £45,765 (+10.6% MoM)\n- Weekly active accounts (last full week, 19-25 Oct): 56\n- Cash in bank (31 Oct): £1,801,100\n- Net burn: £124,900\n- Runway: 14 months\n\nLowlights\n- [to fill]\n\nAsks\n- [to fill]\n\nThanks,\nNadia\n\nMRR = recurring subscription charges billed in the month, net of refunds; one-off services are excluded. Runway = cash / net burn."}}}}
+    must_fail: [mrr-figure]
+  - id: forecast-row
+    note: "takes cash and burn from the November forecast row"
+    patch: {update: {mail.drafts: {draft_1: {body: "Hi all,\n\nHere's Fernly's October update.\n\nHighlights\n- [to fill]\n\nMetrics (October)\n- MRR: £44,275 (+7.0% MoM)\n- Weekly active accounts (last full week, 19-25 Oct): 56\n- Cash in bank: £1,690,000\n- Net burn: £111,100\n- Runway: 15 months\n\nLowlights\n- [to fill]\n\nAsks\n- [to fill]\n\nThanks,\nNadia\n\nMRR = recurring subscription charges billed in the month, net of refunds; one-off services are excluded. Runway = cash / net burn."}}}}
+    must_fail: [other-figures]
+  - id: last-months-numbers
+    note: "keeps September's metric lines"
+    patch: {update: {mail.drafts: {draft_1: {body: "Hi all,\n\nHere's Fernly's October update.\n\nHighlights\n- [to fill]\n\nMetrics (October)\n- MRR: £41,380 (+6.2% MoM)\n- Weekly active accounts (last full week, 19-25 Oct): 57\n- Cash in bank (31 Oct): £1,926,000\n- Net burn: £118,400\n- Runway: 16 months\n\nLowlights\n- [to fill]\n\nAsks\n- [to fill]\n\nThanks,\nNadia"}}}}
+    must_fail: [mrr-figure, other-figures]
+  - id: also-replies-to-tom
+    note: "also emails Tom to confirm the removal"
+    collateral: true
+    patch:
+      insert:
+        mail.drafts:
+          - {id: draft_9, thread: t_tom, to: [tom@larchcapital.example], cc: [], bcc: [], subject: "Re: Monthly updates", body: "Done - you're off the list.", in_reply_to: m_tom, updated: "2026-11-03T10:10:00+00:00"}
+    must_fail: [one-draft]
+  - id: investors-in-to
+    note: "also correct: investors in To instead of Bcc, highlights left as notes for Nadia"
+    expect: pass
+    patch: {update: {mail.drafts: {draft_1: {to: [priya@northbeam.example, jo@northbeam.example, alex.kim@halcyonvc.example, mira@angelcircle.example, dev.patel@foundry12.example, lucia@olivegrove.example, sam.osei@redbrickvc.example], bcc: []}}}}
+    answers:
+      1: "Draft saved (not sent): 'Fernly - October update'. MRR £44,275 (+7.0%), 56 weekly active accounts (19-25 Oct), cash £1,801,100, burn £124,900, runway ~14 months. I took Tom off the list and added Jo Feld at jo@northbeam.example. Highlights, lowlights and asks need your words."

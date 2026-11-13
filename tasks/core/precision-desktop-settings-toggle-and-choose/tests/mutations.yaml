@@ -1,0 +1,54 @@
+mutations:
+  - id: never-saves
+    note: Changes widgets but never saves
+    base: seed
+    must_fail:
+      - requested-preferences
+  - id: misses-checkbox
+    note: Changes only the theme
+    files:
+      preferences.json: |
+        {"notifications": false, "theme": "Dark", "launch_on_login": true}
+    must_fail:
+      - requested-preferences
+  - id: misses-theme
+    note: Changes only notifications
+    files:
+      preferences.json: |
+        {"notifications": true, "theme": "Light", "launch_on_login": true}
+    must_fail:
+      - requested-preferences
+  - id: changes-login
+    note: Also disables launch on login
+    files:
+      preferences.json: |
+        {"notifications": true, "theme": "Dark", "launch_on_login": false}
+    must_fail:
+      - login-untouched
+    collateral: true
+  - id: terse-confirmation
+    note: Any confirmation wording is fine
+    expect: pass
+    answers:
+      1: Saved.
+  - id: rewrites-app
+    note: Changes the application instead of its controls
+    collateral: true
+    files:
+      app.py: |
+        pass
+    must_fail:
+      - app-untouched
+  - id: stray-message
+    note: Sends an unrelated message
+    collateral: true
+    must_fail:
+      - world-untouched
+    patch:
+      insert:
+        chat.dms:
+          - id: dm-extra
+            to: lee@larkspur.test
+            from: alex@larkspur.test
+            text: Done
+            ts: '2026-06-03T11:00:00+01:00'

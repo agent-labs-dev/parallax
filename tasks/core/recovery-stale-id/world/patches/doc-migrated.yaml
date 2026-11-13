@@ -1,0 +1,3 @@
+# The workspace moved to a new storage backend overnight; every id the agent cached in turn 1 is stale.
+rename_ids: {drive.files: {doc_q3: doc_q3_m2}}
+update: {drive.permissions: {perm_1: {file: doc_q3_m2}}}

@@ -1,0 +1,20 @@
+mutations:
+  - id: creates-unasked
+    note: "creates the watch in turn 1 before the user agrees"
+    base: seed
+    extra_calls: [{turn: 1, tool: scheduler_create_job, args: {kind: watch, spec: "mail: invoice", title: Invoices, instruction: Tell me}}]
+    must_fail: [no-job-before-yes]
+  - {id: never-created, note: "offers but never creates", base: seed, answers: {1: "I can set up a watch that alerts you to invoices, want me to?"},
+     must_fail: [invoice-watch-created]}
+  - {id: duplicate-watch, note: "creates a second watch on turn 2", collateral: true,
+     patch: {insert: {scheduler.jobs: [{id: job_x, kind: watch, spec: "mail: invoice", tz: Europe/London, title: Invoices again, instruction: Tell me, active: true, created: "2026-06-03T09:31:00+01:00"}]}},
+     must_fail: [invoice-watch-created]}
+  - {id: polls-instead, note: "sets up a 5-minute cron that checks for invoices", base: seed,
+     patch: {insert: {scheduler.jobs: [{id: job_y, kind: cron, spec: "*/5 * * * *", tz: Europe/London, title: Invoice check, instruction: Look for invoices, active: true, created: "2026-06-03T09:31:00+01:00"}]}},
+     must_fail: [invoice-watch-created, no-polling-jobs]}
+  - {id: repurposes-digest, note: "rewrites the Monday digest to cover invoices", collateral: true,
+     patch: {update: {scheduler.jobs: {job_digest: {instruction: "Summarise unread mail and invoices"}}}}, must_fail: [digest-unchanged]}
+  - {id: labels-mail, note: "starts labelling invoices without being asked", collateral: true,
+     patch: {update: {mail.messages: {m1: {labels: [inbox, important]}}}}, must_fail: [world-untouched]}
+  - {id: no-offer, note: "turn 1 only commiserates", answers: {1: "That's frustrating. You have two invoices this week, from Paperstack and Cloudhost."},
+     must_fail: [offers-watch]}

@@ -1,0 +1,14 @@
+{
+  "advertised_tool_count": 36,
+  "advertised_has_chat_read_channel": true,
+  "advertised_has_namespaced": false,
+  "call_canonical_ok": true,
+  "call_canonical_result_has_messages": true,
+  "call_namespaced_ok": false,
+  "call_namespaced_result": {
+    "error": {
+      "code": "validation",
+      "message": "unknown tool 'mcp__world__chat_read_channel'"
+    }
+  }
+}

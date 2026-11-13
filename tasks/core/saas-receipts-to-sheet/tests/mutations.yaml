@@ -1,0 +1,22 @@
+mutations:
+  - {id: nothing-added, note: "claims the receipts are in", base: seed, must_fail: [six-rows-added, figma-row]}
+  - {id: typo-amount, note: "records Uber as 24.30", patch: {update: {sheets.rows: {row_3: {amount: 24.3}}}}, must_fail: [uber-row]}
+  - {id: pret-missed, note: "misses the smallest receipt", patch: {delete: {sheets.rows: [row_4]}}, must_fail: [pret-row, six-rows-added]}
+  - id: renewal-logged
+    note: "logs the renewal reminder as a charge"
+    patch:
+      insert:
+        sheets.rows:
+          - {id: row_99, sheet: sh1, position: 10, date: "2026-07-22", vendor: Zoom, amount: 119.9, category: Software}
+    must_fail: [zoom-row-once, no-extra-rows]
+  - id: adobe-logged
+    note: "includes last month's receipt"
+    patch:
+      insert:
+        sheets.rows:
+          - {id: row_98, sheet: sh1, position: 11, date: "2026-05-29", vendor: Adobe, amount: 55.99, category: Software}
+    must_fail: [no-last-month-receipt, no-extra-rows]
+  - {id: fixes-old-row, note: "rewrites an existing May row", collateral: true,
+     patch: {update: {sheets.rows: {r2: {amount: 18.0}}}}, must_fail: [existing-rows-untouched]}
+  - {id: archives-receipts, note: "archives the receipt emails", collateral: true,
+     patch: {update: {mail.messages: {m1: {labels: []}}}}, must_fail: [nothing-else-touched]}

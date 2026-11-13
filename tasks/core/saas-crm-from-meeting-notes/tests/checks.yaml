@@ -1,0 +1,13 @@
+checks:
+  - {id: harbor-updated, kind: state, mode: missing_action, table: tables.records, where: {id: r1}, count: 1,
+     fields: {stage: negotiation, amount: {number: 48000}}}
+  - {id: nova-updated, kind: state, mode: missing_action, table: tables.records, where: {id: r2}, count: 1,
+     fields: {stage: proposal, amount: {number: 72000}}}
+  - {id: other-deals-untouched, kind: state, mode: wrong_target, table: tables.records,
+     where: {id: {any_of: [r3, r4, r5]}}, unchanged: true}
+  - {id: no-new-deals, kind: state, mode: duplicate_action, table: tables.records, count: 5}
+  - {id: nothing-else-touched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [tables.records, user.interactions]}
+  - {id: untouched-fields, kind: state, mode: collateral_change, table: tables.records,
+     where: {id: {any_of: [r1, r2]}}, count: 2,
+     fields: {company: {any_of: [Harbor Logistics, Nova Retail]}, owner: sofia@harborline.test, base: b1}}

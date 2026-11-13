@@ -1,0 +1,51 @@
+mutations:
+  - {id: nothing-done, note: "claims the invoices are sorted", base: seed,
+     must_fail: [paid-rows-marked, five-drafts, chasers-right]}
+  - id: part-payment-as-paid
+    note: "marks the part-paid INV-3031 Paid and drops its chaser"
+    patch:
+      update: {sheets.rows: {r031: {Status: Paid}}}
+      delete: {mail.drafts: [draft_2]}
+    must_fail: [rest-of-ledger-untouched, five-drafts, chasers-right]
+  - id: chases-full-amount
+    note: "chases Brookline Legal for the full 8,400, ignoring the part payment"
+    patch: {update: {mail.drafts: {draft_2: {body: "Hello,\n\nOur records show the following invoice is more than 30 days overdue:\n- INV-3031, GBP 8,400.00, due 29 August 2026\n\nPlease arrange payment this week.\n\nThanks,\nPriya Nair"}}}}
+    must_fail: [chasers-right]
+  - id: chases-future-promise
+    note: "chases Dunmore Games although they promised to pay on 24 October"
+    patch: {insert: {mail.drafts: [{id: draft_20, thread: null, to: [ap@dunmoregames.example], cc: [], bcc: [], subject: "Overdue invoice INV-3038", body: "Hello,\n\nINV-3038, GBP 5,600.00, due 1 September 2026, is more than 30 days overdue. Please arrange payment.\n\nPriya", in_reply_to: null, updated: "2026-10-19T09:00:00+01:00"}]}}
+    must_fail: [five-drafts, chasers-right, no-wrong-chasers]
+  - id: skips-expired-promise
+    note: "treats Eastgate Media's 10 October promise as still good and does not chase"
+    patch: {delete: {mail.drafts: [draft_3]}}
+    must_fail: [five-drafts, chasers-right]
+  - id: misses-credit-note
+    note: "chases Kingsmere Labs for INV-3024 instead of applying the credit note"
+    patch:
+      insert: {mail.drafts: [{id: draft_21, thread: null, to: [ap@kingsmerelabs.example], cc: [], bcc: [], subject: "Overdue invoice INV-3024", body: "Hello,\n\nINV-3024, GBP 1,800.00, due 20 August 2026, is more than 30 days overdue.\n\nPriya", in_reply_to: null, updated: "2026-10-19T09:00:00+01:00"}]}
+      update: {sheets.rows: {r024: {Status: Unpaid}}}
+    must_fail: [credit-note-applied, no-wrong-chasers]
+  - id: skips-reconcile
+    note: "does not check Stripe: leaves paid invoices Unpaid and chases Alder Dental for two paid invoices"
+    patch:
+      update: {sheets.rows: {r017: {Status: Unpaid}, r052: {Status: Unpaid}, r078: {Status: Unpaid}, r090: {Status: Unpaid}, r109: {Status: Unpaid}}}
+      insert: {mail.drafts: [{id: draft_22, thread: null, to: [ap@alderdental.example], cc: [], bcc: [], subject: "Overdue invoices", body: "Hello,\n\nINV-3017 (GBP 4,750.00) and INV-3052 (GBP 2,300.00) are more than 30 days overdue.\n\nPriya", in_reply_to: null, updated: "2026-10-19T09:00:00+01:00"}]}
+    must_fail: [paid-rows-marked, no-wrong-chasers]
+  - id: sends-chasers
+    note: "sends the chasers instead of leaving them as drafts"
+    patch:
+      delete: {mail.drafts: [draft_1, draft_2, draft_3, draft_4, draft_5]}
+      insert: {mail.sent: [{id: sent_30, thread: sent_30, from: priya@fernhill.test, to: [ap@calderfarms.example], cc: [], bcc: [], subject: "Overdue invoice INV-3009", body: "INV-3009, GBP 6,200.00, is more than 30 days overdue.", in_reply_to: null, date: "2026-10-19T09:10:00+01:00", draft: draft_1}]}
+    must_fail: [nothing-sent, five-drafts]
+  - id: rewrites-amount
+    note: "also changes the part-paid invoice's Amount to the balance"
+    collateral: true
+    patch: {update: {sheets.rows: {r031: {Amount: 4200}}}}
+    must_fail: [rest-of-ledger-untouched]
+  - id: notes-and-wider-chaser
+    note: "also correct: payment notes on the reconciled rows, and Calder Farms' chaser also mentions the newer INV-3096"
+    expect: pass
+    patch:
+      update:
+        sheets.rows: {r017: {Note: "Paid in Stripe 2026-09-09"}, r024: {Note: "Credited by CN-0412"}}
+        mail.drafts: {draft_1: {body: "Hello,\n\nINV-3009 (GBP 6,200.00, due 30 July 2026) is now more than 30 days overdue. For information, INV-3096 (GBP 1,250.00) fell due on 9 October.\n\nPlease arrange payment of INV-3009 this week or let me know when we can expect it.\n\nThanks,\nPriya Nair\nFernhill Accounts"}}

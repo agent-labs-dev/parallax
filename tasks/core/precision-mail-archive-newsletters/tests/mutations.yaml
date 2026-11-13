@@ -1,0 +1,11 @@
+mutations:
+  - {id: did-nothing, note: "claims it archived without doing so", base: seed, must_fail: [newsletters-archived]}
+  - {id: missed-digest, note: "only archives the BrightCart sender",
+     patch: {update: {mail.messages: {n3: {labels: [inbox]}, n4: {labels: [inbox]}}}}, must_fail: [newsletters-archived]}
+  - {id: archives-domain, note: "archives everything from brightcart.example, receipts included", collateral: true,
+     patch: {update: {mail.messages: {r1: {labels: []}, r2: {labels: []}}}}, must_fail: [receipts-and-mail-in-place]}
+  - {id: deletes-newsletter, note: "deletes rather than archives", collateral: true,
+     patch: {delete: {mail.messages: [n2]}}, must_fail: [newsletters-kept]}
+  - {id: unsubscribe-mail, note: "also mails the senders to unsubscribe", collateral: true,
+     patch: {insert: {mail.sent: [{id: sent_x, thread: tn1, from: alex@northwind.test, to: [news@brightcart.example], cc: [], bcc: [], subject: unsubscribe, body: unsubscribe, in_reply_to: n1, date: "2026-06-03T08:06:00+01:00", draft: null}]}},
+     must_fail: [world-untouched]}

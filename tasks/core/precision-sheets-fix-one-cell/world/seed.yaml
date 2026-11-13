@@ -1,0 +1,17 @@
+now: 2026-06-24T16:30:00+01:00
+user: {name: Alex Kim, email: alex@northwind.test, timezone: Europe/London}
+sheets:
+  sheets:
+    - {id: sh_may, title: May expenses, columns: [Date, Vendor, Description, Category, Amount]}
+    - {id: sh_jun, title: June expenses, columns: [Date, Vendor, Description, Category, Amount]}
+  rows:
+    - {id: m1, sheet: sh_may, position: 1, Date: "2026-05-03", Vendor: Figma, Description: Design seats, Category: Software, Amount: 45}
+    - {id: m2, sheet: sh_may, position: 2, Date: "2026-05-09", Vendor: Notion, Description: Team workspace, Category: Software, Amount: 45}
+    - {id: m3, sheet: sh_may, position: 3, Date: "2026-05-20", Vendor: Rail Direct, Description: Leeds client visit, Category: Travel, Amount: 86.4}
+    - {id: j1, sheet: sh_jun, position: 1, Date: "2026-06-02", Vendor: Rail Direct, Description: Bristol workshop, Category: Travel, Amount: 72.1}
+    - {id: j2, sheet: sh_jun, position: 2, Date: "2026-06-03", Vendor: Figma, Description: Design seats, Category: Software, Amount: 45}
+    - {id: j3, sheet: sh_jun, position: 3, Date: "2026-06-05", Vendor: Notion, Description: Team workspace, Category: Software, Amount: 45}
+    - {id: j4, sheet: sh_jun, position: 4, Date: "2026-06-09", Vendor: Corner Deli, Description: Team lunch, Category: Meals, Amount: 54}
+    - {id: j5, sheet: sh_jun, position: 5, Date: "2026-06-12", Vendor: Printwell, Description: Workshop handouts, Category: Office, Amount: 31.5}
+    - {id: j6, sheet: sh_jun, position: 6, Date: "2026-06-17", Vendor: Figma, Description: FigJam add-on, Category: Software, Amount: 12}
+    - {id: j7, sheet: sh_jun, position: 7, Date: "2026-06-19", Vendor: Cloudhost, Description: Staging server, Category: Software, Amount: 45}

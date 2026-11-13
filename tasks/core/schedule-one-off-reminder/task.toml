@@ -1,0 +1,17 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "schedule-one-off-reminder"
+version = 1
+area = "schedule"
+summary = "A one-off reminder for Friday 4pm lands at the right instant in the user's New York time zone"
+requires = ["mcp", "world_clock"]
+services = ["scheduler"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "857d6002-6a69-4867-ba2f-9b8a353f9058"
+
+[[metadata.parallax.fires]]
+name = "fire-1"
+at = 2026-06-12T16:00:00-04:00
+job = {kind = "once", active = true}

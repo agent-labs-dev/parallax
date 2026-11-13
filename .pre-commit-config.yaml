@@ -1,0 +1,9 @@
+# `uvx pre-commit install` once per clone. CI runs the same scan over the whole tree.
+repos:
+  - repo: local
+    hooks:
+      - id: scan-public
+        name: no run output, private names or secrets
+        entry: python3 scripts/scan_public.py . --files
+        language: system
+        pass_filenames: true

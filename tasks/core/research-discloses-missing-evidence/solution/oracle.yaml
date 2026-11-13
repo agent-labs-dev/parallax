@@ -1,0 +1,19 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: web_search, args: {query: "Canvasly pricing"}}
+      - {tool: web_fetch, args: {url: "https://canvasly.example/pricing"}}
+      - {tool: web_fetch, args: {url: "https://fernpoll.example/pricing"}}
+      - {tool: web_fetch, args: {url: "https://pellucid.example/pricing"}}
+      - {tool: web_fetch, args: {url: "https://pellucid.example/security"}}
+      - {tool: web_fetch, args: {url: "https://surveyra.example/pricing"}}
+    answer: |
+      | Tool | Plan for ~30 people | Price / month | SSO |
+      |---|---|---|---|
+      | Canvasly | Team (up to 40) | $180 | Not on Team (Google/Microsoft sign-in only) |
+      | Fernpoll | Pro (up to 50) | $235 | Included |
+      | Pellucid | - | Not published: quote from sales only | Included on all plans |
+      | Surveyra | Growth (up to 35) | $310 | Add-on, $45/month |
+
+      Pellucid doesn't publish any pricing (its pricing page only says to talk to sales), so I
+      couldn't compare it on cost.

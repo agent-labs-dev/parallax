@@ -1,0 +1,6 @@
+insert:
+  chat.messages:
+    - {id: fr-0715a, channel: C-FIELD, author: crew-b@greywater.test, ts: "2026-07-15T09:55:00+01:00", thread_id: null,
+       text: "Quarry Road culvert: blocked with debris after the storm, cleared by 11."}
+    - {id: fr-0715b, channel: C-FIELD, author: crew-a@greywater.test, ts: "2026-07-15T15:30:00+01:00", thread_id: null,
+       text: "Generator G2 at Oxlow depot: low on fuel, refilled, next check Friday."}

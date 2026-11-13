@@ -1,0 +1,18 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-bug-reports-dedupe-to-tracker"
+version = 3
+area = "saas"
+summary = "Friday bug sweep: sort 51 of this week's Zendesk conversations (UTC timestamps; one Friday-evening report is UTC Saturday) into bugs, how-tos, feature requests and a retracted report, follow an October wiki amendment (count accounts by email domain, add an area label) and an engineer's email (VAT reports from Wednesday on are a new bug, not resolved LSP-131), comment on the six Linear issues they match (reopening a regressed one, following a duplicate to its live issue) while one comment call fakes success, file only the four new bugs, and reply to no customer"
+requires = ["mcp", "world_clock"]
+services = ["helpdesk", "tracker", "wiki"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "57f480ad-e268-4004-a00d-5bd72229346b"
+
+[[metadata.parallax.faults]]
+tool = "tracker_comment"
+on_call = 3
+times = 1
+kind = "corrupt_success"

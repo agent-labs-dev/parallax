@@ -1,0 +1,5 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: calendar_list_events, args: {start: "2026-06-03T00:00:00+01:00", end: "2026-07-31T00:00:00+01:00", query: offsite}}
+    answer: "15 days. The team offsite in Lisbon starts on Thursday 18 June."

@@ -1,0 +1,51 @@
+checks:
+  - id: port-is-8080
+    kind: command
+    mode: missing_action
+    run:
+      - python
+      - -c
+      - |
+        from relay import settings
+        from relay.app import bind_address
+        assert settings.DEFAULT_PORT == 8080, settings.DEFAULT_PORT
+        assert bind_address()[1] == 8080
+        print("port ok")
+    stdout: ["port ok"]
+  - id: exactly-one-line-changed
+    kind: command
+    mode: collateral_change
+    note: "line diff against the seed: one line replaced by one line; comments, docstring and layout survive"
+    run:
+      - python
+      - -c
+      - |
+        import difflib
+        ORIGINAL = [
+          '"""Runtime settings for the webhook relay.',
+          '',
+          'Values are read once at boot; nothing re-reads them, so a change needs a',
+          'restart to take effect. Environment variables of the same name override',
+          'these defaults (see relay/app.py).',
+          '"""',
+          '',
+          '# Interface to bind. 0.0.0.0 in containers, loopback for local runs.',
+          'DEFAULT_HOST = "127.0.0.1"',
+          '',
+          '# Port the relay listens on.',
+          'DEFAULT_PORT = 8000',
+          '',
+          '# Seconds to wait on a slow upstream before giving up. Deliberately generous:',
+          '# two of the partners batch their acknowledgements.',
+          'UPSTREAM_TIMEOUT = 45',
+          '',
+          '# Deliveries retried this many times before they land on the dead-letter list.',
+          'MAX_REDELIVERIES = 6',
+        ]
+        new = open("relay/settings.py", encoding="utf-8").read().splitlines()
+        ops = difflib.SequenceMatcher(None, ORIGINAL, new, autojunk=False).get_opcodes()
+        changed = [(ORIGINAL[i1:i2], new[j1:j2]) for tag, i1, i2, j1, j2 in ops if tag != "equal"]
+        assert len(changed) == 1 and all(len(side) == 1 for side in changed[0]), changed
+        print("one line changed")
+    stdout: ["one line changed"]
+  - {id: app-untouched, kind: file, mode: collateral_change, path: relay/app.py, unchanged: true}

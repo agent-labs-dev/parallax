@@ -1,0 +1,41 @@
+mutations:
+  - {id: nothing-done, note: "claims the rename without making it", base: seed,
+     must_fail: [callers-work-under-new-name, old-name-gone]}
+  - id: misses-module-attribute-call
+    note: "renames the definition and the direct imports but misses source.fetch_rows in sync.py"
+    files:
+      ledger/sync.py: |
+        from ledger import source
+        from ledger.formatting import pence_to_pounds
+
+
+        def preview(folder: str, n: int = 2) -> list[str]:
+            return [f"{row['account']}: {pence_to_pounds(int(row['pence']))}" for row in source.fetch_rows(folder, "entries", limit=n)]
+    must_fail: [callers-work-under-new-name, old-name-gone, tests-pass]
+  - id: keeps-old-alias
+    note: "adds load_rows but leaves fetch_rows behind as an alias"
+    files:
+      ledger/source.py: |
+        """Reads ledger rows out of the CSV exports the finance tool drops in exports/."""
+
+        import csv
+        from pathlib import Path
+
+
+        def load_rows(folder: str | Path, table: str, *, limit: int | None = None) -> list[dict[str, str]]:
+            """Rows of exports/<table>.csv as dicts, in file order."""
+            with open(Path(folder) / f"{table}.csv", newline="", encoding="utf-8") as fh:
+                rows = list(csv.DictReader(fh))
+            return rows if limit is None else rows[:limit]
+
+
+        fetch_rows = load_rows
+    must_fail: [old-name-gone]
+  - id: reformats-unrelated-module
+    note: "touches a module that never referenced the function"
+    collateral: true
+    files:
+      ledger/formatting.py: |
+        def pence_to_pounds(pence: int) -> str:
+            return "£" + format(pence / 100, ",.2f")
+    must_fail: [unrelated-module-untouched]

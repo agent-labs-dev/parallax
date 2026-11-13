@@ -1,0 +1,161 @@
+now: 2026-10-15T10:00:00+01:00
+user: {name: Priya Raman, email: priya@tessera.test, timezone: Europe/London}
+mail:
+  messages:
+    - {id: e1, thread: st1, from: status@tessera.test, to: [subscribers@tessera.test], cc: [], labels: [inbox], date: "2026-10-13T14:23:00+01:00", subject: "[Tessera Status] Checkout errors - Investigating", body: "We are investigating failed payments at checkout. Some customers cannot complete purchases."}
+    - {id: e2, thread: st1, from: status@tessera.test, to: [subscribers@tessera.test], cc: [], labels: [inbox], date: "2026-10-13T10:19:00-04:00", subject: "[Tessera Status] Checkout errors - Identified", body: "We have identified the cause and are rolling back a recent change."}
+    - {id: e3, thread: st1, from: status@tessera.test, to: [subscribers@tessera.test], cc: [], labels: [inbox], date: "2026-10-13T16:49:00+02:00", subject: "[Tessera Status] Checkout errors - Monitoring", body: "A fix has been applied. Checkout is working again; we are monitoring."}
+    - {id: e4, thread: st1, from: status@tessera.test, to: [subscribers@tessera.test], cc: [], labels: [inbox], date: "2026-10-13T16:30:00+01:00", subject: "[Tessera Status] Checkout errors - Resolved", body: "This incident has been resolved."}
+    - {id: e5, thread: x1, from: jordan@tessera.test, to: [priya@tessera.test], cc: [], labels: [inbox], date: "2026-10-14T16:40:00+01:00", subject: "Postmortem for Tuesday", body: "Hi Priya, can you own the postmortem for Tuesday's checkout outage? Use the Notion template, and file only the action items we agreed in the #inc-checkout review thread. Thanks, Jordan"}
+    - {id: e7, thread: x3, from: marcus@tessera.test, to: [priya@tessera.test], cc: [jordan@tessera.test, ana@tessera.test], labels: [inbox], date: "2026-10-14T17:52:00+01:00", subject: "Leave from Friday + my checkout action item", body: "Hi Priya, heads up: I'm on parental leave from Friday 16 Oct for six weeks. Jordan and I agreed Ana takes over my action item from the checkout review (the checkout-db connection paging alert), so please put her down as the owner, not me. Thanks! Marcus"}
+    - {id: e6, thread: x2, from: noreply@grafana.example, to: [priya@tessera.test], cc: [], labels: [inbox], date: "2026-10-13T14:13:00+01:00", subject: "Alert: checkout-api 5xx rate", body: "Alert firing: checkout-api 5xx rate above 2%."}
+chat:
+  channels:
+    - {id: C1, name: inc-checkout, members: [jordan@tessera.test, lena@tessera.test, marcus@tessera.test, ana@tessera.test, omar@tessera.test, kenji@tessera.test, priya@tessera.test], topic: "SEV1 checkout failures 13 Oct"}
+    - {id: C2, name: deploys, members: [jordan@tessera.test, lena@tessera.test, marcus@tessera.test, omar@tessera.test, priya@tessera.test], topic: "Deploy bot"}
+    - {id: C3, name: eng, members: [jordan@tessera.test, lena@tessera.test, marcus@tessera.test, ana@tessera.test, omar@tessera.test, priya@tessera.test], topic: Engineering}
+  messages:
+    - {id: m001, channel: C1, author: pagerduty@tessera.test, text: "[TRIGGERED] checkout-api 5xx rate 38% (threshold 2%) - service: checkout-api, env: prod", ts: "2026-10-13T13:12:00Z", thread_id: null}
+    - {id: m002, channel: C1, author: jordan@tessera.test, text: "Ack. I'm IC. Everyone checkout-related into this channel please.", ts: "2026-10-13T13:13:00Z", thread_id: null}
+    - {id: m003, channel: C1, author: kenji@tessera.test, text: "Support is already getting 'payment failed' chats.", ts: "2026-10-13T13:13:00Z", thread_id: null}
+    - {id: m004, channel: C1, author: marcus@tessera.test, text: "Looking at dashboards", ts: "2026-10-13T13:14:00Z", thread_id: null}
+    - {id: m005, channel: C1, author: ana@tessera.test, text: "Seeing it on the payments side too, checkout success rate fell off a cliff about 3 min ago", ts: "2026-10-13T13:15:00Z", thread_id: null}
+    - {id: m006, channel: C1, author: jordan@tessera.test, text: "Declaring SEV1. Customer-facing: checkout failing for most users.", ts: "2026-10-13T13:16:00Z", thread_id: null}
+    - {id: m007, channel: C1, author: kenji@tessera.test, text: "Kenji here, I'll handle the status page and support macros", ts: "2026-10-13T13:17:00Z", thread_id: null}
+    - {id: m008, channel: C1, author: lena@tessera.test, text: Watching, ts: "2026-10-13T13:18:00Z", thread_id: null}
+    - {id: m009, channel: C1, author: marcus@tessera.test, text: "Stripe's status page shows 'Degraded performance - API'. I think this is Stripe. Our errors line up with it.", ts: "2026-10-13T13:19:00Z", thread_id: null}
+    - {id: m010, channel: C1, author: jordan@tessera.test, text: "OK working theory: Stripe. Ana can you confirm from our side?", ts: "2026-10-13T13:20:00Z", thread_id: m009}
+    - {id: m011, channel: C1, author: ana@tessera.test, text: Checking, ts: "2026-10-13T13:21:00Z", thread_id: m009}
+    - {id: m012, channel: C1, author: lena@tessera.test, text: "Hi, Lena from platform joining", ts: "2026-10-13T13:22:00Z", thread_id: null}
+    - {id: m013, channel: C1, author: kenji@tessera.test, text: "Status page set to Investigating", ts: "2026-10-13T13:23:00Z", thread_id: null}
+    - {id: m014, channel: C1, author: marcus@tessera.test, text: "5xx still at ~40%", ts: "2026-10-13T13:24:00Z", thread_id: null}
+    - {id: m015, channel: C1, author: ana@tessera.test, text: "+1", ts: "2026-10-13T13:25:00Z", thread_id: null}
+    - {id: m016, channel: C1, author: jordan@tessera.test, text: "Any deploys in the last hour?", ts: "2026-10-13T13:26:00Z", thread_id: null}
+    - {id: m017, channel: C1, author: marcus@tessera.test, text: "checking #deploys", ts: "2026-10-13T13:27:00Z", thread_id: null}
+    - {id: m018, channel: C1, author: kenji@tessera.test, text: "Big accounts calling in: Harrow and Velo Sports", ts: "2026-10-13T13:28:00Z", thread_id: null}
+    - {id: m019, channel: C1, author: lena@tessera.test, text: "same here", ts: "2026-10-13T13:29:00Z", thread_id: null}
+    - {id: m020, channel: C1, author: ana@tessera.test, text: "Hmm, the Stripe calls that reach Stripe are succeeding (99.9%). Most requests die before we ever call Stripe.", ts: "2026-10-13T13:30:00Z", thread_id: m009}
+    - {id: m021, channel: C1, author: marcus@tessera.test, text: "Stripe's incident says eu-west. We're us-east. Still digging", ts: "2026-10-13T13:31:00Z", thread_id: m009}
+    - {id: m022, channel: C1, author: marcus@tessera.test, text: "still seeing errors", ts: "2026-10-13T13:32:00Z", thread_id: null}
+    - {id: m023, channel: C1, author: jordan@tessera.test, text: "Customers are retrying and making it worse?", ts: "2026-10-13T13:33:00Z", thread_id: null}
+    - {id: m024, channel: C1, author: ana@tessera.test, text: "Retries up 4x, yes", ts: "2026-10-13T13:34:00Z", thread_id: null}
+    - {id: m025, channel: C1, author: ana@tessera.test, text: "refreshing grafana", ts: "2026-10-13T13:35:00Z", thread_id: null}
+    - {id: m026, channel: C1, author: lena@tessera.test, text: "checkout-db: active connections pinned at the pool max since 15:12 my time, lots of 'timeout acquiring connection' in checkout-api logs", ts: "2026-10-13T13:36:00Z", thread_id: null}
+    - {id: m027, channel: C1, author: jordan@tessera.test, text: "Lena what's the pool max?", ts: "2026-10-13T13:37:00Z", thread_id: m026}
+    - {id: m028, channel: C1, author: lena@tessera.test, text: "5. It's normally 50.", ts: "2026-10-13T13:38:00Z", thread_id: m026}
+    - {id: m029, channel: C1, author: marcus@tessera.test, text: "that would do it", ts: "2026-10-13T13:38:00Z", thread_id: null}
+    - {id: m030, channel: C1, author: ana@tessera.test, text: "any news?", ts: "2026-10-13T13:39:00Z", thread_id: null}
+    - {id: m031, channel: C1, author: jordan@tessera.test, text: "Who changed the pool size?", ts: "2026-10-13T13:40:00Z", thread_id: null}
+    - {id: m032, channel: C1, author: kenji@tessera.test, text: "Any ETA I can give customers?", ts: "2026-10-13T13:41:00Z", thread_id: null}
+    - {id: m033, channel: C1, author: jordan@tessera.test, text: "No ETA yet, say we've identified a likely cause soon", ts: "2026-10-13T13:42:00Z", thread_id: null}
+    - {id: m034, channel: C1, author: ana@tessera.test, text: "on it", ts: "2026-10-13T13:43:00Z", thread_id: null}
+    - {id: m035, channel: C1, author: marcus@tessera.test, text: "Retracting my Stripe theory: their incident was eu-west only and our Stripe success rate is 99.9%. This is not Stripe.", ts: "2026-10-13T13:44:00Z", thread_id: null}
+    - {id: m036, channel: C1, author: jordan@tessera.test, text: "Thanks Marcus. Stripe is ruled out.", ts: "2026-10-13T13:45:00Z", thread_id: m035}
+    - {id: m037, channel: C1, author: ana@tessera.test, text: ack, ts: "2026-10-13T13:46:00Z", thread_id: null}
+    - {id: m038, channel: C1, author: lena@tessera.test, text: "pool size comes from the shared helm values for checkout-db clients", ts: "2026-10-13T13:47:00Z", thread_id: null}
+    - {id: m039, channel: C1, author: omar@tessera.test, text: "Omar here. pricing-service v2.31 went out at 14:05 BST. It touched the shared helm values for the checkout-db client.", ts: "2026-10-13T13:49:00Z", thread_id: null}
+    - {id: m040, channel: C1, author: omar@tessera.test, text: "Looking at the diff now", ts: "2026-10-13T13:50:00Z", thread_id: m039}
+    - {id: m041, channel: C1, author: marcus@tessera.test, text: "that's a lot of retries", ts: "2026-10-13T13:51:00Z", thread_id: null}
+    - {id: m042, channel: C1, author: omar@tessera.test, text: "Found it: v2.31 set maxPoolSize: 5 instead of 50 in the shared values. Typo in my PR. pricing-service and checkout-api both read it. Sorry all.", ts: "2026-10-13T13:53:00Z", thread_id: m039}
+    - {id: m043, channel: C1, author: jordan@tessera.test, text: "No blame. That's our root cause candidate: pool exhausted by the v2.31 config change.", ts: "2026-10-13T13:54:00Z", thread_id: m039}
+    - {id: m044, channel: C1, author: marcus@tessera.test, text: "+1, graphs match: connections hit 5 at 13:11 UTC", ts: "2026-10-13T13:55:00Z", thread_id: m039}
+    - {id: m045, channel: C1, author: kenji@tessera.test, text: "logs attached in the doc", ts: "2026-10-13T13:56:00Z", thread_id: null}
+    - {id: m046, channel: C1, author: jordan@tessera.test, text: "Options: roll back pricing-service to v2.30, or hotfix the value. Rollback is safer.", ts: "2026-10-13T13:57:00Z", thread_id: null}
+    - {id: m047, channel: C1, author: lena@tessera.test, text: "Rollback also restores the values file, agree", ts: "2026-10-13T13:58:00Z", thread_id: null}
+    - {id: m048, channel: C1, author: kenji@tessera.test, text: "Status page should say Identified?", ts: "2026-10-13T14:00:00Z", thread_id: null}
+    - {id: m049, channel: C1, author: jordan@tessera.test, text: "Not yet, wait till we start the rollback", ts: "2026-10-13T14:01:00Z", thread_id: null}
+    - {id: m050, channel: C1, author: ana@tessera.test, text: "checking EU traffic too", ts: "2026-10-13T14:02:00Z", thread_id: null}
+    - {id: m051, channel: C1, author: ana@tessera.test, text: "Rough count so far: ~800 failed checkouts. Will get a proper number after.", ts: "2026-10-13T14:04:00Z", thread_id: null}
+    - {id: m052, channel: C1, author: kenji@tessera.test, text: "Velo Sports asking for a call", ts: "2026-10-13T14:06:00Z", thread_id: null}
+    - {id: m053, channel: C1, author: jordan@tessera.test, text: "Kenji, I'll join their call after. Keep macros going", ts: "2026-10-13T14:08:00Z", thread_id: null}
+    - {id: m054, channel: C1, author: lena@tessera.test, text: "EU also affected", ts: "2026-10-13T14:10:00Z", thread_id: null}
+    - {id: m055, channel: C1, author: marcus@tessera.test, text: "Prepping rollback", ts: "2026-10-13T14:12:00Z", thread_id: null}
+    - {id: m056, channel: C1, author: omar@tessera.test, text: "Rollback PR ready", ts: "2026-10-13T14:15:00Z", thread_id: null}
+    - {id: m057, channel: C1, author: jordan@tessera.test, text: "Decision: roll back pricing-service to v2.30 now. Omar go.", ts: "2026-10-13T14:17:00Z", thread_id: null}
+    - {id: m058, channel: C1, author: omar@tessera.test, text: "Rolling back", ts: "2026-10-13T14:18:00Z", thread_id: null}
+    - {id: m059, channel: C1, author: kenji@tessera.test, text: "Status page -> Identified", ts: "2026-10-13T14:19:00Z", thread_id: null}
+    - {id: m060, channel: C1, author: marcus@tessera.test, text: "Pods cycling", ts: "2026-10-13T14:22:00Z", thread_id: null}
+    - {id: m061, channel: C1, author: marcus@tessera.test, text: "mobile app too", ts: "2026-10-13T14:24:00Z", thread_id: null}
+    - {id: m062, channel: C1, author: omar@tessera.test, text: "50% of pods on v2.30", ts: "2026-10-13T14:27:00Z", thread_id: null}
+    - {id: m063, channel: C1, author: marcus@tessera.test, text: "web checkout also failing", ts: "2026-10-13T14:30:00Z", thread_id: null}
+    - {id: m064, channel: C1, author: marcus@tessera.test, text: "Errors dropping", ts: "2026-10-13T14:33:00Z", thread_id: null}
+    - {id: m065, channel: C1, author: ana@tessera.test, text: "Checkouts succeeding again for some users", ts: "2026-10-13T14:36:00Z", thread_id: null}
+    - {id: m066, channel: C1, author: omar@tessera.test, text: "Rollback complete at 15:40 BST, all pods on v2.30", ts: "2026-10-13T14:40:00Z", thread_id: null}
+    - {id: m067, channel: C1, author: marcus@tessera.test, text: "Connections back to normal, ~20 of 50 in use", ts: "2026-10-13T14:43:00Z", thread_id: null}
+    - {id: m068, channel: C1, author: kenji@tessera.test, text: ok, ts: "2026-10-13T14:45:00Z", thread_id: null}
+    - {id: m069, channel: C1, author: jordan@tessera.test, text: "5xx back to baseline as of 10:47 ET. Customer impact over. Staying in monitoring.", ts: "2026-10-13T14:48:00Z", thread_id: null}
+    - {id: m070, channel: C1, author: kenji@tessera.test, text: "Status page -> Monitoring", ts: "2026-10-13T14:49:00Z", thread_id: null}
+    - {id: m071, channel: C1, author: ana@tessera.test, text: "Payments confirm success rate back to 99%", ts: "2026-10-13T14:52:00Z", thread_id: null}
+    - {id: m072, channel: C1, author: jordan@tessera.test, text: "Retry storm fully drained", ts: "2026-10-13T15:05:00Z", thread_id: null}
+    - {id: m073, channel: C1, author: kenji@tessera.test, text: "Status page -> Resolved", ts: "2026-10-13T15:30:00Z", thread_id: null}
+    - {id: m074, channel: C1, author: jordan@tessera.test, text: "Closing SEV1. Thanks all. Postmortem to follow; Priya will write it up.", ts: "2026-10-13T15:31:00Z", thread_id: null}
+    - {id: m075, channel: C1, author: ana@tessera.test, text: "Final number from the payments dashboard: 1,284 failed checkouts between 13:12 and 14:47 UTC. Ignore my ~800 from earlier, that was partial.", ts: "2026-10-13T16:20:00Z", thread_id: null}
+    - {id: m076, channel: C1, author: kenji@tessera.test, text: "Thanks Ana. Support saw a wave of tickets, I'll leave the exact count to Zendesk.", ts: "2026-10-13T16:22:00Z", thread_id: null}
+    - {id: m077, channel: C1, author: jordan@tessera.test, text: "Postmortem review notes. Root cause (agreed): pricing-service v2.31 changed the shared checkout-db client values, maxPoolSize 50 -> 5 (typo). checkout-api ran out of DB connections and returned 5xx. Stripe was not involved. Impact window 9:12-10:47 ET. Action items in this thread, please.", ts: "2026-10-14T15:00:00Z", thread_id: null}
+    - {id: m078, channel: C1, author: lena@tessera.test, text: "Proposal: a CI check that rejects any change to maxPoolSize below 20 without DBA approval.", ts: "2026-10-14T15:03:00Z", thread_id: m077}
+    - {id: m079, channel: C1, author: jordan@tessera.test, text: "Agreed. Lena owns it.", ts: "2026-10-14T15:05:00Z", thread_id: m077}
+    - {id: m080, channel: C1, author: marcus@tessera.test, text: "Proposal: page on-call when checkout-db connection use is above 80% for 2 minutes. We had no alert on the pool itself.", ts: "2026-10-14T15:06:00Z", thread_id: m077}
+    - {id: m081, channel: C1, author: jordan@tessera.test, text: "Agreed, Marcus owns it.", ts: "2026-10-14T15:08:00Z", thread_id: m077}
+    - {id: m082, channel: C1, author: kenji@tessera.test, text: "Could we auto-post a status page banner whenever checkout 5xx goes over 10%?", ts: "2026-10-14T15:09:00Z", thread_id: m077}
+    - {id: m083, channel: C1, author: jordan@tessera.test, text: "Nice idea but parking it, not an action item for this one.", ts: "2026-10-14T15:11:00Z", thread_id: m077}
+    - {id: m084, channel: C1, author: ana@tessera.test, text: "Should we add a second payment provider as a fallback?", ts: "2026-10-14T15:12:00Z", thread_id: m077}
+    - {id: m085, channel: C1, author: jordan@tessera.test, text: "No, Stripe wasn't involved. Not doing that.", ts: "2026-10-14T15:13:00Z", thread_id: m077}
+    - {id: m086, channel: C1, author: omar@tessera.test, text: "Proposal: put pricing-service behind the canary deploy stage like checkout-api, so a bad config hits 5% of traffic first.", ts: "2026-10-14T15:15:00Z", thread_id: m077}
+    - {id: m087, channel: C1, author: jordan@tessera.test, text: "Agreed, Omar owns it.", ts: "2026-10-14T15:16:00Z", thread_id: m077}
+    - {id: m088, channel: C1, author: marcus@tessera.test, text: "Also maybe rewrite pricing-service in Go lol", ts: "2026-10-14T15:18:00Z", thread_id: m077}
+    - {id: m089, channel: C1, author: jordan@tessera.test, text: "lol no", ts: "2026-10-14T15:18:00Z", thread_id: m077}
+    - {id: m090, channel: C1, author: lena@tessera.test, text: "Should we split the helm values so services don't share the DB client block?", ts: "2026-10-14T15:20:00Z", thread_id: m077}
+    - {id: m091, channel: C1, author: jordan@tessera.test, text: "Worth discussing at the platform sync, not an action item yet.", ts: "2026-10-14T15:22:00Z", thread_id: m077}
+    - {id: m092, channel: C1, author: jordan@tessera.test, text: "That's the list: three agreed items. @priya over to you for the write-up and the Linear tickets.", ts: "2026-10-14T15:24:00Z", thread_id: m077}
+    - {id: m093, channel: C1, author: kenji@tessera.test, text: "Support macro for the outage archived", ts: "2026-10-14T15:30:00Z", thread_id: null}
+    - {id: d1, channel: C2, author: deploybot@tessera.test, text: "checkout-api v5.12.0 deployed to prod", ts: "2026-10-12T16:40:00Z", thread_id: null}
+    - {id: d2, channel: C2, author: deploybot@tessera.test, text: "pricing-service v2.31 deployed to prod", ts: "2026-10-13T13:05:00Z", thread_id: null}
+    - {id: d3, channel: C2, author: deploybot@tessera.test, text: "pricing-service v2.30 deployed to prod (rollback)", ts: "2026-10-13T14:40:00Z", thread_id: null}
+    - {id: d4, channel: C2, author: deploybot@tessera.test, text: "search-api v3.4.1 deployed to prod", ts: "2026-10-14T10:02:00Z", thread_id: null}
+contacts:
+  people:
+    - {id: p0, name: "Jordan Blake", email: jordan@tessera.test}
+    - {id: p1, name: "Lena Vogel", email: lena@tessera.test}
+    - {id: p2, name: "Marcus Hale", email: marcus@tessera.test}
+    - {id: p3, name: "Ana Torres", email: ana@tessera.test}
+    - {id: p4, name: "Omar Haddad", email: omar@tessera.test}
+    - {id: p5, name: "Kenji Mori", email: kenji@tessera.test}
+helpdesk:
+  tickets:
+    - {id: TKT-8801, subject: "Coupon code not applying at checkout", description: "Our SPRING10 coupon is rejected at checkout.", requester: kim@fernway.example, priority: high, status: solved, created: "2026-10-12T15:10:00Z"}
+    - {id: TKT-8802, subject: "Invoice copy", description: "Please resend September invoice.", requester: lou@gladstone.example, priority: normal, status: solved, created: "2026-10-12T17:40:00Z"}
+    - {id: TKT-8803, subject: "Password reset", description: "Reset link not arriving.", requester: mo@mapleworks.example, priority: normal, status: solved, created: "2026-10-13T09:30:00Z"}
+    - {id: TKT-8804, subject: "Add a user", description: "How do I add a staff account?", requester: ned@oakpaper.example, priority: normal, status: solved, created: "2026-10-13T11:02:00Z"}
+    - {id: TKT-8805, subject: "Payment failed at checkout", description: "Checkout fails with an error when paying.", requester: amy@harrow.example, priority: high, status: solved, created: "2026-10-13T13:15:00Z"}
+    - {id: TKT-8806, subject: "Customers cannot pay", description: "Checkout fails with an error when paying.", requester: bo@velosports.example, priority: high, status: solved, created: "2026-10-13T13:18:00Z"}
+    - {id: TKT-8807, subject: "Checkout error 500", description: "Checkout fails with an error when paying.", requester: cy@pinebox.example, priority: high, status: solved, created: "2026-10-13T13:21:00Z"}
+    - {id: TKT-8808, subject: "Still failing!!", description: "Checkout fails with an error when paying.", requester: bo@velosports.example, priority: normal, status: solved, created: "2026-10-13T13:26:00Z"}
+    - {id: TKT-8809, subject: "Orders not going through", description: "Checkout fails with an error when paying.", requester: di@kitecraft.example, priority: normal, status: solved, created: "2026-10-13T13:33:00Z"}
+    - {id: TKT-8810, subject: "Checkout broken", description: "Checkout fails with an error when paying.", requester: ed@nordwear.example, priority: high, status: solved, created: "2026-10-13T13:41:00Z"}
+    - {id: TKT-8811, subject: "Payment page error", description: "Checkout fails with an error when paying.", requester: flo@sunmill.example, priority: high, status: solved, created: "2026-10-13T13:52:00Z"}
+    - {id: TKT-8812, subject: "Any update? checkout still down", description: "Checkout fails with an error when paying.", requester: amy@harrow.example, priority: high, status: solved, created: "2026-10-13T14:05:00Z"}
+    - {id: TKT-8813, subject: "Cannot complete purchase", description: "Checkout fails with an error when paying.", requester: gil@brickhouse.example, priority: normal, status: solved, created: "2026-10-13T14:12:00Z"}
+    - {id: TKT-8814, subject: "Checkout down for our store", description: "Checkout fails with an error when paying.", requester: hal@lumio.example, priority: high, status: solved, created: "2026-10-13T14:24:00Z"}
+    - {id: TKT-8815, subject: "Third ticket - still broken", description: "Checkout fails with an error when paying.", requester: bo@velosports.example, priority: normal, status: solved, created: "2026-10-13T14:31:00Z"}
+    - {id: TKT-8816, subject: "Checkout failed earlier today", description: "Between about 9:15 and 10:45 ET checkout failed for our customers. Working now.", requester: ivy@oatly-shop.example, priority: high, status: solved, created: "2026-10-13T15:02:00Z"}
+    - {id: TKT-8817, subject: "Shipping label", description: "Label printer misaligned.", requester: oli@redfin-goods.example, priority: normal, status: solved, created: "2026-10-13T16:45:00Z"}
+    - {id: TKT-8818, subject: "Refund question", description: "How long do refunds take?", requester: pam@tidepool.example, priority: normal, status: solved, created: "2026-10-13T19:20:00Z"}
+    - {id: TKT-8819, subject: "Checkout slow on mobile", description: "Checkout page takes 6 seconds to load on mobile, has been like this for weeks.", requester: quin@fernway.example, priority: high, status: solved, created: "2026-10-14T09:15:00Z"}
+    - {id: TKT-8820, subject: "Tax settings", description: "Where do I set VAT?", requester: rex@gladstone.example, priority: normal, status: solved, created: "2026-10-14T11:30:00Z"}
+    - {id: TKT-8821, subject: "Export orders", description: "CSV export of orders?", requester: sue@mapleworks.example, priority: normal, status: solved, created: "2026-10-14T13:00:00Z"}
+    - {id: TKT-8822, subject: "Domain setup", description: "Custom domain not verifying.", requester: tim@oakpaper.example, priority: normal, status: solved, created: "2026-10-14T15:45:00Z"}
+tracker:
+  issues:
+    - {id: PLAT-301, title: "Alert on checkout-db replication lag", status: closed, labels: [infra], assignee: marcus@tessera.test}
+    - {id: PLAT-305, title: "Upgrade Postgres to 16 on checkout-db", status: open, labels: [infra]}
+    - {id: PLAT-309, title: "Canary stage for checkout-api", status: resolved, labels: [deploy], assignee: omar@tessera.test}
+    - {id: PLAT-312, title: "Grafana dashboard for pricing-service latency", status: open, labels: [observability]}
+    - {id: PLAT-318, title: "Rotate Stripe webhook secret", status: open, labels: [security]}
+    - {id: PLAT-320, title: "Helm chart lint in CI", status: in_progress, labels: [ci], assignee: lena@tessera.test}
+    - {id: PLAT-324, title: "Search outage follow-up: index rebuild runbook", status: open, labels: [incident-followup]}
+    - {id: PLAT-327, title: "Reduce checkout-api cold start", status: open, labels: [perf]}
+wiki:
+  pages:
+    - {id: pg-pm, title: Postmortems, space: Engineering, parent: null, body: "Index of incident postmortems. Create each new postmortem as a child of this page from the Postmortem template."}
+    - {id: pg-tpl, title: "Postmortem template", space: Engineering, parent: pg-pm, body: "Title: Postmortem: <short description> (<YYYY-MM-DD>)\n\n## Summary\nTwo or three sentences.\n\n## Impact\nDuration (start-end, UTC). Customers affected: count distinct customers who contacted support. Business impact (e.g. failed orders).\n\n## Timeline (UTC)\nAll times in UTC, HH:MM, one line per event: detection, key findings, decisions, mitigation, recovery, status page updates.\n\n## Root cause\nThe cause the team agreed on. Note theories that were ruled out.\n\n## Action items\nOnly items agreed in the review. Each one is a Linear issue with an owner; link it here.\n\n## Lessons learned"}
+    - {id: pg-pm-search, title: "Postmortem: Search outage (2026-08-21)", space: Engineering, parent: pg-pm, body: "## Summary\nSearch returned empty results for 48 minutes after an index alias swap.\n\n## Impact\n10:02-10:50 UTC (48 min). 6 customers contacted support.\n\n## Timeline (UTC)\n10:02 alias swap deployed\n10:04 alert fired\n10:31 cause found\n10:50 alias restored\n\n## Root cause\nAlias pointed at an empty index.\n\n## Action items\n- PLAT-324 Index rebuild runbook (Marcus)\n\n## Lessons learned\nValidate index doc count before swapping."}

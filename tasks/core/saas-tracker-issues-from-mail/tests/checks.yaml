@@ -1,0 +1,23 @@
+checks:
+  - {id: three-issues-filed, kind: state, mode: duplicate_action, table: tracker.issues,
+     where: {id: {regex: "^ISS-"}}, count: 3,
+     note: "CSV times, Safari login, missing VAT number; the second Safari report is the same bug"}
+  - {id: csv-bug-filed, kind: state, mode: missing_action, table: tracker.issues,
+     where: {id: {regex: "^ISS-"}, title: {regex: "^(?!.*(vat|invoice|tax)).*(csv|export|time ?zone|utc|timesheet|hour)"}}, count: 1}
+  - {id: safari-bug-filed-once, kind: state, mode: duplicate_action, table: tracker.issues,
+     where: {id: {regex: "^ISS-"}, title: {regex: "safari|log ?-?in|sign ?-?in|auth"}}, count: 1}
+  - {id: vat-bug-filed, kind: state, mode: missing_action, table: tracker.issues,
+     where: {id: {regex: "^ISS-"}, title: {regex: "vat|invoice|tax"}}, count: 1}
+  - {id: no-feature-request-issue, kind: state, mode: wrong_target, table: tracker.issues,
+     where: {title: {regex: "dark"}}, count: 0}
+  - {id: no-last-week-issue, kind: state, mode: wrong_target, table: tracker.issues,
+     where: {title: {regex: "search"}}, count: 0, note: "the search report arrived last week"}
+  - {id: existing-issues-untouched, kind: state, mode: collateral_change, table: tracker.issues,
+     where: {id: {regex: "^T-"}}, unchanged: true}
+  - {id: nothing-else-touched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [tracker.issues, tracker.comments, user.interactions]}
+  - {id: no-comments-on-old-issues, kind: state, mode: collateral_change, table: tracker.comments,
+     where: {issue: {regex: "^T-"}}, count: 0}
+  - {id: issue-bodies, kind: rubric, mode: wrong_output, gate: false, sees: [diff],
+     items: ["Does each new issue describe the symptom the customer reported?",
+             "Does the Safari login issue mention that two customers reported it?"]}

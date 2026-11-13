@@ -1,0 +1,35 @@
+mutations:
+  - {id: nothing-done, note: "claims it posted", base: seed, must_fail: [posted-in-growth]}
+  - id: naive-ratio
+    note: "divides all project_created events by signups, so existing users' projects count as activations"
+    patch:
+      update:
+        chat.messages:
+          msg_1: {text: "Signups rose from 60 to 80, and activation fell from 66.7% (40/60) to 52.5% (42/80). The partner launch cohort activates poorly."}
+    answers:
+      1: "Posted. Signups 60 -> 80; activation 66.7% -> 52.5%. The Brightwave partner signups activate poorly."
+    must_fail: [weekly-figures]
+  - id: blames-onboarding
+    note: "blames the onboarding checklist test for a drop across the board"
+    patch:
+      update:
+        chat.messages:
+          msg_1: {text: "Signups 60 -> 80 but activation fell from 41.7% (25/60) to 33.8% (27/80). Looks like the new onboarding checklist copy is hurting activation for everyone; we should roll it back."}
+    answers:
+      1: "Posted. Activation fell from 41.7% to 33.8%; the onboarding checklist test looks like the cause."
+    must_fail: [explains-the-mix]
+  - id: posts-in-general
+    note: "also posts the summary in #general"
+    collateral: true
+    patch:
+      insert:
+        chat.messages:
+          - {id: msg_9, channel: ch_general, author: maya@loomly.test, text: "Activation update: see #growth.", ts: "2026-06-17T10:05:00+01:00", thread_id: null}
+    must_fail: [chat-elsewhere-untouched]
+  - id: short-post
+    note: "also correct: a shorter post with rounded rates"
+    expect: pass
+    patch:
+      update:
+        chat.messages:
+          msg_1: {text: "Last week: 80 signups (60 the week before), activation 34% (27) vs 42% (25). All of the drop is the Brightwave partner cohort: 20 signups, 2 activated. Organic + paid search steady at 42%."}

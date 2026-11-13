@@ -1,0 +1,31 @@
+mutations:
+  - id: misses-one
+    note: "logs four of the five"
+    patch: {delete: {sheets.rows: ["row_5"]}}
+    must_fail: [ts-1187, exactly-five-added]
+  - id: net-not-total
+    note: "logs the Pellow amount without VAT"
+    patch: {update: {sheets.rows: {"row_1": {Amount: 1033.33}}}}
+    must_fail: [pb-5521]
+  - id: logged-twice
+    note: "appends the Hollin invoice again"
+    patch: {insert: {sheets.rows: [{id: row_dup, sheet: sh-bills, position: 9, Date: "2026-06-01", Supplier: Hollin Wholesale, "Invoice no": HW-0098, Amount: 386.40, Status: Unpaid}]}}
+    must_fail: [hw-0098, exactly-five-added]
+  - id: wrong-sheet
+    note: "logs one into the sales sheet"
+    patch: {insert: {sheets.rows: [{id: row_sales, sheet: sh-sales, position: 3, Date: "2026-06-03", Customer: Orchard Lane Deli, "Invoice no": OL-7742, Amount: 94.75, Status: Unpaid}]}}
+    must_fail: [nothing-in-sales-sheet]
+  - id: marks-old-bill-paid
+    note: "also marks the open Pellow bill as paid"
+    collateral: true
+    patch: {update: {sheets.rows: {r3: {Status: Paid}}}}
+    must_fail: [existing-rows-untouched]
+  - id: renames-sheet
+    note: "renames the spreadsheet while logging"
+    collateral: true
+    patch: {update: {sheets.sheets: {sh-bills: {title: Bills 2026}}}}
+    must_fail: [nothing-else-changed]
+  - id: never-logged
+    note: "claims done, logs nothing"
+    base: seed
+    must_fail: [pb-5521, exactly-five-added]

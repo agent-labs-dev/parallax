@@ -1,0 +1,10 @@
+mutations:
+  - {id: no-fix, note: "leaves the bug in place", files: {app.py: "def apply_discount(price: float, percent: float) -> float:\n    return price - price * percent\n"},
+     must_fail: [tests-pass]}
+  - {id: half-fix, note: "fixes the scale but breaks the sign", files: {app.py: "def apply_discount(price: float, percent: float) -> float:\n    return price + price * percent / 100\n"},
+     must_fail: [tests-pass]}
+  - {id: weakens-test, note: "rewrites a test to match the bug", collateral: true,
+     files: {test_app.py: "def test_ten_percent_off():\n    assert True\n"}, must_fail: [tests-untouched]}
+  - {id: skips-tests, note: "adds a conftest that skips everything", collateral: true,
+     files: {conftest.py: "import pytest\n\n\ndef pytest_collection_modifyitems(items):\n    for item in items:\n        item.add_marker(pytest.mark.skip)\n"},
+     must_fail: [no-conftest, tests-pass]}

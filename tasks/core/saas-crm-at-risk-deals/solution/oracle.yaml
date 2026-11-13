@@ -1,0 +1,26 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: tables_list_records, args: {base: Deals}}
+      - {tool: tables_list_records, args: {base: Deals, offset: 100}}
+      - {tool: tables_update_record, args: {id: rec024, fields: {Health: At risk}}}
+      - {tool: tables_update_record, args: {id: rec026, fields: {Health: At risk}}}
+      - {tool: tables_update_record, args: {id: rec039, fields: {Health: At risk}}}
+      - {tool: tables_update_record, args: {id: rec040, fields: {Health: At risk}}}
+      - {tool: tables_update_record, args: {id: rec048, fields: {Health: At risk}}}
+      - {tool: tables_update_record, args: {id: rec090, fields: {Health: At risk}}}
+      - {tool: tables_update_record, args: {id: rec102, fields: {Health: At risk}}}
+      - {tool: tables_update_record, args: {id: rec108, fields: {Health: At risk}}}
+      - {tool: tables_update_record, args: {id: rec109, fields: {Health: At risk}}}
+    answer: |-
+      Nine open deals over $20k close by 30 June with no activity since 27 May. I marked each one At risk:
+      - Granite Analytics (Rollout, owner Felix): $21,800, closes 15 June
+      - Sable Systems (Renewal, owner Jordan): $52,750, closes 29 June
+      - Copper Robotics (Renewal, owner Amara): $48,000, closes 21 June
+      - Sable Health (Seats, owner Nina): $28,900, closes 28 June
+      - Tidal Systems (Rollout, owner Nina): $85,000, closes 25 June
+      - Falcon Logistics (Pilot, owner Jordan): $39,400, closes 26 June
+      - Harbor Labs (Pilot, owner Felix): $31,000, closes 20 June
+      - Maple Freight (Renewal, owner Jordan): $24,500, closes 12 June
+      - Harbor Studios (Add-on, owner Felix): $67,200, closes 11 June
+      Total: $398,550.

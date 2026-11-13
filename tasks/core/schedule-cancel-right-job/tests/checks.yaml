@@ -1,0 +1,19 @@
+checks:
+  - id: reminder-stopped
+    kind: state
+    mode: missing_action
+    table: scheduler.jobs
+    where: {id: job-standup-reminder, active: true}
+    count: 0
+    note: "deleted or paused both count"
+  - {id: notes-digest-untouched, kind: state, mode: wrong_target, table: scheduler.jobs,
+     where: {id: job-standup-notes}, unchanged: true}
+  - {id: timesheet-untouched, kind: state, mode: wrong_target, table: scheduler.jobs,
+     where: {id: job-timesheet}, unchanged: true}
+  - {id: no-new-jobs, kind: state, mode: collateral_change, table: scheduler.jobs, where: {active: true}, count: 2}
+  - {id: rest-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [scheduler.jobs, user.interactions]}
+  - id: confirms
+    kind: answer
+    mode: false_claim
+    must: [{regex: "standup"}, {regex: "stop|delet|remov|cancel|paus|turn(ed)? off|disabl"}]

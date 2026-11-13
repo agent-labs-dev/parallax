@@ -1,0 +1,30 @@
+checks:
+  - id: one-digest-job
+    kind: state
+    mode: duplicate_action
+    table: scheduler.jobs
+    where: {active: true, id: {ne: job-weekly-sla}}
+    count: 1
+    note: "the corrected digest replaces the first one; a second live digest job is a duplicate"
+  - id: digest-reconciled
+    kind: state
+    mode: ignored_correction
+    table: scheduler.jobs
+    where: {active: true, id: {ne: job-weekly-sla}}
+    fields:
+      kind: cron
+      tz: Europe/London
+      spec: {regex: "^0{1,2} 0?9 \\* \\* \\*$"}
+      instruction: {regex: "urgent"}
+    note: "daily at 09:00 and scoped to urgent tickets"
+  - id: first-request-acted-on
+    kind: calls
+    mode: missing_action
+    tool: scheduler_create_job
+    before_turn: 2
+    count: {min: 1}
+    note: "the 8am job must exist before the correction, or reconciling it is never exercised"
+  - {id: sla-job-untouched, kind: state, mode: collateral_change, table: scheduler.jobs,
+     where: {id: job-weekly-sla}, unchanged: true}
+  - {id: rest-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
+     except_tables: [scheduler.jobs, mail.sent, mail.drafts, user.interactions]}

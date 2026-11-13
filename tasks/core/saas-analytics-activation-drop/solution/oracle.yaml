@@ -1,0 +1,24 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: analytics_list_insights, args: {}}
+      - {tool: analytics_run_insight, args: {id: ins_activation, date_from: "2026-06-01", date_to: "2026-06-07"}}
+      - {tool: analytics_run_insight, args: {id: ins_activation, date_from: "2026-06-08", date_to: "2026-06-14"}}
+      - {tool: analytics_funnel, args: {steps: [signed_up, project_created], window_days: 3, breakdown: source,
+         date_from: "2026-06-01", date_to: "2026-06-07"}}
+      - {tool: analytics_funnel, args: {steps: [signed_up, project_created], window_days: 3, breakdown: source,
+         date_from: "2026-06-08", date_to: "2026-06-14"}}
+      - {tool: chat_read_channel, args: {channel: growth}}
+      - tool: chat_post_message
+        args:
+          channel: growth
+          text: >-
+            Activation, week of 8 June vs 1 June: signups rose from 60 to 80 (+33%), but activation (first project
+            within 3 days) fell from 41.7% (25/60) to 33.8% (27/80). The drop is mix: the Brightwave partner launch
+            brought 20 signups and only 2 activated (10%). Organic and paid search activated at the same rate both
+            weeks (25 of 60, 41.7%).
+    answer: >-
+      Posted in #growth. Signups went from 60 to 80 (+33%) last week, and activation (signup to first project within
+      3 days) fell from 41.7% (25 of 60) to 33.8% (27 of 80). Nothing changed for existing channels: organic and paid
+      search activated 25 of 60 (41.7%) both weeks. The new partner_launch source (Brightwave, live since 8 June)
+      added 20 signups and only 2 activated (10%), which pulls the blended rate down.

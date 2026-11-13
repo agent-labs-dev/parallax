@@ -1,0 +1,21 @@
+steps:
+  turn-01:
+    calls:
+      - tool: mail_create_draft
+        args:
+          to: [priya@northwind.test]
+          in_reply_to: m4
+          body: "Hi Priya, I'm happy to go with Vendor B as long as it passes the security review. Thanks, Alex"
+        save: draft
+    answer: >-
+      Priya needs a decision between Vendor A and Vendor B before Friday. Marco pointed out Vendor A is about
+      20% cheaper but has no SSO, which IT treats as a blocker. Vendor B quoted 38,000 GBP a year including SSO,
+      and its security questionnaire is still with the security team. I drafted a reply choosing Vendor B subject
+      to the security review; it is saved as a draft, not sent.
+  turn-02:
+    calls:
+      - tool: mail_update_draft
+        args: {id: "{{saved.draft.id}}", cc: [sam@northwind.test]}
+      - tool: mail_send_draft
+        args: {id: "{{saved.draft.id}}"}
+    answer: "Sent to Priya with Sam on cc."

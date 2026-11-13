@@ -1,0 +1,95 @@
+name: release
+
+# Publishes parallax-evals to PyPI through trusted publishing (no stored token) when a
+# `v<version>` tag is pushed. The tag must match the package version, and the wheel must
+# work from outside the repository before anything is uploaded.
+on:
+  push:
+    tags: ["v*"]
+
+permissions: {}
+
+# One release per tag at a time; a release in flight is never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - name: Build
+        run: uv build
+      - name: Tag matches the package version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version=$(basename dist/*.whl | cut -d- -f2)
+          if [ "$TAG" != "v$version" ]; then
+            echo "tag $TAG does not match the package version $version" >&2
+            exit 1
+          fi
+      - name: The wheel works on its own
+        run: |
+          wheel=$(realpath dist/*.whl)
+          cd "$RUNNER_TEMP"
+          uvx --from "$wheel" parallax --version
+          uvx --from "$wheel" parallax check conformance --lint-only
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/
+
+  pypi:
+    name: pypi
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: pypi
+    permissions:
+      id-token: write  # PyPI trusted publishing, so no stored token
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+
+  github-release:
+    name: github-release
+    needs: pypi
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write  # create the release for this tag
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist/
+      - name: Release with the changelog entry
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          version=${TAG#v}
+          # The version's section of CHANGELOG.md, without its heading.
+          awk -v want="## [$version]" 'index($0, want) == 1 {on = 1; next} /^## \[|^\[[^]]*\]: / {on = 0} on' CHANGELOG.md > notes.md
+          if ! grep -q '[^[:space:]]' notes.md; then
+            echo "CHANGELOG.md has no entry for $version" >&2
+            exit 1
+          fi
+          prerelease=()
+          case "$version" in *dev* | *a* | *b* | *rc*) prerelease=(--prerelease) ;; esac
+          gh release create "$TAG" dist/* --verify-tag --title "$TAG" --notes-file notes.md "${prerelease[@]}"

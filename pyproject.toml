@@ -1,0 +1,119 @@
+[project]
+name = "parallax-evals"
+dynamic = ["version"]
+description = "Agent evaluations on seeded MCP worlds, recorded and compared in Langfuse."
+readme = "README.md"
+requires-python = ">=3.13"
+license = "MIT AND CC-BY-4.0"
+# THIRD_PARTY.md is listed so both archives carry the provenance the notices point to.
+license-files = ["LICENSE", "LICENSE-DATA", "NOTICE", "THIRD_PARTY.md"]
+dependencies = [
+    # 2.12 for `Field(exclude_if=...)` (HarnessInfo.remote_box).
+    "pydantic>=2.12",
+    # Pinned to the 2.x line: the world server uses only the low-level Server, the
+    # streamable-HTTP app and the client.
+    "mcp>=2.2,<3",
+    "httpx",
+    # WorldClient drives the MCP client transport, which takes an httpx2 client.
+    "httpx2",
+    "starlette",
+    "uvicorn",
+    "pyyaml",
+    "genai-prices",
+    "croniter",
+    # Persona and scheduler timezones resolve through zoneinfo; slim images ship no tz database.
+    "tzdata",
+    # Langfuse holds every result; 5.1 for caller-supplied experiment ids.
+    "langfuse>=5.1.0,<6",
+    "opentelemetry-sdk",
+]
+
+[project.optional-dependencies]
+browser = [
+    "browser-use-sdk==3.12.1",
+    "websockets>=15,<16",
+]
+
+[project.entry-points."parallax.harnesses"]
+browser-use-cloud = "parallax.harnesses.browser:BrowserHarnessCloud"
+browser-use-oss = "parallax.harnesses.browser:BrowserHarnessOSS"
+browser-harness = "parallax.harnesses.browser:BrowserHarnessRunner"
+cua-codex = "parallax.harnesses.browser:CuaCodexHarness"
+
+[project.entry-points."parallax.browser_observers"]
+plain-cdp = "parallax.harnesses.browser.observer:PlainCDPObserver"
+
+[dependency-groups]
+# What a task's command checks import when trusted verify runs them on the host (`web_isolation=flags`):
+# `python -m pytest` there is the runner venv's interpreter. parallax/verify.Dockerfile holds the same.
+verify = ["pytest"]
+dev = [
+    { include-group = "verify" },
+    # The browser harness tests build the hosted SDK's own response models.
+    "parallax-evals[browser]",
+    "pytest-asyncio",
+    "pytest-xdist>=3.8.0",
+    "ruff",
+    "ty==0.0.80",
+]
+
+[project.scripts]
+parallax = "parallax.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "parallax/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+# Repository branding is not runtime data; its font-derived artwork stays with its notice in Git.
+exclude = ["/assets"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["parallax"]
+# Non-Python package data. Hatch ships every file under a listed package unless
+# VCS-ignored; the explicit include documents what the runtime reads from disk.
+artifacts = [
+    "parallax/harnesses/manifests/*.toml",
+    "parallax/*.Dockerfile",
+]
+
+[tool.hatch.build.targets.wheel.force-include]
+"tasks" = "parallax/tasks"
+
+[tool.pytest.ini_options]
+testpaths = ["tests/smoke", "tests/core", "tests/world", "tests/harnesses"]
+asyncio_mode = "auto"
+# importlib mode lets test dirs stay namespace dirs (no __init__.py) without basename clashes.
+addopts = "--import-mode=importlib -m 'not langfuse'"
+# Shared test helpers, such as `dir_store`, import by module name.
+pythonpath = ["tests/core"]
+# Task fixtures ship their own verify-time tests (run inside the task box), not suite tests.
+norecursedirs = [".*", "__pycache__", "fixtures"]
+markers = [
+    "langfuse: starts a throwaway self-hosted Langfuse in Docker; opt in with `-m langfuse`",
+    "docker: needs a working docker daemon; skipped when `docker info` fails",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+src = ["parallax", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.ty.src]
+include = ["parallax"]
+
+[tool.ty.rules]
+blanket-ignore-comment = "error"
+missing-type-argument = "error"
+possibly-missing-attribute = "error"
+possibly-missing-import = "error"
+possibly-unresolved-reference = "warn"
+redundant-cast = "error"
+unsupported-dynamic-base = "error"

@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "code-scoped-timeout-edit"
+version = 1
+area = "code"
+summary = "Raise one client's timeout among three near-identical clients and leave the siblings alone"
+requires = ["mcp", "workspace", "shell"]
+maturity = "candidate"
+provenance = "converted"
+legacy_ids = ["edit_scoped_timeout_leaves_identical_siblings"]
+canary = "27c3d13f-4ab4-4f97-9e8c-80fd0ddf4dfe"

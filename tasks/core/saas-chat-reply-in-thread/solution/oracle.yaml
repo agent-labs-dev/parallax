@@ -1,0 +1,8 @@
+steps:
+  turn-01:
+    calls:
+      - tool: chat_reply_in_thread
+        args:
+          message_id: x2
+          text: "Update from Rosa: we rolled back release 4.12 at 08:50 and checkout error rates have been normal since 09:00. Root cause looks like a connection pool change; postmortem on Friday."
+    answer: "Replied in Kai's #ops thread: 4.12 was rolled back at 08:50, errors normal since 09:00, postmortem Friday."

@@ -1,0 +1,2 @@
+# Vendored: shopfront/__init__.py puts vendor/<name>-<version> on sys.path from these pins.
+tinyfmt==1.4.0

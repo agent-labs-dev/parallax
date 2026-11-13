@@ -1,0 +1,195 @@
+# Written by `parallax ci init`. Settings: repository variables LANGFUSE_BASE_URL,
+# PARALLAX_LANGFUSE_PROJECT and optionally PARALLAX_JUDGE_MODELS (the fallback panel); secrets
+# LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY and OPENROUTER_API_KEY (Jev and the fallback panel), and
+# PARALLAX_UPSTREAM_OPENAI_KEY or PARALLAX_UPSTREAM_ANTHROPIC_KEY for the wire the models use.
+# Each run's report goes to the step summary, a pull request's comment and, for main, the
+# "Parallax eval results" issue. PARALLAX_REPORT_REASONS=true (a variable) quotes invalid trials'
+# reasons, which can quote the agent's work. Secrets PARALLAX_REPORT_WEBHOOK_URL and
+# PARALLAX_REPORT_WEBHOOK_SECRET also send main and dispatched runs' reports to a webhook,
+# signed as hex HMAC-SHA256 of the body in X-Webhook-Signature.
+# Every run spends inside a campaign budget, in USD: a dispatch takes its budget and per-trial
+# reserve as inputs, and push and pull request runs use the variables PARALLAX_BUDGET_USD and
+# PARALLAX_RESERVE_USD; until both are set, those runs are skipped.
+# Until PARALLAX_LANGFUSE_PROJECT is set, the job is skipped. Pull requests from forks
+# are skipped too: they get no secrets and cannot comment.
+name: Parallax evals
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  # A campaign: each dispatch gets a fresh runner, so every run starts from the same clean machine.
+  # A blank input takes the default this workflow was written with.
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Suites, task ids, globs or filters, separated by spaces
+        default: "conformance"
+      harness:
+        description: Harness
+        default: "oracle"
+      model:
+        description: Model, blank for the default
+        default: ""
+      repeats:
+        description: Repeats per task
+        default: "1"
+      concurrency:
+        description: Trials at once
+        default: "4"
+      note:
+        description: Experiment description, e.g. what changed
+        default: ""
+      budget:
+        description: Campaign spend limit in USD
+        required: true
+      reserve:
+        description: What each trial reserves of the budget before it starts, in USD
+        required: true
+      runner:
+        description: Runner label
+        default: "blacksmith-16vcpu-ubuntu-2404"
+
+# Each job widens these for itself.
+permissions: {}
+
+concurrency:
+  # A newer push supersedes a pull request's run; each main commit keeps its own run. A dispatched
+  # campaign is a group of its own: a push never cancels it, and it never cancels another.
+  group: ${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  evaluate:
+    name: evaluate
+    if: >-
+      vars.PARALLAX_LANGFUSE_PROJECT != '' &&
+      (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork) &&
+      (github.event_name == 'workflow_dispatch' || (vars.PARALLAX_BUDGET_USD != '' && vars.PARALLAX_RESERVE_USD != ''))
+    runs-on: ${{ inputs.runner || 'ubuntu-24.04' }}
+    timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && 360 || 90 }}
+    permissions:
+      contents: read
+      issues: write  # the results issue for main runs
+      pull-requests: write  # the comment on a pull request
+    env:
+      LANGFUSE_BASE_URL: ${{ vars.LANGFUSE_BASE_URL }}
+      LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+      LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+      PARALLAX_LANGFUSE_PROJECT: ${{ vars.PARALLAX_LANGFUSE_PROJECT }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      # Without a fallback panel, a question Jev leaves uncertain makes the trial INVALID.
+      PARALLAX_JUDGE_BASE_URL: https://openrouter.ai/api/v1
+      PARALLAX_JUDGE_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      PARALLAX_JUDGE_MODELS: ${{ vars.PARALLAX_JUDGE_MODELS || 'deepseek/deepseek-v4.1-flash-1017' }}
+      # The metering proxy's provider keys; a wire without one answers 503.
+      PARALLAX_UPSTREAM_OPENAI_KEY: ${{ secrets.PARALLAX_UPSTREAM_OPENAI_KEY }}
+      PARALLAX_UPSTREAM_ANTHROPIC_KEY: ${{ secrets.PARALLAX_UPSTREAM_ANTHROPIC_KEY }}
+      BRANCH: ${{ github.head_ref || github.ref_name }}
+      RUN_ID: gh-${{ github.run_id }}-${{ github.run_attempt }}
+      PARALLAX: uv run --locked parallax
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+
+      - name: Evaluate
+        env:
+          SUITE: ${{ inputs.suite }}
+          HARNESS: ${{ inputs.harness }}
+          MODEL: ${{ inputs.model }}
+          REPEATS: ${{ inputs.repeats }}
+          CONCURRENCY: ${{ inputs.concurrency }}
+          NOTE: ${{ inputs.note }}
+          BUDGET: ${{ inputs.budget || vars.PARALLAX_BUDGET_USD }}
+          RESERVE: ${{ inputs.reserve || vars.PARALLAX_RESERVE_USD }}
+        run: |
+          set -f  # task globs are for Parallax to expand, not the shell
+          select=${SUITE:-conformance}
+          harness=${HARNESS:-oracle}
+          model=${MODEL:-}
+          meta=(--meta "commit=$GITHUB_SHA")
+          # A dispatched campaign is no branch's baseline.
+          if [ "${GITHUB_EVENT_NAME:-}" != workflow_dispatch ]; then meta+=(--meta "branch=$BRANCH"); fi
+          # shellcheck disable=SC2086 # the selection is several words
+          $PARALLAX run $select --harness "$harness" ${model:+--model "$model"} \
+            --repeats "${REPEATS:-1}" --concurrency "${CONCURRENCY:-4}" --isolation docker \
+            --budget "${BUDGET:?every run needs a campaign budget}" \
+            --reserve "${RESERVE:?every run needs a per-trial reserve}" \
+            --out "runs/$RUN_ID" --note "${NOTE:-$BRANCH ${GITHUB_SHA::8}}" "${meta[@]}"
+      - name: Finish an interrupted upload
+        if: failure()
+        run: $PARALLAX upload --resume
+      - name: Keep runs Langfuse did not take
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: parallax-runs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: runs/
+          include-hidden-files: true
+          if-no-files-found: ignore
+      - name: Report
+        id: report
+        # A failed run still reports whatever reached Langfuse; a report that fails leaves the job as it was.
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          REASONS: ${{ vars.PARALLAX_REPORT_REASONS == 'true' && '--reasons' || '' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # shellcheck disable=SC2086 # REASONS is one flag or nothing
+          $PARALLAX report "$RUN_ID" $REASONS --link "Workflow run=$RUN_URL" > report.md
+          cat report.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Compare with main
+        if: github.event_name == 'pull_request' && !cancelled()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          {
+            echo "<!-- parallax-evals -->"
+            echo "### Parallax: $RUN_ID on $BRANCH"
+            echo
+            cat report.md 2>/dev/null || echo "No report: the run did not finish."
+            echo
+            echo "#### Against the newest main run"
+            echo
+            $PARALLAX compare "$RUN_ID" --baseline "branch=main" --allow-identity-change || true
+          } > delta.md
+          # Edit this workflow's own comment, found by its marker, never another bot's.
+          mine='.[] | select(.body | startswith("<!-- parallax-evals -->")) | .id'
+          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate --jq "$mine" | tail -n 1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@delta.md > /dev/null
+          else
+            gh pr comment "$PR" --body-file delta.md
+          fi
+      - name: Post to the results issue
+        if: github.event_name == 'push' && steps.report.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Parallax eval results"
+          issue=$(gh issue list --state open --search "in:title \"$title\"" --json number,title \
+            --jq "map(select(.title == \"$title\")) | .[0].number // empty")
+          if [ -z "$issue" ]; then
+            issue=$(gh issue create --title "$title" \
+              --body "Every main run's Parallax report, newest last." | grep -o '[0-9]*$')
+          fi
+          gh issue comment "$issue" --body-file report.md
+      - name: Send the report to a webhook
+        if: github.event_name != 'pull_request' && steps.report.outcome == 'success'
+        env:
+          WEBHOOK_URL: ${{ secrets.PARALLAX_REPORT_WEBHOOK_URL }}
+          WEBHOOK_SECRET: ${{ secrets.PARALLAX_REPORT_WEBHOOK_SECRET }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          [ -n "$WEBHOOK_URL" ] && [ -n "$WEBHOOK_SECRET" ] || exit 0
+          jq -n --rawfile report report.md \
+            '{source: "parallax", repository: env.GITHUB_REPOSITORY, event: env.GITHUB_EVENT_NAME,
+              run_id: env.RUN_ID, branch: env.BRANCH, run_url: env.RUN_URL, report_markdown: $report}' > payload.json
+          signature=$(openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" -hex < payload.json | sed 's/^.* //')
+          curl -fsS -X POST "$WEBHOOK_URL" -H "Content-Type: application/json" \
+            -H "X-Webhook-Signature: $signature" --data-binary @payload.json > /dev/null \
+            || echo "::warning::the report webhook refused the report"

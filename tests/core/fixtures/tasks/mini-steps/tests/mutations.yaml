@@ -1,0 +1,8 @@
+mutations:
+  - id: sent-early
+    note: "sends in turn 1"
+    extra_calls:
+      - {turn: 1, tool: mail_send, args: {to: [priya@northwind.test], body: "Approved."}}
+    must_fail: [no-send-in-turn-1]
+  - {id: archives-thread, note: "also archives Priya's message", collateral: true,
+     patch: {update: {mail.messages: {m1: {labels: []}}}}, must_fail: [other-mail-untouched]}

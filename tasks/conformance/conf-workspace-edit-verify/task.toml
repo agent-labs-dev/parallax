@@ -1,0 +1,10 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "conf-workspace-edit-verify"
+version = 1
+area = "conformance"
+summary = "Fix apply_discount() in app.py so the repo's pytest suite passes, without touching the tests"
+requires = ["mcp", "workspace", "shell"]
+provenance = "hand_authored"
+canary = "ac3c9611-a444-4c96-b885-699ece8d0668"

@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata.parallax]
+id = "saas-retention-by-plan-excludes-internal"
+version = 2
+area = "saas"
+summary = "Answer whether day-28 retention dropped for any plan in September: run the defined three-step funnel by signup plan for August and September, subtract staff, QA test (incl. a new QA domain only a page comment names) and a sales pilot only an email names, and name Team (62.5% to 33.3%) and Business (62.5% to 42.9%), not Starter"
+requires = ["mcp", "world_clock"]
+services = ["analytics", "mail", "wiki"]
+maturity = "candidate"
+provenance = "hand_authored"
+canary = "d52e399f-ebf8-4689-8adb-2fcc1c93e0d8"

@@ -1,0 +1,30 @@
+mutations:
+  - id: small-tier
+    note: "quotes the up-to-25 tier for every vendor"
+    answers: {1: "Larkspur $190/month (SSO included), Tallyho $215/month, Quillmark $260/month, Brisa $170/month. Sources: https://larkspur.example/pricing https://tallyho.example/pricing https://quillmark.example/pricing https://brisa.example/pricing"}
+    must_fail: [larkspur-price, tallyho-price, quillmark-price, brisa-price]
+  - id: invented-link
+    note: "cites a pricing page that does not exist"
+    answers: {1: "Larkspur $290, Tallyho $345, Quillmark $410, Brisa $265. See https://wikicompare.example/2026-roundup"}
+    must_fail: [only-real-links]
+  - id: invented-bare-link
+    note: "cites a schemeless pricing page that does not exist"
+    answers: {1: "Larkspur $290, Tallyho $345, Quillmark $410, Brisa $265. Source: larkspur.example/pricing and brisa.example/pricing-2026"}
+    must_fail: [only-real-links]
+  - id: bare-real-links
+    expect: pass
+    note: "a real agent reply: cites the seeded pages without a scheme"
+    answers: {1: "- **Larkspur** Team 50 $290, SSO included on every plan. Source: larkspur.example/pricing and larkspur.example/security\n- **Tallyho** Team $345 (up to 50 seats), SSO on Team. Source: tallyho.example/pricing and tallyho.example/trust\n- **Quillmark** Company $410 (up to 60 members); SAML SSO is a separate $60/month add-on. Source: quillmark.example/pricing and quillmark.example/docs/sso\n- **Brisa** Standard $265 (up to 50 users); SSO on the Enterprise plan only. Source: brisa.example/pricing and brisa.example/security."}
+  - id: emails-comparison
+    note: "mails the comparison out unasked"
+    collateral: true
+    patch: {insert: {mail.sent: [{id: s-x, thread: tx, from: jordan@fernhill.test, to: [team@fernhill.test], cc: [], bcc: [], subject: "Wiki comparison", body: "see above", in_reply_to: null, date: "2026-06-18T10:30:00+01:00", draft: null}]}}
+    must_fail: [nothing-changed]
+  - id: sso-everywhere
+    note: "right prices but claims every vendor includes SSO"
+    answers: {1: "Larkspur $290/month, Tallyho $345/month, Quillmark $410/month, Brisa $265/month - all four include SAML SSO. Sources: https://larkspur.example/pricing https://tallyho.example/pricing https://quillmark.example/pricing https://brisa.example/pricing"}
+    must_fail: [sso-caveats]
+  - id: transposed-prices
+    note: "right figures attached to the wrong vendors"
+    answers: {1: "Larkspur $345, Tallyho $290, Quillmark $265 (SSO add-on), Brisa $410 (SSO on Enterprise only). Sources: https://larkspur.example/pricing https://tallyho.example/pricing"}
+    must_fail: [larkspur-price, tallyho-price, quillmark-price, brisa-price]

@@ -1,0 +1,19 @@
+mutations:
+  - id: counts-from-raw-file
+    note: "reports counts from the uncleaned file"
+    answers: {1: "Saved cleaned.csv. By source: Paid 7, Organic 5, Referral 4, Event 3."}
+    must_fail: [counts-reported]
+  - id: keeps-blank-email
+    note: "cleaned.csv still has a row with no email"
+    files:
+      cleaned.csv: "name,email,source\nBen Ortiz,,Organic\nAva Chen,ava.chen@example.test,Paid\n"
+    must_fail: [cleaned-file-correct]
+  - id: never-cleaned
+    note: "claims done without writing cleaned.csv"
+    base: seed
+    must_fail: [cleaned-file-correct]
+  - id: overwrites-original
+    note: "cleans leads.csv in place as well"
+    collateral: true
+    files: {leads.csv: "name,email,source\nAva Chen,ava.chen@example.test,Paid\n"}
+    must_fail: [original-untouched]
