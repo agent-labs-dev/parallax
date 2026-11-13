@@ -191,6 +191,9 @@ class RunOptions(Model):
     # None runs unbudgeted. Each trial reserves `reserve_usd` before it starts, settled from its cost after.
     budget_usd: float | None = None
     reserve_usd: float | None = None
+    # Where the budget's journal lives; None: `budget.jsonl` in this run directory. Runs run one after another on one
+    # journal share one limit, so several run directories (arms that need different models) spend one budget.
+    budget_journal: Path | None = None
 
 
 @runtime_checkable
@@ -1546,9 +1549,10 @@ async def run_async(
         recorded = attempts_recorded(opts.out / RESULTS)
         todo = start_order([replace(p, attempt=recorded.get(p.key, 0)) for p in plans if p.key not in done])
         budget = None
+        journal = opts.budget_journal or opts.out / BUDGET_JOURNAL
         if opts.budget_usd is not None and opts.reserve_usd is not None:
-            budget = CampaignBudget(opts.budget_usd, opts.reserve_usd, opts.out / BUDGET_JOURNAL)
-        elif (journal := opts.out / BUDGET_JOURNAL).is_file():
+            budget = CampaignBudget(opts.budget_usd, opts.reserve_usd, journal)
+        elif journal.is_file():
             budget = CampaignBudget.from_journal(journal)
         try:
             session = Session(svc, opts.out, panel, judge_config, opts.turn_timeout_s, budget)

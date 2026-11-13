@@ -823,6 +823,9 @@ class Step(Model):
 
 class Usage(Model):
     model: str
+    # The billed component this usage belongs to, as the harness names it in its cost components (an agent model, a
+    # verifier); None when the harness reports one component.
+    component: str | None = Field(default=None, exclude_if=lambda v: v is None)
     input: int = 0
     output: int = 0
     cache_read: int = 0

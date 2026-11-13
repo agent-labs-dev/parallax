@@ -128,7 +128,7 @@ def cmd_run(a: argparse.Namespace) -> int:
         world_public_url=a.world_public_url, world_port=a.world_port, judge=csv(a.judge) if a.judge else (),
         include_xfail=a.include_xfail, selection=" ".join(a.select), provenance_extra=extra,
         pairs=pinned, retry_invalid=a.retry_invalid, turn_timeout_s=a.turn_timeout, retry_wait_s=a.retry_wait,
-        budget_usd=a.budget, reserve_usd=a.reserve,
+        budget_usd=a.budget, reserve_usd=a.reserve, budget_journal=a.budget_journal,
     )  # fmt: skip
     run_dir = run(tasks, harnesses, models, opts)
     # Latest row per key: a transient-invalid trial's failed attempt is evidence, not a second trial.
@@ -345,6 +345,10 @@ def run_parser(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None
         help="campaign spend limit across this run and its resumes: a trial starts only while its --reserve fits",
     )  # fmt: skip
     p.add_argument("--reserve", type=float, metavar="USD", help="what each trial reserves of --budget before it starts")
+    p.add_argument(
+        "--budget-journal", type=Path, metavar="PATH",
+        help="the budget's journal (default: budget.jsonl in the run directory); runs sharing one share its limit",
+    )  # fmt: skip
     p.add_argument("--turn-timeout", type=float, metavar="SECONDS", help="kill a turn still running after this")
     p.add_argument("--out", type=Path, help="run directory (default: runs/<timestamp>); deleted once uploaded")
     p.add_argument("--resume", type=Path, metavar="RUN_DIR", help="continue an interrupted run")

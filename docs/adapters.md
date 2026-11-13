@@ -58,7 +58,7 @@ the `memory` capability measures.
 - the final `answer`;
 - a `session_id`;
 - diagnostic `steps`;
-- `usage`;
+- `usage`, one line per model, each naming its billed `component` when the harness reports several;
 - `ttft_ms`;
 - `actual_model`.
 

@@ -122,7 +122,7 @@ async def run_browsing(
     **opts: object,
 ) -> Path:
     monkeypatch.setattr(runner, "load_harness", lambda name: harness)
-    options = RunOptions(out=tmp_path / "run", isolation=Isolation.HOST, quiet=True, **opts)  # type: ignore[arg-type]
+    options = RunOptions(**{"out": tmp_path / "run", "isolation": Isolation.HOST, "quiet": True, **opts})  # type: ignore[arg-type]
     return await run_async([source_task() if task is None else task], ["browsing"], [None], options)
 
 
@@ -335,6 +335,18 @@ async def test_a_resume_reopens_the_existing_budget_without_cli_values(
     assert rows[-1].repeat == 1
     assert rows[-1].invalid_reason is not None and "budget refused" in rows[-1].invalid_reason
     assert journal.read_text() == before
+
+
+async def test_runs_sharing_a_budget_journal_share_its_limit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    budget = {"budget_usd": 0.5, "reserve_usd": 0.4, "budget_journal": tmp_path / "budget.jsonl", "retry_invalid": 0}
+    first = await run_browsing(tmp_path, monkeypatch, Browsing(), out=tmp_path / "arm-a", **budget)
+    second = await run_browsing(tmp_path, monkeypatch, Browsing(), out=tmp_path / "arm-b", **budget)
+
+    [spent] = read_results(first / "results.jsonl")
+    [refused] = read_results(second / "results.jsonl")
+    assert "budget refused" not in (spent.invalid_reason or "")
+    assert refused.invalid_reason is not None and "budget refused" in refused.invalid_reason
+    assert not (first / "budget.jsonl").exists() and not (second / "budget.jsonl").exists()
 
 
 # ---------------------------------------------------------------------------
