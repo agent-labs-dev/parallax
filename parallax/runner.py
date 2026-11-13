@@ -22,7 +22,7 @@ import sys
 import time
 from collections.abc import AsyncGenerator, Awaitable, Coroutine, Generator, Mapping, Sequence
 from dataclasses import dataclass, field, replace
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Protocol, assert_never, runtime_checkable
 from zoneinfo import ZoneInfo
@@ -108,7 +108,16 @@ from parallax.models import (
 )
 from parallax.protocols import Harness, TrialCosts, TrialDetails, TrialTiming
 from parallax.semantic import grade_checks, policy_identity, record_grade
-from parallax.task import LITE, load_patch, members, mounted_services, rebind_persona, rebind_value
+from parallax.task import (
+    DATE_PLACEHOLDER,
+    LITE,
+    fill_dates,
+    load_patch,
+    members,
+    mounted_services,
+    rebind_persona,
+    rebind_value,
+)
 from parallax.world.client import ControlClient, ControlError, admin_register
 from parallax.world.core import World, WorldError
 from parallax.world.server import WorldServer
@@ -182,6 +191,9 @@ class RunOptions(Model):
     # None runs unbudgeted. Each trial reserves `reserve_usd` before it starts, settled from its cost after.
     budget_usd: float | None = None
     reserve_usd: float | None = None
+    # Where the budget's journal lives; None: `budget.jsonl` in this run directory. Runs run one after another on one
+    # journal share one limit, so several run directories (arms that need different models) spend one budget.
+    budget_journal: Path | None = None
 
 
 @runtime_checkable
@@ -853,7 +865,11 @@ class TrialExecution:
         self.dir = trial_dir
         n_turns = len(self.task.turns) + len(self.task.meta.fires)
         self.t = Transcript(answers=[""] * n_turns)
-        self.today = datetime.now(UTC).date().isoformat() if any("{today}" in t.text for t in self.task.turns) else None
+        self.today = (
+            datetime.now(UTC).date().isoformat()
+            if any(DATE_PLACEHOLDER.search(t.text) for t in self.task.turns)
+            else None
+        )
         self.t.details = {"today": self.today} if self.today is not None else {}
         self.secrets: list[str] = [
             os.environ[env_name] for env_name in self.task.secrets.values() if os.environ.get(env_name)
@@ -1105,7 +1121,7 @@ class TrialExecution:
             data = (seed_dir(self.task) / att.path).read_bytes()
             await box.write_file(box.workspace / "attachments" / name, data)
             rels.append(f"attachments/{name}")
-        text = turn.text if self.today is None else turn.text.replace("{today}", self.today)
+        text = turn.text if self.today is None else fill_dates(turn.text, date.fromisoformat(self.today))
         if not rels:
             return text, ()
         lines = "\n".join(f"Attached: {r}" for r in rels)
@@ -1518,6 +1534,11 @@ async def run_async(
         raise ValueError("no tasks to run (xfail tasks need --include-xfail)")
     if (opts.budget_usd is None) != (opts.reserve_usd is None):
         raise ValueError("a campaign budget needs both its limit (--budget) and each trial's reservation (--reserve)")
+    if opts.budget_journal is not None and opts.budget_usd is None and not opts.budget_journal.is_file():
+        # A named journal is a budget to reopen; without limits to create it, a missing one must not mean no budget.
+        raise ValueError(
+            f"no campaign budget journal at {opts.budget_journal}; pass --budget and --reserve to start one"
+        )
     panel, judge_config = judge_setup(opts.judge)
     opts = opts.model_copy(update={"judge": panel.models if panel else ()})
     infos = [load_harness(h).info for h in harnesses]
@@ -1533,9 +1554,10 @@ async def run_async(
         recorded = attempts_recorded(opts.out / RESULTS)
         todo = start_order([replace(p, attempt=recorded.get(p.key, 0)) for p in plans if p.key not in done])
         budget = None
+        journal = opts.budget_journal or opts.out / BUDGET_JOURNAL
         if opts.budget_usd is not None and opts.reserve_usd is not None:
-            budget = CampaignBudget(opts.budget_usd, opts.reserve_usd, opts.out / BUDGET_JOURNAL)
-        elif (journal := opts.out / BUDGET_JOURNAL).is_file():
+            budget = CampaignBudget(opts.budget_usd, opts.reserve_usd, journal)
+        elif journal.is_file():
             budget = CampaignBudget.from_journal(journal)
         try:
             session = Session(svc, opts.out, panel, judge_config, opts.turn_timeout_s, budget)

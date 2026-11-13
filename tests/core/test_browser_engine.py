@@ -9,7 +9,7 @@ import json
 import struct
 import zlib
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import httpx
@@ -122,7 +122,7 @@ async def run_browsing(
     **opts: object,
 ) -> Path:
     monkeypatch.setattr(runner, "load_harness", lambda name: harness)
-    options = RunOptions(out=tmp_path / "run", isolation=Isolation.HOST, quiet=True, **opts)  # type: ignore[arg-type]
+    options = RunOptions(**{"out": tmp_path / "run", "isolation": Isolation.HOST, "quiet": True, **opts})  # type: ignore[arg-type]
     return await run_async([source_task() if task is None else task], ["browsing"], [None], options)
 
 
@@ -154,6 +154,8 @@ def test_a_source_task_has_no_world_one_turn_and_its_policys_checks() -> None:
     assert select([*discover([TASKS]), task], "shop", suites={}) == [task]  # the source name selects its tasks
     with pytest.raises(TaskError, match="no-such-policy"):
         task_from_record("shop", RECORD.model_copy(update={"grading": "no-such-policy"}))
+    with pytest.raises(TaskError, match="more than 366 days ahead"):  # an unbounded offset would overflow mid-run
+        task_from_record("shop", RECORD.model_copy(update={"prompt": "Book a flight on {today+999999999}."}))
 
 
 def test_answer_schema_reaches_the_browser_judge_state() -> None:
@@ -189,17 +191,20 @@ async def test_a_world_less_trial_mounts_no_world_and_its_hooks_reach_the_row(
 async def test_today_is_substituted_at_start_but_the_template_hash_and_details_are_stable(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    record = RECORD.model_copy(update={"prompt": "Find today's price. Today is {today}."})
+    record = RECORD.model_copy(update={"prompt": "Today is {today}. Find the price of a flight on {today+28}."})
     task = task_from_record("shop", record)
     harness = Browsing()
     run_dir = await run_browsing(tmp_path, monkeypatch, harness, task=task)
     [turn] = harness.turns
     [row] = read_results(run_dir / "results.jsonl")
-    today = datetime.now(UTC).date().isoformat()
+    today = datetime.now(UTC).date()
     assert "{today}" in task.turns[0].text
-    assert today in turn.text and "{today}" not in turn.text
+    assert (
+        turn.text
+        == f"Today is {today.isoformat()}. Find the price of a flight on {(today + timedelta(days=28)).isoformat()}."
+    )
     assert row.task_hash == record_hash(record)
-    assert row.details["today"] == today
+    assert row.details["today"] == today.isoformat()
 
 
 async def test_missing_task_secret_is_invalid_before_the_harness_starts(
@@ -330,6 +335,26 @@ async def test_a_resume_reopens_the_existing_budget_without_cli_values(
     assert rows[-1].repeat == 1
     assert rows[-1].invalid_reason is not None and "budget refused" in rows[-1].invalid_reason
     assert journal.read_text() == before
+
+
+async def test_runs_sharing_a_budget_journal_share_its_limit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    budget = {"budget_usd": 0.5, "reserve_usd": 0.4, "budget_journal": tmp_path / "budget.jsonl", "retry_invalid": 0}
+    first = await run_browsing(tmp_path, monkeypatch, Browsing(), out=tmp_path / "arm-a", **budget)
+    second = await run_browsing(tmp_path, monkeypatch, Browsing(), out=tmp_path / "arm-b", **budget)
+
+    [spent] = read_results(first / "results.jsonl")
+    [refused] = read_results(second / "results.jsonl")
+    assert "budget refused" not in (spent.invalid_reason or "")
+    assert refused.invalid_reason is not None and "budget refused" in refused.invalid_reason
+    assert not (first / "budget.jsonl").exists() and not (second / "budget.jsonl").exists()
+
+
+async def test_a_named_budget_journal_that_does_not_exist_is_refused_without_limits(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    with pytest.raises(ValueError, match="no campaign budget journal"):
+        await run_browsing(tmp_path, monkeypatch, Browsing(), budget_journal=tmp_path / "typo.jsonl")
+    assert not (tmp_path / "run").exists()
 
 
 # ---------------------------------------------------------------------------

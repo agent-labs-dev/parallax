@@ -586,7 +586,8 @@ uses these bindings, scoped to that start host.
 Use `answer_schema` for a JSON Schema when the answer has a structured shape.
 The cloud V4 adapter sends it as structured output and the browser judge receives
 it in its evidence state. Other harnesses ignore it. `{today}` in a source
-prompt is replaced with the run's UTC date at trial start and the date is saved
+prompt is replaced with the run's UTC date at trial start, and `{today+N}` with
+the date N days later, and the date is saved
 in trial details. The hash still covers the template, not the substituted date.
 
 A world-less trial gets no MCP endpoint and no persona: `Trial.mcp` and `Trial.user` are None. A harness that needs the
@@ -636,7 +637,9 @@ SECONDS` waits before the first retry round and doubles the wait each round afte
 `--budget USD --reserve USD` caps a campaign's spend. A trial starts only while its reservation fits the limit less
 what is committed, and is otherwise recorded invalid with `budget refused: ` and never retried. A finished trial
 settles its cost, and a trial of unknown cost keeps its reservation. The journal is `budget.jsonl` in the run
-directory. A resume must use the same limits, and one process holds the journal at a time.
+directory, or the path `--budget-journal PATH` names: runs that run one after another on one journal share its limit,
+so arms that need separate run directories spend one budget. A resume must use the same limits, and one process holds
+the journal at a time.
 
 ### Run artifacts and processes
 

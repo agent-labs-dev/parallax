@@ -16,6 +16,7 @@ import re
 import tomllib
 import uuid
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Literal, cast
 from urllib.parse import urlsplit
@@ -286,6 +287,18 @@ def record_hash(record: TaskRecord) -> str:
     return hashlib.sha256(json.dumps(dump, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
+# A prompt's date placeholders: `{today}` is the run's UTC date, `{today+N}` the date N days later.
+DATE_PLACEHOLDER = re.compile(r"\{today(?:\+(\d+))?\}")
+# A live site books and lists at most about a year ahead, so a later day is no task a site can answer; the bound also
+# keeps every offset inside the range `datetime.date` can represent.
+MAX_DATE_OFFSET_DAYS = 366
+
+
+def fill_dates(text: str, today: date) -> str:
+    """`text` with every date placeholder replaced by its ISO date counted from `today`."""
+    return DATE_PLACEHOLDER.sub(lambda m: (today + timedelta(days=int(m.group(1) or 0))).isoformat(), text)
+
+
 def task_from_record(source: str, record: TaskRecord) -> Task:
     """The `Task` a source's record declares: one turn of its prompt, no world, and the checks of the grading policy it
     names. Its path is a label (`<source>/<id>`), not a directory: nothing is read from it."""
@@ -299,6 +312,12 @@ def task_from_record(source: str, record: TaskRecord) -> Task:
         )
     if policy.grade is None:
         raise TaskError(f"task source {source}: grading policy {policy.id} cannot grade a world-less task (no grade)")
+    for match in DATE_PLACEHOLDER.finditer(record.prompt):
+        if int(match.group(1) or 0) > MAX_DATE_OFFSET_DAYS:
+            raise TaskError(
+                f"task source {source}: task {record.id} date placeholder {match.group(0)} is more than"
+                f" {MAX_DATE_OFFSET_DAYS} days ahead"
+            )
     if record.secrets:
         start_url = record.data.get("website", record.data.get("start_url"))
         if not isinstance(start_url, str) or not urlsplit(start_url).hostname:
