@@ -85,6 +85,8 @@ class GradingPolicy:
     grade: Callable[[GradeRequest], Awaitable[Graded]] | None = None
     # What its judge uses, when the policy declares it: its identity is recorded on every row it grades.
     judge: JudgePolicy | None = None
+    # Source-owned identities may include a configured upstream model without changing the shared judge route.
+    identity: Callable[[], str] | None = None
 
 
 @dataclass(frozen=True)

@@ -34,9 +34,10 @@ from parallax.harnesses.browser.cloud import (
     devtools_websocket,
 )
 from parallax.harnesses.browser.observer import load_observer
-from parallax.harnesses.browser.site import Unavailable
+from parallax.harnesses.browser.site import Unavailable, site_down
 from parallax.harnesses.browser.subprocess import JsonWorker
 from parallax.models import (
+    Area,
     Capability,
     CostSource,
     HarnessInfo,
@@ -44,6 +45,7 @@ from parallax.models import (
     Isolation,
     Step,
     StepKind,
+    Task,
     Timing,
     Trial,
     TurnInput,
@@ -219,6 +221,8 @@ class BrowserHarness(ABC):
         self._citations: list[dict[str, Any]] = []
         self._cost: dict[str, float | None] = {}
         self._details: dict[str, Any] = {"observer": self.config.observer}
+        self._start_url: str | None = None
+        self._site_preflight_done = False
         self.trial_invalid: list[str] = []
         self.trial_notes: list[str] = []
 
@@ -232,6 +236,19 @@ class BrowserHarness(ABC):
             raise RuntimeError("browser harness has not started")
         return self._trial
 
+    def bind_task(self, task: Task) -> None:
+        """Remember a source task's start URL so a site outage never becomes an agent failure."""
+        if task.meta.area is Area.BROWSER:
+            value = task.data.get("website", task.data.get("start_url"))
+            self._start_url = value if isinstance(value, str) else None
+
+    async def _site_preflight(self) -> str | None:
+        if self._site_preflight_done or self._start_url is None:
+            return None
+        self._site_preflight_done = True
+        async with httpx.AsyncClient() as client:
+            return await site_down(client, self._start_url)
+
     async def start(self, trial: Trial, box: Any) -> None:
         self._trial = trial
         self._clock = AttemptClock(bounded=False)
@@ -240,9 +257,13 @@ class BrowserHarness(ABC):
 
     async def turn(self, turn: TurnInput) -> TurnOutput:
         began = time.monotonic()
-        self._agent_started()
         try:
-            result = await self.execute(turn)
+            reason = await self._site_preflight()
+            if reason is not None:
+                result = {"status": "unavailable", "answer": None, "error": reason}
+            else:
+                self._agent_started()
+                result = await self.execute(turn)
         except Unavailable as error:
             result = {"status": "unavailable", "answer": None, "error": str(error)}
         except Exception as error:

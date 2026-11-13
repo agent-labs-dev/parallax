@@ -705,6 +705,7 @@ dependencies = [
 [package.optional-dependencies]
 browser = [
     { name = "browser-use-sdk" },
+    { name = "cryptography" },
     { name = "websockets" },
 ]
 
@@ -725,6 +726,7 @@ verify = [
 requires-dist = [
     { name = "browser-use-sdk", marker = "extra == 'browser'", specifier = "==3.12.1" },
     { name = "croniter" },
+    { name = "cryptography", marker = "extra == 'browser'", specifier = ">=43" },
     { name = "genai-prices" },
     { name = "httpx" },
     { name = "httpx2" },

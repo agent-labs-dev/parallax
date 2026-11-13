@@ -351,7 +351,11 @@ def decide(
     """NA > INVALID > FAIL > PASS; returns the verdict and, for INVALID, its reason."""
     if na_reason is not None:
         return Verdict.NA, None
-    missing = [f"{c.id}: {c.detail}" for c in checks if c.passed is None and not c.advisory]
+    missing = [
+        c.detail if c.detail.startswith(ENVIRONMENT_INTERRUPTION) else f"{c.id}: {c.detail}"
+        for c in checks
+        if c.passed is None and not c.advisory
+    ]
     reasons = [*invalid_reasons, *missing]
     if execution_valid is False:
         reasons.insert(0, "semantic judge rejected execution validity")
