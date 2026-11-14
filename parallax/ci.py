@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import re
 import shlex
+from collections.abc import Sequence
 from pathlib import Path
 
 from parallax import __version__, jev
@@ -25,21 +26,7 @@ MARKER = "<!-- parallax-evals -->"
 JUDGE_MODEL = DEFAULT_MODEL
 
 TEMPLATE = """\
-# Written by `parallax ci init`. Settings: repository variables LANGFUSE_BASE_URL,
-# PARALLAX_LANGFUSE_PROJECT and optionally PARALLAX_JUDGE_MODELS (the fallback panel); secrets
-# LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY and OPENROUTER_API_KEY (Jev and the fallback panel), and
-# PARALLAX_UPSTREAM_OPENAI_KEY or PARALLAX_UPSTREAM_ANTHROPIC_KEY for the wire the models use.
-# Each run's report goes to the step summary, a pull request's comment and, for {branch}, the
-# "Parallax eval results" issue. PARALLAX_REPORT_REASONS=true (a variable) quotes invalid trials'
-# reasons, which can quote the agent's work. Secrets PARALLAX_REPORT_WEBHOOK_URL and
-# PARALLAX_REPORT_WEBHOOK_SECRET also send {branch} and dispatched runs' reports to a webhook,
-# signed as hex HMAC-SHA256 of the body in X-Webhook-Signature.
-# Every run spends inside a campaign budget, in USD: a dispatch takes its budget and per-trial
-# reserve as inputs, and push and pull request runs use the variables PARALLAX_BUDGET_USD and
-# PARALLAX_RESERVE_USD; until both are set, those runs are skipped.
-# Until PARALLAX_LANGFUSE_PROJECT is set, the job is skipped. Pull requests from forks
-# are skipped too: they get no secrets and cannot comment.
-name: Parallax evals
+{header}name: Parallax evals
 
 on:
   pull_request:
@@ -96,8 +83,7 @@ jobs:
     runs-on: ${{{{ inputs.runner || {runner} }}}}
     timeout-minutes: ${{{{ github.event_name == 'workflow_dispatch' && 360 || 90 }}}}
     permissions:
-      contents: read
-      issues: write  # the results issue for {branch} runs
+      contents: read{issue_permission}
       pull-requests: write  # the comment on a pull request
     env:
       LANGFUSE_BASE_URL: ${{{{ vars.LANGFUSE_BASE_URL }}}}
@@ -108,10 +94,7 @@ jobs:
       # Without a fallback panel, a question Jev leaves uncertain makes the trial INVALID.
       PARALLAX_JUDGE_BASE_URL: {judge_base_url}
       PARALLAX_JUDGE_API_KEY: ${{{{ secrets.OPENROUTER_API_KEY }}}}
-      PARALLAX_JUDGE_MODELS: ${{{{ vars.PARALLAX_JUDGE_MODELS || '{judge}' }}}}
-      # The metering proxy's provider keys; a wire without one answers 503.
-      PARALLAX_UPSTREAM_OPENAI_KEY: ${{{{ secrets.PARALLAX_UPSTREAM_OPENAI_KEY }}}}
-      PARALLAX_UPSTREAM_ANTHROPIC_KEY: ${{{{ secrets.PARALLAX_UPSTREAM_ANTHROPIC_KEY }}}}
+      PARALLAX_JUDGE_MODELS: ${{{{ vars.PARALLAX_JUDGE_MODELS || '{judge}' }}}}{upstream_env}
       BRANCH: ${{{{ github.head_ref || github.ref_name }}}}
       RUN_ID: gh-${{{{ github.run_id }}}}-${{{{ github.run_attempt }}}}
       PARALLAX: {parallax}
@@ -191,7 +174,80 @@ jobs:
             gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@delta.md > /dev/null
           else
             gh pr comment "$PR" --body-file delta.md
-          fi
+          fi{issue_step}{webhook_step}
+"""
+
+
+# The meter's wires, and the extra destinations a branch or dispatched run's report can reach.
+UPSTREAMS = ("openai", "anthropic")
+REPORT_SINKS = ("issue", "webhook")
+UPSTREAM_NAMES = {"openai": "OpenAI", "anthropic": "Anthropic"}
+
+
+def _checked(values: Sequence[str], allowed: tuple[str, ...], flag: str) -> tuple[str, ...]:
+    """The chosen values in canonical order; an unknown one is an error, not a silent omission."""
+    if bad := sorted(set(values) - set(allowed)):
+        raise ValueError(f"{flag} {bad[0]!r}: choose from {', '.join(allowed)}")
+    return tuple(value for value in allowed if value in values)
+
+
+def _header(*, branch: str, upstreams: Sequence[str], sinks: Sequence[str]) -> str:
+    """The comment above the workflow, naming only the settings this repository's runs use."""
+    lines = [
+        "# Written by `parallax ci init`. Settings: repository variables LANGFUSE_BASE_URL,",
+        "# PARALLAX_LANGFUSE_PROJECT and optionally PARALLAX_JUDGE_MODELS (the fallback panel); secrets",
+        "# LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY and OPENROUTER_API_KEY (Jev and the fallback panel)",
+    ]
+    if upstreams:
+        keys = [f"PARALLAX_UPSTREAM_{wire.upper()}_KEY" for wire in upstreams]
+        lines[-1] += ", and"
+        if len(keys) == 1:
+            lines.append(f"# {keys[0]} for the {UPSTREAM_NAMES[upstreams[0]]} wire the models use.")
+        else:
+            lines.append(f"# {' or '.join(keys)} for the wire the models use.")
+    else:
+        lines[-1] += "."
+    if "issue" in sinks:
+        lines += [
+            f"# Each run's report goes to the step summary, a pull request's comment and, for {branch}, the",
+            '# "Parallax eval results" issue. PARALLAX_REPORT_REASONS=true (a variable) quotes invalid trials\'',
+        ]
+    else:
+        lines += [
+            "# Each run's report goes to the step summary and a pull request's comment.",
+            "# PARALLAX_REPORT_REASONS=true (a variable) quotes invalid trials'",
+        ]
+    if "webhook" in sinks:
+        lines += [
+            "# reasons, which can quote the agent's work. Secrets PARALLAX_REPORT_WEBHOOK_URL and",
+            f"# PARALLAX_REPORT_WEBHOOK_SECRET also send {branch} and dispatched runs' reports to a webhook,",
+            "# signed as hex HMAC-SHA256 of the body in X-Webhook-Signature.",
+        ]
+    else:
+        lines.append("# reasons, which can quote the agent's work.")
+    lines += [
+        "# Every run spends inside a campaign budget, in USD: a dispatch takes its budget and per-trial",
+        "# reserve as inputs, and push and pull request runs use the variables PARALLAX_BUDGET_USD and",
+        "# PARALLAX_RESERVE_USD; until both are set, those runs are skipped.",
+        "# Until PARALLAX_LANGFUSE_PROJECT is set, the job is skipped. Pull requests from forks",
+        "# are skipped too: they get no secrets and cannot comment.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def _upstream_env(upstreams: Sequence[str]) -> str:
+    """The meter's provider-key lines, or nothing when the repository's models use no metered wire."""
+    if not upstreams:
+        return ""
+    lines = ["      # The metering proxy's provider keys; a wire without one answers 503."]
+    for wire in upstreams:
+        key = f"PARALLAX_UPSTREAM_{wire.upper()}_KEY"
+        lines.append(f"      {key}: " + "${{ secrets." + key + " }}")
+    return "\n" + "\n".join(lines)
+
+
+def _issue_step(branch: str) -> str:
+    return f"""
       - name: Post to the results issue
         if: github.event_name == 'push' && steps.report.outcome == 'success'
         env:
@@ -204,23 +260,25 @@ jobs:
             issue=$(gh issue create --title "$title" \\
               --body "Every {branch} run's Parallax report, newest last." | grep -o '[0-9]*$')
           fi
-          gh issue comment "$issue" --body-file report.md
+          gh issue comment "$issue" --body-file report.md"""
+
+
+WEBHOOK_STEP = """
       - name: Send the report to a webhook
         if: github.event_name != 'pull_request' && steps.report.outcome == 'success'
         env:
-          WEBHOOK_URL: ${{{{ secrets.PARALLAX_REPORT_WEBHOOK_URL }}}}
-          WEBHOOK_SECRET: ${{{{ secrets.PARALLAX_REPORT_WEBHOOK_SECRET }}}}
-          RUN_URL: ${{{{ github.server_url }}}}/${{{{ github.repository }}}}/actions/runs/${{{{ github.run_id }}}}
+          WEBHOOK_URL: ${{ secrets.PARALLAX_REPORT_WEBHOOK_URL }}
+          WEBHOOK_SECRET: ${{ secrets.PARALLAX_REPORT_WEBHOOK_SECRET }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           [ -n "$WEBHOOK_URL" ] && [ -n "$WEBHOOK_SECRET" ] || exit 0
           jq -n --rawfile report report.md \\
-            '{{source: "parallax", repository: env.GITHUB_REPOSITORY, event: env.GITHUB_EVENT_NAME,
-              run_id: env.RUN_ID, branch: env.BRANCH, run_url: env.RUN_URL, report_markdown: $report}}' > payload.json
+            '{source: "parallax", repository: env.GITHUB_REPOSITORY, event: env.GITHUB_EVENT_NAME,
+              run_id: env.RUN_ID, branch: env.BRANCH, run_url: env.RUN_URL, report_markdown: $report}' > payload.json
           signature=$(openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" -hex < payload.json | sed 's/^.* //')
           curl -fsS -X POST "$WEBHOOK_URL" -H "Content-Type: application/json" \\
             -H "X-Webhook-Signature: $signature" --data-binary @payload.json > /dev/null \\
-            || echo "::warning::the report webhook refused the report"
-"""
+            || echo "::warning::the report webhook refused the report\""""
 
 
 def render(
@@ -235,10 +293,14 @@ def render(
     runner: str = "ubuntu-24.04",
     dispatch_runner: str | None = None,
     from_checkout: bool = False,
+    upstreams: Sequence[str] = UPSTREAMS,
+    report_sinks: Sequence[str] = REPORT_SINKS,
 ) -> str:
     # A label lands in the YAML and in a quoted expression, so it must need no escaping in either.
     if bad := [r for r in (runner, dispatch_runner) if r is not None and not re.fullmatch(r"[A-Za-z0-9._-]+", r)]:
         raise ValueError(f"runner label {bad[0]!r}: use letters, digits, '.', '_' and '-'")
+    wires = _checked(upstreams, UPSTREAMS, "upstream")
+    sinks = _checked(report_sinks, REPORT_SINKS, "report sink")
     # A block scalar, so any shell (several lines, `: `, ` #`) reaches the runner unchanged.
     body = "".join(f"          {line}\n" if line.strip() else "\n" for line in install.strip().splitlines())
     step = f"      - name: Install the harness\n        run: |\n{body}" if install.strip() else ""
@@ -246,6 +308,11 @@ def render(
     select = " ".join(shlex.split(suite))
     return TEMPLATE.format(
         branch=branch,
+        header=_header(branch=branch, upstreams=wires, sinks=sinks),
+        issue_permission=f"\n      issues: write  # the results issue for {branch} runs" if "issue" in sinks else "",
+        upstream_env=_upstream_env(wires),
+        issue_step=_issue_step(branch) if "issue" in sinks else "",
+        webhook_step=WEBHOOK_STEP if "webhook" in sinks else "",
         marker=MARKER,
         # From a checkout, the Parallax revision is what the pull request changes, so a differing one is paired.
         compare_flags=" --allow-identity-change" if from_checkout else "",
@@ -281,6 +348,8 @@ def write_workflow(
     runner: str = "ubuntu-24.04",
     dispatch_runner: str | None = None,
     from_checkout: bool = False,
+    upstreams: Sequence[str] = UPSTREAMS,
+    report_sinks: Sequence[str] = REPORT_SINKS,
 ) -> Path:
     if path.exists() and not force:
         raise FileExistsError(f"{path} exists; --force replaces it")
@@ -288,6 +357,7 @@ def write_workflow(
     text = render(
         suite=suite, harness=harness, model=model, repeats=repeats, install=install, isolation=isolation, branch=branch,
         runner=runner, dispatch_runner=dispatch_runner, from_checkout=from_checkout,
+        upstreams=upstreams, report_sinks=report_sinks,
     )  # fmt: skip
     path.write_text(text, encoding="utf-8")
     return path

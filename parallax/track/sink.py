@@ -59,6 +59,8 @@ PAGE = 100
 EXPERIMENT_ENVIRONMENT = "sdk-experiment"
 # The experiments API needs a lower time bound; every Parallax run is later than this.
 EPOCH = datetime(2024, 1, 1, tzinfo=UTC)
+# The experiment metadata compare reads; an experiment lacking any of it is not a Parallax run.
+REQUIRED_META = ("run_id", "row", "judge_policy")
 
 
 class TrackError(RuntimeError):
@@ -393,8 +395,34 @@ def mark_verified(client: Langfuse, tracked: TrackedRun, experiments: Sequence[t
     client.flush()
 
 
-def list_runs(client: Langfuse, dataset: str) -> list[RunRecord]:
-    """Every Parallax experiment on the dataset, newest first, with run-level scores."""
+@dataclass(frozen=True)
+class Listing:
+    """The Parallax experiments on one dataset, and the experiments Langfuse holds instead."""
+
+    runs: tuple[RunRecord, ...]
+    skipped: int = 0
+    missing: tuple[str, ...] = ()  # which of REQUIRED_META the skipped experiments lacked
+
+    def skipped_note(self) -> str | None:
+        """A sentence naming the experiments left out and what they lack, or None when there are none."""
+        if not self.skipped:
+            return None
+        if self.skipped == 1:
+            return (
+                f"1 experiment on this dataset lacks Parallax run metadata ({', '.join(self.missing)}); it was skipped"
+            )
+        return (
+            f"{self.skipped} experiments on this dataset lack Parallax run metadata ({', '.join(self.missing)}); "
+            "they were skipped"
+        )
+
+
+def list_runs(client: Langfuse, dataset: str) -> Listing:
+    """Every Parallax experiment on the dataset, newest first, and the experiments it left out.
+
+    An experiment Langfuse holds without the metadata compare reads (one written by another tool)
+    is counted and its missing keys recorded, rather than silently dropped.
+    """
     try:
         dataset_id = client.api.datasets.get(dataset_name=quote(dataset, safe="")).id
     except NotFoundError as exc:
@@ -402,6 +430,8 @@ def list_runs(client: Langfuse, dataset: str) -> list[RunRecord]:
             f"no dataset {dataset!r} in this project: nothing is tracked there yet, or --dataset is wrong"
         ) from exc
     out: list[RunRecord] = []
+    skipped = 0
+    missing: set[str] = set()
     cursor: str | None = None
     while True:
         page = client.api.experiments.list(
@@ -409,8 +439,11 @@ def list_runs(client: Langfuse, dataset: str) -> list[RunRecord]:
         )
         for e in page.data:
             metadata = {k: metadata_value(v) for k, v in (e.metadata or {}).items()}
-            if "run_id" not in metadata:
-                continue  # an experiment Parallax did not write
+            absent = [key for key in REQUIRED_META if key not in metadata]
+            if absent:
+                skipped += 1  # an experiment Parallax did not write, or wrote before a key existed
+                missing.update(absent)
+                continue
             scores = {sc.name: float(sc.value) for sc in (e.scores or []) if isinstance(sc.value, int | float)}
             # Langfuse dates an experiment by when it was pushed; the run itself says when it ran.
             started = datetime.fromisoformat(metadata["started_at"]) if "started_at" in metadata else e.start_time
@@ -418,7 +451,8 @@ def list_runs(client: Langfuse, dataset: str) -> list[RunRecord]:
         cursor = page.meta.cursor
         if not cursor or not page.data:
             break
-    return sorted(out, key=lambda r: r.started_at, reverse=True)
+    ordered = sorted(out, key=lambda r: r.started_at, reverse=True)
+    return Listing(tuple(ordered), skipped, tuple(key for key in REQUIRED_META if key in missing))
 
 
 def _task_record(raw_input: object, raw_output: object) -> TaskRecord | None:

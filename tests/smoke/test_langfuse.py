@@ -132,7 +132,7 @@ def _read_back(client: Langfuse, project_id: str, tracked: TrackedRun, original:
     """Everything the run measured is in Langfuse exactly once, and the evidence is byte-identical."""
     dataset = client.get_dataset(DATASET)
     assert sorted(i.id for i in dataset.items) == sorted(i.id for i in tracked.items)
-    recorded = {r.id: r for r in list_runs(client, DATASET)}
+    recorded = {r.id: r for r in list_runs(client, DATASET).runs}
     assert len(recorded) == len(tracked.runs) == len(HARNESSES)
     files = {p.relative_to(original).as_posix(): p.read_bytes() for p in original.rglob("*") if p.is_file()}
     carried: set[str] = set()
@@ -183,11 +183,11 @@ def test_run_is_recorded_resumed_and_read_back(
     _kill_during_verification(root)
     assert pending(root) == [run_dir], "a killed upload must keep the run for --resume"
     client, project_ = connect(write=False)
-    assert not any(VERIFIED in r.scores for r in list_runs(client, DATASET)), "a half-uploaded run is no baseline"
+    assert not any(VERIFIED in r.scores for r in list_runs(client, DATASET).runs), "a half-uploaded run is no baseline"
     assert main(["upload", "--resume", "--root", str(root)]) == OK
     assert pending(root) == [] and not run_dir.exists()
     deadline = time.monotonic() + 60
-    while not all(VERIFIED in r.scores for r in list_runs(client, DATASET)):  # scores land asynchronously
+    while not all(VERIFIED in r.scores for r in list_runs(client, DATASET).runs):  # scores land asynchronously
         assert time.monotonic() < deadline, "the resumed upload never marked its run verified"
         time.sleep(1)
 
