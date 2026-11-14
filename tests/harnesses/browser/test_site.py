@@ -32,12 +32,11 @@ async def test_site_down_classifies_transport_failures() -> None:
     assert reason is not None and "ConnectError" in reason
 
 
-async def test_site_down_classifies_access_blocks_before_agent_actions() -> None:
-    transport = httpx.MockTransport(lambda _: httpx.Response(403))
+@pytest.mark.parametrize("status", [401, 403])
+async def test_site_down_does_not_block_browser_on_http_access_refusal(status: int) -> None:
+    transport = httpx.MockTransport(lambda _: httpx.Response(status))
     async with httpx.AsyncClient(transport=transport) as client:
-        assert await site_down(client, "https://site.test/start") == (
-            "site unavailable: https://site.test/start answered HTTP 403"
-        )
+        assert await site_down(client, "https://site.test/start") is None
 
 
 async def test_site_watch_records_an_overlapping_stall() -> None:

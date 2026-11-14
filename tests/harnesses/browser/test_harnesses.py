@@ -574,5 +574,47 @@ async def test_browser_site_preflight_is_an_environment_interruption(monkeypatch
     assert harness.trial_costs() == {"model": 0.0}
 
 
+async def test_browser_access_refusal_still_starts_the_browser(monkeypatch) -> None:
+    from parallax.harnesses.browser.harnesses import BrowserHarness
+    from parallax.models import Area, Capability, Maturity, Provenance, TaskRecord
+    from parallax.task import task_from_record
+
+    class Harness(BrowserHarness):
+        info = BrowserHarnessOSS.info
+        executed = False
+
+        async def execute(self, _: object) -> dict[str, object]:
+            self.executed = True
+            return {"status": "done", "answer": "ok"}
+
+    record = TaskRecord(
+        id="browser-access-refusal",
+        version=1,
+        area=Area.BROWSER,
+        summary="access refusal",
+        prompt="visit the site",
+        grading="browser-evidence-v2",
+        requires=frozenset({Capability.BROWSER}),
+        maturity=Maturity.REGRESSION,
+        provenance=Provenance.CONVERTED,
+        data={"website": "https://site.test/start"},
+    )
+    task = task_from_record("fixture-source", record)
+    harness = Harness()
+    harness.bind_task(task)
+
+    async def allow(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr("parallax.harnesses.browser.harnesses.site_down", allow)
+    harness._trial = SimpleNamespace(model=None)
+    from parallax.harnesses.browser.clock import AttemptClock
+
+    harness._clock = AttemptClock(bounded=False)
+    output = await harness.turn(SimpleNamespace(index=1, text="visit"))
+    assert harness.executed
+    assert output.error is None
+
+
 async def _unavailable() -> str:
     return "site unavailable"
