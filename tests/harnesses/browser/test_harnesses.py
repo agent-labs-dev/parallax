@@ -571,6 +571,7 @@ async def test_browser_site_preflight_is_an_environment_interruption(monkeypatch
     output = await harness.turn(SimpleNamespace(index=1, text="visit"))
     assert output.error == "environment interruption: site unavailable"
     assert not harness.executed
+    assert harness.trial_costs() == {"model": 0.0}
 
 
 async def _unavailable() -> str:
