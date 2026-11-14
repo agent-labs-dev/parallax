@@ -49,6 +49,33 @@ item. So an upload that stopped part way is finished by
 anything. Scores carry the run's start time, so charts place a run when it ran
 even if it was uploaded later.
 
+## Experiments written by another tool
+
+A tool that builds `parallax.track.projection.RunSpec`s and records them through the Langfuse SDK
+writes the same experiments Parallax does. Parallax reads them back when they carry this shape.
+
+Each experiment's metadata must hold `run_id`, `row` and `judge_policy`. `parallax show` and
+`parallax compare` skip an experiment that lacks any of them, and say how many they skipped and
+which keys were missing. The other keys decide whether two runs pair:
+
+| key | reader |
+|---|---|
+| `started_at` | an ISO 8601 time; without it Langfuse's push time dates the experiment |
+| `judge_identity` | the declared judging policy's identity; runs with different values do not pair |
+| `judge` | a JSON list of judge models; a different list does not pair |
+| `harness_versions`, `config_hashes` | JSON lists, one row's values; a difference does not pair |
+| `parallax_head` | the Parallax revision; a difference does not pair |
+
+`parallax.track.projection.RESERVED_META` lists every key Parallax writes itself: `--meta` refuses
+them, and another writer should leave them to the run's own values.
+
+Each experiment item's input is an `ItemInput` (`task_id`, `task_version`) and its output an
+`ItemOutput` (`outcome`, `verdicts`, `failed_checks`, `cost_usd`, `agent_ms`, `harness_version`,
+`config_hash`, `actual_models`, `repeats`). `verdicts` is one 0 or 1 per valid repeat: those are the
+values `compare` pairs. Its run-level scores should include the numeric `valid_trials` and
+`invalid_trials` counts, which `compare` uses for the 10% invalid-share gate, and a `verified` score
+of 1.0 on any experiment another run may use as a baseline: a baseline must be verified.
+
 ## Versioning
 
 A task's `version` (bumped whenever its grading changes) is part of its item id,

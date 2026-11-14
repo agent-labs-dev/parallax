@@ -178,13 +178,15 @@ def cmd_show(a: argparse.Namespace) -> int:
     from parallax.track.sink import connect, find_runs, list_runs, load_tasks
 
     client, _ = connect(write=False)
-    runs = list_runs(client, a.dataset)
+    listing = list_runs(client, a.dataset)
     if a.run is None:
-        for run in runs[: a.limit]:
+        for run in listing.runs[: a.limit]:
             scores = ", ".join(f"{k} {run.scores[k]:.0%}" for k in ("pass_at_1", "pass_all_repeats") if k in run.scores)
             print(f"{run.started_at:%Y-%m-%d %H:%M}  {run.row.replace('|', '/'):40}  {scores:38}  {run.name}")
+        if note := listing.skipped_note():
+            print(note)
         return OK
-    for run in find_runs(runs, a.run):
+    for run in find_runs(listing.runs, a.run):
         loaded = load_tasks(client, run)
         print(f"{run.name}  ({run.id})")
         for key, task in sorted(loaded.tasks.items()):
@@ -201,7 +203,7 @@ def cmd_report(a: argparse.Namespace) -> int:
 
     client, project = connect(write=False)
     links = pairs(a.link, "--link")
-    for run in find_runs(list_runs(client, a.dataset), a.run):
+    for run in find_runs(list_runs(client, a.dataset).runs, a.run):
         items, reasons = [], {}
         for item in experiment_items(client, run.id, "core,io"):
             output = decode(item.output)
@@ -234,8 +236,11 @@ def cmd_compare(a: argparse.Namespace) -> int:
     from parallax.track.sink import connect, find_runs, list_runs, load_tasks
 
     client, project_ = connect(write=False)
-    runs = list_runs(client, a.dataset)
+    listing = list_runs(client, a.dataset)
+    runs = listing.runs
     if not runs:
+        if note := listing.skipped_note():
+            raise TrackError(f"nothing to compare: {note}")
         raise TrackError("nothing is recorded yet; `parallax run` records a run")
     where, named = baseline_args(a.baseline, runs)
     notes: list[str] = []
@@ -302,6 +307,7 @@ def cmd_ci_init(a: argparse.Namespace) -> int:
         a.path, suite=a.suite, harness=a.harness, model=a.model, repeats=a.repeats, install=a.install,
         isolation=a.isolation.value, branch=a.branch, force=a.force, runner=a.runner,
         dispatch_runner=a.dispatch_runner, from_checkout=a.from_checkout,
+        upstreams=csv(a.upstream), report_sinks=csv(a.report_sink),
     )  # fmt: skip
     print(f"wrote {path}\nnext: set the repository variables and secrets it names, then open a pull request")
     return OK
@@ -440,6 +446,16 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--branch", default="main", help="the default branch, whose runs are the baseline")
     p.add_argument("--runner", default="ubuntu-24.04", help="runner label for push and pull request runs")
     p.add_argument("--dispatch-runner", help="default runner label for a dispatched campaign (default: --runner)")
+    p.add_argument(
+        "--upstream", default="openai,anthropic", metavar="WIRE[,WIRE]",
+        help="the meter's wires the repository's models use, from openai and anthropic (default: %(default)s); "
+        "an empty value writes no provider key",
+    )  # fmt: skip
+    p.add_argument(
+        "--report-sink", default="issue,webhook", metavar="SINK[,SINK]",
+        help="where a branch or dispatched run's report also goes, from issue and webhook (default: %(default)s); "
+        "the step summary and a pull request's comment are always written, an empty value adds neither",
+    )  # fmt: skip
     p.add_argument(
         "--from-checkout", action="store_true",
         help="run the checked-out commit's Parallax instead of this release (for Parallax's own repository)",
