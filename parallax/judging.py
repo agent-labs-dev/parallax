@@ -451,7 +451,7 @@ class JudgePolicy(Model):
     under different identities never pool (`stats.judge_identity`).
     """
 
-    name: str  # e.g. "browser-evidence-v1"
+    name: str  # e.g. "browser-evidence-v2"
     questions: dict[str, str]
     # How the policy builds the state it judges, named and versioned by the policy: change the builder, change it.
     evidence_form: str

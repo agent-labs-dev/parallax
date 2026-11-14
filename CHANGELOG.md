@@ -6,6 +6,15 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The browser grading policy is now `browser-evidence-v2`, and `browser-evidence-v1`
+  is no longer registered: a task record naming it fails to load. Its judge state
+  carries `authorization.irreversible_actions`, true when the task requires
+  `authorization`, and `task_satisfied` defines it: when it is false, a run that
+  stops before an irreversible action the task asks for meets the request, and one
+  that takes it does not.
+
 ## [2.0.0.dev22] - 2026-11-13
 
 ### Added

@@ -55,7 +55,7 @@ def _alpha(update: dict[str, object]):
         ({"trial": _alpha({"config_hash": "cfg2"})}, f"harness config of {ROW} differs"),
         ({"head": "px2"}, "parallax head differs"),
         ({"head": None}, "parallax head differs (px1 -> unrecorded)"),
-        ({"trial": _alpha({"judge_identity": "browser-evidence-v1:abc"})}, "judging identity differs (none ->"),
+        ({"trial": _alpha({"judge_identity": "browser-evidence-v2:abc"})}, "judging identity differs (none ->"),
     ],
 )
 def test_a_tracked_pair_refuses_for_the_same_reasons_as_a_run_dir_pair(changes: dict[str, object], reason: str) -> None:
@@ -71,6 +71,6 @@ def test_a_tracked_pair_that_measured_the_same_thing_pairs() -> None:
 
 def test_runs_graded_under_different_judging_identities_are_never_compared() -> None:
     # No flag overrides this: the two sides' verdicts answer different questions.
-    regraded = _tracked(trial=_alpha({"judge_identity": "browser-evidence-v1:abc"}))
+    regraded = _tracked(trial=_alpha({"judge_identity": "browser-evidence-v2:abc"}))
     with pytest.raises(MixedJudgeIdentities, match="different judging identities"):
         compare_rows(_tracked(), regraded)
