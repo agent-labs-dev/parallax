@@ -100,10 +100,11 @@ def test_evidence_is_normalised_to_the_shared_browser_shape() -> None:
         page={"url": "https://site.test/", "title": "Done", "text": "Complete", "error": "ignored"},
         answer="Finished",
         steps=[{"operation": "click", "url": "https://site.test/", "observation": "Complete"}],
-        citations=[{"url": "https://site.test/", "quote": "Complete"}],
+        citations=[{"id": 1, "url": "https://site.test/", "quote": "Complete", "deep_link": "https://site.test/#q"}],
     )
     assert evidence["final_page"] == {"url": "https://site.test/", "title": "Done", "text": "Complete"}
     assert evidence["steps"] == [{"url": "https://site.test/", "action": "click"}]
+    assert evidence["citations"] == [{"url": "https://site.test/", "quote": "Complete"}]
 
 
 def test_environment_interruptions_are_prefixed_and_agent_errors_are_not() -> None:
@@ -346,6 +347,14 @@ async def test_browser_evidence_replaces_secret_values_with_named_tags(monkeypat
                 "status": "done",
                 "answer": f"logged in with {secret}",
                 "step_log": [{"action": "type", "value": secret}],
+                "pages": [
+                    {
+                        "url": "https://shop.example/",
+                        "title": "Login",
+                        "text": secret,
+                        "screenshot_png_b64": "iVBORw0KGgo=",
+                    }
+                ],
                 "final_page": {
                     "url": "https://shop.example/",
                     "title": "Account",
@@ -378,6 +387,41 @@ async def test_browser_evidence_replaces_secret_values_with_named_tags(monkeypat
     assert isinstance(evidence, dict)
     assert tag in str(evidence) and "correct-horse-battery-staple" not in str(evidence)
     assert "iVBORw0KGgo=" not in str(evidence)
+
+
+async def test_pages_a_run_read_without_navigating_reach_the_evidence_with_their_steps() -> None:
+    """A runner that reads a page over HTTP leaves the browser where it was; the page it read is the evidence."""
+    from parallax.browser_evidence import BrowserEvidence
+    from parallax.harnesses.browser.harnesses import BrowserHarness
+    from parallax.models import Trial
+
+    class Harness(BrowserHarness):
+        info = BrowserHarnessCloud.info
+
+        async def _site_preflight(self) -> str | None:
+            return None
+
+        async def execute(self, turn: SimpleNamespace) -> dict[str, object]:
+            url = f"https://site.test/{turn.index}"
+            return {
+                "status": "done",
+                "answer": "Heading",
+                "step_log": [{"action": "read", "url": url, "page": 0}],
+                "pages": [{"url": url, "title": "Frames", "text": f"Heading {turn.index}"}],
+                "final_page": None,
+            }
+
+    harness = Harness()
+    await harness.start(Trial.model_construct(model=None, task_id="t", env={}), SimpleNamespace())
+    await harness.turn(SimpleNamespace(index=1, text="read"))
+    await harness.turn(SimpleNamespace(index=2, text="read again"))
+
+    evidence = BrowserEvidence.model_validate(harness.trial_metadata["browser"])
+    assert [page.text for page in evidence.pages] == ["Heading 1", "Heading 2"]
+    assert [(step.url, step.page) for step in evidence.steps] == [
+        ("https://site.test/1", 0),
+        ("https://site.test/2", 1),
+    ]
 
 
 async def test_v3_session_resolves_its_browser_for_evidence_and_costs() -> None:

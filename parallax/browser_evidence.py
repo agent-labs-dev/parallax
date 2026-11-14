@@ -86,7 +86,7 @@ class BrowserCitation(Model):
 class BrowserEvidence(Model):
     """A browser harness's observation of one run, reported under `trial_metadata["browser"]`."""
 
-    final_page: BrowserPage | None  # None when the harness could not observe where the browser ended
+    final_page: BrowserPage | None = None  # None when the harness could not observe where the browser ended
     answer: str | None
     steps: tuple[BrowserStep, ...] = ()
     citations: tuple[BrowserCitation, ...] = ()

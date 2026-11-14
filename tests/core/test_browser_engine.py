@@ -320,6 +320,21 @@ async def test_a_trial_the_budget_cannot_hold_is_refused_and_never_retried(
     assert events[2]["charge_usd"] == pytest.approx(0.30)  # settled from the row's cost
 
 
+async def test_a_harness_whose_credentials_cannot_be_forwarded_reserves_nothing_and_is_not_retried(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    harness = Browsing()
+    harness.info = INFO.model_copy(update={"credential_env": ("OPENROUTER_API_KEY",)})
+    run_dir = await run_browsing(
+        tmp_path, monkeypatch, harness, repeats=2, budget_usd=1.0, reserve_usd=0.4, retry_invalid=2, retry_wait_s=0.0
+    )
+    rows = read_results(run_dir / "results.jsonl")
+    assert len(rows) == 2 and not harness.trials
+    assert all(r.invalid_reason and "harness unavailable" in r.invalid_reason for r in rows)
+    events = [json.loads(line) for line in (run_dir / "budget.jsonl").read_text().splitlines()]
+    assert [e["event"] for e in events] == ["header"]
+
+
 async def test_a_resume_reopens_the_existing_budget_without_cli_values(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
