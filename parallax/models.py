@@ -626,7 +626,7 @@ class TaskRecord(Model):
     area: Area
     summary: str
     prompt: str  # the one turn the agent is given
-    grading: str  # a registered grading policy id, e.g. "browser-evidence-v1"
+    grading: str  # a registered grading policy id, e.g. "browser-evidence-v2"
     requires: frozenset[Capability] = frozenset()
     maturity: Maturity = Maturity.CANDIDATE
     split: Split = Split.TUNE

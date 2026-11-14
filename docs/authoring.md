@@ -562,7 +562,7 @@ def records() -> list[TaskRecord]:
         TaskRecord(
             id="browser-kettle-price", version=1, area=Area.BROWSER,
             summary="Find the blue kettle's price", prompt="What does the blue kettle cost on shop.example?",
-            grading="browser-evidence-v1", requires=frozenset({Capability.BROWSER}),
+            grading="browser-evidence-v2", requires=frozenset({Capability.BROWSER}),
             data={"start_url": "https://shop.example/", "intended": "the price shown on the kettle's page"},
         )
     ]
@@ -593,7 +593,7 @@ in trial details. The hash still covers the template, not the substituted date.
 A world-less trial gets no MCP endpoint and no persona: `Trial.mcp` and `Trial.user` are None. A harness that needs the
 world uses `trial.world_mcp`, which raises for a world-less task.
 
-### Grading with `browser-evidence-v1`
+### Grading with `browser-evidence-v2`
 
 A browser harness reports what it observed as `BrowserEvidence` under `trial_metadata["browser"]`. That covers the final
 page, the answer, the steps it took, the pages it read (with optional screenshots and form controls) and its citations.
@@ -601,7 +601,9 @@ The built-in policy asks two questions of that evidence:
 
 - `evidence_available` (advisory) asks whether the evidence is enough to judge the run.
 - `task_satisfied` (the gate) asks whether the run did what the task asked. It is unjudged unless the evidence was
-  judged available.
+  judged available. The judge sees `authorization.irreversible_actions`, true only when the task requires
+  `authorization`. When it is false, a run that stops before an irreversible action the task asks for, such as
+  placing an order, meets the request, and a run that takes the action does not.
 
 Jev answers first and the LLM fallback answers what Jev leaves open. A screenshot travels as an image, never also as
 text. Evidence too large for one request is split into parts by page text and then controls. Each byte is sent once and

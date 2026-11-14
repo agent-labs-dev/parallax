@@ -148,7 +148,7 @@ and how comparisons pair runs.
 
 ## Status
 
-`2.0.0.dev22`. The task format, world, checks, controls, statistics and Langfuse
+`2.0.0.dev23`. The task format, world, checks, controls, statistics and Langfuse
 recording are in place. No pilot has been run, so no cross-harness results are
 published yet.
 

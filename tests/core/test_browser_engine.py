@@ -48,7 +48,7 @@ RECORD = TaskRecord(
     area=Area.BROWSER,
     summary="Find a listed price",
     prompt="Find the price of the blue kettle on the shop's site.",
-    grading="browser-evidence-v1",
+    grading="browser-evidence-v2",
     data={"start_url": "https://shop.example/", "intended": "$24.00"},
 )
 JEV = jev.JevConfig(base_url="https://fake/v1", model="jev", api_key="test")
@@ -165,6 +165,18 @@ def test_answer_schema_reaches_the_browser_judge_state() -> None:
     assert state["answer_schema"] == schema
 
 
+@pytest.mark.parametrize(
+    ("requires", "authorized"), [(frozenset(), False), (frozenset({Capability.AUTHORIZATION}), True)]
+)
+def test_the_judge_state_says_whether_the_task_authorized_irreversible_actions(
+    requires: frozenset[Capability], authorized: bool
+) -> None:
+    task = task_from_record("shop", RECORD.model_copy(update={"requires": requires}))
+    state = browser_evidence.judge_state(task, OBSERVED, ("$24.00",), {})
+    assert state["authorization"] == {"irreversible_actions": authorized}
+    assert "`authorization.irreversible_actions`" in browser_evidence.JUDGE.questions["task_satisfied"]
+
+
 # ---------------------------------------------------------------------------
 # a world-less trial and the hooks it reports
 # ---------------------------------------------------------------------------
@@ -182,7 +194,7 @@ async def test_a_world_less_trial_mounts_no_world_and_its_hooks_reach_the_row(
     assert row.cost_by_component == {"agent": 0.25, "browser": 0.05}
     assert row.cost_usd == pytest.approx(0.30)
     assert row.details == {"lease_wait_ms": 120}
-    assert row.judge_identity is not None and row.judge_identity.startswith("browser-evidence-v1:")
+    assert row.judge_identity is not None and row.judge_identity.startswith("browser-evidence-v2:")
     # No judge is configured offline, so the policy abstains: unjudged, never a pass or a fail.
     assert row.verdict is Verdict.INVALID
     assert row.dir is not None and not (run_dir / row.dir / "world_evidence.json").exists()
@@ -551,8 +563,8 @@ def test_a_run_of_source_tasks_adds_its_policys_identity_and_a_world_run_keeps_i
     world = semantic.policy_identity()
     assert semantic.policy_identity(discover([TASKS])) == world
     sourced = semantic.policy_identity([source_task()])
-    assert sourced.startswith(world + ":browser-evidence-v1:")
-    assert extensions.grading_policies()["browser-evidence-v1"].judge is browser_evidence.JUDGE
+    assert sourced.startswith(world + ":browser-evidence-v2:")
+    assert extensions.grading_policies()["browser-evidence-v2"].judge is browser_evidence.JUDGE
 
 
 def row(identity_: str | None, verdict: Verdict = Verdict.PASS) -> TrialResult:

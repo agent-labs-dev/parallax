@@ -1,6 +1,6 @@
 # Roadmap
 
-Parallax is at `2.0.0.dev22`. The task format, the simulated world, the checks,
+Parallax is at `2.0.0.dev23`. The task format, the simulated world, the checks,
 the controls, the statistics and Langfuse recording are in place and exercised by CI.
 This page is directional; it is not a commitment to dates.
 
