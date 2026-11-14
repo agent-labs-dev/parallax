@@ -206,7 +206,12 @@ def _evidence_payload(
         "final_page": final,
         "answer": answer,
         "steps": timeline,
-        "citations": [dict(item) for item in citations if isinstance(item, Mapping)]
+        # Projected like the steps: a harness's own citation fields (ids, deep links) are not evidence.
+        "citations": [
+            {"url": item["url"], "quote": item["quote"]}
+            for item in citations
+            if isinstance(item, Mapping) and isinstance(item.get("url"), str) and isinstance(item.get("quote"), str)
+        ]
         if isinstance(citations, list)
         else [],
     }

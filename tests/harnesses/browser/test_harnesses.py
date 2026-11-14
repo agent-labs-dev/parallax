@@ -100,10 +100,11 @@ def test_evidence_is_normalised_to_the_shared_browser_shape() -> None:
         page={"url": "https://site.test/", "title": "Done", "text": "Complete", "error": "ignored"},
         answer="Finished",
         steps=[{"operation": "click", "url": "https://site.test/", "observation": "Complete"}],
-        citations=[{"url": "https://site.test/", "quote": "Complete"}],
+        citations=[{"id": 1, "url": "https://site.test/", "quote": "Complete", "deep_link": "https://site.test/#q"}],
     )
     assert evidence["final_page"] == {"url": "https://site.test/", "title": "Done", "text": "Complete"}
     assert evidence["steps"] == [{"url": "https://site.test/", "action": "click"}]
+    assert evidence["citations"] == [{"url": "https://site.test/", "quote": "Complete"}]
 
 
 def test_environment_interruptions_are_prefixed_and_agent_errors_are_not() -> None:
