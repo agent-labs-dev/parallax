@@ -6,6 +6,16 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev23] - 2026-11-14
+
+### Changed
+
+- Browser grading now records whether irreversible actions were authorized by the task. The `browser-evidence-v2` policy accepts a run that correctly stops before an unauthorized irreversible action.
+
+### Fixed
+
+- Campaign credentials are checked before budget reservation, browser evidence preserves reported pages, citations are normalized to `url` and `quote`, and evidence without an observed final page is valid.
+
 ### Changed
 
 - The browser grading policy is now `browser-evidence-v2`, and `browser-evidence-v1`
@@ -187,7 +197,8 @@ All notable changes to Parallax are recorded here. The format follows
 
 The release procedure is in [the dev16 release plan](docs/release-dev16.md).
 
-[Unreleased]: https://github.com/agent-labs-dev/parallax/compare/v2.0.0.dev22...HEAD
+[Unreleased]: https://github.com/agent-labs-dev/parallax/compare/v2.0.0.dev23...HEAD
+[2.0.0.dev23]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev23
 [2.0.0.dev22]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev22
 [2.0.0.dev21]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev21
 [2.0.0.dev20]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev20
