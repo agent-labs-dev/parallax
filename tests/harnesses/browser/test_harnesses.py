@@ -107,6 +107,15 @@ def test_evidence_is_normalised_to_the_shared_browser_shape() -> None:
     assert evidence["citations"] == [{"url": "https://site.test/", "quote": "Complete"}]
 
 
+def test_evidence_keeps_a_null_answer_for_navigation_only_runs() -> None:
+    evidence = _evidence_payload(
+        page={"url": "https://site.test/", "title": "Done", "text": "Complete"},
+        answer=None,
+        steps=[{"operation": "navigate", "url": "https://site.test/"}],
+    )
+    assert evidence["answer"] is None
+
+
 def test_environment_interruptions_are_prefixed_and_agent_errors_are_not() -> None:
     assert _interruption({"status": "unavailable", "error": "provider capacity"}) == (
         "environment interruption: provider capacity"
