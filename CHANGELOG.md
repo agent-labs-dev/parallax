@@ -10,6 +10,8 @@ All notable changes to Parallax are recorded here. The format follows
 
 - A harness whose declared credentials cannot be forwarded (a key the meter serves, a `PARALLAX_` variable, or none of them set) is unavailable from the start of the run. Its trials are INVALID without reserving budget and are not retried, where before each trial failed at its start, kept its reservation and was retried until the budget refused it.
 - Browser harnesses keep only a citation's `url` and `quote` as evidence, as they already did for a step's fields. A citation with any other field, such as an id or a deep link, failed evidence validation and ended the whole run.
+- Browser harnesses pass on the pages a run reports reading (`pages` in `execute`'s result, with each step's `page` index into them) as browser evidence. A runner that reads a page without navigating its browser, such as one fetching over HTTP, had its evidence reduced to a blank final page and was judged unsupported.
+- Browser evidence with no final page validates. The harness omits an unobserved final page, and the judge then refused the evidence as malformed.
 
 ## [2.0.0.dev22] - 2026-11-13
 

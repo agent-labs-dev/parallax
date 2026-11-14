@@ -17,7 +17,7 @@ import shlex
 import sys
 import time
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -175,19 +175,23 @@ def _interruption(raw: Mapping[str, Any]) -> str | None:
     return None
 
 
+def _page_record(page: Mapping[str, Any]) -> dict[str, Any]:
+    record = {key: page[key] for key in ("url", "title", "text", "screenshot_png_b64", "controls") if key in page}
+    record.setdefault("url", "")
+    record.setdefault("title", "")
+    record.setdefault("text", "")
+    return record
+
+
 def _evidence_payload(
     *,
     page: Mapping[str, Any] | None,
     answer: str | None,
     steps: object,
     citations: object = (),
+    pages: Sequence[Mapping[str, Any]] = (),
 ) -> dict[str, Any]:
-    final = None if page is None else dict(page)
-    if final is not None:
-        final = {key: final[key] for key in ("url", "title", "text", "screenshot_png_b64", "controls") if key in final}
-        final.setdefault("url", "")
-        final.setdefault("title", "")
-        final.setdefault("text", "")
+    final = None if page is None else _page_record(page)
     final_url = "" if final is None else str(final.get("url", ""))
     timeline = []
     if isinstance(steps, list):
@@ -201,11 +205,14 @@ def _evidence_payload(
             for key in ("value", "quote"):
                 if isinstance(item.get(key), str):
                     step[key] = item[key]
+            if isinstance(item.get("page"), int):
+                step["page"] = item["page"]
             timeline.append(step)
     payload = {
         "final_page": final,
         "answer": answer,
         "steps": timeline,
+        "pages": [_page_record(read) for read in pages],
         # Projected like the steps: a harness's own citation fields (ids, deep links) are not evidence.
         "citations": [
             {"url": item["url"], "quote": item["quote"]}
@@ -242,6 +249,7 @@ class BrowserHarness(ABC):
         self._page: dict[str, Any] | None = None
         self._steps: list[dict[str, Any]] = []
         self._citations: list[dict[str, Any]] = []
+        self._pages: list[dict[str, Any]] = []
         self._cost: dict[str, float | None] = {}
         self._details: dict[str, Any] = {"observer": self.config.observer}
         self._start_url: str | None = None
@@ -337,7 +345,17 @@ class BrowserHarness(ABC):
         status = _normalise_status(result.get("status"))
         answer = self._scrub(result.get("answer"))
         self._answer = _answer_text(answer, structured=self._answer_schema is not None)
-        self._steps.extend(self._scrub(_mapping_list(result.get("step_log"))))
+        # A turn's steps point into that turn's `pages`; across turns the pages accumulate, so the indices shift.
+        offset = len(self._pages)
+        self._pages.extend(
+            # As on the final page: text replacement cannot reach pixels.
+            {key: value for key, value in read.items() if key != "screenshot_png_b64"} if self._secret_values else read
+            for read in self._scrub(_mapping_list(result.get("pages")))
+        )
+        self._steps.extend(
+            {**step, "page": step["page"] + offset} if isinstance(step.get("page"), int) else step
+            for step in self._scrub(_mapping_list(result.get("step_log")))
+        )
         self._citations.extend(self._scrub(_mapping_list(result.get("citations"))))
         if self._clock is not None and status is TurnStatus.COMPLETED:
             self._clock.answered()
@@ -383,7 +401,7 @@ class BrowserHarness(ABC):
     def trial_metadata(self) -> dict[str, Any]:
         return {
             "browser": _evidence_payload(
-                page=self._page, answer=self._answer, steps=self._steps, citations=self._citations
+                page=self._page, answer=self._answer, steps=self._steps, citations=self._citations, pages=self._pages
             )
         }
 
