@@ -602,6 +602,7 @@ async def test_browser_access_refusal_still_starts_the_browser(monkeypatch) -> N
     task = task_from_record("fixture-source", record)
     harness = Harness()
     harness.bind_task(task)
+
     async def allow(*_args, **_kwargs):
         return None
 
