@@ -6,6 +6,12 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev26] - 2026-11-14
+
+### Fixed
+
+- Let browser providers handle pages that refuse direct HTTP access with 401 or 403.
+
 ## [2.0.0.dev25] - 2026-11-14
 
 ### Fixed
