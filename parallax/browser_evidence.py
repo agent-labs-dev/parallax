@@ -57,11 +57,9 @@ _SATISFIED = (
     " even where `task` asks for it: the user wants the work done up to that action and stopped before it, so a run"
     " that stops there meets the request and one that takes the action does not."
 )
-"""It defines `authorization.irreversible_actions`. Without the definition, DeepSeek read "Place the order." literally
-and failed runs that correctly stopped before an unauthorized order: 16 of 96 judgings of 12 such runs, against 6 of
-96 with it; the same runs edited to place the order passed 1 of 24 judgings either way (fastbrowse `saucedemo-pause`,
-agent-labs-dev/fastbrowse#1124). It does not define how a satisfying run ends: worded that way, a run that stopped
-after answering moved from pass to fail (`practice-login`)."""
+"""The judge needs the authorization boundary explicitly: otherwise a literal reading of an order request
+fails runs that correctly stop before an unauthorized purchase. The definition describes the boundary rather
+than prescribing a final status, since a satisfying run can also stop after answering."""
 EVIDENCE_AVAILABLE, TASK_SATISFIED = "evidence_available", "task_satisfied"
 JUDGE = JudgePolicy(
     name="browser-evidence-v2",
@@ -96,7 +94,7 @@ class BrowserCitation(Model):
 class BrowserEvidence(Model):
     """A browser harness's observation of one run, reported under `trial_metadata["browser"]`."""
 
-    final_page: BrowserPage | None  # None when the harness could not observe where the browser ended
+    final_page: BrowserPage | None = None  # None when the harness could not observe where the browser ended
     answer: str | None
     steps: tuple[BrowserStep, ...] = ()
     citations: tuple[BrowserCitation, ...] = ()
