@@ -227,7 +227,10 @@ def _evidence_payload(
     except ImportError:
         return payload
     evidence = BrowserEvidence.model_validate(payload)
-    return evidence.model_dump(mode="json", exclude_none=True)
+    normalized = evidence.model_dump(mode="json", exclude_none=True)
+    # `answer` is nullable but required: navigation-only runs still have browser evidence even when no prose was returned.
+    normalized["answer"] = evidence.answer
+    return normalized
 
 
 class BrowserHarness(ABC):
