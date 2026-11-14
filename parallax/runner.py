@@ -50,6 +50,7 @@ from parallax.harnesses.base import (
     HarnessError,
     OutputTail,
     config_hash,
+    credentials_unusable,
     load_harness,
     native_credentials,
 )
@@ -1368,6 +1369,8 @@ async def plan_harness(name: str, tasks: Sequence[Task], run_isolation: Isolatio
     different versions, makes all of them INVALID, not a crash."""
     harness = load_harness(name)
     info, cfg = harness.info, harness_config_hash(harness)
+    if (reason := credentials_unusable(info, os.environ)) is not None:
+        return HarnessPlan(name=name, info=info, version=None, config_hash=cfg, unavailable=reason)
     isolation = harness_isolation(info, run_isolation)
     versions: set[str] = set()
     failed: dict[BoxKind, str] = {}

@@ -90,16 +90,25 @@ def credential_env_problems(info: HarnessInfo) -> list[str]:
     return problems
 
 
+def credentials_unusable(info: HarnessInfo, environ: Mapping[str, str]) -> str | None:
+    """Why the harness's declared credentials cannot be forwarded from `environ`, or None when they can.
+
+    Both causes are fixed for a whole run, so the runner checks them once while planning the harness, before any
+    trial reserves budget, rather than failing every trial at its start."""
+    problems = credential_env_problems(info)
+    if problems:
+        return f"{info.name}: " + "; ".join(problems)
+    if info.credential_env and not any(environ.get(name) for name in info.credential_env):
+        return f"{info.name}: set one of {', '.join(info.credential_env)} on the host to authenticate it"
+    return None
+
+
 def native_credentials(info: HarnessInfo, environ: Mapping[str, str]) -> dict[str, str]:
     """The declared host credentials to forward into the box. A harness that declares some but finds
     none set cannot authenticate, so that is a boot error rather than a run that fails every turn."""
-    problems = credential_env_problems(info)
-    if problems:
-        raise HarnessError(f"{info.name}: " + "; ".join(problems))
-    found = {name: environ[name] for name in info.credential_env if environ.get(name)}
-    if info.credential_env and not found:
-        raise HarnessError(f"{info.name}: set one of {', '.join(info.credential_env)} on the host to authenticate it")
-    return found
+    if (reason := credentials_unusable(info, environ)) is not None:
+        raise HarnessError(reason)
+    return {name: environ[name] for name in info.credential_env if environ.get(name)}
 
 
 class OutputTail:

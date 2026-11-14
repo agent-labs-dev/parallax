@@ -6,6 +6,10 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- A harness whose declared credentials cannot be forwarded (a key the meter serves, a `PARALLAX_` variable, or none of them set) is unavailable from the start of the run. Its trials are INVALID without reserving budget and are not retried, where before each trial failed at its start, kept its reservation and was retried until the budget refused it.
+
 ## [2.0.0.dev22] - 2026-11-13
 
 ### Added
