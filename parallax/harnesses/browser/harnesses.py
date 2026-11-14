@@ -262,6 +262,7 @@ class BrowserHarness(ABC):
         self._secret_bindings: list[dict[str, Any]] = []
         self._answer_schema: dict[str, Any] | None = None
         self._site_preflight_done = False
+        self._agent_has_started = False
         self.trial_invalid: list[str] = []
         self.trial_notes: list[str] = []
 
@@ -412,6 +413,8 @@ class BrowserHarness(ABC):
         return self._clock.timing() if self._clock is not None else Timing(basis=SESSION_INCLUDED, breakdown={})
 
     def trial_costs(self) -> dict[str, float | None]:
+        if not self._agent_has_started and not self._cost:
+            return {"model": 0.0}
         return dict(self._cost)
 
     def trial_details(self) -> dict[str, Any]:
@@ -427,6 +430,7 @@ class BrowserHarness(ABC):
         return await load_observer(self.config.observer).observe(cdp_url, url=url)
 
     def _agent_started(self, open_seconds: object = None) -> None:
+        self._agent_has_started = True
         if self._clock is None:
             return
         if isinstance(open_seconds, int | float):
