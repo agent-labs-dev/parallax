@@ -6,6 +6,12 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev25] - 2026-11-14
+
+### Fixed
+
+- Treat browser preflight failures before provider startup as zero-cost.
+
 ## [2.0.0.dev24] - 2026-11-14
 
 ### Fixed
