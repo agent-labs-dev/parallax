@@ -6,6 +6,12 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Keep an upload verification receipt beside the deleted run directory, including
+  when a later run-quality check fails.
+- Browser trials pass their code-recorded UTC reference date to the evidence judge, so relative dates are judged against the same date the run used.
+
 ## [2.0.0.dev26] - 2026-11-14
 
 ### Fixed

@@ -5,7 +5,9 @@ Offline: `seal` and `Evidence` read only the run directory; the Langfuse push is
 
 from __future__ import annotations
 
+import hashlib
 import io
+import json
 import shutil
 import zipfile
 from collections.abc import Iterator
@@ -13,8 +15,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
-from parallax import extensions, plugins
+from parallax import cli, extensions, plugins, provenance, runner
 from parallax.models import TrialResult, Verdict
+from parallax.track import sink
+from parallax.track import upload as uploader
 from parallax.track.rows import LoadedRun, load_run
 from parallax.track.sink import TrackError
 from parallax.track.upload import Evidence, seal, upload
@@ -105,3 +109,50 @@ def test_an_artifact_that_rebuilds_differently_is_never_uploaded(
     seal(run, dataset="ds", note="", meta={})
     with pytest.raises(TrackError, match="rebuilds to other bytes"):
         upload(run)
+
+
+@pytest.mark.parametrize("invalid", [False, True])
+def test_verified_receipt_survives_cleanup_and_quality_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, artifacts: list[FakeEntryPoint], invalid: bool
+) -> None:
+    run = tmp_path / "r1"
+    shutil.copytree(R1, run)
+    (run / "provenance.json").write_text(
+        provenance.Provenance(parallax_head="head", task_hashes={}, judge_policy="test").model_dump_json()
+    )
+    project = sink.Project("project", "test", "https://example.test")
+    monkeypatch.setattr(sink, "connect", lambda write: (None, project))
+    monkeypatch.setattr(uploader, "connect", lambda write: (None, project))
+    monkeypatch.setattr(uploader, "push", lambda *args: (("experiment", "id", "https://example.test/run"),))
+    monkeypatch.setattr(uploader, "mismatches", lambda *args: [])
+    monkeypatch.setattr(uploader, "mark_verified", lambda *args: None)
+    monkeypatch.setattr(runner, "run", lambda *args: run)
+    monkeypatch.setattr(runner, "invalid_share", lambda *args: float(invalid))
+    tasks = str(Path(__file__).parent / "fixtures" / "tasks")
+    assert cli.main(["run", tasks, "--harness", "oracle", "--isolation", "host"]) == (cli.FAILED if invalid else cli.OK)
+    assert not run.exists()
+    receipt = json.loads((tmp_path / "r1.verified.json").read_text())
+    assert receipt["verified"] is True
+    assert receipt["run_id"] == json.loads((R1 / "manifest.json").read_text())["run_id"]
+    assert receipt["project_id"] == "project"
+    assert receipt["files"]["results.jsonl"] == hashlib.sha256((R1 / "results.jsonl").read_bytes()).hexdigest()
+
+
+def test_failed_verification_keeps_run_without_a_receipt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, artifacts: list[FakeEntryPoint]
+) -> None:
+    run = tmp_path / "r1"
+    shutil.copytree(R1, run)
+    (run / "provenance.json").write_text(
+        provenance.Provenance(parallax_head="head", task_hashes={}, judge_policy="test").model_dump_json()
+    )
+    seal(run, dataset="ds", note="", meta={})
+    monkeypatch.setattr(
+        uploader, "connect", lambda write: (None, sink.Project("project", "test", "https://example.test"))
+    )
+    monkeypatch.setattr(uploader, "push", lambda *args: ())
+    monkeypatch.setattr(uploader, "mismatches", lambda *args: ["missing remote field"])
+    with pytest.raises(TrackError, match="does not hold the run"):
+        upload(run, timeout_s=-1)
+    assert run.is_dir()
+    assert not (tmp_path / "r1.verified.json").exists()

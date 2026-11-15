@@ -70,6 +70,7 @@ from parallax.models import (
     ENVIRONMENT_INTERRUPTION,
     ApprovalAnswer,
     ApprovalDecision,
+    Area,
     Capability,
     CheckResult,
     CommandCheck,
@@ -866,9 +867,12 @@ class TrialExecution:
         self.dir = trial_dir
         n_turns = len(self.task.turns) + len(self.task.meta.fires)
         self.t = Transcript(answers=[""] * n_turns)
+        # Browser judges need the same reference date as the run even when the task uses natural language.
+        # Placeholder expansion remains limited to explicit date placeholders, while world tasks keep their
+        # existing clock semantics.
         self.today = (
             datetime.now(UTC).date().isoformat()
-            if any(DATE_PLACEHOLDER.search(t.text) for t in self.task.turns)
+            if self.task.meta.area is Area.BROWSER or any(DATE_PLACEHOLDER.search(t.text) for t in self.task.turns)
             else None
         )
         self.t.details = {"today": self.today} if self.today is not None else {}
@@ -1259,6 +1263,7 @@ class TrialExecution:
                     "error": self.t.error,
                     "notes": list(self.t.notes),
                     "tool_diagnostics": tool_diagnostics(self.t.steps),
+                    **({"today": self.today} if self.today is not None else {}),
                 },
                 product=self.product,
                 answers=self.t.answers,

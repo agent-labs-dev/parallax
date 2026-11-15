@@ -22,6 +22,7 @@ from collections.abc import Callable, Generator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 from langfuse import Langfuse
 from langfuse.api import ExperimentItem
@@ -69,6 +70,17 @@ class Seal(BaseModel):
     note: str
     meta: dict[str, str]  # extra experiment metadata, e.g. the branch a CI run measured
     files: dict[str, str]  # path relative to the run directory -> sha256
+
+
+class VerificationReceipt(BaseModel):
+    """The remotely verified upload, retained independently of local cleanup and run quality."""
+
+    verified: Literal[True] = True
+    run_id: str
+    project_id: str
+    dataset: str
+    files: dict[str, str]
+    experiments: tuple[tuple[str, str, str], ...]
 
 
 @dataclass(frozen=True)
@@ -295,6 +307,19 @@ def upload(run_dir: Path, *, timeout_s: float = VISIBLE_WITHIN_S) -> Uploaded:
             time.sleep(POLL_S)
         mark_verified(client, tracked, experiments)
         logger.info("track.verified run=%s experiments=%d", sealed.run_id, len(experiments))
+        # The CLI may still fail the run's quality check after this upload succeeded and removed its source.
+        receipt = run_dir.with_name(f"{run_dir.name}.verified.json")
+        temporary = receipt.with_suffix(".json.tmp")
+        temporary.write_text(
+            VerificationReceipt(
+                run_id=sealed.run_id,
+                project_id=project_.id,
+                dataset=sealed.dataset,
+                files=sealed.files,
+                experiments=experiments,
+            ).model_dump_json(indent=2)
+        )
+        temporary.replace(receipt)
         # Still under the lock, and out of `pending` in one atomic step before anything is deleted.
         gone = run_dir.with_name(f".{run_dir.name}.uploaded")
         shutil.rmtree(gone, ignore_errors=True)

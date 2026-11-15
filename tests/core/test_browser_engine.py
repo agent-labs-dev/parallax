@@ -38,7 +38,7 @@ from parallax.models import (
 from parallax.protocols import BoxHandle
 from parallax.runner import RunOptions, decide, read_results, run_async
 from parallax.stats import MixedJudgeIdentities, judge_identity
-from parallax.task import TaskError, discover, record_hash, select, task_from_record
+from parallax.task import TaskError, discover, fill_dates, record_hash, select, task_from_record
 from parallax.track.rows import load_run, row_scores
 
 TASKS = Path(__file__).parent / "fixtures" / "tasks"
@@ -158,11 +158,16 @@ def test_a_source_task_has_no_world_one_turn_and_its_policys_checks() -> None:
         task_from_record("shop", RECORD.model_copy(update={"prompt": "Book a flight on {today+999999999}."}))
 
 
+def test_nonbrowser_date_placeholders_still_expand() -> None:
+    assert fill_dates("Run on {today+2}.", datetime(2026, 11, 15, tzinfo=UTC).date()) == "Run on 2026-11-17."
+
+
 def test_answer_schema_reaches_the_browser_judge_state() -> None:
     schema = {"type": "object", "properties": {"price": {"type": "string"}}}
     task = source_task().model_copy(update={"answer_schema": schema})
-    state = browser_evidence.judge_state(task, OBSERVED, ("$24.00",), {})
+    state = browser_evidence.judge_state(task, OBSERVED, ("$24.00",), {"today": "2026-11-15"})
     assert state["answer_schema"] == schema
+    assert state["execution"]["today"] == "2026-11-15"
 
 
 @pytest.mark.parametrize(
@@ -193,17 +198,20 @@ async def test_a_world_less_trial_mounts_no_world_and_its_hooks_reach_the_row(
     assert (row.timing_basis, row.timing_breakdown) == ("agent-run", {"browser_start": 800.0, "agent": 4000.0})
     assert row.cost_by_component == {"agent": 0.25, "browser": 0.05}
     assert row.cost_usd == pytest.approx(0.30)
-    assert row.details == {"lease_wait_ms": 120}
+    assert row.details == {"lease_wait_ms": 120, "today": datetime.now(UTC).date().isoformat()}
     assert row.judge_identity is not None and row.judge_identity.startswith("browser-evidence-v2:")
     # No judge is configured offline, so the policy abstains: unjudged, never a pass or a fail.
     assert row.verdict is Verdict.INVALID
     assert row.dir is not None and not (run_dir / row.dir / "world_evidence.json").exists()
 
 
+@pytest.mark.parametrize("area", [Area.BROWSER, Area.RESEARCH])
 async def test_today_is_substituted_at_start_but_the_template_hash_and_details_are_stable(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, area: Area
 ) -> None:
-    record = RECORD.model_copy(update={"prompt": "Today is {today}. Find the price of a flight on {today+28}."})
+    record = RECORD.model_copy(
+        update={"area": area, "prompt": "Today is {today}. Find the price of a flight on {today+28}."}
+    )
     task = task_from_record("shop", record)
     harness = Browsing()
     run_dir = await run_browsing(tmp_path, monkeypatch, harness, task=task)
@@ -217,6 +225,27 @@ async def test_today_is_substituted_at_start_but_the_template_hash_and_details_a
     )
     assert row.task_hash == record_hash(record)
     assert row.details["today"] == today.isoformat()
+
+
+async def test_browser_trial_records_reference_date_without_a_placeholder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    task = task_from_record("shop", RECORD)
+    received: list[JsonObject] = []
+    original = browser_evidence.judge_state
+
+    def capture(task, observed, answers, execution):
+        received.append(dict(execution))
+        return original(task, observed, answers, execution)
+
+    monkeypatch.setattr(browser_evidence, "judge_state", capture)
+    harness = Browsing()
+    run_dir = await run_browsing(tmp_path, monkeypatch, harness, task=task)
+    [row] = read_results(run_dir / "results.jsonl")
+    today = datetime.now(UTC).date().isoformat()
+    assert row.details["today"] == today
+    assert len(received) == 1
+    assert received[0]["today"] == today
 
 
 async def test_missing_task_secret_is_invalid_before_the_harness_starts(
