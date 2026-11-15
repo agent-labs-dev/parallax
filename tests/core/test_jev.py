@@ -118,12 +118,20 @@ async def test_a_rate_limit_waits_as_long_as_it_asks(monkeypatch, header, expect
         assert waits == expected
 
 
-async def test_a_state_over_jevs_input_budget_is_never_sent():
-    fits = {"text": "x" * 600_000}  # about 200k tokens at the measured floor
-    reply = httpx.Response(200, json={"answers": {}, "usage": {"input_tokens": 1, "output_tokens": 0}})
-    sent = await _evaluate([reply], fits)
-    assert sent.attempts == 1
-    too_big = {"text": "x" * (3 * jev.INPUT_TOKENS + 1)}
-    skipped = await _evaluate([], too_big)  # no reply queued: any request would fail the test
-    assert skipped.error is not None and skipped.error.startswith("over input budget")
-    assert skipped.history == () and skipped.attempts == 0
+async def test_the_provider_decides_whether_a_large_state_fits():
+    state = {"text": "x" * 900_000}
+    reply = {
+        "answers": {"done": {"type": "noul", "noul": 0.5}},
+        "usage": {"input_tokens": 214_000, "output_tokens": 0},
+    }
+    sent: list[httpx.Request] = []
+    result = await _evaluate([httpx.Response(200, json=reply)], state, sent=sent)
+    assert result.error is None and result.answers["done"].noul == 0.5
+    assert json.loads(sent[0].content)["state"] == state
+
+    # Live System One refusal shape from an oversized synthetic request.
+    refused = {"error": {"message": 'HTTP 400: {"detail":{"error_type":"max_tokens_exceeded"}}', "code": 400}}
+    result = await _evaluate([httpx.Response(400, json=refused)], state)
+    assert result.error is not None and "max_tokens_exceeded" in result.error
+    assert result.attempts == 1 and result.cost_usd == 0.0
+    assert result.answers == {}

@@ -14,7 +14,7 @@ from collections.abc import Sequence
 
 from pydantic import JsonValue, ValidationError
 
-from parallax import images, jev
+from parallax import images
 from parallax.extensions import GradeRequest, GradingPolicy
 from parallax.judge import MissingEvidence, family
 from parallax.judging import JudgePolicy, identity, judge_parts
@@ -22,11 +22,9 @@ from parallax.models import Capability, Check, CheckResult, Evidence, FailureMod
 from parallax.semantic import Graded
 
 METADATA_KEY = "browser"
-QUESTION_ROOM = 16_384
-"""Bytes held back from a part for the questions asked of it, which Jev counts in the same input."""
-PART_BYTES = int(jev.INPUT_TOKENS / jev.MIN_TOKENS_PER_BYTE) - QUESTION_ROOM
-"""The most state one request carries: the most Jev reads at its token floor, so Jev can judge every part, and the
-fallback (a far larger window) reads it too."""
+PART_BYTES = 752 * 1024
+"""Bound the JSON in each browser evidence part. This is a payload bound, not a token estimate: the provider
+decides whether a part fits its context, and a refusal sends its questions to the fallback with every byte intact."""
 EVIDENCE_FORM = (
     "browser-evidence-v2: task, record data and turn answers; whether the task authorized irreversible actions; the"
     " run's answer and citations; its steps as a timeline naming the page each saw; every distinct page once, the final"

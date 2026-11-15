@@ -494,7 +494,6 @@ def identity(
                 else os.environ.get(jev.BASE_URL_ENV, jev.DEFAULT_BASE_URL)
             ).rstrip("/"),
             "input_tokens": jev.INPUT_TOKENS,
-            "min_tokens_per_byte": jev.MIN_TOKENS_PER_BYTE,
             "timeout_s": jev.TIMEOUT_S,
             "question_suffix": JEV_QUESTION_SUFFIX,
             "thresholds": [ADMIT_AT, REJECT_AT],
