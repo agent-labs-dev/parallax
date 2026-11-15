@@ -424,6 +424,7 @@ async def test_jev_settles_only_strictly_beyond_its_thresholds(probability: floa
             policy="test",
         )
     assert result.decisions["q"].source == settled_by
+    assert result.decisions["q"].probability == probability
     assert bool(result.fallback_calls) is (settled_by == "llm")
     assert settled(probability) is {"jev": probability > 0.5, "llm": None}[settled_by]
 

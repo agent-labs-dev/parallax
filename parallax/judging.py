@@ -414,6 +414,7 @@ async def judge_questions(
                 calls.extend(exc.calls)
                 errors.append(str(exc))
         for key in pending:
+            answer = call.answers.get(key) if call is not None else None
             values = {vote[key].passed for _, vote in votes}
             agreed = len(votes) == len(panel.models) and len(values) == 1
             value = next(iter(values)) if agreed else None
@@ -421,6 +422,7 @@ async def judge_questions(
             decisions[key] = Decision(
                 passed=value,
                 source="llm",
+                probability=answer.noul if answer is not None else None,
                 reason=("; ".join(errors) if errors else detail) or "panel abstained or disagreed",
             )
     else:
