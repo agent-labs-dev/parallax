@@ -38,7 +38,7 @@ from parallax.models import (
 from parallax.protocols import BoxHandle
 from parallax.runner import RunOptions, decide, read_results, run_async
 from parallax.stats import MixedJudgeIdentities, judge_identity
-from parallax.task import TaskError, discover, record_hash, select, task_from_record
+from parallax.task import TaskError, discover, fill_dates, record_hash, select, task_from_record
 from parallax.track.rows import load_run, row_scores
 
 TASKS = Path(__file__).parent / "fixtures" / "tasks"
@@ -156,6 +156,10 @@ def test_a_source_task_has_no_world_one_turn_and_its_policys_checks() -> None:
         task_from_record("shop", RECORD.model_copy(update={"grading": "no-such-policy"}))
     with pytest.raises(TaskError, match="more than 366 days ahead"):  # an unbounded offset would overflow mid-run
         task_from_record("shop", RECORD.model_copy(update={"prompt": "Book a flight on {today+999999999}."}))
+
+
+def test_nonbrowser_date_placeholders_still_expand() -> None:
+    assert fill_dates("Run on {today+2}.", datetime(2026, 11, 15, tzinfo=UTC).date()) == "Run on 2026-11-17."
 
 
 def test_answer_schema_reaches_the_browser_judge_state() -> None:

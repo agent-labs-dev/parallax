@@ -10,6 +10,7 @@ All notable changes to Parallax are recorded here. The format follows
 
 - Keep an upload verification receipt beside the deleted run directory, including
   when a later run-quality check fails.
+- Browser trials pass their code-recorded UTC reference date to the evidence judge, so relative dates are judged against the same date the run used.
 
 ## [2.0.0.dev26] - 2026-11-14
 
@@ -54,7 +55,6 @@ All notable changes to Parallax are recorded here. The format follows
 - Browser harnesses keep only a citation's `url` and `quote` as evidence, as they already did for a step's fields. A citation with any other field, such as an id or a deep link, failed evidence validation and ended the whole run.
 - Browser harnesses pass on the pages a run reports reading (`pages` in `execute`'s result, with each step's `page` index into them) as browser evidence. A runner that reads a page without navigating its browser, such as one fetching over HTTP, had its evidence reduced to a blank final page and was judged unsupported.
 - Browser evidence with no final page validates. The harness omits an unobserved final page, and the judge then refused the evidence as malformed.
-- Browser trials pass their code-recorded UTC reference date to the evidence judge, so relative dates are judged against the same date the run used.
 
 ## [2.0.0.dev22] - 2026-11-13
 
