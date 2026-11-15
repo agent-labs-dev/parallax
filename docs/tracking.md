@@ -42,6 +42,12 @@ file with its hash), pushes it, then reads every field back and downloads each
 evidence zip to check its bytes. The local directory is deleted only when all of
 it matches.
 
+Successful verification writes `<run-directory>.verified.json` beside the run
+directory before deleting it. The receipt records the run, project and dataset,
+the verified file hashes, and experiment ids and URLs. It proves upload
+verification only: the command still fails if the run exceeds the invalid-trial
+limit. A seal (`upload.json`) alone does not prove remote verification.
+
 Every write lands on a fixed id: an experiment's id derives from the project,
 dataset and experiment name, and each item's trace from the experiment and the
 item. So an upload that stopped part way is finished by
