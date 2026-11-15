@@ -193,7 +193,7 @@ async def test_a_world_less_trial_mounts_no_world_and_its_hooks_reach_the_row(
     assert (row.timing_basis, row.timing_breakdown) == ("agent-run", {"browser_start": 800.0, "agent": 4000.0})
     assert row.cost_by_component == {"agent": 0.25, "browser": 0.05}
     assert row.cost_usd == pytest.approx(0.30)
-    assert row.details == {"lease_wait_ms": 120}
+    assert row.details == {"lease_wait_ms": 120, "today": datetime.now(UTC).date().isoformat()}
     assert row.judge_identity is not None and row.judge_identity.startswith("browser-evidence-v2:")
     # No judge is configured offline, so the policy abstains: unjudged, never a pass or a fail.
     assert row.verdict is Verdict.INVALID
@@ -217,6 +217,16 @@ async def test_today_is_substituted_at_start_but_the_template_hash_and_details_a
     )
     assert row.task_hash == record_hash(record)
     assert row.details["today"] == today.isoformat()
+
+
+async def test_browser_trial_records_reference_date_without_a_placeholder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    task = task_from_record("shop", RECORD)
+    harness = Browsing()
+    run_dir = await run_browsing(tmp_path, monkeypatch, harness, task=task)
+    [row] = read_results(run_dir / "results.jsonl")
+    assert row.details["today"] == datetime.now(UTC).date().isoformat()
 
 
 async def test_missing_task_secret_is_invalid_before_the_harness_starts(
