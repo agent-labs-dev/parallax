@@ -134,8 +134,15 @@ parallax ci init --suite lite --harness openclaw --model openai/gpt-6-sol --inst
 This writes `.github/workflows/parallax.yml`. Set the repository variables
 `LANGFUSE_BASE_URL` and `PARALLAX_LANGFUSE_PROJECT`, and the secrets
 `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` and `OPENROUTER_API_KEY`, plus
-`PARALLAX_UPSTREAM_OPENAI_KEY` or `PARALLAX_UPSTREAM_ANTHROPIC_KEY` for the wire
+`PARALLAX_UPSTREAM_OPENAI_KEY` or `PARALLAX_UPSTREAM_ANTHROPIC_KEY` for each wire
 your models use. The job is skipped until `PARALLAX_LANGFUSE_PROJECT` is set.
+
+`--upstream` names those wires, from `openai` and `anthropic` (both by default):
+the workflow carries only the provider keys it names. `--report-sink` names
+where a branch or dispatched run's report also goes, from `issue` and `webhook`
+(both by default), on top of the step summary and a pull request's comment. Pass
+an empty value to write neither, such as `--upstream ""` for a run with no
+metered wire.
 
 Every run spends inside a campaign budget in USD (`parallax run --budget
 --reserve`). Push and pull request runs take theirs from the variables
@@ -163,7 +170,8 @@ it from the evidence, in a repository where everyone who reads the report may
 read the evidence. Set the secrets `PARALLAX_REPORT_WEBHOOK_URL` and
 `PARALLAX_REPORT_WEBHOOK_SECRET` to also send default-branch and dispatched
 reports to a webhook as JSON (`report_markdown`, `run_id`, `branch`, `run_url`),
-signed as the hex HMAC-SHA256 of the body in `X-Webhook-Signature`.
+signed as the hex HMAC-SHA256 of the body in `X-Webhook-Signature`. The workflow
+carries the webhook step unless `--report-sink` left it out.
 
 `--runner` picks the runner label for push and pull request runs, and
 `--dispatch-runner` the default for a dispatch, such as a larger runner for a

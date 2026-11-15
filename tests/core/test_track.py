@@ -307,7 +307,60 @@ def test_a_dataset_name_is_path_encoded_where_langfuse_takes_it_in_the_url(name:
     client = Mock()
     client.api.datasets.get.return_value = SimpleNamespace(id="dataset")
     client.api.experiments.list.return_value = SimpleNamespace(data=[], meta=SimpleNamespace(cursor=None))
-    assert sink.list_runs(client, name) == []
+    assert sink.list_runs(client, name).runs == ()
     client.api.datasets.get.assert_called_once_with(dataset_name=quote(name, safe=""))
     sink._write_items(client, name, [])
     assert client.api.datasets.get.call_args.kwargs == {"dataset_name": quote(name, safe="")}
+
+
+def _experiment(name: str, id: str, metadata: dict[str, object]) -> object:
+    from types import SimpleNamespace
+
+    return SimpleNamespace(name=name, id=id, metadata=metadata, scores=[], start_time=datetime(2026, 11, 1, tzinfo=UTC))
+
+
+def test_list_runs_counts_the_experiments_it_skips_for_missing_metadata() -> None:
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    from parallax.track import sink
+    from parallax.track.projection import RESERVED_META
+
+    assert set(sink.REQUIRED_META) <= RESERVED_META
+    client = Mock()
+    client.api.datasets.get.return_value = SimpleNamespace(id="dataset")
+    client.api.experiments.list.return_value = SimpleNamespace(
+        data=[
+            _experiment("ours", "e1", {"run_id": "r1", "row": "h|m", "judge_policy": "p"}),
+            _experiment("theirs", "e2", {"tool": "other"}),
+            _experiment("half", "e3", {"run_id": "r2"}),
+        ],
+        meta=SimpleNamespace(cursor=None),
+    )
+
+    listing = sink.list_runs(client, "ds")
+
+    assert [r.name for r in listing.runs] == ["ours"]
+    assert (listing.skipped, listing.missing) == (2, ("run_id", "row", "judge_policy"))
+    assert listing.skipped_note() == (
+        "2 experiments on this dataset lack Parallax run metadata (run_id, row, judge_policy); they were skipped"
+    )
+
+
+def test_list_runs_names_every_key_a_single_skipped_experiment_lacks() -> None:
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    from parallax.track import sink
+
+    client = Mock()
+    client.api.datasets.get.return_value = SimpleNamespace(id="dataset")
+    client.api.experiments.list.return_value = SimpleNamespace(
+        data=[_experiment("theirs", "e2", {})], meta=SimpleNamespace(cursor=None)
+    )
+
+    listing = sink.list_runs(client, "ds")
+
+    assert listing.runs == () and listing.skipped_note() == (
+        "1 experiment on this dataset lacks Parallax run metadata (run_id, row, judge_policy); it was skipped"
+    )

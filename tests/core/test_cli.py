@@ -88,6 +88,8 @@ def test_nothing_pending_is_not_an_error(tmp_path: Path) -> None:
         [*RUN, "--provenance", "no-equals-sign"],
         *([*RUN, "--pair", pair, "--dry-run"] for pair in ("mini-repo", "=m/x", "mini-repo=")),
         *(["ci", "init", "--suite", "core", "--harness", "oracle", "--runner", r] for r in ("a: b", "a'b")),
+        ["ci", "init", "--suite", "core", "--harness", "oracle", "--upstream", "gemini"],
+        ["ci", "init", "--suite", "core", "--harness", "oracle", "--report-sink", "slack"],
     ],
 )
 def test_bad_invocations_are_usage_errors(argv: list[str]) -> None:
@@ -101,6 +103,39 @@ def test_resume_of_a_non_run_is_a_usage_error(tmp_path: Path) -> None:
 def test_check_reports_unjudged_controls(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["check", TASKS, "--isolation", "host"]) == FAILED
     assert "0/3 tasks pass their controls" in capsys.readouterr().out
+
+
+def test_show_says_which_experiments_it_skipped(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    listing = sink.Listing((), 2, ("run_id", "row"))
+    monkeypatch.setattr(sink, "connect", lambda write: (None, None))
+    monkeypatch.setattr(sink, "list_runs", lambda client, dataset: listing)
+    assert main(["show"]) == OK
+    assert capsys.readouterr().out.strip() == (
+        "2 experiments on this dataset lack Parallax run metadata (run_id, row); they were skipped"
+    )
+
+
+def test_compare_names_the_metadata_a_skipped_experiment_lacks(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    listing = sink.Listing((), 6, ("run_id", "judge_policy"))
+    monkeypatch.setattr(sink, "connect", lambda write: (None, None))
+    monkeypatch.setattr(sink, "list_runs", lambda client, dataset: listing)
+    assert main(["compare"]) == ENVIRONMENT
+    err = capsys.readouterr().err
+    assert "nothing to compare: 6 experiments on this dataset lack Parallax run metadata" in err
+    assert "nothing is recorded yet" not in err
+
+
+def test_compare_still_says_nothing_is_recorded_for_an_empty_dataset(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(sink, "connect", lambda write: (None, None))
+    monkeypatch.setattr(sink, "list_runs", lambda client, dataset: sink.Listing(()))
+    assert main(["compare"]) == ENVIRONMENT
+    assert "nothing is recorded yet" in capsys.readouterr().err
 
 
 def test_ci_init_writes_a_workflow_that_runs_compares_and_comments(tmp_path: Path) -> None:
@@ -118,7 +153,10 @@ def test_ci_init_writes_a_workflow_that_runs_compares_and_comments(tmp_path: Pat
     }
     # Without a fallback panel every question Jev leaves uncertain makes the trial INVALID.
     assert {"PARALLAX_JUDGE_MODELS", "PARALLAX_JUDGE_BASE_URL", "PARALLAX_JUDGE_API_KEY"} <= job["env"].keys()
+    # Both metered wires and both extra report sinks are written unless the options narrow them.
+    assert {"PARALLAX_UPSTREAM_OPENAI_KEY", "PARALLAX_UPSTREAM_ANTHROPIC_KEY"} <= job["env"].keys()
     steps = {step.get("name"): step for step in job["steps"]}
+    assert {"Post to the results issue", "Send the report to a webhook"} <= steps.keys()
     assert "inputs.runner" in job["runs-on"] and "github.run_id" in workflow["concurrency"]["group"]
     assert steps["Install the harness"]["run"] == install + "\n"
     assert steps["Finish an interrupted upload"]["if"] == "failure()"
@@ -127,6 +165,37 @@ def test_ci_init_writes_a_workflow_that_runs_compares_and_comments(tmp_path: Pat
     assert "--edit-last" not in comment  # it would edit another workflow's newer comment
     assert main(argv) == USAGE  # an existing workflow is kept unless --force
     assert main([*argv, "--force"]) == OK
+
+
+@pytest.mark.parametrize("wire", ["openai", "anthropic"])
+def test_ci_init_names_only_the_upstream_wire_it_is_given(tmp_path: Path, wire: str) -> None:
+    path = tmp_path / "parallax.yml"
+    argv = ["ci", "init", "--suite", "lite", "--harness", "hermes", "--model", "openai/gpt-5"]
+    assert main([*argv, "--upstream", wire, "--report-sink", "issue", "--path", str(path)]) == OK
+    workflow = yaml.safe_load(path.read_text())
+    job = workflow["jobs"]["evaluate"]
+    text = path.read_text()
+    other = "ANTHROPIC" if wire == "openai" else "OPENAI"
+    assert f"PARALLAX_UPSTREAM_{wire.upper()}_KEY" in job["env"]
+    assert f"PARALLAX_UPSTREAM_{other}_KEY" not in text
+    names = {step.get("name") for step in job["steps"]}
+    assert "Post to the results issue" in names and "Send the report to a webhook" not in names
+    assert "PARALLAX_REPORT_WEBHOOK" not in text
+    assert job["permissions"]["issues"] == "write"
+
+
+def test_ci_init_writes_no_provider_key_or_report_sink_when_given_none(tmp_path: Path) -> None:
+    path = tmp_path / "parallax.yml"
+    argv = ["ci", "init", "--suite", "conformance", "--harness", "oracle"]
+    assert main([*argv, "--upstream", "", "--report-sink", "", "--path", str(path)]) == OK
+    workflow = yaml.safe_load(path.read_text())
+    job = workflow["jobs"]["evaluate"]
+    text = path.read_text()
+    assert not [key for key in job["env"] if key.startswith("PARALLAX_UPSTREAM_")]
+    assert "PARALLAX_UPSTREAM_" not in text and "PARALLAX_REPORT_WEBHOOK" not in text
+    names = {step.get("name") for step in job["steps"]}
+    assert "Post to the results issue" not in names and "Send the report to a webhook" not in names
+    assert "issues" not in job["permissions"]
 
 
 def evaluate(script: str, tmp_path: Path, **env: str) -> list[str]:
