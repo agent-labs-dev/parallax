@@ -111,6 +111,7 @@ from parallax.models import (
 from parallax.protocols import Harness, TrialCosts, TrialDetails, TrialTiming
 from parallax.semantic import grade_checks, policy_identity, record_grade
 from parallax.task import (
+    DATE_PLACEHOLDER,
     LITE,
     fill_dates,
     load_patch,
@@ -869,7 +870,11 @@ class TrialExecution:
         # Browser judges need the same reference date as the run even when the task uses natural language.
         # Placeholder expansion remains limited to explicit date placeholders, while world tasks keep their
         # existing clock semantics.
-        self.today = datetime.now(UTC).date().isoformat() if self.task.meta.area is Area.BROWSER else None
+        self.today = (
+            datetime.now(UTC).date().isoformat()
+            if self.task.meta.area is Area.BROWSER or any(DATE_PLACEHOLDER.search(t.text) for t in self.task.turns)
+            else None
+        )
         self.t.details = {"today": self.today} if self.today is not None else {}
         self.secrets: list[str] = [
             os.environ[env_name] for env_name in self.task.secrets.values() if os.environ.get(env_name)

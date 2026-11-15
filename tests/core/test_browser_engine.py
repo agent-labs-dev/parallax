@@ -161,8 +161,9 @@ def test_a_source_task_has_no_world_one_turn_and_its_policys_checks() -> None:
 def test_answer_schema_reaches_the_browser_judge_state() -> None:
     schema = {"type": "object", "properties": {"price": {"type": "string"}}}
     task = source_task().model_copy(update={"answer_schema": schema})
-    state = browser_evidence.judge_state(task, OBSERVED, ("$24.00",), {})
+    state = browser_evidence.judge_state(task, OBSERVED, ("$24.00",), {"today": "2026-11-15"})
     assert state["answer_schema"] == schema
+    assert state["execution"]["today"] == "2026-11-15"
 
 
 @pytest.mark.parametrize(
