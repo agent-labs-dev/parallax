@@ -618,3 +618,67 @@ async def test_browser_access_refusal_still_starts_the_browser(monkeypatch) -> N
 
 async def _unavailable() -> str:
     return "site unavailable"
+
+
+def test_v4_steps_are_the_finished_tool_calls_of_the_event_stream() -> None:
+    """Shapes recorded from a live V4 run: step boundaries and the `running` echo of a call are not steps."""
+    code = "await page.goto('https://site.test'); await bu.state();"
+
+    def tool(status: str, **state: object) -> dict[str, object]:
+        part = {"tool": "javascript", "type": "tool", "state": {"input": {"code": code}, "status": status, **state}}
+        return {"type": "core.event", "data": {"part": part, "type": "tool_use"}}
+
+    events = [
+        {"type": "run.created", "data": {}},
+        {"type": "core.event", "data": {"part": {"type": "step-start"}, "type": "step_start"}},
+        tool("running"),
+        tool("completed", output="[state] Site | https://site.test/"),
+        tool("error", error="TimeoutError"),
+        {"type": "core.event", "data": {"part": {"type": "step-finish"}, "type": "step_finish"}},
+        {"type": "llm.response", "data": {}},
+    ]
+    steps = _run_result(SimpleNamespace(status="completed", output="Site"), events)["step_log"]
+    assert [(step["action"], step["ok"], step.get("quote")) for step in steps] == [
+        ("javascript", True, "[state] Site | https://site.test/"),
+        ("javascript", False, "TimeoutError"),
+    ]
+    assert steps[0]["value"] == code
+
+
+async def test_every_open_tab_is_evidence_when_no_final_page_is_singled_out(monkeypatch) -> None:
+    """A run that opened a new tab ends with two pages; both reach the judge instead of neither."""
+    from parallax.browser_evidence import BrowserEvidence
+    from parallax.harnesses.browser import harnesses
+    from parallax.harnesses.browser.harnesses import BrowserHarness
+    from parallax.harnesses.browser.observer import AmbiguousFinalPage
+    from parallax.models import Trial
+
+    tabs = [
+        {"url": "https://site.test/link", "title": "Link", "text": "Open the new tab"},
+        {"url": "https://site.test/new", "title": "New", "text": "I am a new page"},
+    ]
+
+    class Observer:
+        async def observe(self, cdp_url: str, *, url: str | None = None) -> dict[str, object]:
+            raise AmbiguousFinalPage(len(tabs), tabs)
+
+    monkeypatch.setattr(harnesses, "load_observer", lambda name: Observer())
+
+    class Harness(BrowserHarness):
+        info = BrowserHarnessCloud.info
+
+        async def _site_preflight(self) -> str | None:
+            return None
+
+        async def execute(self, turn: SimpleNamespace) -> dict[str, object]:
+            return {"status": "done", "answer": "I am a new page", "final_page": await self.observe("ws://cdp")}
+
+    harness = Harness()
+    await harness.start(Trial.model_construct(model=None, task_id="t", env={}), SimpleNamespace())
+    await harness.turn(SimpleNamespace(index=1, text="follow the link"))
+
+    evidence = BrowserEvidence.model_validate(harness.trial_metadata["browser"])
+    assert evidence.final_page is None
+    assert [page.url for page in evidence.pages] == [tab["url"] for tab in tabs]
+    assert evidence.observed()
+    assert harness.trial_notes == ["final page not singled out: 2 tabs open, each kept as a page"]
