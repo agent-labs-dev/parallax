@@ -716,3 +716,107 @@ async def test_a_host_worker_runs_in_a_host_directory_even_when_the_box_is_docke
     assert seen and seen[0] != Path("/home/agent")
     await harness.stop()
     assert not seen[0].exists()
+
+
+async def test_a_worker_that_fails_to_start_costs_nothing(monkeypatch) -> None:
+    """A trial whose agent never started spent nothing, so its budget hold settles at zero, not the reservation."""
+    from pathlib import Path
+
+    from parallax.harnesses.browser import harnesses
+    from parallax.harnesses.browser.clock import AttemptClock
+    from parallax.models import Trial
+
+    class Worker:
+        def __init__(self, command: object, *, env: object, cwd: Path) -> None:
+            raise FileNotFoundError(2, "No such file or directory", "/home/agent")
+
+    monkeypatch.setattr(harnesses, "JsonWorker", Worker)
+    harness = BrowserHarnessOSS()
+    harness._trial = Trial.model_construct(model="bu-fast", home=Path("/home/agent"), env={})
+    harness._clock = AttemptClock(bounded=False)
+    out = await harness.turn(SimpleNamespace(index=1, text="find it"))
+    assert "FileNotFoundError" in str(out)
+    assert harness.trial_costs() == {"model": 0.0}
+    await harness.stop()
+
+
+def test_oss_runs_in_this_python_only_with_the_pinned_browser_use(monkeypatch) -> None:
+    import importlib.metadata
+    import sys
+
+    from parallax.harnesses.base import HarnessError
+    from parallax.harnesses.browser import harnesses, pins
+
+    pinned = pins.load()["browser-use"]["version"]
+    found: dict[str, str] = {}
+
+    def version(name: str) -> str:
+        if name not in found:
+            raise importlib.metadata.PackageNotFoundError(name)
+        return found[name]
+
+    monkeypatch.setattr(importlib.metadata, "version", version)
+    monkeypatch.setattr(harnesses.shutil, "which", lambda name: "/usr/bin/uv")
+    assert harnesses.oss_python()[-3:] == ("--with", f"browser-use=={pinned}", "python")
+    found["browser-use"] = "0.9.0"
+    assert harnesses.oss_python()[0] == "/usr/bin/uv"
+    found["browser-use"] = pinned
+    assert harnesses.oss_python() == (sys.executable,)
+    del found["browser-use"]
+    monkeypatch.setattr(harnesses.shutil, "which", lambda name: None)
+    with pytest.raises(HarnessError, match="needs browser-use"):
+        harnesses.oss_python()
+
+
+async def test_oss_reports_the_browser_use_its_worker_runs(monkeypatch) -> None:
+    import sys
+
+    from parallax.harnesses.base import HarnessError
+    from parallax.harnesses.browser import harnesses
+
+    # A stand-in interpreter: its own -c runs, and the probe's arguments follow as its argv.
+    monkeypatch.setattr(harnesses, "oss_python", lambda: (sys.executable, "-c", "print('1.0.5')", "--"))
+    assert await BrowserHarnessOSS().version(None) == "browser-use 1.0.5"
+    monkeypatch.setattr(harnesses, "oss_python", lambda: (sys.executable, "-c", "raise SystemExit('no uv env')", "--"))
+    with pytest.raises(HarnessError, match="no uv env"):
+        await BrowserHarnessOSS().version(None)
+
+
+def test_a_worker_error_before_ready_names_its_cause() -> None:
+    from parallax.harnesses.browser.subprocess import WorkerEventError
+
+    error = WorkerEventError(
+        "ready", {"event": "result", "error": "ModuleNotFoundError: No module named 'browser_use'"}
+    )
+    assert "No module named 'browser_use'" in str(error)
+
+
+async def test_a_worker_that_fails_after_its_browser_opened_keeps_the_browser_cost(monkeypatch) -> None:
+    import contextlib
+    from pathlib import Path
+
+    from parallax.harnesses.browser import harnesses
+    from parallax.harnesses.browser.clock import AttemptClock
+    from parallax.models import Trial
+
+    browser = SimpleNamespace(cdp_url="wss://cdp.test", open_seconds=1.0, cost=())
+
+    @contextlib.asynccontextmanager
+    async def paid_browser(http: object, *, screen: object):  # noqa: ANN202
+        try:
+            yield browser
+        finally:
+            browser.cost = ({"component": "browser", "dollars": 0.02},)
+
+    class Worker:
+        def __init__(self, command: object, *, env: object, cwd: Path) -> None:
+            raise FileNotFoundError(2, "No such file or directory", "missing-worker")
+
+    monkeypatch.setattr(harnesses, "cloud_browser", paid_browser)
+    monkeypatch.setattr(harnesses, "JsonWorker", Worker)
+    harness = BrowserHarnessRunner()
+    harness._trial = Trial.model_construct(model="m", home=Path("/home/agent"), env={})
+    harness._clock = AttemptClock(bounded=False)
+    await harness.turn(SimpleNamespace(index=1, text="find it"))
+    assert harness.trial_costs() == {"browser": 0.02}
+    await harness.stop()

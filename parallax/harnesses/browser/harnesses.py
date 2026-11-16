@@ -27,7 +27,8 @@ from urllib.parse import urlsplit
 import httpx
 from pydantic import BaseModel, ConfigDict
 
-from parallax.harnesses.base import config_hash
+from parallax.harnesses.base import HarnessError, config_hash
+from parallax.harnesses.browser import oss_worker
 from parallax.harnesses.browser.clock import SESSION_INCLUDED, AttemptClock
 from parallax.harnesses.browser.cloud import (
     Browser,
@@ -354,7 +355,8 @@ class BrowserHarness(ABC):
             if reason is not None:
                 result = {"status": "unavailable", "answer": None, "error": reason}
             else:
-                self._agent_started()
+                # The clock starts now; spending starts only when `execute` reports its agent started.
+                self._clock_started()
                 result = await self.execute(turn)
         except Unavailable as error:
             result = {"status": "unavailable", "answer": None, "error": str(error)}
@@ -467,7 +469,11 @@ class BrowserHarness(ABC):
             return None
 
     def _agent_started(self, open_seconds: object = None) -> None:
+        """The agent is running and may spend: a worker reported ready, or a cloud task exists."""
         self._agent_has_started = True
+        self._clock_started(open_seconds)
+
+    def _clock_started(self, open_seconds: object = None) -> None:
         if self._clock is None:
             return
         if isinstance(open_seconds, int | float):
@@ -771,6 +777,25 @@ def _cost_from_view(view: Mapping[str, Any]) -> list[dict[str, Any]]:
     return [{"component": component, "dollars": view[key]} for key, component in _COST_FIELDS.items() if key in view]
 
 
+def oss_python() -> tuple[str, ...]:
+    """The Python that runs the browser-use worker: this one when it has the pinned browser-use, else a uv
+    environment with exactly that version. The worker script imports only the standard library and browser_use."""
+    import importlib.metadata
+
+    from parallax.harnesses.browser import pins
+
+    pinned = pins.load()["browser-use"]["version"]
+    try:
+        if importlib.metadata.version("browser-use") == pinned:
+            return (sys.executable,)
+    except importlib.metadata.PackageNotFoundError:
+        pass
+    uv = shutil.which("uv")
+    if uv is None:
+        raise HarnessError(f"browser-use-oss needs browser-use=={pinned} in {sys.executable} or uv to install it")
+    return (uv, "run", "--no-project", "--quiet", "--with", f"browser-use=={pinned}", "python")
+
+
 class BrowserHarnessOSS(BrowserHarness):
     info = _info(
         "browser-use-oss",
@@ -779,10 +804,26 @@ class BrowserHarnessOSS(BrowserHarness):
         install="pip install --no-cache-dir 'browser-use==1.0.5'",
     )
 
+    async def version(self, box: Any) -> str:
+        """The browser-use the worker runs, checked before any trial reserves budget. The worker runs on the host,
+        not in the box the declared install builds, and browser-use pins dependencies Parallax cannot share
+        (websockets), so unless this Python has the pinned package the worker runs in its own uv environment."""
+        command = oss_python()
+        proc = await asyncio.create_subprocess_exec(
+            *command, "-c", "import importlib.metadata as m; print(m.version('browser-use'))",
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+        )  # fmt: skip
+        out, err = await proc.communicate()
+        if proc.returncode != 0:
+            raise HarnessError(f"browser-use runtime failed to start: {err.decode(errors='replace').strip()[-500:]}")
+        return f"browser-use {out.decode().strip()}"
+
     async def execute(self, turn: TurnInput) -> dict[str, Any]:
         request = {"goal": turn.text, "model": self.trial.model, "max_steps": None, "timeout": None}
         worker = JsonWorker(
-            (sys.executable, "-m", "parallax.harnesses.browser.oss_worker"),
+            # -I: run by path, the script's own directory would lead sys.path, and its sibling subprocess.py would
+            # shadow the standard library's.
+            (*oss_python(), "-I", str(Path(oss_worker.__file__))),
             env=self._agent_env(),
             cwd=self.worker_dir,
         )
@@ -808,30 +849,38 @@ class BrowserHarnessRunner(BrowserHarness):
     info = _info("browser-harness", pins_model=True, credential_env=("BROWSER_USE_API_KEY",))
 
     async def execute(self, turn: TurnInput) -> dict[str, Any]:
-        async with httpx.AsyncClient() as http, cloud_browser(http, screen=(1120, 780)) as browser:
-            self._browser = browser
-            request = {"goal": turn.text, "model": self.trial.model, "cdp_url": browser.cdp_url}
-            configured = os.environ.get(self.command_env)
-            command = (
-                tuple(shlex.split(configured))
-                if configured
-                else (sys.executable, "-m", "parallax.harnesses.browser.browser_harness_worker")
-            )
-            worker_env = self._agent_env() | {
-                "BU_CDP_WS": browser.cdp_url,
-                "PARALLAX_BROWSER_CDP_URL": browser.cdp_url,
-            }
-            worker = JsonWorker(command, env=worker_env, cwd=self.worker_dir)
-            async with worker:
-                await worker.send(request)
+        browser = None
+        try:
+            async with httpx.AsyncClient() as http, cloud_browser(http, screen=(1120, 780)) as browser:
+                # The paid browser exists, so the attempt spends from here even if the worker never starts.
                 self._agent_started(browser.open_seconds)
-                result = await worker.receive("result")
-                result["ready"] = True
-                result["open_seconds"] = browser.open_seconds
-                result["final_page"] = await self.observe(browser.cdp_url, url=result.get("url"))
-                await worker.send({})
-                with contextlib.suppress(RuntimeError):
-                    await worker.receive("stopped")
+                self._browser = browser
+                request = {"goal": turn.text, "model": self.trial.model, "cdp_url": browser.cdp_url}
+                configured = os.environ.get(self.command_env)
+                command = (
+                    tuple(shlex.split(configured))
+                    if configured
+                    else (sys.executable, "-m", "parallax.harnesses.browser.browser_harness_worker")
+                )
+                worker_env = self._agent_env() | {
+                    "BU_CDP_WS": browser.cdp_url,
+                    "PARALLAX_BROWSER_CDP_URL": browser.cdp_url,
+                }
+                worker = JsonWorker(command, env=worker_env, cwd=self.worker_dir)
+                async with worker:
+                    await worker.send(request)
+                    result = await worker.receive("result")
+                    result["ready"] = True
+                    result["open_seconds"] = browser.open_seconds
+                    result["final_page"] = await self.observe(browser.cdp_url, url=result.get("url"))
+                    await worker.send({})
+                    with contextlib.suppress(RuntimeError):
+                        await worker.receive("stopped")
+        except BaseException:
+            # The worker failed, but the browser it was given has already settled its charges.
+            if browser is not None:
+                self._cost.update(_known_costs(list(browser.cost)))
+            raise
         # The browser settles its charges as its context exits, so they are read only after it closes.
         result["cost_lines"] = list(browser.cost)
         return result

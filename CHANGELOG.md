@@ -6,6 +6,15 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- A browser trial whose agent never started (its worker failed to launch) costs nothing, so a campaign budget no
+  longer charges it the full reservation.
+- browser-use-oss runs its worker in a uv environment with the pinned browser-use unless this Python has exactly
+  that version, since browser-use pins dependencies Parallax cannot share. The run records the browser-use version,
+  and a runtime that cannot start makes the arm unavailable before any trial runs.
+- A browser worker that fails before it is ready reports why, not only that it returned the wrong event.
+
 ## [2.0.0.dev31] - 2026-11-16
 
 ### Added
