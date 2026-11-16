@@ -96,7 +96,7 @@ def test_runs_lists_each_run_once_newest_first() -> None:
 def test_a_feed_that_cannot_send_goes_quiet_after_one_warning(caplog: pytest.LogCaptureFixture) -> None:
     client = FakeClient(fail=True)
     feed = LiveFeed(client, "run-1")  # ty: ignore[invalid-argument-type]
-    feed.run_started(total=1, already_done=0, concurrency=1, labels=["a"], planned=["k"])
+    feed.run_started(total=1, already_done=0, concurrency=1, labels=["a"], kept=[])
     feed.run_finished()
     assert sum("live feed stopped" in r.message for r in caplog.records) == 1
 
@@ -153,7 +153,7 @@ def test_a_resumed_run_is_running_again_despite_its_earlier_end() -> None:
             already_done=1,
             concurrency=1,
             labels=["a"],
-            planned=["t2", "t3", "t4"],
+            kept=["t1"],
         ),
         finished(12, "t2", "pass", wall_s=5.0, cost_usd=0.01),
     ]
@@ -241,7 +241,7 @@ def test_a_resumed_retry_of_an_earlier_invalid_trial_counts_as_done() -> None:
         finished(1, "t1", "invalid", reason="site down"),
         event(RUN_EVENT, 2, state="finished"),
         # t2 and t3 passed while the feed was down; t1 is re-run.
-        event(RUN_EVENT, 10, state="running", total=3, already_done=2, concurrency=1, labels=["a"], planned=["t1"]),
+        event(RUN_EVENT, 10, state="running", total=3, already_done=2, concurrency=1, labels=["a"], kept=["t2", "t3"]),
         finished(11, "t1", "pass", attempt=0, cost_usd=0.01),
         event(RUN_EVENT, 12, state="finished"),
     ]
@@ -284,16 +284,14 @@ def test_a_queued_rerun_of_an_earlier_invalid_trial_is_not_done() -> None:
             already_done=0,
             concurrency=1,
             labels=["a"],
-            planned=["t1", "t2", "t3"],
+            kept=[],
         ),
         finished(1, "t1", "pass", cost_usd=0.01),
         finished(2, "t2", "invalid", reason="site down"),
         finished(3, "t3", "invalid", reason="site down"),
         event(RUN_EVENT, 4, state="finished"),
         # The resume keeps t1 and re-runs t2 and t3 one at a time; t3 has not started yet.
-        event(
-            RUN_EVENT, 10, state="running", total=3, already_done=1, concurrency=1, labels=["a"], planned=["t2", "t3"]
-        ),
+        event(RUN_EVENT, 10, state="running", total=3, already_done=1, concurrency=1, labels=["a"], kept=["t1"]),
         event(STARTED_EVENT, 10, key="t2", task="t2", label="a", repeat=0, attempt=1),
     ]
     p = progress(events, now=T0 + timedelta(minutes=11))
@@ -347,3 +345,16 @@ def test_watch_on_a_taken_port_is_an_environment_error() -> None:
         taken.listen()
         with pytest.raises(TrackError, match="cannot serve"):
             watch.serve(live.LiveSource("https://lf.test", "pk", "sk"), host="127.0.0.1", port=taken.getsockname()[1])
+
+
+def test_a_trial_dropped_from_the_plan_is_not_kept() -> None:
+    events = [
+        event(RUN_EVENT, 0, state="running", total=3, already_done=0, concurrency=1, labels=["a"], kept=[]),
+        finished(1, "t1", "pass", cost_usd=0.01),
+        finished(2, "gone", "fail", cost_usd=0.5),
+        event(RUN_EVENT, 3, state="finished"),
+        # t2 passed while the feed was down; the resume dropped "gone" from the plan and keeps t1 and t2.
+        event(RUN_EVENT, 10, state="running", total=3, already_done=2, concurrency=1, labels=["a"], kept=["t1", "t2"]),
+    ]
+    p = progress(events, now=T0 + timedelta(minutes=11))
+    assert (p["done"], p["unseen"], p["verdicts"], p["pass_rate"]) == (2, 1, {"pass": 1}, None)

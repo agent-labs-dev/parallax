@@ -74,9 +74,9 @@ class LiveFeed:
             logger.warning("live feed stopped: %s", error)
 
     def run_started(
-        self, *, total: int, already_done: int, concurrency: int, labels: Sequence[str], planned: Sequence[str]
+        self, *, total: int, already_done: int, concurrency: int, labels: Sequence[str], kept: Sequence[str]
     ) -> None:
-        """`planned`: the keys this start runs; the other `already_done` trials are kept from earlier."""
+        """`kept`: the keys of the `already_done` trials, kept from an earlier start and not run again."""
         self._send(
             RUN_EVENT,
             {
@@ -86,7 +86,7 @@ class LiveFeed:
                 "already_done": already_done,
                 "concurrency": concurrency,
                 "labels": list(labels),
-                "planned": list(planned),
+                "kept": list(kept),
             },
         )
 
@@ -239,7 +239,7 @@ def progress(events: Iterable[Event], *, now: datetime) -> dict[str, Any]:
         None,
     )
     already = start.payload.get("already_done", 0) if start else 0
-    planned = set(start.payload.get("planned", [])) if start else set()
+    kept_keys = set(start.payload.get("kept", [])) if start else set()
     current = [e for e in ordered if start is None or e.at >= start.at]
 
     def last_attempts(source: Iterable[Event]) -> dict[str, Event]:
@@ -251,15 +251,10 @@ def progress(events: Iterable[Event], *, now: datetime) -> dict[str, Any]:
                     found[key] = e
         return found
 
-    # The start names the trials it runs; every other trial is one the runner kept as done (`already_done`), and
-    # its result, when the feed saw it, is its last finish before the start.
-    kept = {
-        k: e
-        for k, e in last_attempts(e for e in ordered if start is not None and e.at < start.at).items()
-        if k not in planned
-    }
-    if len(kept) > already:  # an older start that did not name its plan: which finishes it kept is unknown
-        kept = {}
+    # The start names the trials it kept as done; each one's result, when the feed saw it, is its last finish
+    # before the start. A kept trial the feed never saw stays unseen.
+    before = last_attempts(e for e in ordered if start is not None and e.at < start.at)
+    kept = {k: e for k, e in before.items() if k in kept_keys}
     finished = last_attempts(current)
     running = {(e.payload["key"], e.payload.get("attempt", 0)): e for e in current if e.name == STARTED_EVENT}
     for e in current:
