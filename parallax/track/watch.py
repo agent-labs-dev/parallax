@@ -115,11 +115,11 @@ PAGE = """<!doctype html>
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const pct = v => v == null ? "–" : (v * 100).toFixed(1) + "%";
-const usd = v => v == null ? "–" : "$" + (v < 0.1 ? v.toFixed(4) : v.toFixed(2));
-const dur = s => { if (s == null) return "–"; s = Math.round(s); const h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = s%60;
+const pct = v => v == null ? "-" : (v * 100).toFixed(1) + "%";
+const usd = v => v == null ? "-" : "$" + (v < 0.1 ? v.toFixed(4) : v.toFixed(2));
+const dur = s => { if (s == null) return "-"; s = Math.round(s); const h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = s%60;
   return h ? `${h}h ${m}m` : m ? `${m}m ${x}s` : `${x}s`; };
-const clock = iso => iso ? new Date(iso).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}) : "–";
+const clock = iso => iso ? new Date(iso).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}) : "-";
 const COLORS = {pass:"var(--pass)", fail:"var(--fail)", invalid:"var(--invalid)", na:"var(--na)"};
 let current = new URLSearchParams(location.search).get("run");
 
@@ -136,7 +136,7 @@ async function loadRuns() {
 function render(p) {
   const v = p.verdicts || {}, total = p.total || 0, done = p.done || 0;
   const bar = total ? ["pass","fail","invalid","na"].map(k => `<span style="width:${(v[k]||0)/total*100}%;background:${COLORS[k]}" title="${k} ${v[k]||0}"></span>`).join("") : "";
-  const eta = p.state === "finished" ? "done" : p.eta_s == null ? "–" : dur(p.eta_s);
+  const eta = p.state === "finished" ? "done" : p.eta_s == null ? "-" : dur(p.eta_s);
   const arms = Object.entries(p.arms || {}).map(([name, a]) => `<tr><td>${esc(name)}</td><td>${a.done}</td>
     <td class="v-pass">${a.verdicts.pass||0}</td><td class="v-fail">${a.verdicts.fail||0}</td><td class="v-invalid">${a.verdicts.invalid||0}</td>
     <td>${pct(a.pass_rate)}</td><td>${dur(a.median_pass_s)}</td><td>${usd(a.mean_cost_usd)}</td></tr>`).join("");
