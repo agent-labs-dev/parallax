@@ -242,14 +242,13 @@ def progress(events: Iterable[Event], *, now: datetime) -> dict[str, Any]:
     for e in counted:
         if e.name == FINISHED_EVENT:
             running.pop((e.payload["key"], e.payload.get("attempt", 0)), None)
+    if finished_state is not None:
+        running = {}  # a run that ended has nothing in flight: a trial cut off by it never sends a finish
     for key, attempt in running:
         # A retry in flight replaces its earlier attempt's result until it finishes.
         if key in latest and latest[key].payload.get("attempt", 0) < attempt:
             del latest[key]
     finished_here = {e.payload["key"] for e in current if e.name == FINISHED_EVENT} & latest.keys()
-    finished_before = {
-        e.payload["key"] for e in counted if e.name == FINISHED_EVENT and start is not None and e.at < start.at
-    }
 
     arms: dict[str, _Arm] = {}
     verdicts: dict[str, int] = {}
@@ -267,7 +266,8 @@ def progress(events: Iterable[Event], *, now: datetime) -> dict[str, Any]:
 
     total = start.payload["total"] if start else None
     # Trials the runner skipped as done count even when their events are missing (an older Parallax, the feed off).
-    done = max(len(latest), already + len(finished_here - finished_before))
+    # A trial finished since the resume was planned by it, so it is never one of the runner's `already_done`.
+    done = max(len(latest), already + len(finished_here))
     elapsed = (now if finished_state is None else finished_state.at) - start.at if start else None
     eta_s = None
     if start and total is not None and finished_state is None and finished_here and elapsed:

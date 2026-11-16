@@ -214,3 +214,25 @@ def test_watch_without_langfuse_is_an_environment_error() -> None:
 
     with pytest.raises(TrackError, match="LANGFUSE_PUBLIC_KEY"):
         live.LiveSource.from_env()
+
+
+def test_a_finished_run_has_nothing_running() -> None:
+    events = [
+        event(RUN_EVENT, 0, state="running", total=2, already_done=0, concurrency=1, labels=["a"]),
+        event(STARTED_EVENT, 0, key="t1", task="t1", label="a", repeat=0, attempt=0),
+        event(RUN_EVENT, 1, state="finished"),
+    ]
+    assert progress(events, now=T0 + timedelta(minutes=5))["running"] == []
+
+
+def test_a_resumed_retry_of_an_earlier_invalid_trial_counts_as_done() -> None:
+    events = [
+        event(RUN_EVENT, 0, state="running", total=3, already_done=0, concurrency=1, labels=["a"]),
+        finished(1, "t1", "invalid", reason="site down"),
+        event(RUN_EVENT, 2, state="finished"),
+        # t2 and t3 passed while the feed was down; t1 is re-run.
+        event(RUN_EVENT, 10, state="running", total=3, already_done=2, concurrency=1, labels=["a"]),
+        finished(11, "t1", "pass", attempt=0, cost_usd=0.01),
+        event(RUN_EVENT, 12, state="finished"),
+    ]
+    assert progress(events, now=T0 + timedelta(minutes=13))["done"] == 3
