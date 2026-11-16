@@ -6,6 +6,11 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The `browser-use-oss` harness installs browser-use 1.0.5, its newest release. It runs on its defaults, which now
+  judge every run with the agent's own model: one more low-effort request per run, counted in its cost.
+
 ## [2.0.0.dev27] - 2026-11-16
 
 ### Added
