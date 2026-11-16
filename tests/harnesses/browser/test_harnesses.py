@@ -883,3 +883,24 @@ async def test_a_later_turn_that_spent_without_a_price_makes_the_trial_cost_unkn
     await harness.turn(SimpleNamespace(index=2, text="second"))
     assert None in harness.trial_costs().values()
     await harness.stop()
+
+
+async def test_a_later_turn_that_reports_no_cost_lines_makes_the_trial_cost_unknown() -> None:
+    from pathlib import Path
+
+    from parallax.harnesses.browser.clock import AttemptClock
+    from parallax.models import Trial
+
+    class TwoTurns(BrowserHarnessRunner):
+        async def execute(self, turn: object) -> dict[str, object]:
+            self._spending()
+            lines = [{"component": "model", "dollars": 0.01}] if turn.index == 1 else []  # ty: ignore[unresolved-attribute]
+            return {"status": "completed", "answer": "a", "cost_lines": lines}
+
+    harness = TwoTurns()
+    harness._trial = Trial.model_construct(model="m", home=Path("/home/agent"), env={})
+    harness._clock = AttemptClock(bounded=False)
+    await harness.turn(SimpleNamespace(index=1, text="first"))
+    await harness.turn(SimpleNamespace(index=2, text="second"))
+    assert None in harness.trial_costs().values()
+    await harness.stop()

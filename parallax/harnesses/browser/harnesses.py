@@ -461,8 +461,10 @@ class BrowserHarness(ABC):
         return dict(self._cost)
 
     def _record_costs(self, lines: list[Any]) -> None:
-        self._cost.update(_known_costs(lines))
-        self._turn_priced = True
+        costs = _known_costs(lines)
+        self._cost.update(costs)
+        # An empty report prices nothing: a worker sends `[]` when its run's cost is unknown.
+        self._turn_priced = self._turn_priced or bool(costs)
 
     def trial_details(self) -> dict[str, Any]:
         return dict(self._details)
