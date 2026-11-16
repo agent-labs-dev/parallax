@@ -716,3 +716,58 @@ async def test_a_host_worker_runs_in_a_host_directory_even_when_the_box_is_docke
     assert seen and seen[0] != Path("/home/agent")
     await harness.stop()
     assert not seen[0].exists()
+
+
+async def test_a_worker_that_fails_to_start_costs_nothing(monkeypatch) -> None:
+    """A trial whose agent never started spent nothing, so its budget hold settles at zero, not the reservation."""
+    from pathlib import Path
+
+    from parallax.harnesses.browser import harnesses
+    from parallax.harnesses.browser.clock import AttemptClock
+    from parallax.models import Trial
+
+    class Worker:
+        def __init__(self, command: object, *, env: object, cwd: Path) -> None:
+            raise FileNotFoundError(2, "No such file or directory", "/home/agent")
+
+    monkeypatch.setattr(harnesses, "JsonWorker", Worker)
+    harness = BrowserHarnessOSS()
+    harness._trial = Trial.model_construct(model="bu-fast", home=Path("/home/agent"), env={})
+    harness._clock = AttemptClock(bounded=False)
+    out = await harness.turn(SimpleNamespace(index=1, text="find it"))
+    assert "FileNotFoundError" in str(out)
+    assert harness.trial_costs() == {"model": 0.0}
+    await harness.stop()
+
+
+async def test_oss_reports_its_browser_use_and_refuses_a_missing_or_unpinned_one(monkeypatch) -> None:
+    import importlib.metadata
+
+    from parallax.harnesses.base import HarnessError
+    from parallax.harnesses.browser import pins
+
+    pinned = pins.load()["browser-use"]["version"]
+    found: dict[str, str] = {}
+
+    def version(name: str) -> str:
+        if name not in found:
+            raise importlib.metadata.PackageNotFoundError(name)
+        return found[name]
+
+    monkeypatch.setattr(importlib.metadata, "version", version)
+    with pytest.raises(HarnessError, match="not installed"):
+        await BrowserHarnessOSS().version(None)
+    found["browser-use"] = "0.9.0"
+    with pytest.raises(HarnessError, match=f"pins {pinned}"):
+        await BrowserHarnessOSS().version(None)
+    found["browser-use"] = pinned
+    assert await BrowserHarnessOSS().version(None) == f"browser-use {pinned}"
+
+
+def test_a_worker_error_before_ready_names_its_cause() -> None:
+    from parallax.harnesses.browser.subprocess import WorkerEventError
+
+    error = WorkerEventError(
+        "ready", {"event": "result", "error": "ModuleNotFoundError: No module named 'browser_use'"}
+    )
+    assert "No module named 'browser_use'" in str(error)

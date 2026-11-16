@@ -27,7 +27,7 @@ from urllib.parse import urlsplit
 import httpx
 from pydantic import BaseModel, ConfigDict
 
-from parallax.harnesses.base import config_hash
+from parallax.harnesses.base import HarnessError, config_hash
 from parallax.harnesses.browser.clock import SESSION_INCLUDED, AttemptClock
 from parallax.harnesses.browser.cloud import (
     Browser,
@@ -354,7 +354,8 @@ class BrowserHarness(ABC):
             if reason is not None:
                 result = {"status": "unavailable", "answer": None, "error": reason}
             else:
-                self._agent_started()
+                # The clock starts now; spending starts only when `execute` reports its agent started.
+                self._clock_started()
                 result = await self.execute(turn)
         except Unavailable as error:
             result = {"status": "unavailable", "answer": None, "error": str(error)}
@@ -467,7 +468,11 @@ class BrowserHarness(ABC):
             return None
 
     def _agent_started(self, open_seconds: object = None) -> None:
+        """The agent is running and may spend: a worker reported ready, or a cloud task exists."""
         self._agent_has_started = True
+        self._clock_started(open_seconds)
+
+    def _clock_started(self, open_seconds: object = None) -> None:
         if self._clock is None:
             return
         if isinstance(open_seconds, int | float):
@@ -778,6 +783,24 @@ class BrowserHarnessOSS(BrowserHarness):
         credential_env=("BROWSER_USE_API_KEY",),
         install="pip install --no-cache-dir 'browser-use==1.0.5'",
     )
+
+    async def version(self, box: Any) -> str:
+        """The browser-use the worker imports. The worker runs in this Python, not the box, so the box's install
+        does not reach it: a missing or unpinned package is caught here, before any trial reserves budget."""
+        import importlib.metadata
+
+        from parallax.harnesses.browser import pins
+
+        pinned = pins.load()["browser-use"]["version"]
+        try:
+            found = importlib.metadata.version("browser-use")
+        except importlib.metadata.PackageNotFoundError:
+            raise HarnessError(
+                f"browser-use is not installed in {sys.executable}: pip install 'browser-use=={pinned}'"
+            ) from None
+        if found != pinned:
+            raise HarnessError(f"browser-use {found} is installed, but this harness pins {pinned}")
+        return f"browser-use {found}"
 
     async def execute(self, turn: TurnInput) -> dict[str, Any]:
         request = {"goal": turn.text, "model": self.trial.model, "max_steps": None, "timeout": None}
