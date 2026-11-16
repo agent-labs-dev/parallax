@@ -74,9 +74,16 @@ class LiveFeed:
             logger.warning("live feed stopped: %s", error)
 
     def run_started(
-        self, *, total: int, already_done: int, concurrency: int, labels: Sequence[str], kept: Sequence[str]
+        self,
+        *,
+        total: int,
+        already_done: int,
+        concurrency: int,
+        labels: Sequence[str],
+        kept: Sequence[str],
+        planned: Sequence[str],
     ) -> None:
-        """`kept`: the keys of the `already_done` trials, kept from an earlier start and not run again."""
+        """`kept`: the keys of the `already_done` trials, kept from an earlier start; `planned`: the keys this start runs."""
         self._send(
             RUN_EVENT,
             {
@@ -87,6 +94,7 @@ class LiveFeed:
                 "concurrency": concurrency,
                 "labels": list(labels),
                 "kept": list(kept),
+                "planned": list(planned),
             },
         )
 
@@ -240,6 +248,7 @@ def progress(events: Iterable[Event], *, now: datetime) -> dict[str, Any]:
     )
     already = start.payload.get("already_done", 0) if start else 0
     kept_keys = set(start.payload.get("kept", [])) if start else set()
+    in_run = kept_keys | set(start.payload.get("planned", [])) if start else set()
     current = [e for e in ordered if start is None or e.at >= start.at]
 
     def last_attempts(source: Iterable[Event]) -> dict[str, Event]:
@@ -274,10 +283,11 @@ def progress(events: Iterable[Event], *, now: datetime) -> dict[str, Any]:
         del finished[key]
     finished_here = finished.keys()
     latest = {**kept, **finished}
-    # Every attempt is paid for, a retried or superseded one included, as the campaign budget settles them.
+    # Every attempt of a trial still in the run is paid for, one from before a resume or a retried one included,
+    # as the campaign budget settles them. A trial dropped from the plan is not this run's.
     spent: dict[str, list[float | None]] = {}
     for e in ordered:
-        if e.name == FINISHED_EVENT and (start is None or e.at >= start.at or e.payload["key"] in kept):
+        if e.name == FINISHED_EVENT and (start is None or e.at >= start.at or e.payload["key"] in in_run):
             spent.setdefault(e.payload["key"], []).append(e.payload.get("cost_usd"))
 
     def trial_cost(key: str) -> float | None:

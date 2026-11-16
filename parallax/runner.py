@@ -1580,6 +1580,7 @@ async def run_async(
             session.live.run_started(
                 total=len(plans), already_done=len(plans) - len(todo), concurrency=max(1, opts.concurrency),
                 labels=sorted({live_label(p.harness.name, p.model) for p in plans}), kept=sorted({p.key for p in plans} - {p.key for p in todo}),
+                planned=[p.key for p in todo],
             )  # fmt: skip
         try:
             runs = {r.result.key: r for r in await execute_all(session, todo, opts, retries_left=opts.retry_invalid)}

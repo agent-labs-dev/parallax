@@ -97,7 +97,7 @@ def test_runs_lists_each_run_once_newest_first() -> None:
 def test_a_feed_that_cannot_send_goes_quiet_after_one_warning(caplog: pytest.LogCaptureFixture) -> None:
     client = FakeClient(fail=True)
     feed = LiveFeed(client, "run-1")  # ty: ignore[invalid-argument-type]
-    feed.run_started(total=1, already_done=0, concurrency=1, labels=["a"], kept=[])
+    feed.run_started(total=1, already_done=0, concurrency=1, labels=["a"], kept=[], planned=["k"])
     feed.run_finished()
     assert sum("live feed stopped" in r.message for r in caplog.records) == 1
 
@@ -370,3 +370,27 @@ def test_a_retried_attempt_still_counts_toward_the_cost() -> None:
     ]
     p = progress(events, now=T0 + timedelta(minutes=4))
     assert p["cost_usd"] == pytest.approx(0.21) and p["arms"]["a"]["mean_cost_usd"] == pytest.approx(0.21)
+
+
+def test_a_rerun_trial_keeps_the_cost_of_its_attempts_before_the_resume() -> None:
+    events = [
+        event(
+            RUN_EVENT, 0, state="running", total=1, already_done=0, concurrency=1, labels=["a"], kept=[], planned=["t1"]
+        ),
+        finished(1, "t1", "invalid", reason="site down", cost_usd=0.2),
+        event(RUN_EVENT, 2, state="finished"),
+        event(
+            RUN_EVENT,
+            10,
+            state="running",
+            total=1,
+            already_done=0,
+            concurrency=1,
+            labels=["a"],
+            kept=[],
+            planned=["t1"],
+        ),
+        finished(11, "t1", "pass", attempt=1, cost_usd=0.01),
+    ]
+    p = progress(events, now=T0 + timedelta(minutes=12))
+    assert (p["done"], p["cost_usd"]) == (1, pytest.approx(0.21))
