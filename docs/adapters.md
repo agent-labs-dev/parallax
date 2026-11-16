@@ -32,6 +32,12 @@ class Harness(Protocol):
 - the world MCP endpoint and its bearer-token variable;
 - the per-trial `workspace` and `home`;
 - the meter's OpenAI and Anthropic base URLs and a per-trial key.
+- `assets`, a collector-owned `TrialAssets` store for binary evidence. Register bytes with
+  `trial.assets.register(data, mime)`, then retain the returned `assets/<sha256>` reference in
+  your receipt or metadata. Callers never provide filesystem paths. Assets live under the trial
+  directory until sealing, are deduplicated by digest, and are included byte-for-byte in item
+  evidence exports. The runner validates them after `stop`; adapters must release temporary
+  browser resources in `stop` without deleting the retained asset directory.
 
 By default Parallax sets no time or cost limit on the agent: a turn lasts until
 the product ends it, under the product's own limits, and the adapter waits for

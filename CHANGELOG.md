@@ -6,6 +6,10 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Harnesses can retain content-addressed binary evidence through trial cleanup and exported evidence bundles.
+
 ## [2.0.0.dev27] - 2026-11-15
 
 ### Added

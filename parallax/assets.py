@@ -31,6 +31,9 @@ class TrialAssets:
         if not path.exists():
             path.write_bytes(data)
             mime_path.write_text(mime + "\n")
+        elif not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != actual:
+            self._diagnostics.append(f"corrupt:{actual}")
+            raise AssetError(f"asset digest {actual} is corrupt")
         elif mime_path.read_text().strip() != mime:
             self._diagnostics.append(f"mime:{actual}")
             raise AssetError(f"asset digest {actual} is already registered with another MIME type")
@@ -58,11 +61,16 @@ class TrialAssets:
         if not path.is_file() or not mime_path.is_file():
             self._diagnostics.append(reference)
             raise AssetError(f"missing retained asset {reference!r}")
-        data = path.read_bytes()
+        try:
+            data = path.read_bytes()
+            found_mime = mime_path.read_text().strip()
+        except OSError as exc:
+            self._diagnostics.append(reference)
+            raise AssetError(f"unreadable retained asset {reference!r}: {exc}") from exc
         if hashlib.sha256(data).hexdigest() != digest:
             self._diagnostics.append(reference)
             raise AssetError(f"corrupt retained asset {reference!r}")
-        return data, mime_path.read_text().strip()
+        return data, found_mime
 
     def diagnostics(self) -> tuple[str, ...]:
         return tuple(self._diagnostics)

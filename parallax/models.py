@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Annotated, Literal
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, JsonValue, model_validator
+
 from parallax.assets import TrialAssets
 
 

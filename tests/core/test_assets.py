@@ -1,7 +1,6 @@
 import hashlib
 
 import pytest
-
 from parallax.assets import AssetError, TrialAssets
 
 
