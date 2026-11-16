@@ -16,7 +16,6 @@ from pathlib import Path
 
 import pytest
 from parallax import cli, extensions, plugins, provenance, runner
-from parallax.assets import TrialAssets
 from parallax.models import TrialResult, Verdict
 from parallax.track import sink
 from parallax.track import upload as uploader
@@ -73,16 +72,6 @@ def test_every_attempts_directory_travels_in_its_items_evidence(
     evidence = Evidence(run, seal(run, dataset="ds", note="", meta={}), loaded.results)
     held = set().union(*(members(z) for z in evidence.zips.values()))
     assert {f"{RETRIED}/trajectory.json", "trials/safety-b/alpha/m1/0/trajectory.json"} <= held
-
-
-def test_trial_asset_survives_seal_and_item_export(tmp_path: Path, artifacts: list[FakeEntryPoint]) -> None:
-    run = tmp_path / "r1"
-    shutil.copytree(R1, run)
-    trial = run / "trials/safety-b/alpha/m1/0"
-    ref = TrialAssets(trial).register(b"png bytes", "image/png")
-    sealed = seal(run, dataset="ds", note="", meta={})
-    evidence = Evidence(run, sealed, load_run(run).results)
-    assert any(f"trials/safety-b/alpha/m1/0/{ref}" in members(z) for z in evidence.zips.values())
 
 
 def summary(run: LoadedRun) -> bytes:

@@ -1,83 +1,82 @@
+"""Trial-owned binary evidence. Harnesses supply bytes, never source paths."""
+
 from __future__ import annotations
 
 import hashlib
+import re
 from pathlib import Path
+
+# Bare MIME type/subtype tokens, as defined by the media-type grammar.
+_MIME = re.compile(r"[!#$%&'\*+.^_`|~0-9A-Za-z-]+/[!#$%&'\*+.^_`|~0-9A-Za-z-]+")
 
 
 class AssetError(ValueError):
-    pass
+    """Registration or retrieval could not preserve replayable evidence."""
 
 
 class TrialAssets:
     def __init__(self, root: Path) -> None:
         self.root = root / "assets"
-        self.root.mkdir(parents=True, exist_ok=True)
         self._diagnostics: list[str] = []
         self._registered: dict[str, str] = {}
 
+    def _failure(self, message: str) -> AssetError:
+        if message not in self._diagnostics:
+            self._diagnostics.append(message)
+        return AssetError(message)
+
     def register(self, data: bytes, mime: str, *, digest: str | None = None) -> str:
         if not isinstance(data, bytes) or not data:
-            self._diagnostics.append("invalid:data")
-            raise AssetError("asset data must be non-empty bytes")
-        if not mime or "/" not in mime or any(c.isspace() for c in mime):
-            self._diagnostics.append("invalid:mime")
-            raise AssetError(f"invalid asset MIME type {mime!r}")
+            raise self._failure("asset data must be non-empty bytes")
+        if _MIME.fullmatch(mime) is None:
+            raise self._failure(f"invalid asset MIME type {mime!r}")
         actual = hashlib.sha256(data).hexdigest()
         if digest is not None and digest != actual:
-            self._diagnostics.append(f"digest:{digest}")
-            raise AssetError(f"asset digest mismatch: declared {digest}, computed {actual}")
+            raise self._failure(f"asset digest mismatch: declared {digest}, computed {actual}")
+        reference = f"assets/{actual}"
         path = self.root / actual
-        mime_path = path.with_suffix(".mime")
-        if not path.exists():
-            path.write_bytes(data)
-            mime_path.write_text(mime + "\n")
-        else:
-            try:
-                valid = path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == actual
-                found_mime = mime_path.read_text().strip() if mime_path.is_file() else None
-            except (OSError, UnicodeError) as exc:
-                self._diagnostics.append(f"corrupt:{actual}")
-                raise AssetError(f"asset digest {actual} is unreadable: {exc}") from exc
-            if not valid:
-                self._diagnostics.append(f"corrupt:{actual}")
-                raise AssetError(f"asset digest {actual} is corrupt")
-            if found_mime != mime:
-                self._diagnostics.append(f"mime:{actual}")
-                raise AssetError(f"asset digest {actual} is already registered with another MIME type")
+        try:
+            self.root.mkdir(parents=True, exist_ok=True)
+            if path.exists():
+                _, found_mime = self.read(reference)
+                if found_mime != mime:
+                    raise self._failure(f"asset {reference} is already registered with another MIME type")
+            else:
+                path.write_bytes(data)
+                path.with_suffix(".mime").write_text(mime + "\n", encoding="utf-8")
+        except (OSError, UnicodeError) as exc:
+            raise self._failure(f"cannot retain asset {reference}: {exc}") from exc
         self._registered[actual] = mime
-        return f"assets/{actual}"
+        return reference
 
     def validate(self) -> tuple[str, ...]:
-        """Verify every registered asset is still present and byte-identical before export."""
+        """Check retained content after harness cleanup and before the trial is exported."""
         for digest, mime in self._registered.items():
+            reference = f"assets/{digest}"
             try:
-                data, found_mime = self.read(f"assets/{digest}")
+                _, found_mime = self.read(reference)
+                if found_mime != mime:
+                    self._failure(f"retained asset {reference} MIME type changed")
             except AssetError:
-                continue
-            if found_mime != mime or hashlib.sha256(data).hexdigest() != digest:
-                self._diagnostics.append(f"assets/{digest}")
+                pass  # read recorded the failure, including when the harness swallowed an earlier error
         return self.diagnostics()
 
     def read(self, reference: str) -> tuple[bytes, str]:
         prefix, _, digest = reference.partition("/")
         if prefix != "assets" or len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
-            self._diagnostics.append(reference)
-            raise AssetError(f"invalid asset reference {reference!r}")
+            raise self._failure(f"invalid asset reference {reference!r}")
         path = self.root / digest
         mime_path = path.with_suffix(".mime")
-        if not path.is_file() or not mime_path.is_file():
-            self._diagnostics.append(reference)
-            raise AssetError(f"missing retained asset {reference!r}")
         try:
             data = path.read_bytes()
-            found_mime = mime_path.read_text().strip()
-        except OSError as exc:
-            self._diagnostics.append(reference)
-            raise AssetError(f"unreadable retained asset {reference!r}: {exc}") from exc
+            mime = mime_path.read_text(encoding="utf-8").strip()
+        except FileNotFoundError as exc:
+            raise self._failure(f"missing retained asset {reference!r}") from exc
+        except (OSError, UnicodeError) as exc:
+            raise self._failure(f"unreadable retained asset {reference!r}: {exc}") from exc
         if hashlib.sha256(data).hexdigest() != digest:
-            self._diagnostics.append(reference)
-            raise AssetError(f"corrupt retained asset {reference!r}")
-        return data, found_mime
+            raise self._failure(f"corrupt retained asset {reference!r}")
+        return data, mime
 
     def diagnostics(self) -> tuple[str, ...]:
         return tuple(self._diagnostics)
