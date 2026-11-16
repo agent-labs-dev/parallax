@@ -1021,8 +1021,8 @@ class TrialExecution:
                     self.t.notes.append(f"stderr tail:\n{harness.stderr_tail}")
                 if isinstance(harness, TrialMetadata):
                     self.t.extra["harness_metadata"] = self.product = harness.trial_metadata
-                if self.assets.diagnostics():
-                    self.invalid.extend(f"missing retained asset {ref}" for ref in self.assets.diagnostics())
+                if self.assets.validate():
+                    self.invalid.extend(f"retained asset unavailable: {ref}" for ref in self.assets.diagnostics())
                 if isinstance(harness, TrialMetrics):
                     self.t.metrics = dict(harness.trial_metrics)
                 if isinstance(harness, TrialTiming):

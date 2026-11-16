@@ -27,3 +27,10 @@ def test_missing_reference_is_diagnostic(tmp_path):
     with pytest.raises(AssetError, match="missing retained asset"):
         store.read("assets/" + "0" * 64)
     assert store.diagnostics() == ("assets/" + "0" * 64,)
+
+
+def test_validate_detects_cleanup_or_corruption_before_export(tmp_path):
+    store = TrialAssets(tmp_path)
+    ref = store.register(b"png bytes", "image/png")
+    (tmp_path / ref).write_bytes(b"changed")
+    assert ref in store.validate()

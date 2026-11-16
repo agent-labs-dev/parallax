@@ -13,11 +13,14 @@ class TrialAssets:
         self.root = root / "assets"
         self.root.mkdir(parents=True, exist_ok=True)
         self._diagnostics: list[str] = []
+        self._registered: dict[str, str] = {}
 
     def register(self, data: bytes, mime: str, *, digest: str | None = None) -> str:
         if not isinstance(data, bytes) or not data:
+            self._diagnostics.append("invalid:data")
             raise AssetError("asset data must be non-empty bytes")
         if not mime or "/" not in mime or any(c.isspace() for c in mime):
+            self._diagnostics.append("invalid:mime")
             raise AssetError(f"invalid asset MIME type {mime!r}")
         actual = hashlib.sha256(data).hexdigest()
         if digest is not None and digest != actual:
@@ -31,7 +34,19 @@ class TrialAssets:
         elif mime_path.read_text().strip() != mime:
             self._diagnostics.append(f"mime:{actual}")
             raise AssetError(f"asset digest {actual} is already registered with another MIME type")
+        self._registered[actual] = mime
         return f"assets/{actual}"
+
+    def validate(self) -> tuple[str, ...]:
+        """Verify every registered asset is still present and byte-identical before export."""
+        for digest, mime in self._registered.items():
+            try:
+                data, found_mime = self.read(f"assets/{digest}")
+            except AssetError:
+                continue
+            if found_mime != mime or hashlib.sha256(data).hexdigest() != digest:
+                self._diagnostics.append(f"assets/{digest}")
+        return self.diagnostics()
 
     def read(self, reference: str) -> tuple[bytes, str]:
         prefix, _, digest = reference.partition("/")
