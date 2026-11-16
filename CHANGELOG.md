@@ -6,6 +6,8 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev28] - 2026-11-16
+
 ### Changed
 
 - The `browser-use-oss` harness installs browser-use 1.0.5, its newest release. It runs on its defaults, which now
