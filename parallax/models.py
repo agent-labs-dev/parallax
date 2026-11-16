@@ -17,6 +17,8 @@ from typing import Annotated, Literal
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, JsonValue, model_validator
 
+from parallax.assets import TrialAssets
+
 
 class Model(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -768,6 +770,8 @@ class LlmEndpoint(Model):
 class Trial(Model):
     """Given to Harness.start."""
 
+    model_config = ConfigDict(extra="forbid", frozen=True, arbitrary_types_allowed=True)
+
     trial_id: str
     task_id: str
     model: str | None  # "provider/model"; None only for controls and products
@@ -784,6 +788,8 @@ class Trial(Model):
     # task has no world clock: this is the wall clock when the trial started.
     now: AwareDatetime
     requires: frozenset[Capability]
+    # Collector-owned binary evidence, retained below the trial directory and excluded from JSON contracts.
+    assets: TrialAssets | None = Field(default=None, exclude=True, repr=False)
 
     @property
     def world_mcp(self) -> McpEndpoint:

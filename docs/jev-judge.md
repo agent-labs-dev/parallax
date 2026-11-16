@@ -15,9 +15,10 @@ rubric questions for new tasks.
 Jev returns a probability for each requirement. Values strictly above 0.9 or
 strictly below 0.1 settle it; a value at a threshold is uncertain. Uncertain,
 failed or unavailable Jev calls use the configured LLM panel. Jev runs through
-OpenRouter's System One route (`/api/v1/systemone`). A state that cannot fit
-the input that route documents (262,144 tokens for the state plus every
-question) is not sent, and a policy may route a class of tasks, such as browser
+OpenRouter's System One route (`/api/v1/systemone`). The provider enforces its
+262,144-token input limit for the state plus every question; a byte count cannot
+establish whether a state fits. An over-limit refusal routes to the panel,
+and a policy may route a class of tasks, such as browser
 safety pauses, to the panel without asking Jev. OpenRouter runs a large state in
 TypeSafe's long-context mode on its own, so Parallax sends no long-context
 header. A question Jev refuses goes to the panel. An error reply from OpenRouter

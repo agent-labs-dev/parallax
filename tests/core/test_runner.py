@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 import asyncio
+import base64
+import hashlib
+import io
+import json
 import shutil
 import signal
 import subprocess
 import sys
 import time
+import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -647,3 +652,68 @@ def test_a_second_sigint_does_not_cut_teardown_short() -> None:
     proc.send_signal(signal.SIGINT)
     out, _ = proc.communicate(timeout=30)
     assert (proc.returncode, out.strip()) == (130, "cleanup finished")
+
+
+@pytest.mark.parametrize("remove_retained", [False, True])
+async def test_harness_assets_outlive_cleanup_and_export(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, remove_retained: bool
+) -> None:
+    from parallax.assets import TrialAssets
+    from parallax.track.rows import load_run
+    from parallax.track.upload import Evidence as ExportedEvidence
+    from parallax.track.upload import seal
+
+    png = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jG1kAAAAASUVORK5CYII="
+    )
+    digest = hashlib.sha256(png).hexdigest()
+    source = tmp_path / "harness.png"
+    references: list[str] = []
+
+    class AssetsHarness(Crashing):
+        assets: TrialAssets | None = None
+
+        async def start(self, trial: Trial, box: BoxHandle) -> None:
+            self.assets = trial.assets
+            assert self.assets is not None
+            assert "assets" not in json.loads(trial.model_dump_json())
+            source.write_bytes(png)
+
+        async def turn(self, t: TurnInput) -> TurnOutput:
+            assert self.assets is not None
+            ref = self.assets.register(source.read_bytes(), "image/png", digest=digest)
+            assert ref == self.assets.register(source.read_bytes(), "image/png", digest=digest)
+            references.append(ref)
+            self.trial_metadata = {"request": {"asset_ref": ref, "sha256": digest, "mime": "image/png"}}
+            return TurnOutput(status=TurnStatus.COMPLETED, answer="Done.", session_id=None)
+
+        async def stop(self) -> None:
+            source.unlink(missing_ok=True)
+            if remove_retained and self.assets is not None:
+                (self.assets.root / digest).unlink(missing_ok=True)
+
+    monkeypatch.setattr(runner, "load_harness", lambda name: AssetsHarness(""))
+    tasks = [t for t in discover([TASKS]) if t.id == "mini-mail"]
+    run_dir = await run_async(tasks, ["assets-harness"], ["m/x"], opts(tmp_path / "r"))
+    (row,) = read_results(run_dir / "results.jsonl")
+    assert not source.exists() and references
+    assert row.dir is not None
+    trial_dir = run_dir / row.dir
+    trajectory = json.loads((trial_dir / "trajectory.json").read_text())
+    receipt = trajectory["extra"]["harness_metadata"]["request"]
+    assert receipt == {"asset_ref": references[0], "sha256": digest, "mime": "image/png"}
+    if remove_retained:
+        assert "missing retained asset" in row.invalid_reason
+        assert any("missing retained asset" in reason for reason in trajectory["execution_invalid_reasons"])
+        return
+    assert not trajectory["execution_invalid_reasons"]
+    assert (trial_dir / references[0]).read_bytes() == png
+    assert len(list((trial_dir / "assets").iterdir())) == 2  # one binary plus its MIME sidecar
+    exported = ExportedEvidence(run_dir, seal(run_dir, dataset="ds", note="", meta={}), load_run(run_dir).results)
+    (bundle,) = exported.zips.values()
+    with zipfile.ZipFile(io.BytesIO(bundle)) as archive:
+        held = f"{row.dir}/{references[0]}"
+        assert archive.read(held) == png
+        assert archive.read(held + ".mime") == b"image/png\n"
+        assert hashlib.sha256(archive.read(held)).hexdigest() == receipt["sha256"]
+        assert png not in archive.read(f"{row.dir}/trajectory.json")

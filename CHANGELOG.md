@@ -6,6 +6,15 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Harnesses can retain content-addressed binary evidence through trial cleanup and exported evidence bundles.
+
+### Fixed
+
+- Decisions resolved by the fallback panel retain the original Jev probability for calibration.
+- Jev requests reach the provider without a byte-to-token estimate rejecting states that may fit its context window.
+
 ## [2.0.0.dev29] - 2026-11-16
 
 ### Fixed
@@ -247,7 +256,11 @@ All notable changes to Parallax are recorded here. The format follows
 
 The release procedure is in [the dev16 release plan](docs/release-dev16.md).
 
-[Unreleased]: https://github.com/agent-labs-dev/parallax/compare/v2.0.0.dev23...HEAD
+[Unreleased]: https://github.com/agent-labs-dev/parallax/compare/v2.0.0.dev27...HEAD
+[2.0.0.dev27]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev27
+[2.0.0.dev26]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev26
+[2.0.0.dev25]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev25
+[2.0.0.dev24]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev24
 [2.0.0.dev23]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev23
 [2.0.0.dev22]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev22
 [2.0.0.dev21]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev21

@@ -41,10 +41,6 @@ INPUT_TOKENS = 262_144
 `max_prompt_tokens` for typesafe/jev-1.14 and ~typesafe/jev-latest, and its Jev guide, checked 2026-11-09). OpenRouter
 runs a request over about 32,000 bytes in TypeSafe's long-context mode on its own, so no long-context header is sent;
 without that mode TypeSafe's own limits are 64k per request and 32k per question (docs.typesafe.ai/models)."""
-MIN_TOKENS_PER_BYTE = 1 / 3
-"""A floor on Jev's tokens per byte of JSON, for skipping a state that cannot fit. On 2026-10-16's 108 judged browser
-states over 20 KB the billed count ran 0.37-0.59 tokens per byte; a state that fails this floor would bill at least
-`INPUT_TOKENS`, so it is never sent. One that passes may still be refused, which an error reply's known $0 covers."""
 
 
 class JevConfig(Model):
@@ -190,8 +186,6 @@ async def evaluate(
         lens=lens, sample=sample, state_sha256=state_sha(state),
         state_tokens=int(len(raw.encode()) * TOKENS_PER_BYTE), truncated=truncated,
     )  # fmt: skip
-    if (over := over_budget(raw, questions)) is not None:
-        return base.model_copy(update={"error": over})
     errors: list[str] = []
     history: list[JevAttempt] = []
     started = time.monotonic()
@@ -246,15 +240,6 @@ async def evaluate(
     return base.model_copy(
         update={"error": " | ".join(errors), "attempts": len(errors), "latency_ms": total, "history": tuple(history)}
     )
-
-
-def over_budget(raw_state: str, questions: Mapping[str, BoolQuestion]) -> str | None:
-    """Why a state cannot fit Jev's input, or None. Measured as the route counts it: the state plus every question."""
-    asked = sum(len(q.model_dump_json(exclude_none=True).encode()) for q in questions.values())
-    floor = int((len(raw_state.encode()) + asked) * MIN_TOKENS_PER_BYTE)
-    if floor <= INPUT_TOKENS:
-        return None
-    return f"over input budget: at least {floor} tokens, Jev accepts {INPUT_TOKENS}; not sent"
 
 
 class _ErrorData(_Wire):
