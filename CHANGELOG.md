@@ -6,6 +6,8 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev27] - 2026-11-16
+
 ### Added
 
 - `PARALLAX_JUDGE_PROVIDERS` holds the LLM judge fallback to the named upstream hosts on the AI Gateway or
@@ -15,7 +17,6 @@ All notable changes to Parallax are recorded here. The format follows
 
 - A judge fallback reply that does not match the reply schema is retried with the reply and its validation error sent
   back, rather than the same request again. Hosts that ignore `response_format` correct their shape on that retry.
-
 - Keep an upload verification receipt beside the deleted run directory, including
   when a later run-quality check fails.
 - Browser trials pass their code-recorded UTC reference date to the evidence judge, so relative dates are judged against the same date the run used.
