@@ -121,6 +121,8 @@ from parallax.task import (
     rebind_persona,
     rebind_value,
 )
+from parallax.track.live import LiveFeed
+from parallax.track.live import label as live_label
 from parallax.world.client import ControlClient, ControlError, admin_register
 from parallax.world.core import World, WorldError
 from parallax.world.server import WorldServer
@@ -748,6 +750,7 @@ class Session:
         self.judge_config = judge_config
         self.turn_timeout_s = turn_timeout_s
         self.budget = budget
+        self.live: LiveFeed | None = None
 
     async def trial(self, plan: TrialPlan) -> TrialRun:
         task, hp = plan.task, plan.harness
@@ -1571,11 +1574,20 @@ async def run_async(
             budget = CampaignBudget(opts.budget_usd, opts.reserve_usd, journal)
         elif journal.is_file():
             budget = CampaignBudget.from_journal(journal)
+        session = Session(svc, opts.out, panel, judge_config, opts.turn_timeout_s, budget)
+        session.live = LiveFeed.open(opts.out.name)
+        if session.live is not None:
+            session.live.run_started(
+                total=len(plans), already_done=len(plans) - len(todo), concurrency=max(1, opts.concurrency),
+                labels=sorted({live_label(p.harness.name, p.model) for p in plans}), kept=sorted({p.key for p in plans} - {p.key for p in todo}),
+                planned=[p.key for p in todo],
+            )  # fmt: skip
         try:
-            session = Session(svc, opts.out, panel, judge_config, opts.turn_timeout_s, budget)
-            runs = {r.result.key: r for r in await execute_all(session, todo, opts)}
+            runs = {r.result.key: r for r in await execute_all(session, todo, opts, retries_left=opts.retry_invalid)}
             await retry_transient_invalid(session, todo, runs, opts)
         finally:
+            if session.live is not None:
+                session.live.run_finished()
             if budget is not None:
                 budget.close()
     served = provenance.served_models(read_results(opts.out / RESULTS))
@@ -1621,21 +1633,36 @@ async def retry_transient_invalid(
         wait = opts.retry_wait_s * 2**round_
         print(f"retrying {len(again)} transient-invalid trial(s) (round {round_ + 1}) in {wait:g}s", file=sys.stderr)
         await asyncio.sleep(wait)
-        retried = await execute_all(session, again, opts)
+        retried = await execute_all(session, again, opts, retries_left=opts.retry_invalid - round_ - 1)
         runs = {**runs, **{r.result.key: r for r in retried}}
     return runs
 
 
-async def execute_all(session: Session, todo: Sequence[TrialPlan], opts: RunOptions) -> list[TrialRun]:
+async def execute_all(
+    session: Session, todo: Sequence[TrialPlan], opts: RunOptions, *, retries_left: int = 0
+) -> list[TrialRun]:
+    """Run `todo`; `retries_left` is how many more rounds `retry_transient_invalid` will run after this one."""
     gate = asyncio.Semaphore(max(1, opts.concurrency))
     results_path = opts.out / RESULTS
     finished: list[TrialRun] = []
 
     async def one(plan: TrialPlan) -> TrialRun:
         async with gate:
+            if session.live is not None:
+                session.live.trial_started(
+                    key=plan.key, task_id=plan.task.id, label=live_label(plan.harness.name, plan.model),
+                    repeat=plan.repeat, attempt=plan.attempt,
+                )  # fmt: skip
             run = await session.trial(plan)
+        row = redact(run.result.model_dump_json(), secret_values())
         with results_path.open("a", encoding="utf-8") as fh:
-            fh.write(redact(run.result.model_dump_json(), secret_values()) + "\n")
+            fh.write(row + "\n")
+        if session.live is not None:
+            # The row as written, so the feed crosses the same secret-scrubbing boundary as results.jsonl.
+            sent = TrialResult.model_validate_json(row)
+            # A transient INVALID with attempts left is run again after the retry wait, so it is not done yet.
+            pending = transient_invalid(sent) and retries_left > 0
+            session.live.trial_finished(sent, live_label(sent.harness, sent.model), retry_pending=pending)
         finished.append(run)
         if not opts.quiet:
             r = run.result

@@ -605,6 +605,7 @@ async def test_a_transient_invalid_trial_is_re_run_within_the_same_run(tmp_path:
         def __init__(self) -> None:
             self.results = [transient, retried]
             self.calls: list[str] = []
+            self.live = None
 
         async def trial(self, p: runner.TrialPlan) -> runner.TrialRun:
             self.calls.append(p.key)
