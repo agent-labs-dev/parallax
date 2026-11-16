@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -95,7 +96,7 @@ def test_runs_lists_each_run_once_newest_first() -> None:
 def test_a_feed_that_cannot_send_goes_quiet_after_one_warning(caplog: pytest.LogCaptureFixture) -> None:
     client = FakeClient(fail=True)
     feed = LiveFeed(client, "run-1")  # ty: ignore[invalid-argument-type]
-    feed.run_started(total=1, already_done=0, concurrency=1, labels=["a"])
+    feed.run_started(total=1, already_done=0, concurrency=1, labels=["a"], planned=["k"])
     feed.run_finished()
     assert sum("live feed stopped" in r.message for r in caplog.records) == 1
 
@@ -144,7 +145,16 @@ def test_a_resumed_run_is_running_again_despite_its_earlier_end() -> None:
         event(RUN_EVENT, 0, state="running", total=4, already_done=0, concurrency=1, labels=["a"]),
         finished(1, "t1", "pass", wall_s=5.0, cost_usd=0.01),
         event(RUN_EVENT, 2, state="finished"),
-        event(RUN_EVENT, 10, state="running", total=4, already_done=1, concurrency=1, labels=["a"]),
+        event(
+            RUN_EVENT,
+            10,
+            state="running",
+            total=4,
+            already_done=1,
+            concurrency=1,
+            labels=["a"],
+            planned=["t2", "t3", "t4"],
+        ),
         finished(12, "t2", "pass", wall_s=5.0, cost_usd=0.01),
     ]
     p = progress(events, now=T0 + timedelta(minutes=14))
@@ -231,7 +241,7 @@ def test_a_resumed_retry_of_an_earlier_invalid_trial_counts_as_done() -> None:
         finished(1, "t1", "invalid", reason="site down"),
         event(RUN_EVENT, 2, state="finished"),
         # t2 and t3 passed while the feed was down; t1 is re-run.
-        event(RUN_EVENT, 10, state="running", total=3, already_done=2, concurrency=1, labels=["a"]),
+        event(RUN_EVENT, 10, state="running", total=3, already_done=2, concurrency=1, labels=["a"], planned=["t1"]),
         finished(11, "t1", "pass", attempt=0, cost_usd=0.01),
         event(RUN_EVENT, 12, state="finished"),
     ]
@@ -262,3 +272,61 @@ def test_watch_refuses_keys_of_another_project(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr(sink, "connect", wrong)
     with pytest.raises(TrackError, match="other"):
         live.LiveSource.from_env()
+
+
+def test_a_queued_rerun_of_an_earlier_invalid_trial_is_not_done() -> None:
+    events = [
+        event(
+            RUN_EVENT,
+            0,
+            state="running",
+            total=3,
+            already_done=0,
+            concurrency=1,
+            labels=["a"],
+            planned=["t1", "t2", "t3"],
+        ),
+        finished(1, "t1", "pass", cost_usd=0.01),
+        finished(2, "t2", "invalid", reason="site down"),
+        finished(3, "t3", "invalid", reason="site down"),
+        event(RUN_EVENT, 4, state="finished"),
+        # The resume keeps t1 and re-runs t2 and t3 one at a time; t3 has not started yet.
+        event(
+            RUN_EVENT, 10, state="running", total=3, already_done=1, concurrency=1, labels=["a"], planned=["t2", "t3"]
+        ),
+        event(STARTED_EVENT, 10, key="t2", task="t2", label="a", repeat=0, attempt=1),
+    ]
+    p = progress(events, now=T0 + timedelta(minutes=11))
+    assert (p["done"], p["verdicts"], p["cost_usd"], p["unseen"]) == (1, {"pass": 1}, 0.01, 0)
+
+
+async def test_a_resumed_retry_is_pending_while_this_run_has_retries_left(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client = FakeClient()
+    monkeypatch.setattr(runner.LiveFeed, "open", classmethod(lambda cls, run_id: cls(client, run_id)))
+    real_trial = runner.Session.trial
+
+    async def flaky(self: runner.Session, plan: runner.TrialPlan) -> runner.TrialRun:
+        run = await real_trial(self, plan)
+        if plan.attempt < 3:  # an earlier invocation already used attempts 0 to 2
+            run = runner.TrialRun(run.result.model_copy(update={"verdict": Verdict.INVALID, "attempt": plan.attempt,
+                                  "invalid_reason": "environment interruption: site down"}), run.evidence)  # fmt: skip
+        return run
+
+    monkeypatch.setattr(runner.Session, "trial", flaky)
+    monkeypatch.setattr(runner, "transient_invalid", lambda r: r.verdict is Verdict.INVALID)
+    real_execute = runner.execute_all
+
+    async def from_attempt_two(session, todo, opts, *, retries_left=0):  # noqa: ANN001, ANN202
+        todo = [replace(p, attempt=max(p.attempt, 2)) for p in todo]
+        return await real_execute(session, todo, opts, retries_left=retries_left)
+
+    monkeypatch.setattr(runner, "execute_all", from_attempt_two)
+    await run_async(
+        discover([TASKS]), ["null-claim"], [None],
+        RunOptions(out=tmp_path / "r", isolation=Isolation.HOST, quiet=True, retry_invalid=1, retry_wait_s=0),
+    )  # fmt: skip
+    first = [p for name, p in client.sent if name == FINISHED_EVENT and p["attempt"] == 2]
+    assert first and all(p["retry_pending"] for p in first)
+    assert all(not p["retry_pending"] for name, p in client.sent if name == FINISHED_EVENT and p["attempt"] == 3)

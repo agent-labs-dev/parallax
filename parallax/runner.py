@@ -1579,10 +1579,10 @@ async def run_async(
         if session.live is not None:
             session.live.run_started(
                 total=len(plans), already_done=len(plans) - len(todo), concurrency=max(1, opts.concurrency),
-                labels=sorted({live_label(p.harness.name, p.model) for p in plans}),
+                labels=sorted({live_label(p.harness.name, p.model) for p in plans}), planned=[p.key for p in todo],
             )  # fmt: skip
         try:
-            runs = {r.result.key: r for r in await execute_all(session, todo, opts)}
+            runs = {r.result.key: r for r in await execute_all(session, todo, opts, retries_left=opts.retry_invalid)}
             await retry_transient_invalid(session, todo, runs, opts)
         finally:
             if session.live is not None:
@@ -1632,12 +1632,15 @@ async def retry_transient_invalid(
         wait = opts.retry_wait_s * 2**round_
         print(f"retrying {len(again)} transient-invalid trial(s) (round {round_ + 1}) in {wait:g}s", file=sys.stderr)
         await asyncio.sleep(wait)
-        retried = await execute_all(session, again, opts)
+        retried = await execute_all(session, again, opts, retries_left=opts.retry_invalid - round_ - 1)
         runs = {**runs, **{r.result.key: r for r in retried}}
     return runs
 
 
-async def execute_all(session: Session, todo: Sequence[TrialPlan], opts: RunOptions) -> list[TrialRun]:
+async def execute_all(
+    session: Session, todo: Sequence[TrialPlan], opts: RunOptions, *, retries_left: int = 0
+) -> list[TrialRun]:
+    """Run `todo`; `retries_left` is how many more rounds `retry_transient_invalid` will run after this one."""
     gate = asyncio.Semaphore(max(1, opts.concurrency))
     results_path = opts.out / RESULTS
     finished: list[TrialRun] = []
@@ -1657,7 +1660,7 @@ async def execute_all(session: Session, todo: Sequence[TrialPlan], opts: RunOpti
             # The row as written, so the feed crosses the same secret-scrubbing boundary as results.jsonl.
             sent = TrialResult.model_validate_json(row)
             # A transient INVALID with attempts left is run again after the retry wait, so it is not done yet.
-            pending = transient_invalid(sent) and sent.attempt < opts.retry_invalid
+            pending = transient_invalid(sent) and retries_left > 0
             session.live.trial_finished(sent, live_label(sent.harness, sent.model), retry_pending=pending)
         finished.append(run)
         if not opts.quiet:

@@ -72,7 +72,10 @@ class LiveFeed:
             self._failed = True
             logger.warning("live feed stopped: %s", error)
 
-    def run_started(self, *, total: int, already_done: int, concurrency: int, labels: Sequence[str]) -> None:
+    def run_started(
+        self, *, total: int, already_done: int, concurrency: int, labels: Sequence[str], planned: Sequence[str]
+    ) -> None:
+        """`planned`: the keys this start runs; the other `already_done` trials are kept from earlier."""
         self._send(
             RUN_EVENT,
             {
@@ -82,6 +85,7 @@ class LiveFeed:
                 "already_done": already_done,
                 "concurrency": concurrency,
                 "labels": list(labels),
+                "planned": list(planned),
             },
         )
 
@@ -234,31 +238,46 @@ def progress(events: Iterable[Event], *, now: datetime) -> dict[str, Any]:
         None,
     )
     already = start.payload.get("already_done", 0) if start else 0
-    # A resume that kept nothing (its fingerprint changed, so the runner set every earlier result aside) measures
-    # anew: the earlier starts' trials are not this run's. Otherwise an earlier finish stands until re-run.
+    planned = set(start.payload.get("planned", [])) if start else set()
     current = [e for e in ordered if start is None or e.at >= start.at]
-    counted = current if start is not None and already == 0 else ordered
-    latest: dict[str, Event] = {}
-    for e in counted:
-        if e.name == FINISHED_EVENT:
-            key = e.payload["key"]
-            if key not in latest or e.payload.get("attempt", 0) >= latest[key].payload.get("attempt", 0):
-                latest[key] = e
+
+    def last_attempts(source: Iterable[Event]) -> dict[str, Event]:
+        found: dict[str, Event] = {}
+        for e in source:
+            if e.name == FINISHED_EVENT:
+                key = e.payload["key"]
+                if key not in found or e.payload.get("attempt", 0) >= found[key].payload.get("attempt", 0):
+                    found[key] = e
+        return found
+
+    # The start names the trials it runs; every other trial is one the runner kept as done (`already_done`), and
+    # its result, when the feed saw it, is its last finish before the start.
+    kept = {
+        k: e
+        for k, e in last_attempts(e for e in ordered if start is not None and e.at < start.at).items()
+        if k not in planned
+    }
+    if len(kept) > already:  # an older start that did not name its plan: which finishes it kept is unknown
+        kept = {}
+    finished = last_attempts(current)
     running = {(e.payload["key"], e.payload.get("attempt", 0)): e for e in current if e.name == STARTED_EVENT}
-    for e in counted:
+    for e in current:
         if e.name == FINISHED_EVENT:
             running.pop((e.payload["key"], e.payload.get("attempt", 0)), None)
     if finished_state is not None:
         running = {}  # a run that ended has nothing in flight: a trial cut off by it never sends a finish
     for key, attempt in running:
         # A retry in flight replaces its earlier attempt's result until it finishes.
-        if key in latest and latest[key].payload.get("attempt", 0) < attempt:
-            del latest[key]
+        if key in finished and finished[key].payload.get("attempt", 0) < attempt:
+            del finished[key]
     # A result the runner will retry is waiting, not done, until its next attempt starts (or the run ends).
-    waiting = {} if finished_state is not None else {k: e for k, e in latest.items() if e.payload.get("retry_pending")}
+    waiting = (
+        {} if finished_state is not None else {k: e for k, e in finished.items() if e.payload.get("retry_pending")}
+    )
     for key in waiting:
-        del latest[key]
-    finished_here = {e.payload["key"] for e in current if e.name == FINISHED_EVENT} & latest.keys()
+        del finished[key]
+    finished_here = finished.keys()
+    latest = {**kept, **finished}
 
     arms: dict[str, _Arm] = {}
     verdicts: dict[str, int] = {}
@@ -275,9 +294,8 @@ def progress(events: Iterable[Event], *, now: datetime) -> dict[str, Any]:
         costs.append(p.get("cost_usd"))
 
     total = start.payload["total"] if start else None
-    # Trials the runner skipped as done count even when their events are missing (an older Parallax, the feed off).
-    # A trial finished since the resume was planned by it, so it is never one of the runner's `already_done`.
-    done = max(len(latest), already + len(finished_here))
+    # Kept trials count even when the feed never saw them (an older Parallax, the feed off).
+    done = already + len(finished)
     elapsed = (now if finished_state is None else finished_state.at) - start.at if start else None
     eta_s = None
     if start and total is not None and finished_state is None and finished_here and elapsed:
