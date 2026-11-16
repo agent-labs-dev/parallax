@@ -6,6 +6,13 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- A run reports each trial's start and finish to Langfuse as it happens, as events under the run's session in the
+  `parallax-live` environment. `parallax watch` serves a local page of live runs: progress, pass rate and cost per
+  arm, the trials in flight and an ETA. The feed is best effort and never fails a run; `PARALLAX_LIVE=0` turns it
+  off. The sealed upload stays the run's record.
+
 ### Fixed
 
 - Browser workers that run on the host (browser-use-oss, browser-harness, cua-codex) start in a per-trial host

@@ -72,7 +72,9 @@ parallax compare
 ```
 
 A run uploads itself to Langfuse when it finishes and prints a link to each
-experiment. The [quickstart](docs/quickstart.md) walks through the whole
+experiment. While it runs, `parallax watch` serves a local page with
+its progress, pass rate and cost per arm, the trials in flight and an ETA,
+from events the run sends to Langfuse as each trial starts and finishes. The [quickstart](docs/quickstart.md) walks through the whole
 workflow, including the task controls, `show`, and gating pull requests
 with `parallax ci init`. [Troubleshooting](docs/troubleshooting.md) covers
 common setup failures.
