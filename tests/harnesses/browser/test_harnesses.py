@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 from uuid import UUID
 
+import pytest
 from browser_use_sdk.v3 import (
     BrowserSessionItemView,
     BrowserSessionListResponse,
@@ -685,3 +686,33 @@ async def test_every_open_tab_is_evidence_when_no_final_page_is_singled_out(monk
     assert [page.url for page in evidence.pages] == [tab["url"] for tab in tabs]
     assert evidence.observed()
     assert harness.trial_notes == ["final page not singled out: 2 tabs open, each kept as a page"]
+
+
+async def test_a_host_worker_runs_in_a_host_directory_even_when_the_box_is_docker(monkeypatch) -> None:
+    """A Docker box's home is a container path; a worker spawned on the host must not run there."""
+    from pathlib import Path
+
+    from parallax.harnesses.browser import harnesses
+    from parallax.models import Trial
+
+    seen: list[Path] = []
+
+    class Worker:
+        def __init__(self, command: object, *, env: object, cwd: Path) -> None:
+            seen.append(cwd)
+            assert cwd.is_dir()
+
+        async def __aenter__(self) -> Worker:
+            raise RuntimeError("stop after spawn")
+
+        async def __aexit__(self, *_: object) -> None:
+            return None
+
+    monkeypatch.setattr(harnesses, "JsonWorker", Worker)
+    harness = BrowserHarnessOSS()
+    harness._trial = Trial.model_construct(model="bu-fast", home=Path("/home/agent"), env={})
+    with pytest.raises(RuntimeError, match="stop after spawn"):
+        await harness.execute(SimpleNamespace(index=1, text="find it"))
+    assert seen and seen[0] != Path("/home/agent")
+    await harness.stop()
+    assert not seen[0].exists()

@@ -6,6 +6,11 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Browser workers that run on the host (browser-use-oss, browser-harness, cua-codex) start in a per-trial host
+  directory, so they run when the box is Docker instead of failing on the container's home path.
+
 ## [2.0.0.dev30] - 2026-11-16
 
 ### Added

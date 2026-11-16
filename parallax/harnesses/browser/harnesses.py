@@ -14,10 +14,13 @@ import json
 import logging
 import os
 import shlex
+import shutil
 import sys
+import tempfile
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Mapping, Sequence
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -264,6 +267,7 @@ class BrowserHarness(ABC):
         self._answer_schema: dict[str, Any] | None = None
         self._site_preflight_done = False
         self._agent_has_started = False
+        self._worker_dir: Path | None = None
         self.trial_invalid: list[str] = []
         self.trial_notes: list[str] = []
 
@@ -276,6 +280,15 @@ class BrowserHarness(ABC):
         if self._trial is None:
             raise RuntimeError("browser harness has not started")
         return self._trial
+
+    @property
+    def worker_dir(self) -> Path:
+        """The working directory of a worker this harness runs on the host, one per trial.
+
+        Not `trial.home`: in a Docker box that is the container's path, which does not exist on the host."""
+        if self._worker_dir is None:
+            self._worker_dir = Path(tempfile.mkdtemp(prefix=f"parallax-{self.info.name}-"))
+        return self._worker_dir
 
     def bind_task(self, task: Task) -> None:
         """Remember a source task's start URL so a site outage never becomes an agent failure."""
@@ -408,7 +421,12 @@ class BrowserHarness(ABC):
     async def stop(self) -> None:
         if self._clock is not None:
             self._clock.closed_at()
-        await self.cleanup()
+        try:
+            await self.cleanup()
+        finally:
+            if self._worker_dir is not None:
+                shutil.rmtree(self._worker_dir, ignore_errors=True)
+                self._worker_dir = None
 
     async def version(self, box: Any) -> str:
         return self.info.name
@@ -766,7 +784,7 @@ class BrowserHarnessOSS(BrowserHarness):
         worker = JsonWorker(
             (sys.executable, "-m", "parallax.harnesses.browser.oss_worker"),
             env=self._agent_env(),
-            cwd=self.trial.home,
+            cwd=self.worker_dir,
         )
         async with worker:
             await worker.send(request)
@@ -803,7 +821,7 @@ class BrowserHarnessRunner(BrowserHarness):
                 "BU_CDP_WS": browser.cdp_url,
                 "PARALLAX_BROWSER_CDP_URL": browser.cdp_url,
             }
-            worker = JsonWorker(command, env=worker_env, cwd=self.trial.home)
+            worker = JsonWorker(command, env=worker_env, cwd=self.worker_dir)
             async with worker:
                 await worker.send(request)
                 self._agent_started(browser.open_seconds)
@@ -831,7 +849,7 @@ class CuaCodexHarness(BrowserHarness):
         worker = JsonWorker(
             (sys.executable, "-m", "parallax.harnesses.browser.cua_worker"),
             env=self._agent_env(),
-            cwd=self.trial.home,
+            cwd=self.worker_dir,
         )
         async with worker:
             await worker.send(request)
