@@ -330,3 +330,20 @@ async def test_a_resumed_retry_is_pending_while_this_run_has_retries_left(
     first = [p for name, p in client.sent if name == FINISHED_EVENT and p["attempt"] == 2]
     assert first and all(p["retry_pending"] for p in first)
     assert all(not p["retry_pending"] for name, p in client.sent if name == FINISHED_EVENT and p["attempt"] == 3)
+
+
+def test_events_keep_subsecond_order() -> None:
+    assert len(live._now().split(".")[-1].split("+")[0]) == 6
+
+
+def test_watch_on_a_taken_port_is_an_environment_error() -> None:
+    import socket
+
+    from parallax.track import watch
+    from parallax.track.sink import TrackError
+
+    with socket.socket() as taken:
+        taken.bind(("127.0.0.1", 0))
+        taken.listen()
+        with pytest.raises(TrackError, match="cannot serve"):
+            watch.serve(live.LiveSource("https://lf.test", "pk", "sk"), host="127.0.0.1", port=taken.getsockname()[1])

@@ -13,6 +13,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from parallax.track.live import RUN_EVENT, LiveSource, progress, runs
+from parallax.track.sink import TrackError
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +63,10 @@ def handler(source: LiveSource) -> type[BaseHTTPRequestHandler]:
 
 
 def serve(source: LiveSource, *, host: str, port: int) -> None:
-    server = ThreadingHTTPServer((host, port), handler(source))
+    try:
+        server = ThreadingHTTPServer((host, port), handler(source))
+    except OSError as error:
+        raise TrackError(f"cannot serve on {host}:{port}: {error.strerror or error}") from error
     print(f"watching live runs at http://{host}:{server.server_port}/ (Ctrl-C stops)", flush=True)
     try:
         server.serve_forever()

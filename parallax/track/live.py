@@ -37,7 +37,8 @@ EVENTS = (RUN_EVENT, STARTED_EVENT, FINISHED_EVENT)
 
 
 def _now() -> str:
-    return datetime.now(UTC).isoformat(timespec="seconds")
+    # Microseconds: a resume can start within the second its previous run ended, and the epochs must not tie.
+    return datetime.now(UTC).isoformat(timespec="microseconds")
 
 
 class LiveFeed:
