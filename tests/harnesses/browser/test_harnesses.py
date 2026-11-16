@@ -671,11 +671,14 @@ async def test_every_open_tab_is_evidence_when_no_final_page_is_singled_out(monk
             return None
 
         async def execute(self, turn: SimpleNamespace) -> dict[str, object]:
+            if turn.index == 1:
+                return {"status": "done", "answer": "Link", "final_page": tabs[0]}
             return {"status": "done", "answer": "I am a new page", "final_page": await self.observe("ws://cdp")}
 
     harness = Harness()
     await harness.start(Trial.model_construct(model=None, task_id="t", env={}), SimpleNamespace())
-    await harness.turn(SimpleNamespace(index=1, text="follow the link"))
+    await harness.turn(SimpleNamespace(index=1, text="open the page"))
+    await harness.turn(SimpleNamespace(index=2, text="follow the link"))
 
     evidence = BrowserEvidence.model_validate(harness.trial_metadata["browser"])
     assert evidence.final_page is None

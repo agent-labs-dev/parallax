@@ -363,6 +363,7 @@ class BrowserHarness(ABC):
         )
         self._citations.extend(self._scrub(_mapping_list(result.get("citations"))))
         if self._open_tabs:
+            self._page = None  # this turn ended on one of the tabs, not on an earlier turn's final page
             self._pages.extend(
                 {key: value for key, value in tab.items() if key != "screenshot_png_b64"}
                 if self._secret_values
