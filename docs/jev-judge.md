@@ -54,6 +54,11 @@ graded by different evaluators unless `--allow-identity-change` is given.
   `PARALLAX_JUDGE_API_KEY` defaults to `OPENROUTER_API_KEY` and
   `PARALLAX_JUDGE_BASE_URL` to OpenRouter. With no key there is no fallback,
   so checks Jev is unsure about stay INVALID and nothing is spent.
+  `PARALLAX_JUDGE_PROVIDERS` (comma-separated, in preference order) holds the
+  fallback to those upstream hosts on the AI Gateway or OpenRouter; any other
+  endpoint refuses it. Set it when some of a model's hosts ignore the strict
+  reply schema. A malformed reply is retried once with the reply and its
+  validation error sent back to the model.
 - `parallax check` uses the same judges for oracle, null controls and mutants.
   It makes model calls. `parallax check --lint-only` and CI protocol tests run
   offline.

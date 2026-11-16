@@ -6,7 +6,15 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `PARALLAX_JUDGE_PROVIDERS` holds the LLM judge fallback to the named upstream hosts on the AI Gateway or
+  OpenRouter. It is part of the judge identity.
+
 ### Fixed
+
+- A judge fallback reply that does not match the reply schema is retried with the reply and its validation error sent
+  back, rather than the same request again. Hosts that ignore `response_format` correct their shape on that retry.
 
 - Keep an upload verification receipt beside the deleted run directory, including
   when a later run-quality check fails.

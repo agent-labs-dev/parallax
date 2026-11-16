@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import os
+from urllib.parse import urlsplit
 
 from pydantic import Field
 
-from parallax.models import Model
+from parallax.models import JsonObject, Model
 
 
 class MissingEvidence(Exception):
@@ -36,6 +37,13 @@ _BARE_FAMILIES = (
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 OPENROUTER_KEY_ENV = "OPENROUTER_API_KEY"
+VERCEL_GATEWAY_HOST = "ai-gateway.vercel.sh"
+OPENROUTER_HOST = "openrouter.ai"
+PROVIDERS_ENV = "PARALLAX_JUDGE_PROVIDERS"
+"""Comma-separated upstream providers the fallback may be served by, in preference order. A gateway spreads one
+model over many hosts, and not all of them enforce `response_format`: on 2026-11-16 four of the AI Gateway's ten
+DeepSeek V4.1 Flash 1017 hosts (boundless, digitalocean, gmicloud, morph) ignored the strict schema on 23 of 23
+calls and invented their own keys, while the other six matched it on every call."""
 DEFAULT_MODEL = "deepseek/deepseek-v4.1-flash-1017"
 """The fallback panel when none is named: the newest DeepSeek V4.1 Flash release, pinned by its dated id so a
 comparison's judge cannot move under it, on OpenRouter with the key Jev already needs."""
@@ -48,6 +56,18 @@ class JudgePanel(Model):
 class JudgeConfig(Model):
     base_url: str
     api_key: str
+    providers: tuple[str, ...] = ()  # `PROVIDERS_ENV`; empty lets the gateway route
+
+    def routing(self) -> JsonObject:
+        """The request fields that hold the fallback to `providers`, in the gateway's own shape."""
+        if not self.providers:
+            return {}
+        host = urlsplit(self.base_url).hostname
+        if host == VERCEL_GATEWAY_HOST:
+            return {"providerOptions": {"gateway": {"only": list(self.providers), "order": list(self.providers)}}}
+        if host == OPENROUTER_HOST:
+            return {"provider": {"only": list(self.providers), "order": list(self.providers), "allow_fallbacks": False}}
+        raise JudgeConfigError(f"${PROVIDERS_ENV} is set, but {self.base_url} is not a gateway it can route")
 
 
 class JudgeConfigError(Exception):
@@ -84,7 +104,12 @@ def config_from_env() -> JudgeConfig:
     api_key = judge_key()
     if api_key is None:
         raise JudgeConfigError(f"a judge panel needs PARALLAX_JUDGE_API_KEY or ${OPENROUTER_KEY_ENV}")
-    return JudgeConfig(base_url=os.environ.get("PARALLAX_JUDGE_BASE_URL") or OPENROUTER_BASE_URL, api_key=api_key)
+    providers = tuple(p.strip() for p in os.environ.get(PROVIDERS_ENV, "").split(",") if p.strip())
+    config = JudgeConfig(
+        base_url=os.environ.get("PARALLAX_JUDGE_BASE_URL") or OPENROUTER_BASE_URL, api_key=api_key, providers=providers
+    )
+    config.routing()  # an unroutable provider list fails here, at configuration, not on every judged trial
+    return config
 
 
 def family(model: str) -> str:

@@ -448,6 +448,31 @@ async def test_a_fallback_refusal_says_why_it_failed() -> None:
             )
 
 
+async def test_a_malformed_fallback_reply_is_sent_back_with_why() -> None:
+    """2026-11-16: hosts that ignore `response_format` answered `{"answers": [...]}` and `items[].answer`; the retry
+    shows the model its reply and the validation error instead of asking the same question blind."""
+    import json
+
+    import httpx
+    from parallax.judging import REPLY_CORRECTION
+
+    invented = json.dumps({"answers": [{"q": "q", "answer": "yes", "reason": "the agent did it"}]})
+    bodies: list[dict[str, object]] = []
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        bodies.append(json.loads(request.content))
+        if len(bodies) == 1:
+            return httpx.Response(200, json={"choices": [{"message": {"content": invented}, "finish_reason": "stop"}]})
+        return httpx.Response(200, json=_fallback_reply(True))
+
+    result = await _fallback(handle, {"text": "x"})
+    assert result.decisions["q"].passed is True and len(result.fallback_calls) == 2
+    first, retry = (body["messages"] for body in bodies)
+    assert retry[:2] == first and retry[2] == {"role": "assistant", "content": invented}
+    assert retry[3]["role"] == "user" and "Extra inputs are not permitted" in retry[3]["content"]
+    assert retry[3]["content"].startswith(REPLY_CORRECTION.split("{error}")[0])
+
+
 async def test_a_fallback_only_question_never_reaches_jev() -> None:
     import httpx
     from parallax import jev
