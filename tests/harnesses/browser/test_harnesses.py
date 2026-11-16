@@ -820,3 +820,43 @@ async def test_a_worker_that_fails_after_its_browser_opened_keeps_the_browser_co
     await harness.turn(SimpleNamespace(index=1, text="find it"))
     assert harness.trial_costs() == {"browser": 0.02}
     await harness.stop()
+
+
+async def test_a_v4_run_that_was_created_is_spending_even_if_polling_fails() -> None:
+    from parallax.harnesses.browser import harnesses
+
+    class Runs:
+        async def create(self, goal: str, **_: object) -> SimpleNamespace:
+            return SimpleNamespace(id="run-1")
+
+        async def status(self, run_id: str) -> None:
+            raise RuntimeError("status unavailable")
+
+        async def cancel(self, run_id: str) -> None:
+            return None
+
+        async def stop(self, run_id: str) -> None:
+            return None
+
+    spent: list[bool] = []
+    with pytest.raises(Exception):  # noqa: B017, PT011 - the polling failure itself is not under test
+        await harnesses._run_v4(SimpleNamespace(runs=Runs()), "find it", None, 0.0, spending=lambda: spent.append(True))
+    assert spent == [True]
+
+
+async def test_oss_probes_its_runtime_as_the_worker_runs_it(monkeypatch) -> None:
+    import sys
+
+    from parallax.harnesses.browser import harnesses
+
+    seen: list[tuple[str, ...]] = []
+    real = harnesses.asyncio.create_subprocess_exec
+
+    async def record(*argv: str, **kwargs: object):  # noqa: ANN202
+        seen.append(argv)
+        return await real(sys.executable, "-c", "print('1.0.5')", **kwargs)  # ty: ignore[invalid-argument-type]
+
+    monkeypatch.setattr(harnesses, "oss_python", lambda: ("py",))
+    monkeypatch.setattr(harnesses.asyncio, "create_subprocess_exec", record)
+    assert await BrowserHarnessOSS().version(None) == "browser-use 1.0.5"
+    assert seen[0][:3] == ("py", "-I", "-c") and "import browser_use" in seen[0][3]

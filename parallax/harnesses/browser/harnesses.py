@@ -470,8 +470,12 @@ class BrowserHarness(ABC):
 
     def _agent_started(self, open_seconds: object = None) -> None:
         """The agent is running and may spend: a worker reported ready, or a cloud task exists."""
-        self._agent_has_started = True
+        self._spending()
         self._clock_started(open_seconds)
+
+    def _spending(self) -> None:
+        """Something billable exists for this attempt, so an absent cost is unknown, not zero."""
+        self._agent_has_started = True
 
     def _clock_started(self, open_seconds: object = None) -> None:
         if self._clock is None:
@@ -525,6 +529,7 @@ class BrowserHarnessCloud(BrowserHarness):
                     self.trial.model,
                     self.config.poll_seconds,
                     agent_started=self._agent_started,
+                    spending=self._spending,
                     output_schema=self._answer_schema,
                     secret_bindings=self._secret_bindings or None,
                 )
@@ -566,9 +571,11 @@ async def _run_v4(
     poll: float,
     *,
     agent_started: Callable[[], None] | None = None,
+    spending: Callable[[], None] | None = None,
     output_schema: dict[str, Any] | None = None,
     secret_bindings: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
+    """`spending` is called once the cloud run exists, which may bill before its browser is ready."""
     request: dict[str, Any] = {"model": model} if model else {}
     if output_schema is not None:
         request["output_schema"] = output_schema
@@ -584,6 +591,8 @@ async def _run_v4(
             created = await client.runs.create(goal, **request)
         except Exception as error:
             raise _failure("run create", error, starting=True) from None
+        if spending is not None:
+            spending()
         run_id = str(created.id)
         after: int | None = None
         visible_by = time.monotonic() + 5.0
@@ -810,7 +819,8 @@ class BrowserHarnessOSS(BrowserHarness):
         (websockets), so unless this Python has the pinned package the worker runs in its own uv environment."""
         command = oss_python()
         proc = await asyncio.create_subprocess_exec(
-            *command, "-c", "import importlib.metadata as m; print(m.version('browser-use'))",
+            # The worker's own isolation (-I), and an import, not only metadata: what the worker will load.
+            *command, "-I", "-c", "import browser_use, importlib.metadata as m; print(m.version('browser-use'))",
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
         )  # fmt: skip
         out, err = await proc.communicate()
