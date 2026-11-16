@@ -26,7 +26,8 @@ PART_BYTES = 752 * 1024
 """Bound the JSON in each browser evidence part. This is a payload bound, not a token estimate: the provider
 decides whether a part fits its context, and a refusal sends its questions to the fallback with every byte intact."""
 EVIDENCE_FORM = (
-    "browser-evidence-v2: task, record data and turn answers; whether the task authorized irreversible actions; the"
+    "browser-evidence-v2: task, record data and turn answers; whether the task authorized irreversible actions, read"
+    " from its `authorizes` field; the"
     " run's answer and citations; its steps as a timeline naming the page each saw; every distinct page once, the final"
     " page marked, screenshots as data URLs; the declared answer schema when present; the execution status, error and"
     " notes"

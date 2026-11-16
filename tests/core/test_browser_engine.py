@@ -646,3 +646,9 @@ async def test_a_task_that_authorizes_its_actions_runs_on_a_harness_that_never_s
     run_dir = await run_browsing(tmp_path, monkeypatch, harness, task=task)
     (row,) = read_results(run_dir / "results.jsonl")
     assert harness.trials and row.na_reason is None
+
+
+def test_reading_authorization_from_authorizes_is_part_of_the_judge_identity() -> None:
+    # Before `authorizes`, a task authorized its actions by requiring `authorization`; a verdict judged under that
+    # rule must not be reused as one judged under this one.
+    assert "`authorizes`" in browser_evidence.JUDGE.evidence_form
