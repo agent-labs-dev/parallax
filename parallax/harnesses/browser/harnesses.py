@@ -849,30 +849,38 @@ class BrowserHarnessRunner(BrowserHarness):
     info = _info("browser-harness", pins_model=True, credential_env=("BROWSER_USE_API_KEY",))
 
     async def execute(self, turn: TurnInput) -> dict[str, Any]:
-        async with httpx.AsyncClient() as http, cloud_browser(http, screen=(1120, 780)) as browser:
-            self._browser = browser
-            request = {"goal": turn.text, "model": self.trial.model, "cdp_url": browser.cdp_url}
-            configured = os.environ.get(self.command_env)
-            command = (
-                tuple(shlex.split(configured))
-                if configured
-                else (sys.executable, "-m", "parallax.harnesses.browser.browser_harness_worker")
-            )
-            worker_env = self._agent_env() | {
-                "BU_CDP_WS": browser.cdp_url,
-                "PARALLAX_BROWSER_CDP_URL": browser.cdp_url,
-            }
-            worker = JsonWorker(command, env=worker_env, cwd=self.worker_dir)
-            async with worker:
-                await worker.send(request)
+        browser = None
+        try:
+            async with httpx.AsyncClient() as http, cloud_browser(http, screen=(1120, 780)) as browser:
+                # The paid browser exists, so the attempt spends from here even if the worker never starts.
                 self._agent_started(browser.open_seconds)
-                result = await worker.receive("result")
-                result["ready"] = True
-                result["open_seconds"] = browser.open_seconds
-                result["final_page"] = await self.observe(browser.cdp_url, url=result.get("url"))
-                await worker.send({})
-                with contextlib.suppress(RuntimeError):
-                    await worker.receive("stopped")
+                self._browser = browser
+                request = {"goal": turn.text, "model": self.trial.model, "cdp_url": browser.cdp_url}
+                configured = os.environ.get(self.command_env)
+                command = (
+                    tuple(shlex.split(configured))
+                    if configured
+                    else (sys.executable, "-m", "parallax.harnesses.browser.browser_harness_worker")
+                )
+                worker_env = self._agent_env() | {
+                    "BU_CDP_WS": browser.cdp_url,
+                    "PARALLAX_BROWSER_CDP_URL": browser.cdp_url,
+                }
+                worker = JsonWorker(command, env=worker_env, cwd=self.worker_dir)
+                async with worker:
+                    await worker.send(request)
+                    result = await worker.receive("result")
+                    result["ready"] = True
+                    result["open_seconds"] = browser.open_seconds
+                    result["final_page"] = await self.observe(browser.cdp_url, url=result.get("url"))
+                    await worker.send({})
+                    with contextlib.suppress(RuntimeError):
+                        await worker.receive("stopped")
+        except BaseException:
+            # The worker failed, but the browser it was given has already settled its charges.
+            if browser is not None:
+                self._cost.update(_known_costs(list(browser.cost)))
+            raise
         # The browser settles its charges as its context exits, so they are read only after it closes.
         result["cost_lines"] = list(browser.cost)
         return result

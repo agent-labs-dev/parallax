@@ -789,3 +789,34 @@ def test_a_worker_error_before_ready_names_its_cause() -> None:
         "ready", {"event": "result", "error": "ModuleNotFoundError: No module named 'browser_use'"}
     )
     assert "No module named 'browser_use'" in str(error)
+
+
+async def test_a_worker_that_fails_after_its_browser_opened_keeps_the_browser_cost(monkeypatch) -> None:
+    import contextlib
+    from pathlib import Path
+
+    from parallax.harnesses.browser import harnesses
+    from parallax.harnesses.browser.clock import AttemptClock
+    from parallax.models import Trial
+
+    browser = SimpleNamespace(cdp_url="wss://cdp.test", open_seconds=1.0, cost=())
+
+    @contextlib.asynccontextmanager
+    async def paid_browser(http: object, *, screen: object):  # noqa: ANN202
+        try:
+            yield browser
+        finally:
+            browser.cost = ({"component": "browser", "dollars": 0.02},)
+
+    class Worker:
+        def __init__(self, command: object, *, env: object, cwd: Path) -> None:
+            raise FileNotFoundError(2, "No such file or directory", "missing-worker")
+
+    monkeypatch.setattr(harnesses, "cloud_browser", paid_browser)
+    monkeypatch.setattr(harnesses, "JsonWorker", Worker)
+    harness = BrowserHarnessRunner()
+    harness._trial = Trial.model_construct(model="m", home=Path("/home/agent"), env={})
+    harness._clock = AttemptClock(bounded=False)
+    await harness.turn(SimpleNamespace(index=1, text="find it"))
+    assert harness.trial_costs() == {"browser": 0.02}
+    await harness.stop()
