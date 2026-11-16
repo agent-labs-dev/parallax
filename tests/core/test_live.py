@@ -92,7 +92,7 @@ def test_runs_lists_each_run_once_newest_first() -> None:
 
 def test_a_feed_that_cannot_send_goes_quiet_after_one_warning(caplog: pytest.LogCaptureFixture) -> None:
     client = FakeClient(fail=True)
-    feed = LiveFeed(client, "run-1")  # type: ignore[arg-type]
+    feed = LiveFeed(client, "run-1")  # ty: ignore[invalid-argument-type]
     feed.run_started(total=1, already_done=0, concurrency=1, labels=["a"])
     feed.run_finished()
     assert sum("live feed stopped" in r.message for r in caplog.records) == 1
