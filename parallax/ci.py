@@ -94,7 +94,8 @@ jobs:
       # Without a fallback panel, a question Jev leaves uncertain makes the trial INVALID.
       PARALLAX_JUDGE_BASE_URL: {judge_base_url}
       PARALLAX_JUDGE_API_KEY: ${{{{ secrets.OPENROUTER_API_KEY }}}}
-      PARALLAX_JUDGE_MODELS: ${{{{ vars.PARALLAX_JUDGE_MODELS || '{judge}' }}}}{upstream_env}
+      PARALLAX_JUDGE_MODELS: ${{{{ vars.PARALLAX_JUDGE_MODELS || '{judge}' }}}}
+      PARALLAX_JUDGE_PROVIDERS: ${{{{ vars.PARALLAX_JUDGE_PROVIDERS }}}}{upstream_env}
       BRANCH: ${{{{ github.head_ref || github.ref_name }}}}
       RUN_ID: gh-${{{{ github.run_id }}}}-${{{{ github.run_attempt }}}}
       PARALLAX: {parallax}
@@ -195,7 +196,8 @@ def _header(*, branch: str, upstreams: Sequence[str], sinks: Sequence[str]) -> s
     """The comment above the workflow, naming only the settings this repository's runs use."""
     lines = [
         "# Written by `parallax ci init`. Settings: repository variables LANGFUSE_BASE_URL,",
-        "# PARALLAX_LANGFUSE_PROJECT and optionally PARALLAX_JUDGE_MODELS (the fallback panel); secrets",
+        "# PARALLAX_LANGFUSE_PROJECT and optionally PARALLAX_JUDGE_MODELS (the fallback panel) and",
+        "# PARALLAX_JUDGE_PROVIDERS (the hosts it may be served by); secrets",
         "# LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY and OPENROUTER_API_KEY (Jev and the fallback panel)",
     ]
     if upstreams:

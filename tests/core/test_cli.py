@@ -152,7 +152,12 @@ def test_ci_init_writes_a_workflow_that_runs_compares_and_comments(tmp_path: Pat
         k for k, v in workflow[True]["workflow_dispatch"]["inputs"].items() if v.get("required")
     }
     # Without a fallback panel every question Jev leaves uncertain makes the trial INVALID.
-    assert {"PARALLAX_JUDGE_MODELS", "PARALLAX_JUDGE_BASE_URL", "PARALLAX_JUDGE_API_KEY"} <= job["env"].keys()
+    assert {
+        "PARALLAX_JUDGE_MODELS",
+        "PARALLAX_JUDGE_BASE_URL",
+        "PARALLAX_JUDGE_API_KEY",
+        "PARALLAX_JUDGE_PROVIDERS",
+    } <= job["env"].keys()
     # Both metered wires and both extra report sinks are written unless the options narrow them.
     assert {"PARALLAX_UPSTREAM_OPENAI_KEY", "PARALLAX_UPSTREAM_ANTHROPIC_KEY"} <= job["env"].keys()
     steps = {step.get("name"): step for step in job["steps"]}
