@@ -449,6 +449,65 @@ async def test_a_fallback_refusal_says_why_it_failed() -> None:
             )
 
 
+async def test_a_malformed_fallback_reply_is_sent_back_with_why() -> None:
+    """2026-11-16: hosts that ignore `response_format` answered `{"answers": [...]}` and `items[].answer`; the retry
+    shows the model its reply and the validation error instead of asking the same question blind."""
+    import json
+
+    import httpx
+    from parallax.judging import REPLY_CORRECTION
+
+    invented = json.dumps({"answers": [{"q": "q", "answer": "yes", "reason": "the agent did it"}]})
+    bodies: list[dict[str, object]] = []
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        bodies.append(json.loads(request.content))
+        if len(bodies) == 1:
+            return httpx.Response(200, json={"choices": [{"message": {"content": invented}, "finish_reason": "stop"}]})
+        return httpx.Response(200, json=_fallback_reply(True))
+
+    result = await _fallback(handle, {"text": "x"})
+    assert result.decisions["q"].passed is True and len(result.fallback_calls) == 2
+    first, retry = (body["messages"] for body in bodies)
+    assert retry[:2] == first and retry[2] == {"role": "assistant", "content": invented}
+    assert retry[3]["role"] == "user" and "Extra inputs are not permitted" in retry[3]["content"]
+    assert retry[3]["content"].startswith(REPLY_CORRECTION.split("{error}")[0])
+
+
+async def test_a_corrected_fallback_reply_keeps_the_jev_probability() -> None:
+    import json
+
+    import httpx
+    from parallax import jev
+    from parallax.judge import JudgeConfig, JudgePanel
+    from parallax.judging import judge_questions
+
+    fallback_requests: list[int] = []
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/systemone"):
+            return httpx.Response(200, json=_jev_reply(0.5))
+        fallback_requests.append(1)
+        if len(fallback_requests) == 1:
+            invented = json.dumps({"answers": [{"q": "q", "answer": "yes"}]})
+            return httpx.Response(200, json={"choices": [{"message": {"content": invented}, "finish_reason": "stop"}]})
+        return httpx.Response(200, json=_fallback_reply(True))
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+        result = await judge_questions(
+            {},
+            client,
+            jev.JevConfig(base_url="https://fake/v1", model="jev", api_key="test"),
+            JudgeConfig(base_url="https://fake/v1", api_key="test"),
+            JudgePanel(models=("fallback",)),
+            {"q": "Requirement"},
+            policy="test",
+        )
+    decision = result.decisions["q"]
+    assert (decision.passed, decision.source, decision.probability) == (True, "llm", 0.5)
+    assert len(result.fallback_calls) == 2
+
+
 async def test_a_fallback_only_question_never_reaches_jev() -> None:
     import httpx
     from parallax import jev

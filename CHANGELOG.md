@@ -10,17 +10,22 @@ All notable changes to Parallax are recorded here. The format follows
 
 - Harnesses can retain content-addressed binary evidence through trial cleanup and exported evidence bundles.
 
-## [2.0.0.dev27] - 2026-11-15
+### Fixed
+
+- Decisions resolved by the fallback panel retain the original Jev probability for calibration.
+- Jev requests reach the provider without a byte-to-token estimate rejecting states that may fit its context window.
+
+## [2.0.0.dev27] - 2026-11-16
 
 ### Added
 
-- `parallax ci init` accepts `--upstream` and `--report-sink` to include only the provider keys, report destinations and permissions the workflow uses.
+- `PARALLAX_JUDGE_PROVIDERS` holds the LLM judge fallback to the named upstream hosts on the AI Gateway or
+  OpenRouter. It is part of the judge identity.
 
 ### Fixed
 
-- `parallax show` and `parallax compare` report experiments skipped because required Parallax metadata is missing.
-- Decisions resolved by the fallback panel retain the original Jev probability for calibration.
-- Jev requests reach the provider without a byte-to-token estimate rejecting states that may fit its context window.
+- A judge fallback reply that does not match the reply schema is retried with the reply and its validation error sent
+  back, rather than the same request again. Hosts that ignore `response_format` correct their shape on that retry.
 - Keep an upload verification receipt beside the deleted run directory, including
   when a later run-quality check fails.
 - Browser trials pass their code-recorded UTC reference date to the evidence judge, so relative dates are judged against the same date the run used.
