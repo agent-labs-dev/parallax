@@ -31,12 +31,19 @@ class TrialAssets:
         if not path.exists():
             path.write_bytes(data)
             mime_path.write_text(mime + "\n")
-        elif not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != actual:
-            self._diagnostics.append(f"corrupt:{actual}")
-            raise AssetError(f"asset digest {actual} is corrupt")
-        elif mime_path.read_text().strip() != mime:
-            self._diagnostics.append(f"mime:{actual}")
-            raise AssetError(f"asset digest {actual} is already registered with another MIME type")
+        else:
+            try:
+                valid = path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == actual
+                found_mime = mime_path.read_text().strip() if mime_path.is_file() else None
+            except (OSError, UnicodeError) as exc:
+                self._diagnostics.append(f"corrupt:{actual}")
+                raise AssetError(f"asset digest {actual} is unreadable: {exc}") from exc
+            if not valid:
+                self._diagnostics.append(f"corrupt:{actual}")
+                raise AssetError(f"asset digest {actual} is corrupt")
+            if found_mime != mime:
+                self._diagnostics.append(f"mime:{actual}")
+                raise AssetError(f"asset digest {actual} is already registered with another MIME type")
         self._registered[actual] = mime
         return f"assets/{actual}"
 
