@@ -72,15 +72,28 @@ async def _connect(cdp_url: str) -> Any:
     return await connect(cdp_url, max_size=64 * 1024 * 1024)
 
 
+class AmbiguousFinalPage(RuntimeError):
+    """The browser ended with several open tabs and nothing names the one the agent finished on. `tabs` holds what
+    each of them showed, so the run's evidence keeps every page it could have ended on rather than none."""
+
+    def __init__(self, count: int, tabs: Sequence[Mapping[str, Any]] = ()) -> None:
+        super().__init__(f"expected one final page, found {count}")
+        self.tabs = [dict(tab) for tab in tabs]
+
+
+def page_targets(targets: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
+    return [target for target in targets if target.get("type") == "page"]
+
+
 def select_target(targets: Sequence[Mapping[str, Any]], wanted_url: str | None = None) -> Mapping[str, Any]:
-    pages = [target for target in targets if target.get("type") == "page"]
+    pages = page_targets(targets)
     if wanted_url is not None:
         named = [target for target in pages if target.get("url") == wanted_url]
         if len(named) == 1:
             return named[0]
     if len(pages) == 1:
         return pages[0]
-    raise RuntimeError(f"expected one final page, found {len(pages)}")
+    raise AmbiguousFinalPage(len(pages))
 
 
 def controls_from_dom(raw: object) -> list[dict[str, str | None]]:
@@ -135,37 +148,44 @@ class PlainCDPObserver:
         cdp = CDPConnection(websocket)
         try:
             targets = (await cdp.command("Target.getTargets")).get("targetInfos", [])
-            target = select_target(targets, url)
-            attached = await cdp.command("Target.attachToTarget", {"targetId": target["targetId"], "flatten": True})
-            session = attached["sessionId"]
-            page = await cdp.command(
-                "Runtime.evaluate", {"expression": PAGE_SCRIPT, "returnByValue": True}, session=session
-            )
-            values = page.get("result", {}).get("value", {})
-            if not isinstance(values, Mapping):
-                raise RuntimeError("final page script returned no page")
-            dom = await cdp.command(
-                "Runtime.evaluate", {"expression": DOM_SCRIPT, "returnByValue": True}, session=session
-            )
-            ax = await cdp.command("Accessibility.getFullAXTree", session=session)
-            shot = await cdp.command(
-                "Page.captureScreenshot", {"format": "png", "captureBeyondViewport": False}, session=session
-            )
-            controls = controls_from_dom(dom.get("result", {}).get("value"))
-            for item in controls_from_ax(ax.get("nodes")):
-                if item not in controls:
-                    controls.append(item)
-            image = shot.get("data")
-            return {
-                "url": values.get("url"),
-                "title": values.get("title"),
-                "text": values.get("text"),
-                "screenshot_png_b64": image if isinstance(image, str) else None,
-                "controls": controls,
-            }
+            try:
+                target = select_target(targets, url)
+            except AmbiguousFinalPage as error:
+                raise AmbiguousFinalPage(
+                    len(page_targets(targets)), [await _read_target(cdp, tab) for tab in page_targets(targets)]
+                ) from error
+            return await _read_target(cdp, target)
         finally:
             with contextlib.suppress(Exception):
                 await websocket.close()
+
+
+async def _read_target(cdp: CDPConnection, target: Mapping[str, Any]) -> dict[str, Any]:
+    attached = await cdp.command("Target.attachToTarget", {"targetId": target["targetId"], "flatten": True})
+    session = attached["sessionId"]
+    page = await cdp.command("Runtime.evaluate", {"expression": PAGE_SCRIPT, "returnByValue": True}, session=session)
+    values = page.get("result", {}).get("value", {})
+    if not isinstance(values, Mapping):
+        raise RuntimeError("final page script returned no page")
+    dom = await cdp.command("Runtime.evaluate", {"expression": DOM_SCRIPT, "returnByValue": True}, session=session)
+    ax = await cdp.command("Accessibility.getFullAXTree", session=session)
+    # Chrome renders only the foreground tab, and a background tab's capture waits for a frame that never comes.
+    await cdp.command("Page.bringToFront", session=session)
+    shot = await cdp.command(
+        "Page.captureScreenshot", {"format": "png", "captureBeyondViewport": False}, session=session
+    )
+    controls = controls_from_dom(dom.get("result", {}).get("value"))
+    for item in controls_from_ax(ax.get("nodes")):
+        if item not in controls:
+            controls.append(item)
+    image = shot.get("data")
+    return {
+        "url": values.get("url"),
+        "title": values.get("title"),
+        "text": values.get("text"),
+        "screenshot_png_b64": image if isinstance(image, str) else None,
+        "controls": controls,
+    }
 
 
 def load_observer(name: str = "plain-cdp") -> Observer:

@@ -7,8 +7,9 @@ from parallax.harnesses.browser import observer
 
 
 class ReplayWebSocket:
-    def __init__(self) -> None:
+    def __init__(self, targets: list[dict[str, Any]] | None = None) -> None:
         self.sent: list[dict[str, Any]] = []
+        self.targets = targets or [{"targetId": "tab-1", "type": "page", "url": "https://site.test/"}]
 
     async def send(self, value: str) -> None:
         self.sent.append(json.loads(value))
@@ -18,7 +19,7 @@ class ReplayWebSocket:
         result: dict[str, Any]
         match request["method"]:
             case "Target.getTargets":
-                result = {"targetInfos": [{"targetId": "tab-1", "type": "page", "url": "https://site.test/"}]}
+                result = {"targetInfos": self.targets}
             case "Target.attachToTarget":
                 result = {"sessionId": "session-1"}
             case "Runtime.evaluate" if "location.href" in request["params"]["expression"]:
@@ -58,3 +59,26 @@ def test_target_selection_fails_closed_for_ambiguous_pages() -> None:
         assert "expected one final page" in str(error)
     else:
         raise AssertionError("ambiguous page selection should fail closed")
+
+
+async def test_plain_observer_reads_every_tab_when_none_is_the_final_page(monkeypatch: Any) -> None:
+    targets = [
+        {"targetId": "a", "type": "page", "url": "https://site.test/a"},
+        {"targetId": "b", "type": "page", "url": "https://site.test/b"},
+        {"targetId": "w", "type": "service_worker", "url": "https://site.test/sw.js"},
+    ]
+    websocket = ReplayWebSocket(targets)
+
+    async def connect(_: str) -> ReplayWebSocket:
+        return websocket
+
+    monkeypatch.setattr(observer, "_connect", connect)
+    try:
+        await observer.PlainCDPObserver().observe("ws://browser.test/devtools")
+    except observer.AmbiguousFinalPage as error:
+        assert len(error.tabs) == 2
+        assert error.tabs[0]["title"] == "Example"
+    else:
+        raise AssertionError("two open tabs name no final page")
+    attached = [m["params"]["targetId"] for m in websocket.sent if m["method"] == "Target.attachToTarget"]
+    assert attached == ["a", "b"]
