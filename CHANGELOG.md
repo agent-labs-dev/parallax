@@ -6,6 +6,8 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev32] - 2026-11-16
+
 ### Fixed
 
 - A browser trial whose agent never started (its worker failed to launch) costs nothing, so a campaign budget no
