@@ -201,7 +201,7 @@ class _Arm:
     done: int = 0
     verdicts: dict[str, int] = field(default_factory=dict)
     pass_walls: list[float] = field(default_factory=list)
-    costs: list[float] = field(default_factory=list)
+    costs: list[float | None] = field(default_factory=list)
 
 
 def _seconds(delta: timedelta) -> float:
@@ -216,8 +216,14 @@ def progress(events: Iterable[Event], *, now: datetime) -> dict[str, Any]:
     ordered = sorted(events, key=lambda e: e.at)
     starts = [e for e in ordered if e.name == RUN_EVENT and e.payload.get("state") == "running"]
     start = starts[-1] if starts else None
+    # Only the current start's end counts: a run interrupted and then resumed is running again.
     finished_state = next(
-        (e for e in reversed(ordered) if e.name == RUN_EVENT and e.payload.get("state") == "finished"), None
+        (
+            e
+            for e in reversed(ordered)
+            if e.name == RUN_EVENT and e.payload.get("state") == "finished" and start is not None and e.at >= start.at
+        ),
+        None,
     )
     latest: dict[str, Event] = {}
     for e in ordered:
@@ -236,7 +242,7 @@ def progress(events: Iterable[Event], *, now: datetime) -> dict[str, Any]:
 
     arms: dict[str, _Arm] = {}
     verdicts: dict[str, int] = {}
-    cost = 0.0
+    costs: list[float | None] = []
     for e in latest.values():
         p = e.payload
         arm = arms.setdefault(p["label"], _Arm())
@@ -245,9 +251,8 @@ def progress(events: Iterable[Event], *, now: datetime) -> dict[str, Any]:
         verdicts[p["verdict"]] = verdicts.get(p["verdict"], 0) + 1
         if p["verdict"] == Verdict.PASS.value and p.get("wall_s") is not None:
             arm.pass_walls.append(p["wall_s"])
-        if p.get("cost_usd") is not None:
-            arm.costs.append(p["cost_usd"])
-            cost += p["cost_usd"]
+        arm.costs.append(p.get("cost_usd"))
+        costs.append(p.get("cost_usd"))
 
     total = start.payload["total"] if start else None
     already = start.payload.get("already_done", 0) if start else 0
@@ -258,6 +263,10 @@ def progress(events: Iterable[Event], *, now: datetime) -> dict[str, Any]:
     if start and total is not None and finished_state is None and since_start and elapsed:
         rate = len(since_start) / elapsed.total_seconds()
         eta_s = round(max(total - max(done, already), 0) / rate) if rate > 0 else None
+
+    def known(values: Sequence[float | None]) -> list[float] | None:
+        """Every cost, or None when any trial's is unknown: a partial sum is not the run's cost."""
+        return None if any(v is None for v in values) else [v for v in values if v is not None]
 
     def rate(counts: Mapping[str, int]) -> float | None:
         graded = counts.get(Verdict.PASS.value, 0) + counts.get(Verdict.FAIL.value, 0)
@@ -274,14 +283,15 @@ def progress(events: Iterable[Event], *, now: datetime) -> dict[str, Any]:
         "concurrency": start.payload.get("concurrency") if start else None,
         "verdicts": verdicts,
         "pass_rate": rate(verdicts),
-        "cost_usd": round(cost, 6),
+        "cost_usd": round(sum(summed), 6) if (summed := known(costs)) is not None else None,
+        "cost_unknown": sum(v is None for v in costs),
         "arms": {
             name: {
                 "done": arm.done,
                 "verdicts": arm.verdicts,
                 "pass_rate": rate(arm.verdicts),
                 "median_pass_s": round(statistics.median(arm.pass_walls), 1) if arm.pass_walls else None,
-                "mean_cost_usd": round(statistics.fmean(arm.costs), 6) if arm.costs else None,
+                "mean_cost_usd": round(statistics.fmean(c), 6) if (c := known(arm.costs)) else None,
             }
             for name, arm in sorted(arms.items())
         },

@@ -62,9 +62,11 @@ def test_progress_counts_latest_attempts_and_projects_an_eta() -> None:
     p = progress(events, now=T0 + timedelta(minutes=5))
 
     assert (p["state"], p["total"], p["done"]) == ("running", 10, 4)
+    # t4 has no cost, so neither the run's total nor arm b's mean is known.
+    assert (p["cost_usd"], p["cost_unknown"], p["arms"]["b"]["mean_cost_usd"]) == (None, 1, None)
+    assert p["arms"]["a"]["mean_cost_usd"] == pytest.approx(0.02)
     assert p["verdicts"] == {"pass": 3, "fail": 1}
     assert p["pass_rate"] == 0.75
-    assert p["cost_usd"] == pytest.approx(0.06)
     assert p["arms"]["a"]["median_pass_s"] == 20.0
     assert p["arms"]["b"]["pass_rate"] == 0.5
     assert [t["key"] for t in p["running"]] == ["t5"]
@@ -135,3 +137,38 @@ def test_a_v2_row_reads_back_with_its_payload_parsed_or_as_a_string() -> None:
         read = live._event({**row, "metadata": metadata})
         assert read is not None and read.payload == payload and read.session == "run-1"
     assert live._event({**row, "metadata": {}}) is None
+
+
+def test_a_resumed_run_is_running_again_despite_its_earlier_end() -> None:
+    events = [
+        event(RUN_EVENT, 0, state="running", total=4, already_done=0, concurrency=1, labels=["a"]),
+        finished(1, "t1", "pass", wall_s=5.0, cost_usd=0.01),
+        event(RUN_EVENT, 2, state="finished"),
+        event(RUN_EVENT, 10, state="running", total=4, already_done=1, concurrency=1, labels=["a"]),
+        finished(12, "t2", "pass", wall_s=5.0, cost_usd=0.01),
+    ]
+    p = progress(events, now=T0 + timedelta(minutes=14))
+    assert (p["state"], p["elapsed_s"], p["cost_usd"]) == ("running", 240.0, 0.02)
+    # One trial in the four minutes since the resume leaves two for eight more.
+    assert p["eta_s"] == 480
+
+
+async def test_a_failure_reason_reaches_the_feed_redacted(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    secret = "sk-live-" + "x" * 32
+    monkeypatch.setenv("PROVIDER_API_KEY", secret)
+    client = FakeClient()
+    monkeypatch.setattr(runner.LiveFeed, "open", classmethod(lambda cls, run_id: cls(client, run_id)))
+    real_trial = runner.Session.trial
+
+    async def leaking(self: runner.Session, plan: runner.TrialPlan) -> runner.TrialRun:
+        run = await real_trial(self, plan)
+        leaked = run.result.model_copy(update={"verdict": Verdict.INVALID, "invalid_reason": f"boom {secret}"})
+        return runner.TrialRun(leaked, run.evidence)
+
+    monkeypatch.setattr(runner.Session, "trial", leaking)
+    await run_async(
+        discover([TASKS]), ["null-claim"], [None], RunOptions(out=tmp_path / "r", isolation=Isolation.HOST, quiet=True)
+    )
+
+    reasons = [p["reason"] for name, p in client.sent if name == FINISHED_EVENT]
+    assert reasons and all(secret not in r and r.startswith("boom ") for r in reasons)

@@ -1650,10 +1650,13 @@ async def execute_all(session: Session, todo: Sequence[TrialPlan], opts: RunOpti
                     repeat=plan.repeat, attempt=plan.attempt,
                 )  # fmt: skip
             run = await session.trial(plan)
+        row = redact(run.result.model_dump_json(), secret_values())
         with results_path.open("a", encoding="utf-8") as fh:
-            fh.write(redact(run.result.model_dump_json(), secret_values()) + "\n")
+            fh.write(row + "\n")
         if session.live is not None:
-            session.live.trial_finished(run.result, live_label(run.result.harness, run.result.model))
+            # The row as written, so the feed crosses the same secret-scrubbing boundary as results.jsonl.
+            sent = TrialResult.model_validate_json(row)
+            session.live.trial_finished(sent, live_label(sent.harness, sent.model))
         finished.append(run)
         if not opts.quiet:
             r = run.result
