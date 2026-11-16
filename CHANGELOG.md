@@ -6,6 +6,8 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev29] - 2026-11-16
+
 ### Fixed
 
 - Browser Use Cloud runs record their steps again. The V4 event stream reports each tool call as a `core.event`
