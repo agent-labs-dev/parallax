@@ -6,6 +6,8 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev31] - 2026-11-16
+
 ### Added
 
 - A run reports each trial's start and finish to Langfuse as it happens, as events under the run's session in the
