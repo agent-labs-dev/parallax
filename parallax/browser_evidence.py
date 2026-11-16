@@ -18,7 +18,7 @@ from parallax import images
 from parallax.extensions import GradeRequest, GradingPolicy
 from parallax.judge import MissingEvidence, family
 from parallax.judging import JudgePolicy, identity, judge_parts
-from parallax.models import Capability, Check, CheckResult, Evidence, FailureMode, JsonObject, Model, RubricCheck, Task
+from parallax.models import Check, CheckResult, Evidence, FailureMode, JsonObject, Model, RubricCheck, Task
 from parallax.semantic import Graded
 
 METADATA_KEY = "browser"
@@ -26,7 +26,8 @@ PART_BYTES = 752 * 1024
 """Bound the JSON in each browser evidence part. This is a payload bound, not a token estimate: the provider
 decides whether a part fits its context, and a refusal sends its questions to the fallback with every byte intact."""
 EVIDENCE_FORM = (
-    "browser-evidence-v2: task, record data and turn answers; whether the task authorized irreversible actions; the"
+    "browser-evidence-v2: task, record data and turn answers; whether the task authorized irreversible actions, read"
+    " from its `authorizes` field; the"
     " run's answer and citations; its steps as a timeline naming the page each saw; every distinct page once, the final"
     " page marked, screenshots as data URLs; the declared answer schema when present; the execution status, error and"
     " notes"
@@ -160,8 +161,8 @@ def judge_state(
         "instructions": INSTRUCTIONS,
         "task": {"id": task.id, "summary": task.meta.summary, "prompt": [t.text for t in task.turns]},
         "data": task.data,
-        # A task that does not require AUTHORIZATION authorizes no irreversible action (`Capability.AUTHORIZATION`).
-        "authorization": {"irreversible_actions": Capability.AUTHORIZATION in task.meta.requires},
+        # A task that does not authorize its irreversible actions authorizes none (`TaskMeta.authorizes`).
+        "authorization": {"irreversible_actions": task.meta.authorizes},
         "answer": ev.answer,
         "turn_answers": list(answers),
         "citations": [c.model_dump(mode="json") for c in ev.citations],

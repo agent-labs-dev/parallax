@@ -112,7 +112,9 @@ class Capability(StrEnum):
     BROWSER = "browser"
     # Receives a task's site login through a protected binding that the model cannot inspect.
     CREDENTIALS = "credentials"
-    # Receives the irreversible actions authorized for a task and stops before any other one, reporting it.
+    # Is told which irreversible actions a task authorizes and stops before any other one, reporting it. A task needs it
+    # only when it must stop before such an action; whether a task authorizes its actions is `authorizes`, which a harness
+    # that never stops satisfies by acting.
     AUTHORIZATION = "authorization"
 
 
@@ -251,6 +253,8 @@ class TaskMeta(Model):
     area: Area
     summary: str
     requires: frozenset[Capability]
+    # The user authorizes the irreversible actions the task asks for, such as submitting an order.
+    authorizes: bool = Field(default=False, exclude_if=lambda v: not v)
     services: tuple[str, ...] = ()  # mounted in addition to MCP tasks' default synthetic services
     split: Split = Split.TUNE
     maturity: Maturity = Maturity.CANDIDATE
@@ -630,6 +634,8 @@ class TaskRecord(Model):
     prompt: str  # the one turn the agent is given
     grading: str  # a registered grading policy id, e.g. "browser-evidence-v2"
     requires: frozenset[Capability] = frozenset()
+    # As `TaskMeta.authorizes`.
+    authorizes: bool = Field(default=False, exclude_if=lambda v: not v)
     maturity: Maturity = Maturity.CANDIDATE
     split: Split = Split.TUNE
     provenance: Provenance = Provenance.HAND_AUTHORED
