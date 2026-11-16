@@ -273,12 +273,18 @@ def progress(events: Iterable[Event], *, now: datetime) -> dict[str, Any]:
     if start and total is not None and finished_state is None and finished_here and elapsed:
         rate = len(finished_here) / elapsed.total_seconds()
         eta_s = round(max(total - done, 0) / rate) if rate > 0 else None
+    # Done trials with no event: their verdicts and costs are unknown, so no rate or cost covers the whole run.
+    unseen = done - len(latest)
 
     def known(values: Sequence[float | None]) -> list[float] | None:
         """Every cost, or None when any trial's is unknown: a partial sum is not the run's cost."""
-        return None if any(v is None for v in values) else [v for v in values if v is not None]
+        if unseen or any(v is None for v in values):
+            return None
+        return [v for v in values if v is not None]
 
     def rate(counts: Mapping[str, int]) -> float | None:
+        if unseen:
+            return None
         graded = counts.get(Verdict.PASS.value, 0) + counts.get(Verdict.FAIL.value, 0)
         return round(counts.get(Verdict.PASS.value, 0) / graded, 4) if graded else None
 
@@ -290,6 +296,7 @@ def progress(events: Iterable[Event], *, now: datetime) -> dict[str, Any]:
         "eta_at": (now + timedelta(seconds=eta_s)).isoformat(timespec="seconds") if eta_s is not None else None,
         "total": total,
         "done": done,
+        "unseen": unseen,
         "concurrency": start.payload.get("concurrency") if start else None,
         "verdicts": verdicts,
         "pass_rate": rate(verdicts),

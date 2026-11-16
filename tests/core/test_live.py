@@ -205,6 +205,8 @@ def test_trials_done_before_the_feed_saw_them_count_toward_progress() -> None:
     p = progress(events, now=T0 + timedelta(minutes=2))
     # Seven of ten done, one in two minutes: three left take six.
     assert (p["done"], p["eta_s"]) == (7, 360)
+    # Six of the seven have no verdict or cost here, so neither the pass rate nor the cost is the run's.
+    assert (p["unseen"], p["pass_rate"], p["cost_usd"], p["arms"]["a"]["pass_rate"]) == (6, None, None, None)
 
 
 def test_watch_without_langfuse_is_an_environment_error() -> None:

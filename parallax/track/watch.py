@@ -148,7 +148,7 @@ function render(p) {
       <div class="tile"><div class="k">Progress</div><div class="v">${done}${total ? " / " + total : ""}</div><div class="s">${total ? pct(done/total) : ""} · ${esc(p.state)}</div></div>
       <div class="tile"><div class="k">ETA</div><div class="v">${eta}</div><div class="s">${p.eta_at ? "around " + clock(p.eta_at) : ""}</div></div>
       <div class="tile"><div class="k">Elapsed</div><div class="v">${dur(p.elapsed_s)}</div><div class="s">started ${clock(p.started_at)}</div></div>
-      <div class="tile"><div class="k">Pass rate</div><div class="v">${pct(p.pass_rate)}</div><div class="s">${v.pass||0} pass · ${v.fail||0} fail · ${v.invalid||0} invalid</div></div>
+      <div class="tile"><div class="k">Pass rate</div><div class="v">${pct(p.pass_rate)}</div><div class="s">${p.unseen ? p.unseen + " earlier trials not in the feed" : `${v.pass||0} pass · ${v.fail||0} fail · ${v.invalid||0} invalid`}</div></div>
       <div class="tile"><div class="k">Cost so far</div><div class="v">${usd(p.cost_usd)}</div><div class="s">${p.cost_unknown ? p.cost_unknown + " without a cost" : p.concurrency ? p.concurrency + " at a time" : ""}</div></div>
     </div>
     <div class="progress">${bar}</div>
