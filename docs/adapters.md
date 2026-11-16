@@ -407,7 +407,9 @@ the harness receives the task prompt, drives its browser, and reports a final
 page as `trial_metadata()["browser"]`. The evidence contains the final URL,
 title, visible text, optional PNG, interactive controls, the answer, steps, and
 citations. A plain CDP observer reads this evidence after the agent answers and
-before browser cleanup. An observer plugin can replace it under the
+before browser cleanup. When several tabs stay open and none is the named final
+URL, it raises `AmbiguousFinalPage` with every tab it read, and the harness keeps
+each tab as a page of the evidence. An observer plugin can replace it under the
 `parallax.browser_observers` entry-point group; its name is part of the harness
 configuration identity.
 

@@ -15,6 +15,16 @@ All notable changes to Parallax are recorded here. The format follows
 - Decisions resolved by the fallback panel retain the original Jev probability for calibration.
 - Jev requests reach the provider without a byte-to-token estimate rejecting states that may fit its context window.
 
+## [2.0.0.dev29] - 2026-11-16
+
+### Fixed
+
+- Browser Use Cloud runs record their steps again. The V4 event stream reports each tool call as a `core.event`
+  tool part, which the harness did not read, so every hosted run reported no steps.
+- A run that ends with several tabs open keeps each tab as a page of its evidence instead of none. The observer
+  failed when it could not single out a final page, and a background tab's screenshot never returned, so a run that
+  opened a new tab was judged INVALID for leaving no record.
+
 ## [2.0.0.dev28] - 2026-11-16
 
 ### Changed

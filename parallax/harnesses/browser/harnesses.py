@@ -35,7 +35,7 @@ from parallax.harnesses.browser.cloud import (
     cost_lines,
     devtools_websocket,
 )
-from parallax.harnesses.browser.observer import load_observer
+from parallax.harnesses.browser.observer import AmbiguousFinalPage, load_observer
 from parallax.harnesses.browser.site import Unavailable, site_down
 from parallax.harnesses.browser.subprocess import JsonWorker
 from parallax.models import (
@@ -253,6 +253,7 @@ class BrowserHarness(ABC):
         self._steps: list[dict[str, Any]] = []
         self._citations: list[dict[str, Any]] = []
         self._pages: list[dict[str, Any]] = []
+        self._open_tabs: list[dict[str, Any]] = []
         self._cost: dict[str, float | None] = {}
         self._details: dict[str, Any] = {"observer": self.config.observer}
         self._start_url: str | None = None
@@ -361,6 +362,17 @@ class BrowserHarness(ABC):
             for step in self._scrub(_mapping_list(result.get("step_log")))
         )
         self._citations.extend(self._scrub(_mapping_list(result.get("citations"))))
+        if self._open_tabs:
+            self._page = None  # this turn ended on one of the tabs, not on an earlier turn's final page
+            self._pages.extend(
+                {key: value for key, value in tab.items() if key != "screenshot_png_b64"}
+                if self._secret_values
+                else tab
+                for tab in self._scrub(self._open_tabs)
+            )
+            self._open_tabs = []
+        if isinstance(result.get("observe_error"), str):
+            self.trial_notes.append(f"final page not observed: {self._scrub(result['observe_error'])}")
         if self._clock is not None and status is TurnStatus.COMPLETED:
             self._clock.answered()
         page = result.get("final_page")
@@ -426,8 +438,15 @@ class BrowserHarness(ABC):
     async def cleanup(self) -> None:
         return None
 
-    async def observe(self, cdp_url: str, *, url: str | None = None) -> dict[str, Any]:
-        return await load_observer(self.config.observer).observe(cdp_url, url=url)
+    async def observe(self, cdp_url: str, *, url: str | None = None) -> dict[str, Any] | None:
+        """The page the browser ended on. When several tabs stay open and none is named, there is no single final
+        page: each tab joins the run's `pages` instead, so the judge reads every page the run could have ended on."""
+        try:
+            return await load_observer(self.config.observer).observe(cdp_url, url=url)
+        except AmbiguousFinalPage as error:
+            self._open_tabs = error.tabs
+            self.trial_notes.append(f"final page not singled out: {len(error.tabs)} tabs open, each kept as a page")
+            return None
 
     def _agent_started(self, open_seconds: object = None) -> None:
         self._agent_has_started = True
@@ -507,7 +526,7 @@ class BrowserHarnessCloud(BrowserHarness):
             with contextlib.suppress(Exception):
                 await client.close()
 
-    async def _observe_cloud_browser(self, client: Any, browser_id: str, url: str | None) -> dict[str, Any]:
+    async def _observe_cloud_browser(self, client: Any, browser_id: str, url: str | None) -> dict[str, Any] | None:
         view = await client.browsers.get(browser_id)
         cdp = getattr(view, "cdp_url", None)
         if not isinstance(cdp, str):
@@ -674,7 +693,7 @@ def _run_result(view: object, events: list[dict[str, Any]]) -> dict[str, Any]:
         answer = raw.get("result")
     if answer is None:
         answer = raw.get("finalResult")
-    steps = [event for event in events if str(event.get("type", "")).endswith("step")]
+    steps = _v4_steps(events)
     return {
         "status": "done"
         if status in {"completed", "idle"}
@@ -691,6 +710,34 @@ def _run_result(view: object, events: list[dict[str, Any]]) -> dict[str, Any]:
         "actual_model": raw.get("model"),
         "cost_lines": _cost_from_view(raw),
     }
+
+
+def _v4_steps(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The run's tool calls, from its V4 events. A V4 run reports each finished call as a `core.event` whose `part` is
+    a `tool` part with a final state; the `running` part that precedes it repeats its input, so only finished
+    parts count."""
+    steps: list[dict[str, Any]] = []
+    for event in events:
+        data = event.get("data")
+        part = data.get("part") if event.get("type") == "core.event" and isinstance(data, Mapping) else None
+        if not isinstance(part, Mapping) or part.get("type") != "tool":
+            continue
+        state = part.get("state")
+        status = state.get("status") if isinstance(state, Mapping) else None
+        if status not in {"completed", "error"}:
+            continue
+        tool = str(part.get("tool") or "tool")
+        call = state.get("input")
+        code = call.get("code") if isinstance(call, Mapping) else None
+        output = state.get("output") if status == "completed" else state.get("error")
+        step: dict[str, Any] = {"tool": tool, "action": tool, "args": call, "ok": status == "completed"}
+        if isinstance(code, str):
+            step["value"] = code
+        if isinstance(output, str):
+            step["output"] = output
+            step["quote"] = output
+        steps.append(step)
+    return steps
 
 
 _COST_FIELDS = {
