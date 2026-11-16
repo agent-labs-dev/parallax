@@ -740,11 +740,12 @@ async def test_a_worker_that_fails_to_start_costs_nothing(monkeypatch) -> None:
     await harness.stop()
 
 
-async def test_oss_reports_its_browser_use_and_refuses_a_missing_or_unpinned_one(monkeypatch) -> None:
+def test_oss_runs_in_this_python_only_with_the_pinned_browser_use(monkeypatch) -> None:
     import importlib.metadata
+    import sys
 
     from parallax.harnesses.base import HarnessError
-    from parallax.harnesses.browser import pins
+    from parallax.harnesses.browser import harnesses, pins
 
     pinned = pins.load()["browser-use"]["version"]
     found: dict[str, str] = {}
@@ -755,13 +756,30 @@ async def test_oss_reports_its_browser_use_and_refuses_a_missing_or_unpinned_one
         return found[name]
 
     monkeypatch.setattr(importlib.metadata, "version", version)
-    with pytest.raises(HarnessError, match="not installed"):
-        await BrowserHarnessOSS().version(None)
+    monkeypatch.setattr(harnesses.shutil, "which", lambda name: "/usr/bin/uv")
+    assert harnesses.oss_python()[-3:] == ("--with", f"browser-use=={pinned}", "python")
     found["browser-use"] = "0.9.0"
-    with pytest.raises(HarnessError, match=f"pins {pinned}"):
-        await BrowserHarnessOSS().version(None)
+    assert harnesses.oss_python()[0] == "/usr/bin/uv"
     found["browser-use"] = pinned
-    assert await BrowserHarnessOSS().version(None) == f"browser-use {pinned}"
+    assert harnesses.oss_python() == (sys.executable,)
+    del found["browser-use"]
+    monkeypatch.setattr(harnesses.shutil, "which", lambda name: None)
+    with pytest.raises(HarnessError, match="needs browser-use"):
+        harnesses.oss_python()
+
+
+async def test_oss_reports_the_browser_use_its_worker_runs(monkeypatch) -> None:
+    import sys
+
+    from parallax.harnesses.base import HarnessError
+    from parallax.harnesses.browser import harnesses
+
+    # A stand-in interpreter: its own -c runs, and the probe's arguments follow as its argv.
+    monkeypatch.setattr(harnesses, "oss_python", lambda: (sys.executable, "-c", "print('1.0.5')", "--"))
+    assert await BrowserHarnessOSS().version(None) == "browser-use 1.0.5"
+    monkeypatch.setattr(harnesses, "oss_python", lambda: (sys.executable, "-c", "raise SystemExit('no uv env')", "--"))
+    with pytest.raises(HarnessError, match="no uv env"):
+        await BrowserHarnessOSS().version(None)
 
 
 def test_a_worker_error_before_ready_names_its_cause() -> None:

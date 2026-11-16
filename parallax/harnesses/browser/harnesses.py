@@ -28,6 +28,7 @@ import httpx
 from pydantic import BaseModel, ConfigDict
 
 from parallax.harnesses.base import HarnessError, config_hash
+from parallax.harnesses.browser import oss_worker
 from parallax.harnesses.browser.clock import SESSION_INCLUDED, AttemptClock
 from parallax.harnesses.browser.cloud import (
     Browser,
@@ -776,6 +777,25 @@ def _cost_from_view(view: Mapping[str, Any]) -> list[dict[str, Any]]:
     return [{"component": component, "dollars": view[key]} for key, component in _COST_FIELDS.items() if key in view]
 
 
+def oss_python() -> tuple[str, ...]:
+    """The Python that runs the browser-use worker: this one when it has the pinned browser-use, else a uv
+    environment with exactly that version. The worker script imports only the standard library and browser_use."""
+    import importlib.metadata
+
+    from parallax.harnesses.browser import pins
+
+    pinned = pins.load()["browser-use"]["version"]
+    try:
+        if importlib.metadata.version("browser-use") == pinned:
+            return (sys.executable,)
+    except importlib.metadata.PackageNotFoundError:
+        pass
+    uv = shutil.which("uv")
+    if uv is None:
+        raise HarnessError(f"browser-use-oss needs browser-use=={pinned} in {sys.executable} or uv to install it")
+    return (uv, "run", "--no-project", "--quiet", "--with", f"browser-use=={pinned}", "python")
+
+
 class BrowserHarnessOSS(BrowserHarness):
     info = _info(
         "browser-use-oss",
@@ -785,27 +805,25 @@ class BrowserHarnessOSS(BrowserHarness):
     )
 
     async def version(self, box: Any) -> str:
-        """The browser-use the worker imports. The worker runs in this Python, not the box, so the box's install
-        does not reach it: a missing or unpinned package is caught here, before any trial reserves budget."""
-        import importlib.metadata
-
-        from parallax.harnesses.browser import pins
-
-        pinned = pins.load()["browser-use"]["version"]
-        try:
-            found = importlib.metadata.version("browser-use")
-        except importlib.metadata.PackageNotFoundError:
-            raise HarnessError(
-                f"browser-use is not installed in {sys.executable}: pip install 'browser-use=={pinned}'"
-            ) from None
-        if found != pinned:
-            raise HarnessError(f"browser-use {found} is installed, but this harness pins {pinned}")
-        return f"browser-use {found}"
+        """The browser-use the worker runs, checked before any trial reserves budget. The worker runs on the host,
+        not in the box the declared install builds, and browser-use pins dependencies Parallax cannot share
+        (websockets), so unless this Python has the pinned package the worker runs in its own uv environment."""
+        command = oss_python()
+        proc = await asyncio.create_subprocess_exec(
+            *command, "-c", "import importlib.metadata as m; print(m.version('browser-use'))",
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+        )  # fmt: skip
+        out, err = await proc.communicate()
+        if proc.returncode != 0:
+            raise HarnessError(f"browser-use runtime failed to start: {err.decode(errors='replace').strip()[-500:]}")
+        return f"browser-use {out.decode().strip()}"
 
     async def execute(self, turn: TurnInput) -> dict[str, Any]:
         request = {"goal": turn.text, "model": self.trial.model, "max_steps": None, "timeout": None}
         worker = JsonWorker(
-            (sys.executable, "-m", "parallax.harnesses.browser.oss_worker"),
+            # -I: run by path, the script's own directory would lead sys.path, and its sibling subprocess.py would
+            # shadow the standard library's.
+            (*oss_python(), "-I", str(Path(oss_worker.__file__))),
             env=self._agent_env(),
             cwd=self.worker_dir,
         )
