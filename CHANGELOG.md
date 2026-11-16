@@ -10,6 +10,8 @@ All notable changes to Parallax are recorded here. The format follows
 
 - Browser workers that run on the host (browser-use-oss, browser-harness, cua-codex) start in a per-trial host
   directory, so they run when the box is Docker instead of failing on the container's home path.
+- browser-harness runs Codex on the trial's `provider/model` (the provider as Codex's `model_provider`, the name as
+  `--model`), so the model recorded on each row is the one that ran instead of Codex's own configured default.
 
 ## [2.0.0.dev30] - 2026-11-16
 

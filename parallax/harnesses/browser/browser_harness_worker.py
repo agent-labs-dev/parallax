@@ -16,7 +16,7 @@ async def run(request: dict[str, object]) -> None:
     if isinstance(cdp_url, str):
         env["BU_CDP_WS"] = cdp_url
         env["PARALLAX_BROWSER_CDP_URL"] = cdp_url
-    argv = [*shlex.split(command), "exec", "--json", "--", str(request["goal"])]
+    argv = [*shlex.split(command), "exec", "--json", *model_args(str(request["model"])), "--", str(request["goal"])]
     process = await asyncio.create_subprocess_exec(
         *argv,
         stdin=asyncio.subprocess.DEVNULL,
@@ -31,6 +31,17 @@ async def run(request: dict[str, object]) -> None:
     )
     await asyncio.to_thread(sys.stdin.readline)
     emit({"event": "stopped", "stopped": True})
+
+
+def model_args(model: str) -> list[str]:
+    """Codex flags that run the trial's `provider/model` rather than Codex's own configured default.
+
+    Codex takes the provider and the model name separately, so a `provider/model` id is split; a bare id
+    names the model alone and keeps Codex's configured provider."""
+    provider, sep, name = model.partition("/")
+    if not sep:
+        return ["--model", model]
+    return ["-c", f"model_provider={provider}", "--model", name]
 
 
 def emit(message: dict[str, object]) -> None:

@@ -438,6 +438,10 @@ models are sent without provider parameters because the API rejects
 `modelParams`, `mode`, and `harness` for presets. The adapter never writes a
 preset identifier into source code.
 
+`browser-harness` runs `codex exec` by default. It splits a `provider/model` value into Codex's
+`model_provider` and `--model`, so `--model openai/gpt-5.5` runs `gpt-5.5` through Codex's `openai` provider. The
+provider must be one Codex knows, built in or defined in its `config.toml`; an unknown one fails the trial.
+
 Useful configuration keys are `PARALLAX_BROWSER_OBSERVER`,
 `PARALLAX_BROWSER_CLOUD_API`, `PARALLAX_BROWSER_POLL_SECONDS`,
 `PARALLAX_BROWSER_MODEL_PARAMS`, `PARALLAX_BROWSER_HARNESS_COMMAND`,

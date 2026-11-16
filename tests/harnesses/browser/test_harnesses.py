@@ -716,3 +716,36 @@ async def test_a_host_worker_runs_in_a_host_directory_even_when_the_box_is_docke
     assert seen and seen[0] != Path("/home/agent")
     await harness.stop()
     assert not seen[0].exists()
+
+
+def test_the_browser_harness_worker_runs_codex_on_the_trial_model() -> None:
+    """browser-harness pins a model, so the model recorded on the row must be the one Codex is told to run."""
+    import json
+    import os
+    import shlex
+    import subprocess
+    import sys
+
+    echo_argv = shlex.join([sys.executable, "-c", "import json, sys; print(json.dumps(sys.argv[1:]))"])
+    request = {"goal": "find it", "model": "openai/gpt-5.5", "cdp_url": "ws://browser"}
+    done = subprocess.run(
+        [sys.executable, "-m", "parallax.harnesses.browser.browser_harness_worker"],
+        input=json.dumps(request) + "\n{}\n",
+        capture_output=True,
+        text=True,
+        env=os.environ | {"PARALLAX_BROWSER_AGENT_COMMAND": echo_argv},
+        check=True,
+        timeout=30,
+    )
+    result = json.loads(done.stdout.splitlines()[0])
+    assert result["status"] == "done"
+    assert json.loads(result["answer"]) == [
+        "exec",
+        "--json",
+        "-c",
+        "model_provider=openai",
+        "--model",
+        "gpt-5.5",
+        "--",
+        "find it",
+    ]
