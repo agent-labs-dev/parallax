@@ -268,6 +268,10 @@ class BrowserHarness(ABC):
         self._answer_schema: dict[str, Any] | None = None
         self._site_preflight_done = False
         self._agent_has_started = False
+        # Per turn: something billable was created, and whether that turn reported its charges.
+        self._turn_spending = False
+        self._turn_priced = False
+        self._unpriced_turns = False
         self._worker_dir: Path | None = None
         self.trial_invalid: list[str] = []
         self.trial_notes: list[str] = []
@@ -357,6 +361,7 @@ class BrowserHarness(ABC):
             else:
                 # The clock starts now; spending starts only when `execute` reports its agent started.
                 self._clock_started()
+                self._turn_spending = self._turn_priced = False
                 result = await self.execute(turn)
         except Unavailable as error:
             result = {"status": "unavailable", "answer": None, "error": str(error)}
@@ -396,7 +401,11 @@ class BrowserHarness(ABC):
             if self._secret_values and self._page.pop("screenshot_png_b64", None) is not None:
                 # Text replacement cannot reach pixels, and a page can show a bound login; the judge reads its text.
                 self.trial_notes.append("final-page screenshot omitted: the task binds secrets")
-        self._cost.update(_known_costs(result.get("cost_lines")))
+        if isinstance(lines := result.get("cost_lines"), list):
+            self._record_costs(lines)
+        if self._turn_spending and not self._turn_priced:
+            # An earlier turn's known charges must not stand for this turn's, which may have billed.
+            self._unpriced_turns = True
         self._details.update(
             {
                 "status": str(result.get("status", "error")),
@@ -447,7 +456,13 @@ class BrowserHarness(ABC):
     def trial_costs(self) -> dict[str, float | None]:
         if not self._agent_has_started and not self._cost:
             return {"model": 0.0}
+        if self._unpriced_turns:
+            return dict(self._cost) | {"unpriced turn": None}
         return dict(self._cost)
+
+    def _record_costs(self, lines: list[Any]) -> None:
+        self._cost.update(_known_costs(lines))
+        self._turn_priced = True
 
     def trial_details(self) -> dict[str, Any]:
         return dict(self._details)
@@ -476,6 +491,7 @@ class BrowserHarness(ABC):
     def _spending(self) -> None:
         """Something billable exists for this attempt, so an absent cost is unknown, not zero."""
         self._agent_has_started = True
+        self._turn_spending = True
 
     def _clock_started(self, open_seconds: object = None) -> None:
         if self._clock is None:
@@ -889,7 +905,7 @@ class BrowserHarnessRunner(BrowserHarness):
         except BaseException:
             # The worker failed, but the browser it was given has already settled its charges.
             if browser is not None:
-                self._cost.update(_known_costs(list(browser.cost)))
+                self._record_costs(list(browser.cost))
             raise
         # The browser settles its charges as its context exits, so they are read only after it closes.
         result["cost_lines"] = list(browser.cost)

@@ -9,6 +9,7 @@ All notable changes to Parallax are recorded here. The format follows
 ### Fixed
 
 - A `browser-use-cloud` V4 run that was created but whose polling failed before its browser was ready keeps its cost reservation instead of reporting $0.
+- A later turn that created something billable but reported no charges makes the trial's cost unknown, instead of the earlier turns' known cost standing for the whole trial.
 - The `browser-use-oss` version probe runs in the worker's isolated runtime and imports `browser_use`, so an arm that cannot load it fails at planning.
 
 ## [2.0.0.dev32] - 2026-11-16

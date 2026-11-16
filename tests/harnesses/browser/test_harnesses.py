@@ -860,3 +860,26 @@ async def test_oss_probes_its_runtime_as_the_worker_runs_it(monkeypatch) -> None
     monkeypatch.setattr(harnesses.asyncio, "create_subprocess_exec", record)
     assert await BrowserHarnessOSS().version(None) == "browser-use 1.0.5"
     assert seen[0][:3] == ("py", "-I", "-c") and "import browser_use" in seen[0][3]
+
+
+async def test_a_later_turn_that_spent_without_a_price_makes_the_trial_cost_unknown(monkeypatch) -> None:
+    from pathlib import Path
+
+    from parallax.harnesses.browser.clock import AttemptClock
+    from parallax.models import Trial
+
+    class TwoTurns(BrowserHarnessRunner):
+        async def execute(self, turn: object) -> dict[str, object]:
+            self._spending()
+            if turn.index == 1:  # ty: ignore[unresolved-attribute]
+                return {"status": "completed", "answer": "a", "cost_lines": [{"component": "model", "dollars": 0.01}]}
+            raise RuntimeError("polling failed after the run was created")
+
+    harness = TwoTurns()
+    harness._trial = Trial.model_construct(model="m", home=Path("/home/agent"), env={})
+    harness._clock = AttemptClock(bounded=False)
+    await harness.turn(SimpleNamespace(index=1, text="first"))
+    assert harness.trial_costs() == {"model": 0.01}
+    await harness.turn(SimpleNamespace(index=2, text="second"))
+    assert None in harness.trial_costs().values()
+    await harness.stop()
