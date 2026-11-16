@@ -1656,7 +1656,9 @@ async def execute_all(session: Session, todo: Sequence[TrialPlan], opts: RunOpti
         if session.live is not None:
             # The row as written, so the feed crosses the same secret-scrubbing boundary as results.jsonl.
             sent = TrialResult.model_validate_json(row)
-            session.live.trial_finished(sent, live_label(sent.harness, sent.model))
+            # A transient INVALID with attempts left is run again after the retry wait, so it is not done yet.
+            pending = transient_invalid(sent) and sent.attempt < opts.retry_invalid
+            session.live.trial_finished(sent, live_label(sent.harness, sent.model), retry_pending=pending)
         finished.append(run)
         if not opts.quiet:
             r = run.result

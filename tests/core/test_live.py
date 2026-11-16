@@ -236,3 +236,29 @@ def test_a_resumed_retry_of_an_earlier_invalid_trial_counts_as_done() -> None:
         event(RUN_EVENT, 12, state="finished"),
     ]
     assert progress(events, now=T0 + timedelta(minutes=13))["done"] == 3
+
+
+def test_a_result_waiting_for_its_retry_is_not_done() -> None:
+    events = [
+        event(RUN_EVENT, 0, state="running", total=1, already_done=0, concurrency=1, labels=["a"]),
+        event(STARTED_EVENT, 0, key="t1", task="t1", label="a", repeat=0, attempt=0),
+        finished(1, "t1", "invalid", reason="site down", retry_pending=True),
+    ]
+    p = progress(events, now=T0 + timedelta(minutes=2))
+    assert (p["done"], [(t["key"], t["waiting"], t["attempt"]) for t in p["running"]]) == (0, [("t1", True, 1)])
+
+
+def test_watch_refuses_keys_of_another_project(monkeypatch: pytest.MonkeyPatch) -> None:
+    from parallax.track import sink
+    from parallax.track.sink import TrackError
+
+    for name, value in {"LANGFUSE_BASE_URL": "https://lf.test", "LANGFUSE_PUBLIC_KEY": "pk", "LANGFUSE_SECRET_KEY": "sk",
+                        sink.PROJECT_ENV: "evals"}.items():  # fmt: skip
+        monkeypatch.setenv(name, value)
+
+    def wrong(*, write: bool) -> None:
+        raise TrackError("keys belong to project 'other', not 'evals'")
+
+    monkeypatch.setattr(sink, "connect", wrong)
+    with pytest.raises(TrackError, match="other"):
+        live.LiveSource.from_env()

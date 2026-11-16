@@ -95,7 +95,8 @@ class LiveFeed:
             {"at": _now(), "key": key, "task": task_id, "label": label, "repeat": repeat, "attempt": attempt},
         )
 
-    def trial_finished(self, result: TrialResult, label: str) -> None:
+    def trial_finished(self, result: TrialResult, label: str, *, retry_pending: bool = False) -> None:
+        """`retry_pending`: the runner will run this trial again, so it is not done yet."""
         self._send(
             FINISHED_EVENT,
             {
@@ -109,6 +110,7 @@ class LiveFeed:
                 "reason": result.invalid_reason or result.na_reason,
                 "wall_s": result.wall_ms / 1000 if result.wall_ms is not None else None,
                 "cost_usd": result.cost_usd,
+                "retry_pending": retry_pending,
             },
         )
 
@@ -150,6 +152,10 @@ class LiveSource:
             from parallax.track.sink import TrackError
 
             raise TrackError("set LANGFUSE_BASE_URL, LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY")
+        from parallax.track.sink import PROJECT_ENV, connect
+
+        if os.environ.get(PROJECT_ENV):
+            connect(write=False)  # the keys must be the named project's, as every other tracking command checks
         return cls(base_url, public_key, secret_key)
 
     def events(self, *, since: datetime, session: str | None = None, name: str | None = None) -> Iterator[Event]:
@@ -248,6 +254,10 @@ def progress(events: Iterable[Event], *, now: datetime) -> dict[str, Any]:
         # A retry in flight replaces its earlier attempt's result until it finishes.
         if key in latest and latest[key].payload.get("attempt", 0) < attempt:
             del latest[key]
+    # A result the runner will retry is waiting, not done, until its next attempt starts (or the run ends).
+    waiting = {} if finished_state is not None else {k: e for k, e in latest.items() if e.payload.get("retry_pending")}
+    for key in waiting:
+        del latest[key]
     finished_here = {e.payload["key"] for e in current if e.name == FINISHED_EVENT} & latest.keys()
 
     arms: dict[str, _Arm] = {}
@@ -312,7 +322,11 @@ def progress(events: Iterable[Event], *, now: datetime) -> dict[str, Any]:
             }
             for name, arm in sorted(arms.items())
         },
-        "running": [{**e.payload, "for_s": _seconds(now - e.at)} for e in sorted(running.values(), key=lambda e: e.at)],
+        "running": [{**e.payload, "for_s": _seconds(now - e.at)} for e in sorted(running.values(), key=lambda e: e.at)]
+        + [
+            {**e.payload, "waiting": True, "attempt": e.payload.get("attempt", 0) + 1, "for_s": _seconds(now - e.at)}
+            for e in sorted(waiting.values(), key=lambda e: e.at)
+        ],
         "recent": [e.payload for e in sorted(latest.values(), key=lambda e: e.at, reverse=True)[:50]],
     }
 

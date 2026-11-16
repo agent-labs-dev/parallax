@@ -140,7 +140,7 @@ function render(p) {
   const arms = Object.entries(p.arms || {}).map(([name, a]) => `<tr><td>${esc(name)}</td><td>${a.done}</td>
     <td class="v-pass">${a.verdicts.pass||0}</td><td class="v-fail">${a.verdicts.fail||0}</td><td class="v-invalid">${a.verdicts.invalid||0}</td>
     <td>${pct(a.pass_rate)}</td><td>${dur(a.median_pass_s)}</td><td>${usd(a.mean_cost_usd)}</td></tr>`).join("");
-  const running = (p.running || []).map(t => `<tr><td>${esc(t.task)}</td><td>${esc(t.label)}</td><td>#${t.repeat}${t.attempt ? " retry " + t.attempt : ""}</td><td>${dur(t.for_s)}</td></tr>`).join("");
+  const running = (p.running || []).map(t => `<tr><td>${esc(t.task)}</td><td>${esc(t.label)}</td><td>#${t.repeat}${t.waiting ? " waiting to retry" : t.attempt ? " retry " + t.attempt : ""}</td><td>${dur(t.for_s)}</td></tr>`).join("");
   const recent = (p.recent || []).map(t => `<tr><td>${clock(t.at)}</td><td>${esc(t.task)}</td><td>${esc(t.label)}</td><td>#${t.repeat}</td>
     <td class="v-${esc(t.verdict)}">${esc(t.verdict)}</td><td>${dur(t.wall_s)}</td><td>${usd(t.cost_usd)}</td><td class="reason">${esc(t.reason)}</td></tr>`).join("");
   $("#main").innerHTML = `
