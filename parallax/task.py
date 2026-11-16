@@ -327,7 +327,7 @@ def task_from_record(source: str, record: TaskRecord) -> Task:
     digest = record_hash(record)
     meta = TaskMeta(
         id=record.id, version=record.version, area=record.area, summary=record.summary, requires=record.requires,
-        split=record.split, maturity=record.maturity, provenance=record.provenance, xfail=record.xfail,
+        authorizes=record.authorizes, split=record.split, maturity=record.maturity, provenance=record.provenance, xfail=record.xfail,
         canary=str(uuid.UUID(hex=digest[:32], version=4)),
     )  # fmt: skip
     task = Task.model_construct(

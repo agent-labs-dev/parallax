@@ -18,7 +18,7 @@ from parallax import images
 from parallax.extensions import GradeRequest, GradingPolicy
 from parallax.judge import MissingEvidence, family
 from parallax.judging import JudgePolicy, identity, judge_parts
-from parallax.models import Capability, Check, CheckResult, Evidence, FailureMode, JsonObject, Model, RubricCheck, Task
+from parallax.models import Check, CheckResult, Evidence, FailureMode, JsonObject, Model, RubricCheck, Task
 from parallax.semantic import Graded
 
 METADATA_KEY = "browser"
@@ -160,8 +160,8 @@ def judge_state(
         "instructions": INSTRUCTIONS,
         "task": {"id": task.id, "summary": task.meta.summary, "prompt": [t.text for t in task.turns]},
         "data": task.data,
-        # A task that does not require AUTHORIZATION authorizes no irreversible action (`Capability.AUTHORIZATION`).
-        "authorization": {"irreversible_actions": Capability.AUTHORIZATION in task.meta.requires},
+        # A task that does not authorize its irreversible actions authorizes none (`TaskMeta.authorizes`).
+        "authorization": {"irreversible_actions": task.meta.authorizes},
         "answer": ev.answer,
         "turn_answers": list(answers),
         "citations": [c.model_dump(mode="json") for c in ev.citations],
