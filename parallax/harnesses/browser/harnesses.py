@@ -268,6 +268,10 @@ class BrowserHarness(ABC):
         self._answer_schema: dict[str, Any] | None = None
         self._site_preflight_done = False
         self._agent_has_started = False
+        # Per turn: something billable was created, and whether that turn reported its charges.
+        self._turn_spending = False
+        self._turn_priced = False
+        self._unpriced_turns = False
         self._worker_dir: Path | None = None
         self.trial_invalid: list[str] = []
         self.trial_notes: list[str] = []
@@ -357,6 +361,7 @@ class BrowserHarness(ABC):
             else:
                 # The clock starts now; spending starts only when `execute` reports its agent started.
                 self._clock_started()
+                self._turn_spending = self._turn_priced = False
                 result = await self.execute(turn)
         except Unavailable as error:
             result = {"status": "unavailable", "answer": None, "error": str(error)}
@@ -396,7 +401,11 @@ class BrowserHarness(ABC):
             if self._secret_values and self._page.pop("screenshot_png_b64", None) is not None:
                 # Text replacement cannot reach pixels, and a page can show a bound login; the judge reads its text.
                 self.trial_notes.append("final-page screenshot omitted: the task binds secrets")
-        self._cost.update(_known_costs(result.get("cost_lines")))
+        if isinstance(lines := result.get("cost_lines"), list):
+            self._record_costs(lines)
+        if self._turn_spending and not self._turn_priced:
+            # An earlier turn's known charges must not stand for this turn's, which may have billed.
+            self._unpriced_turns = True
         self._details.update(
             {
                 "status": str(result.get("status", "error")),
@@ -447,7 +456,15 @@ class BrowserHarness(ABC):
     def trial_costs(self) -> dict[str, float | None]:
         if not self._agent_has_started and not self._cost:
             return {"model": 0.0}
+        if self._unpriced_turns:
+            return dict(self._cost) | {"unpriced turn": None}
         return dict(self._cost)
+
+    def _record_costs(self, lines: list[Any]) -> None:
+        costs = _known_costs(lines)
+        self._cost.update(costs)
+        # An empty report prices nothing: a worker sends `[]` when its run's cost is unknown.
+        self._turn_priced = self._turn_priced or bool(costs)
 
     def trial_details(self) -> dict[str, Any]:
         return dict(self._details)
@@ -470,8 +487,13 @@ class BrowserHarness(ABC):
 
     def _agent_started(self, open_seconds: object = None) -> None:
         """The agent is running and may spend: a worker reported ready, or a cloud task exists."""
-        self._agent_has_started = True
+        self._spending()
         self._clock_started(open_seconds)
+
+    def _spending(self) -> None:
+        """Something billable exists for this attempt, so an absent cost is unknown, not zero."""
+        self._agent_has_started = True
+        self._turn_spending = True
 
     def _clock_started(self, open_seconds: object = None) -> None:
         if self._clock is None:
@@ -525,6 +547,7 @@ class BrowserHarnessCloud(BrowserHarness):
                     self.trial.model,
                     self.config.poll_seconds,
                     agent_started=self._agent_started,
+                    spending=self._spending,
                     output_schema=self._answer_schema,
                     secret_bindings=self._secret_bindings or None,
                 )
@@ -566,9 +589,11 @@ async def _run_v4(
     poll: float,
     *,
     agent_started: Callable[[], None] | None = None,
+    spending: Callable[[], None] | None = None,
     output_schema: dict[str, Any] | None = None,
     secret_bindings: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
+    """`spending` is called once the cloud run exists, which may bill before its browser is ready."""
     request: dict[str, Any] = {"model": model} if model else {}
     if output_schema is not None:
         request["output_schema"] = output_schema
@@ -584,6 +609,8 @@ async def _run_v4(
             created = await client.runs.create(goal, **request)
         except Exception as error:
             raise _failure("run create", error, starting=True) from None
+        if spending is not None:
+            spending()
         run_id = str(created.id)
         after: int | None = None
         visible_by = time.monotonic() + 5.0
@@ -810,7 +837,8 @@ class BrowserHarnessOSS(BrowserHarness):
         (websockets), so unless this Python has the pinned package the worker runs in its own uv environment."""
         command = oss_python()
         proc = await asyncio.create_subprocess_exec(
-            *command, "-c", "import importlib.metadata as m; print(m.version('browser-use'))",
+            # The worker's own isolation (-I), and an import, not only metadata: what the worker will load.
+            *command, "-I", "-c", "import browser_use, importlib.metadata as m; print(m.version('browser-use'))",
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
         )  # fmt: skip
         out, err = await proc.communicate()
@@ -879,7 +907,7 @@ class BrowserHarnessRunner(BrowserHarness):
         except BaseException:
             # The worker failed, but the browser it was given has already settled its charges.
             if browser is not None:
-                self._cost.update(_known_costs(list(browser.cost)))
+                self._record_costs(list(browser.cost))
             raise
         # The browser settles its charges as its context exits, so they are read only after it closes.
         result["cost_lines"] = list(browser.cost)
