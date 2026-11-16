@@ -33,6 +33,7 @@ from pydantic import JsonValue
 from starlette.types import ASGIApp
 
 from parallax import __version__, extensions, provenance
+from parallax.assets import TrialAssets
 from parallax.box import (
     Box,
     BoxError,
@@ -889,6 +890,7 @@ class TrialExecution:
         self.last_turn = 0
         self.raw_output = ""
         self.product: JsonObject | None = None  # the harness's `trial_metadata`, for a grading policy
+        self.assets = TrialAssets(self.dir)
 
     async def run(self) -> TrialRun:
         started = time.monotonic()
@@ -1019,6 +1021,8 @@ class TrialExecution:
                     self.t.notes.append(f"stderr tail:\n{harness.stderr_tail}")
                 if isinstance(harness, TrialMetadata):
                     self.t.extra["harness_metadata"] = self.product = harness.trial_metadata
+                if self.assets.diagnostics():
+                    self.invalid.extend(f"missing retained asset {ref}" for ref in self.assets.diagnostics())
                 if isinstance(harness, TrialMetrics):
                     self.t.metrics = dict(harness.trial_metrics)
                 if isinstance(harness, TrialTiming):
@@ -1066,7 +1070,7 @@ class TrialExecution:
             trial_id=self.trial_id(), task_id=self.task.id, model=self.plan.model, mcp=mcp,
             workspace=box.workspace, home=box.home, llm=llm, env=env,
             user=seed.user if seed is not None else None, now=seed.now if seed is not None else datetime.now(UTC),
-            requires=self.task.meta.requires,
+            requires=self.task.meta.requires, assets=self.assets,
         )  # fmt: skip
 
     async def conversation(self, harness: Harness, box: Box, control: ControlClient | None) -> None:
