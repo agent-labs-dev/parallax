@@ -172,3 +172,43 @@ async def test_a_failure_reason_reaches_the_feed_redacted(tmp_path: Path, monkey
 
     reasons = [p["reason"] for name, p in client.sent if name == FINISHED_EVENT]
     assert reasons and all(secret not in r and r.startswith("boom ") for r in reasons)
+
+
+def test_a_retry_in_flight_replaces_its_earlier_attempt() -> None:
+    events = [
+        event(RUN_EVENT, 0, state="running", total=1, already_done=0, concurrency=1, labels=["a"]),
+        event(STARTED_EVENT, 0, key="t1", task="t1", label="a", repeat=0, attempt=0),
+        finished(1, "t1", "invalid", reason="site down"),
+        event(STARTED_EVENT, 2, key="t1", task="t1", label="a", repeat=0, attempt=1),
+    ]
+    p = progress(events, now=T0 + timedelta(minutes=3))
+    assert (p["done"], p["verdicts"], [t["attempt"] for t in p["running"]]) == (0, {}, [1])
+
+
+def test_a_resume_that_kept_nothing_drops_the_earlier_trials() -> None:
+    events = [
+        event(RUN_EVENT, 0, state="running", total=2, already_done=0, concurrency=1, labels=["a"]),
+        finished(1, "old1", "fail", cost_usd=0.5),
+        event(RUN_EVENT, 2, state="finished"),
+        event(RUN_EVENT, 10, state="running", total=2, already_done=0, concurrency=1, labels=["a"]),
+        finished(11, "new1", "pass", cost_usd=0.01),
+    ]
+    p = progress(events, now=T0 + timedelta(minutes=12))
+    assert (p["done"], p["verdicts"], p["cost_usd"]) == (1, {"pass": 1}, 0.01)
+
+
+def test_trials_done_before_the_feed_saw_them_count_toward_progress() -> None:
+    events = [
+        event(RUN_EVENT, 0, state="running", total=10, already_done=6, concurrency=1, labels=["a"]),
+        finished(2, "t7", "pass", cost_usd=0.01),
+    ]
+    p = progress(events, now=T0 + timedelta(minutes=2))
+    # Seven of ten done, one in two minutes: three left take six.
+    assert (p["done"], p["eta_s"]) == (7, 360)
+
+
+def test_watch_without_langfuse_is_an_environment_error() -> None:
+    from parallax.track.sink import TrackError
+
+    with pytest.raises(TrackError, match="LANGFUSE_PUBLIC_KEY"):
+        live.LiveSource.from_env()

@@ -147,7 +147,9 @@ class LiveSource:
         base_url = (os.environ.get("LANGFUSE_BASE_URL") or os.environ.get("LANGFUSE_HOST") or "").rstrip("/")
         public_key, secret_key = os.environ.get("LANGFUSE_PUBLIC_KEY"), os.environ.get("LANGFUSE_SECRET_KEY")
         if not base_url or not public_key or not secret_key:
-            raise RuntimeError("set LANGFUSE_BASE_URL, LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY")
+            from parallax.track.sink import TrackError
+
+            raise TrackError("set LANGFUSE_BASE_URL, LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY")
         return cls(base_url, public_key, secret_key)
 
     def events(self, *, since: datetime, session: str | None = None, name: str | None = None) -> Iterator[Event]:
@@ -225,20 +227,29 @@ def progress(events: Iterable[Event], *, now: datetime) -> dict[str, Any]:
         ),
         None,
     )
+    already = start.payload.get("already_done", 0) if start else 0
+    # A resume that kept nothing (its fingerprint changed, so the runner set every earlier result aside) measures
+    # anew: the earlier starts' trials are not this run's. Otherwise an earlier finish stands until re-run.
+    current = [e for e in ordered if start is None or e.at >= start.at]
+    counted = current if start is not None and already == 0 else ordered
     latest: dict[str, Event] = {}
-    for e in ordered:
+    for e in counted:
         if e.name == FINISHED_EVENT:
             key = e.payload["key"]
             if key not in latest or e.payload.get("attempt", 0) >= latest[key].payload.get("attempt", 0):
                 latest[key] = e
-    running = {
-        (e.payload["key"], e.payload.get("attempt", 0)): e
-        for e in ordered
-        if e.name == STARTED_EVENT and (start is None or e.at >= start.at)
-    }
-    for e in ordered:
+    running = {(e.payload["key"], e.payload.get("attempt", 0)): e for e in current if e.name == STARTED_EVENT}
+    for e in counted:
         if e.name == FINISHED_EVENT:
             running.pop((e.payload["key"], e.payload.get("attempt", 0)), None)
+    for key, attempt in running:
+        # A retry in flight replaces its earlier attempt's result until it finishes.
+        if key in latest and latest[key].payload.get("attempt", 0) < attempt:
+            del latest[key]
+    finished_here = {e.payload["key"] for e in current if e.name == FINISHED_EVENT} & latest.keys()
+    finished_before = {
+        e.payload["key"] for e in counted if e.name == FINISHED_EVENT and start is not None and e.at < start.at
+    }
 
     arms: dict[str, _Arm] = {}
     verdicts: dict[str, int] = {}
@@ -255,14 +266,13 @@ def progress(events: Iterable[Event], *, now: datetime) -> dict[str, Any]:
         costs.append(p.get("cost_usd"))
 
     total = start.payload["total"] if start else None
-    already = start.payload.get("already_done", 0) if start else 0
-    done = len(latest)
-    since_start = [e for e in latest.values() if start is not None and e.at >= start.at]
+    # Trials the runner skipped as done count even when their events are missing (an older Parallax, the feed off).
+    done = max(len(latest), already + len(finished_here - finished_before))
     elapsed = (now if finished_state is None else finished_state.at) - start.at if start else None
     eta_s = None
-    if start and total is not None and finished_state is None and since_start and elapsed:
-        rate = len(since_start) / elapsed.total_seconds()
-        eta_s = round(max(total - max(done, already), 0) / rate) if rate > 0 else None
+    if start and total is not None and finished_state is None and finished_here and elapsed:
+        rate = len(finished_here) / elapsed.total_seconds()
+        eta_s = round(max(total - done, 0) / rate) if rate > 0 else None
 
     def known(values: Sequence[float | None]) -> list[float] | None:
         """Every cost, or None when any trial's is unknown: a partial sum is not the run's cost."""
