@@ -6,6 +6,10 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- A task that authorizes the irreversible actions it asks for declares `authorizes = true` (`TaskRecord.authorizes`), and the browser judge reads it. `authorization` in `requires` now means only that the task must stop before an action it does not authorize, so a harness that never stops can run a task that authorizes its actions instead of marking it not applicable. The browser judge's identity changes with it, so a verdict judged under the old rule is not reused.
+
 ### Fixed
 
 - A `browser-use-cloud` V4 run that was created but whose polling failed before its browser was ready keeps its cost reservation instead of reporting $0.

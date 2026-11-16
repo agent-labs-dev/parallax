@@ -170,13 +170,9 @@ def test_answer_schema_reaches_the_browser_judge_state() -> None:
     assert state["execution"]["today"] == "2026-11-15"
 
 
-@pytest.mark.parametrize(
-    ("requires", "authorized"), [(frozenset(), False), (frozenset({Capability.AUTHORIZATION}), True)]
-)
-def test_the_judge_state_says_whether_the_task_authorized_irreversible_actions(
-    requires: frozenset[Capability], authorized: bool
-) -> None:
-    task = task_from_record("shop", RECORD.model_copy(update={"requires": requires}))
+@pytest.mark.parametrize("authorized", [False, True])
+def test_the_judge_state_says_whether_the_task_authorized_irreversible_actions(authorized: bool) -> None:
+    task = task_from_record("shop", RECORD.model_copy(update={"authorizes": authorized}))
     state = browser_evidence.judge_state(task, OBSERVED, ("$24.00",), {})
     assert state["authorization"] == {"irreversible_actions": authorized}
     assert "`authorization.irreversible_actions`" in browser_evidence.JUDGE.questions["task_satisfied"]
@@ -639,3 +635,20 @@ def test_a_source_filter_selects_a_source_task_by_its_id(monkeypatch: pytest.Mon
 
     monkeypatch.setattr(plugins, "entry_points_in", lambda group: [Source("shop")] if group == SOURCES else [])
     assert [t.id for t in resolve(["source=shop", "browser-find-price"], suites={})] == ["browser-find-price"]
+
+
+async def test_a_task_that_authorizes_its_actions_runs_on_a_harness_that_never_stops(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert Capability.AUTHORIZATION not in Browsing.info.capabilities
+    harness = Browsing()
+    task = task_from_record("shop", RECORD.model_copy(update={"authorizes": True}))
+    run_dir = await run_browsing(tmp_path, monkeypatch, harness, task=task)
+    (row,) = read_results(run_dir / "results.jsonl")
+    assert harness.trials and row.na_reason is None
+
+
+def test_reading_authorization_from_authorizes_is_part_of_the_judge_identity() -> None:
+    # Before `authorizes`, a task authorized its actions by requiring `authorization`; a verdict judged under that
+    # rule must not be reused as one judged under this one.
+    assert "`authorizes`" in browser_evidence.JUDGE.evidence_form
