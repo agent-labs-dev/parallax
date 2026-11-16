@@ -711,7 +711,7 @@ class BrowserHarnessOSS(BrowserHarness):
         "browser-use-oss",
         pins_model=True,
         credential_env=("BROWSER_USE_API_KEY",),
-        install="pip install --no-cache-dir 'browser-use==1.0.3'",
+        install="pip install --no-cache-dir 'browser-use==1.0.5'",
     )
 
     async def execute(self, turn: TurnInput) -> dict[str, Any]:
