@@ -274,11 +274,20 @@ def progress(events: Iterable[Event], *, now: datetime) -> dict[str, Any]:
         del finished[key]
     finished_here = finished.keys()
     latest = {**kept, **finished}
+    # Every attempt is paid for, a retried or superseded one included, as the campaign budget settles them.
+    spent: dict[str, list[float | None]] = {}
+    for e in ordered:
+        if e.name == FINISHED_EVENT and (start is None or e.at >= start.at or e.payload["key"] in kept):
+            spent.setdefault(e.payload["key"], []).append(e.payload.get("cost_usd"))
+
+    def trial_cost(key: str) -> float | None:
+        attempts = spent.get(key, [])
+        return None if not attempts or any(c is None for c in attempts) else sum(c for c in attempts if c is not None)
 
     arms: dict[str, _Arm] = {}
     verdicts: dict[str, int] = {}
-    costs: list[float | None] = []
-    for e in latest.values():
+    costs: list[float | None] = [c for attempts in spent.values() for c in attempts]
+    for key, e in latest.items():
         p = e.payload
         arm = arms.setdefault(p["label"], _Arm())
         arm.done += 1
@@ -286,8 +295,7 @@ def progress(events: Iterable[Event], *, now: datetime) -> dict[str, Any]:
         verdicts[p["verdict"]] = verdicts.get(p["verdict"], 0) + 1
         if p["verdict"] == Verdict.PASS.value and p.get("wall_s") is not None:
             arm.pass_walls.append(p["wall_s"])
-        arm.costs.append(p.get("cost_usd"))
-        costs.append(p.get("cost_usd"))
+        arm.costs.append(trial_cost(key))
 
     total = start.payload["total"] if start else None
     # Kept trials count even when the feed never saw them (an older Parallax, the feed off).

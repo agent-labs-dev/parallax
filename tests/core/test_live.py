@@ -50,7 +50,7 @@ def test_progress_counts_latest_attempts_and_projects_an_eta() -> None:
     events = [
         event(RUN_EVENT, 0, state="running", total=10, already_done=0, concurrency=2, labels=["a", "b"]),
         event(STARTED_EVENT, 0, key="t1", task="t1", label="a", repeat=0, attempt=0),
-        finished(1, "t1", "invalid", reason="site down"),
+        finished(1, "t1", "invalid", reason="site down", cost_usd=0.005),
         event(STARTED_EVENT, 1, key="t1", task="t1", label="a", repeat=0, attempt=1),
         finished(2, "t1", "pass", attempt=1, wall_s=30.0, cost_usd=0.01),
         event(STARTED_EVENT, 2, key="t2", task="t2", label="b", repeat=0, attempt=0),
@@ -65,7 +65,8 @@ def test_progress_counts_latest_attempts_and_projects_an_eta() -> None:
     assert (p["state"], p["total"], p["done"]) == ("running", 10, 4)
     # t4 has no cost, so neither the run's total nor arm b's mean is known.
     assert (p["cost_usd"], p["cost_unknown"], p["arms"]["b"]["mean_cost_usd"]) == (None, 1, None)
-    assert p["arms"]["a"]["mean_cost_usd"] == pytest.approx(0.02)
+    # t1 cost both its attempts: 0.005 for the invalid one and 0.01 for the pass.
+    assert p["arms"]["a"]["mean_cost_usd"] == pytest.approx((0.015 + 0.03) / 2)
     assert p["verdicts"] == {"pass": 3, "fail": 1}
     assert p["pass_rate"] == 0.75
     assert p["arms"]["a"]["median_pass_s"] == 20.0
@@ -358,3 +359,14 @@ def test_a_trial_dropped_from_the_plan_is_not_kept() -> None:
     ]
     p = progress(events, now=T0 + timedelta(minutes=11))
     assert (p["done"], p["unseen"], p["verdicts"], p["pass_rate"]) == (2, 1, {"pass": 1}, None)
+
+
+def test_a_retried_attempt_still_counts_toward_the_cost() -> None:
+    events = [
+        event(RUN_EVENT, 0, state="running", total=1, already_done=0, concurrency=1, labels=["a"], kept=[]),
+        finished(1, "t1", "invalid", reason="site down", cost_usd=0.2, retry_pending=True),
+        event(STARTED_EVENT, 2, key="t1", task="t1", label="a", repeat=0, attempt=1),
+        finished(3, "t1", "pass", attempt=1, cost_usd=0.01),
+    ]
+    p = progress(events, now=T0 + timedelta(minutes=4))
+    assert p["cost_usd"] == pytest.approx(0.21) and p["arms"]["a"]["mean_cost_usd"] == pytest.approx(0.21)
