@@ -43,7 +43,7 @@ Parallax reads its configuration from the environment.
 | `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | API keys for the project results go in |
 | `PARALLAX_LANGFUSE_PROJECT` | The id or name of that project. Writes are refused when the keys belong to any other project, so eval data never lands in a production tracing project |
 | `OPENROUTER_API_KEY` | The Jev judge, through OpenRouter |
-| `PARALLAX_JUDGE_MODELS`, `PARALLAX_JUDGE_BASE_URL`, `PARALLAX_JUDGE_API_KEY` | Optional: the LLM judge fallback. Unset, it is DeepSeek V4.1 Flash 1017 on OpenRouter with `OPENROUTER_API_KEY` |
+| `PARALLAX_JUDGE_MODELS`, `PARALLAX_JUDGE_BASE_URL`, `PARALLAX_JUDGE_API_KEY`, `PARALLAX_JUDGE_PROVIDERS` | Optional: the LLM judge fallback. Unset, it is DeepSeek V4.1 Flash 1017 on OpenRouter with `OPENROUTER_API_KEY` |
 | `PARALLAX_UPSTREAM_OPENAI_KEY`, `PARALLAX_UPSTREAM_ANTHROPIC_KEY` | The metering proxy's provider keys, one per wire your models use |
 
 The OpenAI wire defaults to OpenRouter; see
