@@ -14,7 +14,8 @@ from typing import Any
 
 class WorkerEventError(RuntimeError):
     def __init__(self, expected: str, message: Mapping[str, Any]) -> None:
-        super().__init__(f"worker returned {message.get('event')!r}, expected {expected!r}")
+        why = f": {message['error']}" if message.get("error") else ""
+        super().__init__(f"worker returned {message.get('event')!r}, expected {expected!r}{why}")
         self.message = dict(message)
 
 

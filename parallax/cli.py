@@ -1,4 +1,4 @@
-"""`parallax` command line: run, show, compare, upload --resume, check and ci init.
+"""`parallax` command line: run, show, compare, upload --resume, watch, check and ci init.
 
 Exit codes: 0 ok; 1 a failed check, a run with INVALID > 10%, or a regression under
 --fail-on-regression; 2 usage error; 3 environment (docker, world boot, or Langfuse).
@@ -281,6 +281,14 @@ def cmd_compare(a: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 
 
+def cmd_watch(a: argparse.Namespace) -> int:
+    from parallax.track.live import LiveSource
+    from parallax.track.watch import serve
+
+    serve(LiveSource.from_env(), host=a.host, port=a.port)
+    return OK
+
+
 def cmd_check(a: argparse.Namespace) -> int:
     from parallax.controls import check, render
 
@@ -422,6 +430,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--resume", action="store_true", required=True)
     p.add_argument("--root", type=Path, default=RUNS, help="where runs wait (default: %(default)s)")
     p.set_defaults(func=cmd_upload)
+
+    p = sub.add_parser("watch", help="a local page of live runs: progress, pass rates, cost and ETA")
+    p.add_argument("--host", default="127.0.0.1")
+    p.add_argument("--port", type=int, default=8765)
+    p.set_defaults(func=cmd_watch)
 
     p = sub.add_parser("check", help="task lint, then oracle=1, null controls=0 and mutants killed")
     add_select(p)

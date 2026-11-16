@@ -8,10 +8,33 @@ All notable changes to Parallax are recorded here. The format follows
 
 ### Fixed
 
-- Browser workers that run on the host (browser-use-oss, browser-harness, cua-codex) start in a per-trial host
-  directory, so they run when the box is Docker instead of failing on the container's home path.
 - browser-harness runs Codex on the trial's `provider/model` (the provider as Codex's `model_provider`, the name as
   `--model`), so the model recorded on each row is the one that ran instead of Codex's own configured default.
+
+## [2.0.0.dev32] - 2026-11-16
+
+### Fixed
+
+- A browser trial whose agent never started (its worker failed to launch) costs nothing, so a campaign budget no
+  longer charges it the full reservation.
+- browser-use-oss runs its worker in a uv environment with the pinned browser-use unless this Python has exactly
+  that version, since browser-use pins dependencies Parallax cannot share. The run records the browser-use version,
+  and a runtime that cannot start makes the arm unavailable before any trial runs.
+- A browser worker that fails before it is ready reports why, not only that it returned the wrong event.
+
+## [2.0.0.dev31] - 2026-11-16
+
+### Added
+
+- A run reports each trial's start and finish to Langfuse as it happens, as events under the run's session in the
+  `parallax-live` environment. `parallax watch` serves a local page of live runs: progress, pass rate and cost per
+  arm, the trials in flight and an ETA. The feed is best effort and never fails a run; `PARALLAX_LIVE=0` turns it
+  off. The sealed upload stays the run's record.
+
+### Fixed
+
+- Browser workers that run on the host (browser-use-oss, browser-harness, cua-codex) start in a per-trial host
+  directory, so they run when the box is Docker instead of failing on the container's home path.
 
 ## [2.0.0.dev30] - 2026-11-16
 
