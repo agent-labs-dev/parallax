@@ -26,6 +26,7 @@ import sys
 from collections.abc import AsyncGenerator, AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
+from decimal import Decimal
 from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, Literal, assert_never
@@ -34,6 +35,7 @@ from urllib.parse import urlsplit
 import genai_prices
 import httpx
 import uvicorn
+from genai_prices.types import ClauseEquals, ModelInfo, ModelPrice, Provider
 from pydantic import Field, JsonValue, SecretStr, TypeAdapter
 from starlette.applications import Starlette
 from starlette.requests import Request
@@ -69,6 +71,9 @@ PROXY_WIRES = (Wire.OPENAI, Wire.ANTHROPIC)
 class RelayHost(Model):
     wire: Wire
     prefix: str  # the host's API root, before the path the wire's allowlist names
+    # genai-prices does not know the host, so its responses are priced at the rates its own public
+    # `{prefix}/models` catalog publishes (see `catalog_provider`).
+    catalog: bool = False
 
 
 # Hosts a product that keeps its own provider keys and routing is relayed to through
@@ -81,6 +86,7 @@ RELAY_HOSTS: Mapping[str, RelayHost] = {
     "ai-gateway.vercel.sh": RelayHost(wire=Wire.OPENAI, prefix="v1"),
     "api.anthropic.com": RelayHost(wire=Wire.ANTHROPIC, prefix="v1"),
     "generativelanguage.googleapis.com": RelayHost(wire=Wire.GOOGLE, prefix="v1beta"),
+    "api.inference.net": RelayHost(wire=Wire.OPENAI, prefix="v1", catalog=True),
 }
 VERCEL_GATEWAY_HOST = "ai-gateway.vercel.sh"
 # The AI Gateway charges each vendor's list price with no markup, and genai-prices has no gateway
@@ -422,8 +428,46 @@ def parse_sse_line(line: bytes) -> JsonValue:
         return None
 
 
-def price(observed: Observed, upstream_url: str) -> float | None:
-    """genai-prices keyed by the upstream URL; unknown provider or model => None, never 0."""
+def catalog_provider(host: str, catalog: JsonValue) -> Provider:
+    """A genai-prices provider holding the rates a host's OpenAI-style `/models` catalog publishes.
+
+    Each entry's `pricing` is USD per token as decimal strings (`prompt`, `completion`,
+    `input_cache_read`). An entry missing either token rate, or quoting one at zero, is left out:
+    its calls are then priced as unknown, never as free.
+    """
+    entries = catalog.get("data") if isinstance(catalog, dict) else None
+    models: list[ModelInfo] = []
+    for entry in entries if isinstance(entries, list) else []:
+        if not isinstance(entry, dict) or not isinstance(model_id := entry.get("id"), str):
+            continue
+        pricing = entry.get("pricing")
+        rates = (
+            {k: per_mtok(pricing.get(k)) for k in ("prompt", "completion", "input_cache_read")}
+            if isinstance(pricing, dict)
+            else {}
+        )
+        if not rates.get("prompt") or not rates.get("completion"):
+            continue
+        prices = ModelPrice(
+            input_mtok=rates["prompt"], output_mtok=rates["completion"], cache_read_mtok=rates["input_cache_read"]
+        )
+        models.append(ModelInfo(id=model_id, match=ClauseEquals(equals=model_id), name=model_id, prices=prices))
+    return Provider(id=host, name=host, api_pattern=re.escape(f"https://{host}"), models=models)
+
+
+def per_mtok(value: JsonValue) -> Decimal | None:
+    """A catalog's USD-per-token string as USD per million tokens; anything else (or below zero) is None."""
+    if not isinstance(value, str):
+        return None
+    try:
+        rate = Decimal(value)
+    except ArithmeticError:
+        return None
+    return rate * 1_000_000 if rate.is_finite() and rate >= 0 else None
+
+
+def price(observed: Observed, upstream_url: str, catalog: Provider | None = None) -> float | None:
+    """genai-prices keyed by the upstream URL, or the host's own `catalog`; unknown => None, never 0."""
     usage = genai_prices.Usage(
         input_tokens=observed.input,
         output_tokens=observed.output,
@@ -431,6 +475,10 @@ def price(observed: Observed, upstream_url: str) -> float | None:
         cache_write_tokens=observed.cache_write,
     )
     try:
+        if catalog is not None:
+            if (model := catalog.find_model(observed.model)) is None:
+                raise LookupError(f"{catalog.id} publishes no price for {observed.model!r}")
+            return float(model.calc_price(usage, catalog).total_price)
         if urlsplit(upstream_url).hostname == VERCEL_GATEWAY_HOST:
             vendor, _, bare = observed.model.partition("/")
             if vendor not in VERCEL_VENDORS or not bare:
@@ -451,7 +499,7 @@ def record_unpriced(trial: TrialMeter, acc: UsageAccumulator) -> str:
     return model
 
 
-def record(trial: TrialMeter, acc: UsageAccumulator, upstream_url: str) -> None:
+def record(trial: TrialMeter, acc: UsageAccumulator, upstream_url: str, catalog: Provider | None = None) -> None:
     if acc.served is None:
         trial.unobserved_requests += 1
     else:
@@ -468,7 +516,7 @@ def record(trial: TrialMeter, acc: UsageAccumulator, upstream_url: str) -> None:
     tally.cache_read += observed.cache_read
     tally.cache_write += observed.cache_write
     tally.reasoning += observed.reasoning
-    cost = acc.reported_cost if acc.endpoint is Endpoint.DECISION else price(observed, upstream_url)
+    cost = acc.reported_cost if acc.endpoint is Endpoint.DECISION else price(observed, upstream_url, catalog)
     if cost is None:
         trial.unpriced_requests += 1
         tally.unpriced = True
@@ -509,6 +557,8 @@ def app(
     """The meter ASGI app. `transport` exists so tests can mount an httpx MockTransport upstream."""
     trials: dict[str, TrialMeter] = {}
     clients: list[httpx.AsyncClient] = []
+    catalogs: dict[str, Provider] = {}
+    catalog_lock = asyncio.Lock()
 
     def client() -> httpx.AsyncClient:
         if not clients:
@@ -571,10 +621,33 @@ def app(
                 f"parallax meter: {host}/{full} is not a relayed provider API",
             )
         path = full.removeprefix(f"{known.prefix}/")
-        return await forward(trial, wire, request, path, f"https://{host}/{known.prefix}", None)
+        base_url = f"https://{host}/{known.prefix}"
+        catalog = await host_catalog(host, base_url) if known.catalog else None
+        return await forward(trial, wire, request, path, base_url, None, catalog)
+
+    async def host_catalog(host: str, base_url: str) -> Provider | None:
+        """The host's published rates, read once per meter; None (calls priced unknown) while unreadable."""
+        async with catalog_lock:
+            if host not in catalogs:
+                try:
+                    response = await client().get(f"{base_url}/models")
+                    response.raise_for_status()
+                except httpx.HTTPError as exc:
+                    logger.warning(
+                        "meter: %s's price catalog is unreadable (%s); its calls are priced unknown", host, exc
+                    )
+                    return None
+                catalogs[host] = catalog_provider(host, parse_json(response.content))
+            return catalogs[host]
 
     async def forward(
-        trial: TrialMeter, wire: Wire, request: Request, path: str, base_url: str, auth: Mapping[str, str] | None
+        trial: TrialMeter,
+        wire: Wire,
+        request: Request,
+        path: str,
+        base_url: str,
+        auth: Mapping[str, str] | None,
+        catalog: Provider | None = None,
     ) -> Response:
         """`auth` replaces the caller's credentials; None forwards them (the relay)."""
         endpoint = allowed_endpoint(wire, request.method, path)
@@ -648,7 +721,7 @@ def app(
         if response.headers.get("content-type", "").startswith("text/event-stream"):
             chunks: asyncio.Queue[bytes | None] = asyncio.Queue()
             events = SseStream(acc)
-            task = asyncio.create_task(pump(response, events, chunks, trial if metered else None, base_url))
+            task = asyncio.create_task(pump(response, events, chunks, trial if metered else None, base_url, catalog))
             trial.open_streams[task] = acc if metered else None
             task.add_done_callback(lambda t: trial.open_streams.pop(t, None))
             return StreamingResponse(relay(chunks), status_code=response.status_code, headers=out_headers)
@@ -658,7 +731,7 @@ def app(
             await response.aclose()
         if metered:
             acc.feed(parse_json(content))
-            record(trial, acc, base_url)
+            record(trial, acc, base_url, catalog)
         return Response(content, status_code=response.status_code, headers=out_headers)
 
     @asynccontextmanager
@@ -714,6 +787,7 @@ async def pump(
     chunks: asyncio.Queue[bytes | None],
     trial: TrialMeter | None,
     upstream_url: str,
+    catalog: Provider | None = None,
 ) -> None:
     """Reads an upstream stream to its end in its own task, queueing what the client is sent.
 
@@ -738,7 +812,7 @@ async def pump(
                 # `settle` already counted it as unpriced in a report that has been served.
                 logger.warning("meter: stream ended after its trial was reported; usage not recorded")
             else:
-                record(trial, events.acc, upstream_url)
+                record(trial, events.acc, upstream_url, catalog)
 
 
 async def relay(chunks: asyncio.Queue[bytes | None]) -> AsyncIterator[bytes]:

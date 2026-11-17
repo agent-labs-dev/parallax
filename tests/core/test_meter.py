@@ -403,6 +403,9 @@ def provider_handler(seen: list[httpx.Request]) -> httpx.MockTransport:
         if request.url.host == "generativelanguage.googleapis.com":
             sse = "".join(f"data: {json.dumps(e)}\r\n\r\n" for e in GEMINI_SSE).encode()
             return httpx.Response(200, headers={"content-type": "text/event-stream"}, stream=ChunkedStream([sse]))
+        if request.url.host == "api.inference.net" and request.method == "GET":  # its public price catalog
+            pricing = {"prompt": "0.000000300000", "completion": "0.000001000000", "input_cache_read": "0.000000007"}
+            return httpx.Response(200, json={"data": [{"id": "deepseek-v4.1-flash-1017", "pricing": pricing}]})
         body = json.loads(request.content)
         if request.url.path == "/v1/evaluate":  # the AI Gateway's evaluation reply
             gateway = {} if body["model"] == "unbilled/jev" else {"cost": "0.00001155", "generationId": "gen_1"}
@@ -445,6 +448,21 @@ async def test_relay_forwards_the_callers_own_key_and_meters_the_response(
     (u,) = (await control.report(KEY)).usage
     assert (u.model, u.input, u.output, u.requests) == ("deepseek/deepseek-v4-flash-0731", 1000, 100, 1)
     assert u.cost_usd is not None and u.cost_usd > 0
+
+
+async def test_a_catalog_host_is_priced_at_its_published_rate_and_unlisted_models_stay_unknown(
+    relay_meter: httpx.AsyncBaseTransport, seen: list[httpx.Request]
+) -> None:
+    control = await register(relay_meter)
+    base = meter_module.relay_url("http://meter", KEY)
+    async with httpx.AsyncClient(transport=relay_meter) as c:
+        for model in ("deepseek-v4.1-flash-1017", "deepseek-v4.1-flash-1017", "unlisted-model"):
+            r = await c.post(f"{base}/api.inference.net/v1/chat/completions", json={"model": model, "messages": []})
+            assert r.status_code == 200
+    assert [str(r.url) for r in seen if r.method == "GET"] == ["https://api.inference.net/v1/models"]  # read once
+    usage = {u.model: u for u in (await control.report(KEY)).usage}
+    assert usage["deepseek-v4.1-flash-1017"].cost_usd == pytest.approx(2 * (1000 * 0.3e-6 + 100 * 1e-6))
+    assert usage["unlisted-model"].cost_usd is None
 
 
 async def test_relayed_gemini_stream_is_metered_with_thinking_as_output(

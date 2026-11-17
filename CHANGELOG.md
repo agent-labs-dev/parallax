@@ -6,6 +6,10 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The meter relays `api.inference.net` and prices its calls at the rates in the provider's public model catalog. A product that routes models there can now be metered for those calls.
+
 ## [2.0.0.dev45] - 2026-11-17
 
 ### Fixed
