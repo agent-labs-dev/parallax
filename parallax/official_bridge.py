@@ -129,6 +129,12 @@ def _judge_mind2web(request: dict[str, Any]) -> dict[str, Any]:
     return {"passed": bool(label), "score": float(label), "judge_model": request["judge_model"]}
 
 
+def failure(exc: BaseException, secret: str) -> str:
+    """One line naming why the bridge failed, for the trial's invalid reason; the judge's key never appears in it."""
+    line = " ".join(f"{type(exc).__name__}: {exc}".split())
+    return line.replace(secret, "[redacted]") if secret else line
+
+
 def main() -> None:
     request = json.load(sys.stdin)
     if not isinstance(request, dict):
@@ -146,8 +152,5 @@ if __name__ == "__main__":
     try:
         main()
     except BaseException as exc:
-        # The class alone, since an upstream message can quote page content into public rows; an import failure adds
-        # the module it could not find, which names only the checkout's own code or dependencies.
-        missing = f": {exc.name}" if isinstance(exc, ImportError) and exc.name else ""
-        print(f"{type(exc).__name__}{missing}", file=sys.stderr)
+        print(failure(exc, os.environ.get("OPENAI_API_KEY", "")), file=sys.stderr)
         raise SystemExit(1) from None

@@ -123,6 +123,7 @@ from parallax.task import (
 )
 from parallax.track.live import LiveFeed
 from parallax.track.live import label as live_label
+from parallax.track.rows import is_validity_control
 from parallax.world.client import ControlClient, ControlError, admin_register
 from parallax.world.core import World, WorldError
 from parallax.world.server import WorldServer
@@ -180,7 +181,6 @@ class RunOptions(Model):
     world_public_url: str | None = None
     world_port: int | None = None  # remote isolation: the fixed port a tunnel points at (None: any free port)
     judge: tuple[str, ...] = ()
-    jev: bool = True  # False (`--no-jev`): the judge panel grades alone, never asking Jev first
     include_xfail: bool = False
     # Further attempts for a trial that ended INVALID for a transient execution fault (RETRYABLE_INVALID).
     retry_invalid: int = 1
@@ -596,6 +596,17 @@ class TrialPlan:
 class TrialRun:
     result: TrialResult
     evidence: Evidence | None
+    # What grading the trial cost in USD; None when a judge call had no price.
+    judge_cost_usd: float | None = 0.0
+
+    def spent(self) -> float | None:
+        """The trial's whole spend, the harness's and its judges'; None when either is unknown. A validity control
+        runs no model, so it spends nothing, though its row shows its cost as unreported rather than $0."""
+        r = self.result
+        harness = 0.0 if is_validity_control(r.harness_kind, r.model) else r.cost_usd
+        if harness is None or self.judge_cost_usd is None:
+            return None
+        return harness + self.judge_cost_usd
 
 
 @dataclass
@@ -667,13 +678,18 @@ def harness_isolation(info: HarnessInfo, run_isolation: Isolation) -> Isolation:
 
 
 def trial_capabilities(info: HarnessInfo, run_isolation: Isolation) -> frozenset[Capability]:
-    """What a trial can rely on: the harness's capabilities, plus the world's clock wherever the
-    runner owns the harness's process. A docker box runs it under px-clock; host isolation is for
-    controls, which read no clock, and dev. A remote product keeps its own clock unless it declares
-    `world_clock`."""
+    """What a trial can rely on: the harness's capabilities, plus the world's clock where it holds.
+    A docker box runs the harness under px-clock, and a control (always on the host) reads no clock.
+    An agent run with `--isolation host` reads the machine's real date, and a remote product keeps
+    its own clock, so neither has it unless the harness declares `world_clock`."""
     caps = info.capabilities
-    if harness_isolation(info, run_isolation) is not Isolation.REMOTE:
-        caps |= {Capability.WORLD_CLOCK}
+    match harness_isolation(info, run_isolation):
+        case Isolation.DOCKER:
+            caps |= {Capability.WORLD_CLOCK}
+        case Isolation.HOST if info.isolation is Isolation.HOST:
+            caps |= {Capability.WORLD_CLOCK}
+        case _:
+            pass
     return caps
 
 
@@ -779,7 +795,7 @@ class Session:
         spent: float | None = None
         try:
             run = await self.execute(plan)
-            spent = run.result.cost_usd
+            spent = run.spent()
             return run
         finally:
             await finish_uncancelled(self.budget.settle(hold, spent))
@@ -1256,6 +1272,7 @@ class TrialExecution:
         execution_valid = None
         judged_under: str | None = None
         judged_score: float | None = None
+        judge_cost: float | None = 0.0
         # A world-less task has no world evidence; its policy grades what the harness reported. An interrupted
         # trial measured no agent, so nothing is judged.
         gradable = ev is not None or self.task.seed is None
@@ -1279,9 +1296,12 @@ class TrialExecution:
             record_grade(self.dir / "judgments.jsonl", self.task, g)
             execution_valid = g.execution_valid
             checks, same_family, judged_under, judged_score = g.checks, g.same_family, g.judge_identity, g.score
+            costs = [j.cost() for j in g.judgments]
+            unpriced = g.unpriced_calls + sum(n for _, n in costs)
+            judge_cost = None if unpriced else sum(known for known, _ in costs)
         self.write_evidence(ev)
         finished = self.finish(started, meter, checks, same_family, execution_valid, judged_under, judged_score)
-        return TrialRun(finished, ev)
+        return TrialRun(finished, ev, judge_cost)
 
     def finish(
         self,
@@ -1437,7 +1457,6 @@ def plan_trials(
                     key = fingerprint(
                         task.hash, hp.name, hp.version or "unavailable", hp.config_hash, model, repeat, opts.judge,
                         f"{__version__}:{policy}", isolation=opts.isolation, capabilities=hp.info.capabilities,
-                        jev=opts.jev,
                     )  # fmt: skip
                     plans.append(TrialPlan(task=task, harness=hp, model=model, repeat=repeat, key=key))
     return plans
@@ -1526,13 +1545,11 @@ def default_out() -> Path:
     return Path("runs") / datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
 
 
-def judge_setup(models: Sequence[str], *, jev: bool = True) -> tuple[JudgePanel | None, JudgeConfig | None]:
+def judge_setup(models: Sequence[str]) -> tuple[JudgePanel | None, JudgeConfig | None]:
     panel = JudgePanel(models=tuple(models)) if models else panel_from_env()
     if panel is None:
-        if not jev:
-            raise ValueError("--no-jev needs a judge panel: pass --judge or set PARALLAX_JUDGE_MODELS")
         return None, None
-    return panel.model_copy(update={"jev": jev}), config_from_env()
+    return panel, config_from_env()
 
 
 def manifest_for(opts: RunOptions, plans: Sequence[TrialPlan], harnesses: Sequence[HarnessPlan]) -> RunManifest:
@@ -1541,7 +1558,7 @@ def manifest_for(opts: RunOptions, plans: Sequence[TrialPlan], harnesses: Sequen
         run_id=opts.out.name, created_at=datetime.now(UTC), parallax_version=__version__,
         harnesses=tuple(h.info for h in harnesses),
         models=tuple(dict.fromkeys(p.model for p in plans)), tasks=tuple(sorted(tasks.items())),
-        repeats=opts.repeats, judge=opts.judge, jev=opts.jev, isolation=opts.isolation, selection=opts.selection,
+        repeats=opts.repeats, judge=opts.judge, isolation=opts.isolation, selection=opts.selection,
         grading_policy=policy_identity(list({p.task.id: p.task for p in plans}.values())),
     )  # fmt: skip
 
@@ -1560,7 +1577,7 @@ async def run_async(
         raise ValueError(
             f"no campaign budget journal at {opts.budget_journal}; pass --budget and --reserve to start one"
         )
-    panel, judge_config = judge_setup(opts.judge, jev=opts.jev)
+    panel, judge_config = judge_setup(opts.judge)
     opts = opts.model_copy(update={"judge": panel.models if panel else ()})
     infos = [load_harness(h).info for h in harnesses]
     need_meter = any(i.cost_source is CostSource.METERED for i in infos)

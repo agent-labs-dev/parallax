@@ -42,14 +42,14 @@ Parallax reads its configuration from the environment.
 | `LANGFUSE_BASE_URL` (or `LANGFUSE_HOST`) | The Langfuse server |
 | `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | API keys for the project results go in |
 | `PARALLAX_LANGFUSE_PROJECT` | The id or name of that project. Writes are refused when the keys belong to any other project, so eval data never lands in a production tracing project |
-| `OPENROUTER_API_KEY` | The Jev judge, through OpenRouter |
+| `OPENROUTER_API_KEY` | The LLM judge panel, through OpenRouter |
 | `PARALLAX_JUDGE_MODELS`, `PARALLAX_JUDGE_BASE_URL`, `PARALLAX_JUDGE_API_KEY`, `PARALLAX_JUDGE_PROVIDERS` | Optional: the LLM judge fallback. Unset, it is DeepSeek V4.1 Flash 1017 on OpenRouter with `OPENROUTER_API_KEY` |
 | `PARALLAX_UPSTREAM_OPENAI_KEY`, `PARALLAX_UPSTREAM_ANTHROPIC_KEY` | The metering proxy's provider keys, one per wire your models use |
 
 The OpenAI wire defaults to OpenRouter; see
 [running real harnesses](adapters.md#running-real-harnesses) to call a provider
 directly. Provider keys never enter the harness's box: the meter swaps them in.
-[Judging](jev-judge.md) covers the judge settings.
+[Judging](judging.md) covers the judge settings.
 
 ## Check the tasks
 

@@ -63,6 +63,7 @@ from parallax.runner import (
     run_async,
     start_order,
     transient_invalid,
+    trial_capabilities,
     turn_finals,
 )
 from parallax.semantic import Graded
@@ -718,3 +719,11 @@ async def test_harness_assets_outlive_cleanup_and_export(
         assert archive.read(held + ".mime") == b"image/png\n"
         assert hashlib.sha256(archive.read(held)).hexdigest() == receipt["sha256"]
         assert png not in archive.read(f"{row.dir}/trajectory.json")
+
+
+def test_world_clock_only_where_the_runner_sets_the_clock() -> None:
+    agent = INFO.model_copy(update={"capabilities": frozenset({Capability.MCP}), "isolation": Isolation.DOCKER})
+    control = agent.model_copy(update={"isolation": Isolation.HOST})
+    assert Capability.WORLD_CLOCK in trial_capabilities(agent, Isolation.DOCKER)  # px-clock
+    assert Capability.WORLD_CLOCK in trial_capabilities(control, Isolation.DOCKER)  # reads no clock
+    assert Capability.WORLD_CLOCK not in trial_capabilities(agent, Isolation.HOST)  # the machine's date

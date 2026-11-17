@@ -165,6 +165,8 @@ into a turn result. They are tested against recorded fixtures:
 
 - `openclaw_json`
 - `hermes_quiet`
+- `claude_stream_json`
+- `codex_jsonl`
 - `plain_text`
 
 A parser should report the turn's tool calls as well as its answer: a judge reads an answer like
@@ -237,6 +239,8 @@ The world reaches each harness through that harness's own config:
 
 - **hermes** gets an `mcp_servers` entry in its own config.
 - **openclaw** gets an `openclaw.json` under `OPENCLAW_STATE_DIR`.
+- **claude-code** gets an `mcp.json` passed with `--strict-mcp-config`.
+- **codex** gets `[mcp_servers.world]` in its `config.toml`.
 - **Remote product harnesses** from plugins register the world through the
   product's own API. They run outside a box, so each adapter reports every
   isolation gap it cannot close as a trial note; the plugin documents them.
@@ -280,9 +284,9 @@ the host, or in the docker sidecar, and reads these variables:
 
 | Variable | Purpose |
 |---|---|
-| `PARALLAX_UPSTREAM_ANTHROPIC_KEY` | Real key for the Anthropic wire (Hermes and OpenClaw with `anthropic/...`) |
-| `PARALLAX_UPSTREAM_ANTHROPIC` | Anthropic base URL, including `/v1`. Defaults to `https://api.anthropic.com/v1` |
-| `PARALLAX_UPSTREAM_OPENAI_KEY` | Real key for the OpenAI wire (Hermes and OpenClaw with `openai/...`) |
+| `PARALLAX_UPSTREAM_ANTHROPIC_KEY` | Real key for the Anthropic wire (Claude Code, and Hermes and OpenClaw with `anthropic/...`) |
+| `PARALLAX_UPSTREAM_ANTHROPIC` | Anthropic base URL, including `/v1`. Defaults to `https://api.anthropic.com/v1`; OpenRouter serves the same wire at `https://openrouter.ai/api/v1` |
+| `PARALLAX_UPSTREAM_OPENAI_KEY` | Real key for the OpenAI wire (Codex, and Hermes and OpenClaw with `openai/...`) |
 | `PARALLAX_UPSTREAM_OPENAI` | OpenAI-compatible base URL, including `/v1`. Defaults to OpenRouter (`https://openrouter.ai/api/v1`) |
 
 A wire without a key answers 503, so a run that uses only one wire needs only
@@ -341,9 +345,8 @@ Support has three distinct levels:
   routing and tool transport, not model quality.
 
 A status applies only to the version and configuration named in its evidence.
-Historical captures do not verify a newer installation. The matrix retains
-existing adapters, including coding products; launch integration work focuses
-on general-purpose harnesses.
+Historical captures do not verify a newer installation. Claude Code and Codex
+are coding agents, kept as reference rows for comparing general-purpose products.
 
 **Pins** means the adapter requests a particular model. Served-model evidence
 comes from the meter, and an unobserved model remains unobserved. **Cost** names
@@ -353,6 +356,8 @@ its provenance; unknown or unpriced usage is never silently treated as free.
 |---|---|---|---|---|---|
 | hermes | open | CLI `hermes chat -Q -q` | yes | metered | 0.22.6 runtime protocol probes against a scripted upstream; see evidence below |
 | openclaw | open | CLI `openclaw agent --local --json` | yes | metered | 2026.10.10 runtime protocol probes; clean Docker install verified; see evidence below |
+| claude-code | open | CLI `claude -p --output-format stream-json` | yes | metered | 2.1.325: `conf-mcp-echo` and `conf-two-turn-carry` pass in Docker through the meter to OpenRouter (`anthropic/claude-sonnet-5.5`, `anthropic/claude-haiku-5.5`) |
+| codex | open | CLI `codex exec --json` | yes | metered | 0.169.0: `conf-mcp-echo` and `conf-two-turn-carry` pass in Docker through the meter to OpenRouter (`openai/gpt-6-luna`) |
 | oracle | control | Replays `solution/` | n/a | none | Control |
 | null-claim / null-refuse | control | Fixed answer, no calls | n/a | none | Control |
 

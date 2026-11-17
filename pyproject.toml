@@ -97,6 +97,7 @@ artifacts = [
 [tool.pytest.ini_options]
 testpaths = ["tests/smoke", "tests/core", "tests/world", "tests/harnesses"]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 # importlib mode lets test dirs stay namespace dirs (no __init__.py) without basename clashes.
 addopts = "--import-mode=importlib -m 'not langfuse'"
 # Shared test helpers, such as `dir_store`, import by module name.

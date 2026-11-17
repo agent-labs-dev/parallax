@@ -286,7 +286,7 @@ async def grade(req: GradeRequest) -> Graded:
     except MissingEvidence as exc:
         return _unjudged(task, f"missing evidence: {exc}")
     decisions, judgments = await judge_parts(
-        parts(state, JUDGE.part_bytes or PART_BYTES), req.client, req.jev_config, req.judge_config, req.panel, JUDGE
+        parts(state, JUDGE.part_bytes or PART_BYTES), req.client, req.judge_config, req.panel, JUDGE
     )
     available, satisfied = decisions[EVIDENCE_AVAILABLE], decisions[TASK_SATISFIED]
     own = {c.id: c for c in checks(task)}
@@ -302,7 +302,7 @@ async def grade(req: GradeRequest) -> Graded:
         checks=(_result(own[EVIDENCE_AVAILABLE], available.passed, available.reason, advisory=True), gate),
         same_family=same,
         judgments=judgments,
-        judge_identity=identity(JUDGE, req.panel, req.judge_config, req.jev_config),
+        judge_identity=identity(JUDGE, req.panel, req.judge_config),
     )
 
 

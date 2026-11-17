@@ -1,4 +1,4 @@
-"""Controls replay oracle/null evidence and mutants through Jev with LLM fallback.
+"""Controls replay oracle/null evidence and mutants through the LLM judge panel.
 
 These are semantic calibration runs and require configured judges. Offline tests only
 verify replay, evidence transport and verdict propagation; they do not certify quality.

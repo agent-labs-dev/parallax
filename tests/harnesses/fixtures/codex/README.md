@@ -1,0 +1,1 @@
+Turn fixtures: codex-cli 0.156.1, recorded against a local fake Responses upstream and fake world MCP server. synthetic: false. Paths rewritten. help.txt holds `codex exec --help` and `codex exec resume --help` from codex-cli 0.169.0, the version the manifest flags and config were checked against (`--strict-config`).

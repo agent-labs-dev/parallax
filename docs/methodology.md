@@ -170,7 +170,7 @@ itself pass: untyped or `custom` tools, `bash` and `text_editor` on Anthropic,
 and `function`, `custom`, `local_shell` and `namespace` groups of those on
 OpenAI. A request body the meter cannot read is refused too, and the meter
 forwards the body it checked rather than the raw bytes. Nothing is stripped
-silently. Hermes and OpenClaw, measured with their Parallax
+silently. Hermes, OpenClaw, Claude Code and Codex, measured with their Parallax
 configuration, send no provider-side tool, so the refusal does not fire on
 their normal runs. It applies under every isolation mode. The meter does not
 refuse a model that searches the web without a tool, such as Perplexity Sonar
@@ -178,25 +178,21 @@ or OpenAI's search models; such a model shows in the trial's `actual_models`.
 
 ## Rubrics and judges
 
-All semantic checks use Jev first and an LLM fallback, including existing state,
+All semantic checks use the LLM judge panel, including existing state,
 call, answer, file and command declarations. There is no deterministic semantic
 grader. The task and world-owned evidence establish the intended requirement;
 legacy regexes and keywords do not independently decide correctness.
 
-Jev probabilities strictly above 0.9 or strictly below 0.1 settle a check. Uncertain or failed
-calls go to the configured LLM panel. A command check is the exception: Jev cannot settle it against the
-verifier's literal result (its exit code and stdout matchers), so that disagreement goes to
-the panel too. The literal result only routes the question; the judges still decide it. Every fallback judge must agree; null or
-disagreement leaves the check ungraded. Missing judges/evidence are INVALID.
-These confidence thresholds route model judgements; they are not content rules.
+Every panel judge must agree; null or disagreement leaves the check ungraded.
+Missing judges/evidence are INVALID.
 
 Execution validity is separate. Incomplete execution never automatically means
-agent failure. Ambiguous attribution goes to Jev/LLM. Same-family fallback use
-is recorded as a caveat, not silently skipped. The new grading policy and Jev
+agent failure. Ambiguous attribution goes to the judges. Same-family judge use
+is recorded as a caveat, not silently skipped. The grading policy and judge
 configuration enter resume fingerprints; old heuristic scores are not comparable.
 
 No new quality calibration has been run for this policy. Offline fixtures prove
-transport and verdict propagation only. See [judging](jev-judge.md) and
+transport and verdict propagation only. See [judging](judging.md) and
 [calibration](../calibration/README.md).
 
 ## Contamination
@@ -264,7 +260,7 @@ A human moves a flagged task by editing `task.toml` and bumping the task
 This section assesses Parallax against the Agentic Benchmark Checklist (Zhu et
 al., 2025, *Establishing Best Practices for Building Rigorous Agentic
 Benchmarks*). The items are grouped under the checklist's three headings. The
-status is as of `2.0.0.dev23`, before the first pilot:
+status is as of the pre-release, before the first pilot:
 
 - ✅ met by construction and enforced in CI;
 - ◐ designed but not yet exercised or complete;
@@ -291,7 +287,7 @@ status is as of `2.0.0.dev23`, before the first pilot:
 | Answer matching is robust to equivalent forms | ✅ | Normalisation, number and date parsing, and `any_of` aliases. Matchers are unit-tested at their edge cases |
 | Substring checks cannot be passed by listing everything | ◐ | `must_not`, `in_order`, `known_urls_only` and mutants that list distractors. Authors must use these. Lint does not force them |
 | Side effects and collateral damage are checked | ✅ | `table: "*"` unchanged checks, plus required collateral mutants |
-| LLM judges are validated | ◐ | Jev/LLM semantic grading requires fresh human-labelled calibration; offline CI does not establish quality |
+| LLM judges are validated | ◐ | LLM semantic grading requires fresh human-labelled calibration; offline CI does not establish quality |
 | Code outcomes are verified by tests the agent cannot edit | ✅ | Verify runs in a fresh network-less container over the snapshot. `file ... unchanged` guards the test files |
 | Evaluation failures are separated from agent failures | ✅ | INVALID has explicit causes and is never counted as FAIL |
 

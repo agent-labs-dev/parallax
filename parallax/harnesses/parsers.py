@@ -135,6 +135,178 @@ def result_text(content: JsonValue) -> str:
 
 
 # ---------------------------------------------------------------------------
+# claude-code: `claude -p --output-format stream-json --verbose`
+# ---------------------------------------------------------------------------
+
+
+def claude_stream_json(stdout: str, stderr: str) -> TurnOutput:
+    """system/init, assistant (text | tool_use blocks), user (tool_result blocks), then one result.
+    Usage is left to the meter, which sees every request."""
+    steps: list[Step] = []
+    texts: list[str] = []
+    tool_names: dict[str, str] = {}
+    session_id: str | None = None
+    actual_model: str | None = None
+    final: JsonObject | None = None
+    for ev in json_lines(stdout):
+        session_id = opt_text(ev.get("session_id")) or session_id
+        match ev.get("type"):
+            case "assistant":
+                message = obj(ev.get("message"), "assistant.message")
+                actual_model = opt_text(message.get("model")) or actual_model
+                block_steps = [
+                    s
+                    for block in objs(message.get("content"), "assistant.content")
+                    for s in claude_assistant_block(block, tool_names)
+                ]
+                steps.extend(block_steps)
+                # A sub-agent's messages (parent_tool_use_id set) reach the user only through its
+                # tool result, so its text is trajectory, not the turn's answer.
+                if ev.get("parent_tool_use_id") is None:
+                    texts.extend(s.output or "" for s in block_steps if s.kind is StepKind.MESSAGE)
+            case "user":
+                content = obj(ev.get("message"), "user.message").get("content")
+                if isinstance(content, list):
+                    steps.extend(
+                        claude_tool_result(b, tool_names)
+                        for b in objs(content, "user.content")
+                        if b.get("type") == "tool_result"
+                    )
+            case "result":
+                final = ev
+            case _:
+                # system/init and stream housekeeping events carry nothing a turn reports.
+                continue
+    if final is None:
+        return failed("claude: no result event on stdout", session_id=session_id, steps=tuple(steps))
+    error = None
+    if final.get("is_error") is True or final.get("subtype") != "success":
+        error = f"claude result {final.get('subtype')}: {opt_text(final.get('result')) or final.get('terminal_reason')}"
+    ttft = final.get("ttft_ms")
+    return TurnOutput(
+        status=TurnStatus.HARNESS_ERROR if error else TurnStatus.COMPLETED,
+        # `result` holds only the last assistant message, so the answer is rebuilt from the text blocks.
+        answer=turn_answer(texts),
+        session_id=opt_text(final.get("session_id")) or session_id,
+        steps=tuple(steps),
+        ttft_ms=ttft if isinstance(ttft, int) and not isinstance(ttft, bool) else None,
+        actual_model=actual_model,
+        error=error,
+    )
+
+
+def claude_assistant_block(block: JsonObject, tool_names: dict[str, str]) -> list[Step]:
+    match block.get("type"):
+        case "text":
+            return [step(StepKind.MESSAGE, output=text(block.get("text"), "assistant text"))]
+        case "tool_use":
+            name = canonical_tool_name(text(block.get("name"), "tool_use.name"))
+            tool_names[text(block.get("id"), "tool_use.id")] = name
+            return [step(StepKind.TOOL_CALL, name=name, args=block.get("input"))]
+        case _:
+            # thinking / redacted_thinking blocks: reasoning is not a diagnostic step.
+            return []
+
+
+def claude_tool_result(block: JsonObject, tool_names: dict[str, str]) -> Step:
+    call_id = text(block.get("tool_use_id"), "tool_result.tool_use_id")
+    return step(
+        StepKind.TOOL_RESULT,
+        name=tool_names.get(call_id),
+        output=result_text(block.get("content")),
+        ok=block.get("is_error") is not True,
+    )
+
+
+# ---------------------------------------------------------------------------
+# codex: `codex exec --json`
+# ---------------------------------------------------------------------------
+
+
+def codex_jsonl(stdout: str, stderr: str) -> TurnOutput:
+    """thread.started, item.* (agent_message | mcp_tool_call | command_execution | file_change), turn.*.
+    Usage is left to the meter: `turn.completed.usage` is cumulative over the thread."""
+    steps: list[Step] = []
+    answers: list[str] = []
+    session_id: str | None = None
+    failure: str | None = None
+    notices: list[str] = []
+    completed = False
+    for ev in json_lines(stdout):
+        match ev.get("type"):
+            case "thread.started":
+                session_id = text(ev.get("thread_id"), "thread.started.thread_id")
+            case "item.completed":
+                item = obj(ev.get("item"), "item.completed.item")
+                if item.get("type") == "agent_message":
+                    answers.append(text(item.get("text"), "agent_message.text"))
+                steps.extend(codex_item(item))
+            case "turn.completed":
+                completed = True
+            case "turn.failed":
+                failure = f"codex turn.failed: {obj(ev.get('error'), 'turn.failed.error').get('message')}"
+            case "error":
+                # Stream errors are also emitted for retried reconnects; only fatal without turn.completed.
+                notices.append(f"codex error: {ev.get('message')}")
+            case _:
+                # turn.started, item.started/updated: the completed item carries the final state.
+                continue
+    error = failure
+    if error is None and not completed:
+        error = notices[-1] if notices else "codex: no turn.completed event"
+    if error is None and not answers:
+        error = "codex: turn produced no agent_message"
+    return TurnOutput(
+        status=TurnStatus.HARNESS_ERROR if error else TurnStatus.COMPLETED,
+        answer=turn_answer(answers),
+        session_id=session_id,
+        steps=tuple(steps),
+        error=error,
+    )
+
+
+def codex_item(item: JsonObject) -> list[Step]:
+    kind = item.get("type")
+    match kind:
+        case "agent_message":
+            return [step(StepKind.MESSAGE, output=text(item.get("text"), "agent_message.text"))]
+        case "mcp_tool_call":
+            name = canonical_tool_name(text(item.get("tool"), "mcp_tool_call.tool"))
+            result = item.get("result")
+            output = result_text(obj(result, "mcp_tool_call.result").get("content")) if result is not None else None
+            ok = item.get("status") == "completed" and item.get("error") is None
+            return [
+                step(StepKind.TOOL_CALL, name=name, args=item.get("arguments")),
+                step(StepKind.TOOL_RESULT, name=name, output=output if ok else str(item.get("error")), ok=ok),
+            ]
+        case "command_execution":
+            return [
+                step(StepKind.TOOL_CALL, name="shell", args=item.get("command")),
+                step(
+                    StepKind.TOOL_RESULT,
+                    name="shell",
+                    output=opt_text(item.get("aggregated_output")),
+                    ok=item.get("exit_code") == 0,
+                ),
+            ]
+        case "file_change":
+            return [
+                step(
+                    StepKind.TOOL_CALL,
+                    name="file_change",
+                    args=item.get("changes"),
+                    ok=item.get("status") == "completed",
+                )
+            ]
+        case "reasoning" | "todo_list":
+            return []
+        case _:
+            # Non-fatal notices ("error" items such as missing model metadata) and item kinds this
+            # parser does not model are kept visibly as a named message step.
+            return [step(StepKind.MESSAGE, name=f"codex:{kind}", output=opt_text(item.get("message")))]
+
+
+# ---------------------------------------------------------------------------
 # openclaw: `openclaw agent --local --json`, then the session's trajectory transcript
 # ---------------------------------------------------------------------------
 
@@ -376,6 +548,10 @@ def plain_text(stdout: str, stderr: str) -> TurnOutput:
 
 def parser_for(pid: ParserId) -> Parser:
     match pid:
+        case ParserId.CLAUDE_STREAM_JSON:
+            return claude_stream_json
+        case ParserId.CODEX_JSONL:
+            return codex_jsonl
         case ParserId.OPENCLAW_JSON:
             return openclaw_json
         case ParserId.HERMES_QUIET:

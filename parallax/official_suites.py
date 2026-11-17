@@ -23,7 +23,7 @@ from urllib.parse import urlparse
 import httpx
 from pydantic import BaseModel, JsonValue
 
-from parallax.browser_evidence import reported
+from parallax.browser_evidence import BrowserEvidence, reported
 from parallax.extensions import GradeRequest, GradingPolicy, TaskExtension
 from parallax.judge import MissingEvidence
 from parallax.judging import JudgePolicy
@@ -422,7 +422,6 @@ async def _bridge(spec: SuiteSpec, req: GradeRequest, payload: dict[str, JsonVal
 
 
 async def _grade(spec: SuiteSpec, req: GradeRequest) -> Graded:
-    checks = _checks(req.task)
     interruption = req.execution.get("error")
     if isinstance(interruption, str) and interruption.startswith("environment interruption: "):
         return _unjudged(req.task, interruption)
@@ -433,7 +432,17 @@ async def _grade(spec: SuiteSpec, req: GradeRequest) -> Graded:
     if not evidence.observed():
         return _unjudged(req.task, "missing evidence: browser harness reported no observations")
     try:
-        _model(req, spec)
+        model = _model(req, spec)
+        _config(req, spec)
+    except (OfficialSuiteError, OSError, ValueError) as exc:
+        return _unjudged(req.task, f"missing evidence: official judge unavailable: {exc}")
+    # From here the bridge may reach the upstream judge, which reports no price, so the judge cost is unknown.
+    return (await _upstream(spec, req, evidence, model)).model_copy(update={"unpriced_calls": 1})
+
+
+async def _upstream(spec: SuiteSpec, req: GradeRequest, evidence: BrowserEvidence, model: str) -> Graded:
+    checks = _checks(req.task)
+    try:
         with tempfile.TemporaryDirectory(prefix="parallax-official-") as directory:
             result = await _bridge(spec, req, _request(spec, req, evidence, Path(directory)))
     except (OfficialSuiteError, OSError, ValueError) as exc:
@@ -443,7 +452,6 @@ async def _grade(spec: SuiteSpec, req: GradeRequest) -> Graded:
     score = float(result["score"])
     if not 0 <= score <= 1:
         return _unjudged(req.task, "missing evidence: upstream judge returned an out-of-range score")
-    model = _model(req, spec)
     detail = f"upstream judge score={score:.6g}; model={model}; revision={spec.upstream_commit}"
     return Graded(
         checks=tuple(_result(checks[0], bool(result["passed"]), detail) for _ in checks),
@@ -457,7 +465,6 @@ def _policy(spec: SuiteSpec) -> GradingPolicy:
         name=f"{spec.policy}:{spec.upstream_commit}",
         questions={"upstream": "The published upstream judge decides the task."},
         evidence_form=f"{spec.source} BrowserEvidence adapter, pinned judge revision {spec.upstream_commit}",
-        use_jev=False,
     )
     return GradingPolicy(
         id=spec.policy,

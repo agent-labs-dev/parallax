@@ -11,6 +11,7 @@ from parallax import runner
 from parallax.extensions import GradeRequest
 from parallax.judge import JudgeConfig, JudgePanel
 from parallax.models import CheckResult, FailureMode, Isolation, TrajectoryStatus, Verdict
+from parallax.official_bridge import failure
 from parallax.runner import RunOptions, decide, read_results, run_async
 from parallax.semantic import Graded
 from parallax.task import discover, task_from_record
@@ -109,7 +110,6 @@ async def test_grade_sends_any_browser_evidence_to_the_upstream_judge(monkeypatc
         harness_model="agent/model",
         panel=JudgePanel(models=("configured/model",)),
         judge_config=JudgeConfig(base_url="https://judge.invalid/v1", api_key="test"),
-        jev_config=None,
         client=httpx.AsyncClient(),
     )
     seen: dict[str, object] = {}
@@ -132,11 +132,35 @@ async def test_grade_sends_any_browser_evidence_to_the_upstream_judge(monkeypatc
     graded = await official._grade(official.MIND2WEB_SPEC, request)
     await request.client.aclose()
     assert graded.checks[0].passed is True
+    assert graded.unpriced_calls == 1  # the upstream judge reports no price, so the budget keeps the hold
     assert graded.judge_identity and official.MIND2WEB_UPSTREAM_COMMIT in graded.judge_identity
     assert "configured/model" in graded.judge_identity
     assert seen["task"] == "Complete the task"
     assert seen["screenshots"] == ["iVBORw=="]
     assert seen["actions"]
+
+
+@pytest.mark.asyncio
+async def test_a_judge_that_cannot_start_leaves_the_judge_cost_known(monkeypatch):
+    monkeypatch.delenv("PARALLAX_OFFICIAL_ONLINE_JUDGE_MODEL", raising=False)
+    row = {"task_id": "row-1", "confirmed_task": "Complete the task", "website": "https://example.test/start"}
+    task = task_from_record(official.ONLINE_MIND2WEB, official._record(official.MIND2WEB_SPEC, row, 0, set()))
+    page = {"url": "https://example.test/done", "title": "Done", "text": "Finished", "screenshot_png_b64": "iVBORw=="}
+    request = GradeRequest(
+        task=task,
+        evidence=None,
+        answers=("Finished",),
+        product={"browser": {"final_page": page, "answer": "Finished", "steps": [], "pages": []}},
+        execution={},
+        harness_model=None,
+        panel=None,
+        judge_config=None,
+        client=httpx.AsyncClient(),
+    )
+    graded = await official._grade(official.MIND2WEB_SPEC, request)
+    await request.client.aclose()
+    assert graded.checks[0].passed is None and "official judge unavailable" in graded.checks[0].detail
+    assert graded.unpriced_calls == 0  # nothing reached the upstream judge, so the budget can release the hold
 
 
 @pytest.mark.asyncio
@@ -152,7 +176,6 @@ async def test_environment_interruption_remains_retryable(monkeypatch):
         harness_model=None,
         panel=None,
         judge_config=None,
-        jev_config=None,
         client=httpx.AsyncClient(),
     )
     graded = await official._grade(official.MIND2WEB_SPEC, request)
@@ -180,3 +203,8 @@ async def test_a_published_judge_score_is_the_trial_score(tmp_path, monkeypatch)
     )
     rows = read_results(out / "results.jsonl")
     assert rows and all(r.verdict is Verdict.FAIL and r.score == 0.6 for r in rows)
+
+
+def test_a_bridge_failure_names_its_cause_without_the_key() -> None:
+    exc = RuntimeError("401 from https://judge.example: key sk-secret\nis invalid")
+    assert failure(exc, "sk-secret") == "RuntimeError: 401 from https://judge.example: key [redacted] is invalid"

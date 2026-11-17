@@ -33,15 +33,6 @@ class LoadedRun:
     results: tuple[TrialResult, ...]  # the selected attempt of each trial: its key's last row
     attempts: tuple[TrialResult, ...] = ()  # every physical attempt, in the order they were written
 
-    def physical_runs(self, key: str) -> tuple[TrialResult, ...]:
-        """Every attempt of the trial `key`, first to last."""
-        return tuple(r for r in self.attempts if r.key == key)
-
-    @property
-    def retries(self) -> int:
-        """Attempts beyond each trial's first: retries within a run and re-runs on resume."""
-        return len(self.attempts) - len(self.results)
-
 
 def load_run(path: Path | str) -> LoadedRun:
     """Read manifest.json and results.jsonl. Every line is an attempt; the last for a key is the trial's selected one."""

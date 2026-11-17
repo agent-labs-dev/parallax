@@ -19,7 +19,6 @@ from parallax import plugins
 if TYPE_CHECKING:
     import httpx
 
-    from parallax import jev
     from parallax.judge import JudgeConfig, JudgePanel
     from parallax.judging import JudgePolicy
     from parallax.models import Check, Evidence, JsonObject, Task
@@ -67,7 +66,6 @@ class GradeRequest:
     harness_model: str | None
     panel: JudgePanel | None
     judge_config: JudgeConfig | None
-    jev_config: jev.JevConfig | None
     client: httpx.AsyncClient
 
 

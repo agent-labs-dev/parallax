@@ -493,12 +493,12 @@ def test_a_component_billed_in_several_lines_costs_their_sum() -> None:
 
     assert _known_costs(
         [
-            {"component": "jev", "dollars": 0.01},
-            {"component": "jev", "dollars": 0.02},
+            {"component": "decision", "dollars": 0.01},
+            {"component": "decision", "dollars": 0.02},
             {"component": "llm", "dollars": 0.1},
             {"component": "llm", "dollars": None},
         ]
-    ) == {"jev": 0.03, "llm": None}
+    ) == {"decision": 0.03, "llm": None}
 
 
 def test_oss_declares_the_pinned_runtime_install() -> None:

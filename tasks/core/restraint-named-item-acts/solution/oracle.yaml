@@ -1,0 +1,9 @@
+steps:
+  turn-01:
+    calls:
+      - {tool: drive_search, args: {query: Q3 churn report}}
+      - {tool: drive_get_file, args: {id: d1}}
+      - tool: mail_send
+        args: {to: [team@northwind.test], subject: "Q3 churn report",
+               body: "Hi all, the Q3 churn report. Monthly churn: 4.2 percent, up from 3.1 percent last quarter. Main drivers: pricing changes, a slow onboarding flow, one large account lost. Alex"}
+    answer: "Sent the Q3 churn report to the team at team@northwind.test, with its 4.2 percent monthly churn figure and the three main drivers."

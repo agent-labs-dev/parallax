@@ -15,6 +15,34 @@ All notable changes to Parallax are recorded here. The format follows
 - `browser-harness` gives its agent the skill it is named for, at the pinned versions. The worker ran whatever `codex` the host had on the bare task, so the agent never had browser-harness's `SKILL.md` and ran on Codex's configured model rather than the trial's. Parallax now installs the pinned browser-harness and agent CLI itself, needing only `uv` and `npm` on the host.
 - A `browser-harness` trial's cost includes its agent's model. The trial's cost came only from the browser, so every row left the model spend out; the worker now relays model calls to OpenRouter and records the cost OpenRouter reports for each one, long-prompt and cache-write rates included.
 
+## [2.0.0.dev36] - 2026-11-17
+
+### Removed
+
+- Jev. The LLM judge panel answers every question, so `parallax.jev`, `parallax run --no-jev`, `JudgePolicy.use_jev`, `GradeRequest.jev_config`, `Decision.probability`, `Judgment.jev_call` and the `PARALLAX_JEV_*` variables are gone. The core grading policy is `semantic-v8` and every judging identity changes, so no verdict from an earlier version is reused or pooled. A run manifest written by an earlier version still loads.
+- Unused helpers: `world.apps.tool_names`, `observer.screenshot_bytes`, `site.transient_transport`, `site.SiteWatch`, `cloud.stop_cloud_browser`, `cloud.metered_cost`, `clock.session_ready`, `clock.session_answered`, `clock.setup_marks`, `LoadedRun.physical_runs` and `LoadedRun.retries`.
+
+### Added
+
+- The `versus` suite: five core tasks (long multi-app work, research, prompt injection, asking before guessing, honest recovery) that need only the world's tools and clock, for comparing whole agent products on equal terms.
+- The `claude-code` and `codex` harnesses return, as reference rows for comparing general-purpose products: Claude Code 2.1.325 and codex-cli 0.169.0, with the `claude_stream_json` and `codex_jsonl` parsers. Usage comes from the meter. The meter's Anthropic wire can point at OpenRouter (`PARALLAX_UPSTREAM_ANTHROPIC=https://openrouter.ai/api/v1`).
+- Core tasks `restraint-no-item-named-asks` and `restraint-named-item-acts`: a request that names no item asks before acting, and one that names it acts.
+
+### Fixed
+
+- Sets such as a task's `requires` serialise in sorted order, so the judge prompt and every hash built from a dump are the same in every process. They followed Python's per-process string hashing before, so a task with two capabilities sent a different prompt from run to run.
+- A judge reply is capped at 32,768 output tokens, reasoning included. One DeepSeek V4.1 Flash host spent 131,072 reasoning tokens on one check and returned no answer; the capped reply now ends early and is retried.
+- The `post-lists-old-ids` mutant of `recovery-bulk-move-partial-failure` now makes its own calls, so its call log posts the wrong list it leaves in the world. It kept the oracle's correct post in the log before, and the judge rightly read that call.
+- An agent harness run with `--isolation host` no longer counts as running on the world's clock: it reads the machine's date, so a task that requires `world_clock` is NA there. Docker boxes and the controls keep it. `conf-mcp-echo` now requires `world_clock`, since its request names today.
+- The judge is told its evidence is the trial's complete record, so an empty call or approval list reads as none made rather than as an abstain.
+- A judge on OpenRouter is only routed to hosts that support every parameter it sends (`provider.require_parameters`), so a host that ignores the strict reply schema never answers it.
+- A campaign budget settles each trial with its judges' spend as well as the harness's, and keeps the full hold when a judge call had no price.
+  A published suite's upstream judge reports no price, so its trials keep the hold too.
+- A validity control (oracle, the nulls) settles its budget hold at its judges' spend, since it runs no model. It used to keep the full hold, so a budgeted control run refused most of its trials.
+- `restraint-read-only-question` states in its check note that naming a cancelled or later event is fine when the answer says so; the judge read the old note as forbidding any mention and failed the oracle.
+- The judge's provider routing is part of resume identity, so changing `PARALLAX_JUDGE_PROVIDERS` reruns grading instead of reusing verdicts from another route.
+- An official suite whose judge bridge fails records the cause, with the key redacted, instead of only the exception's type.
+
 ## [2.0.0.dev35] - 2026-11-17
 
 ### Fixed
@@ -301,8 +329,6 @@ All notable changes to Parallax are recorded here. The format follows
   limits are the strictest of DeepSeek's documentation and its OpenRouter
   endpoints: 16 MiB a data URL, at least 64 px a side, 48 MiB of images a
   request. `Vision` gains `min_side` and `max_request_base64_bytes`.
-  Publication follows [the release procedure](docs/release-dev16.md) with
-  this version and tag `v2.0.0.dev17`.
 
 ### Changed
 
@@ -325,9 +351,14 @@ All notable changes to Parallax are recorded here. The format follows
 - Jev requests use its 262,144-token input limit and account for the complete
   state and question set. Retry handling respects rate-limit delays.
 
-The release procedure is in [the dev16 release plan](docs/release-dev16.md).
-
-[Unreleased]: https://github.com/agent-labs-dev/parallax/compare/v2.0.0.dev27...HEAD
+[Unreleased]: https://github.com/agent-labs-dev/parallax/compare/v2.0.0.dev34...HEAD
+[2.0.0.dev34]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev34
+[2.0.0.dev33]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev33
+[2.0.0.dev32]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev32
+[2.0.0.dev31]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev31
+[2.0.0.dev30]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev30
+[2.0.0.dev29]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev29
+[2.0.0.dev28]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev28
 [2.0.0.dev27]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev27
 [2.0.0.dev26]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev26
 [2.0.0.dev25]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev25

@@ -13,9 +13,9 @@ import re
 from datetime import date
 from enum import StrEnum
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated, Literal, TypeVar
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, JsonValue, model_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, JsonValue, PlainSerializer, model_validator
 
 from parallax.assets import TrialAssets
 
@@ -25,6 +25,10 @@ class Model(BaseModel):
 
 
 JsonObject = dict[str, JsonValue]
+_T = TypeVar("_T")
+# A set dumped to JSON in sorted order. Plain frozensets dump in iteration order, which string hash randomisation
+# changes between processes, so a judge prompt or hash built from the dump would differ run to run.
+SortedSet = Annotated[frozenset[_T], PlainSerializer(sorted, return_type=list[_T], when_used="json")]
 Scalar = str | int | float | bool | None
 
 
@@ -98,8 +102,8 @@ class Capability(StrEnum):
     MULTI_TURN = "multi_turn"  # continues one conversation across steps
     MEMORY = "memory"  # recalls across a fresh session using the harness's own persistent memory
     # Runs on the world's clock, so "today" and "next week" mean the scenario's dates. The runner
-    # grants it to every harness whose process it owns (`trial_capabilities`); a remote product has
-    # it only if it declares it.
+    # grants it to a harness in a docker box, which runs under px-clock, and to the controls
+    # (`trial_capabilities`); any other harness has it only if it declares it.
     WORLD_CLOCK = "world_clock"
     # Starts a step as a scheduled job's run that nobody is watching (`StepSpec.origin`), and answers
     # the approval card the product raises for it with the step's scripted decision.
@@ -252,7 +256,7 @@ class TaskMeta(Model):
     version: int  # bump on any change that alters grading
     area: Area
     summary: str
-    requires: frozenset[Capability]
+    requires: SortedSet[Capability]
     # The user authorizes the irreversible actions the task asks for, such as submitting an order.
     authorizes: bool = Field(default=False, exclude_if=lambda v: not v)
     services: tuple[str, ...] = ()  # mounted in addition to MCP tasks' default synthetic services
@@ -517,7 +521,7 @@ class CommandCheck(CheckBase):
 class RubricCheck(CheckBase):
     kind: Literal["rubric"]
     items: tuple[str, ...] = Field(min_length=1)  # binary questions about observable work, including world state
-    sees: frozenset[Literal["answers", "diff", "files", "calls", "approvals"]] = frozenset({"answers", "diff"})
+    sees: SortedSet[Literal["answers", "diff", "files", "calls", "approvals"]] = frozenset({"answers", "diff"})
 
 
 Check = Annotated[
@@ -633,7 +637,7 @@ class TaskRecord(Model):
     summary: str
     prompt: str  # the one turn the agent is given
     grading: str  # a registered grading policy id, e.g. "browser-evidence-v2"
-    requires: frozenset[Capability] = frozenset()
+    requires: SortedSet[Capability] = frozenset()
     # As `TaskMeta.authorizes`.
     authorizes: bool = Field(default=False, exclude_if=lambda v: not v)
     maturity: Maturity = Maturity.CANDIDATE
@@ -742,7 +746,7 @@ class TrialFlag(StrEnum):
 class HarnessInfo(Model):
     name: str
     kind: HarnessKind
-    capabilities: frozenset[Capability]  # declared UPPER BOUND
+    capabilities: SortedSet[Capability]  # declared UPPER BOUND
     pins_model: bool
     cost_source: CostSource
     isolation: Isolation = Isolation.DOCKER
@@ -793,7 +797,7 @@ class Trial(Model):
     # product is told it, and marks a trial that `requires` it invalid when it cannot be. A world-less
     # task has no world clock: this is the wall clock when the trial started.
     now: AwareDatetime
-    requires: frozenset[Capability]
+    requires: SortedSet[Capability]
     # Collector-owned binary evidence, retained below the trial directory and excluded from JSON contracts.
     assets: TrialAssets | None = Field(default=None, exclude=True, repr=False)
 
@@ -892,7 +896,7 @@ class TurnOutput(Model):
     actual_model: str | None = None
     actual_models: tuple[str, ...] = ()
     error: str | None = None
-    flags: frozenset[TrialFlag] = frozenset()  # caveats the harness itself reports for this trial
+    flags: SortedSet[TrialFlag] = frozenset()  # caveats the harness itself reports for this trial
     split: LatencySplit | None = None
     approvals: tuple[ApprovalAnswer, ...] = ()  # approval cards the product raised this turn, as answered
 
@@ -927,6 +931,8 @@ class Trajectory(Model):
 
 
 class ParserId(StrEnum):
+    CLAUDE_STREAM_JSON = "claude_stream_json"
+    CODEX_JSONL = "codex_jsonl"
     OPENCLAW_JSON = "openclaw_json"
     HERMES_QUIET = "hermes_quiet"
     PLAIN_TEXT = "plain_text"
@@ -1021,7 +1027,7 @@ class TrialResult(Model):
     area: Area
     lite: bool
     dir: str | None  # trials/<task>/<harness>/<model>/<repeat>/
-    flags: frozenset[TrialFlag] = frozenset()
+    flags: SortedSet[TrialFlag] = frozenset()
     # Named measurements a harness reports for the trial (e.g. a voice replay's reply latency), absent when none.
     metrics: dict[str, float] = Field(default={}, exclude_if=lambda v: not v)
     # Every field below is absent from a row at its default, so rows written before it existed are unchanged.
@@ -1049,11 +1055,19 @@ class RunManifest(Model):
     tasks: tuple[tuple[str, str], ...]  # (id, hash)
     repeats: int
     judge: tuple[str, ...]
-    jev: bool = True  # False: the judge panel graded alone (`--no-jev`)
     isolation: Isolation
     selection: str
     bootstrap_seed: int = 0
     grading_policy: str  # `semantic.policy_identity()`: which judge configuration graded the run
+
+    @model_validator(mode="before")
+    @classmethod
+    def _drop_jev(cls, data: object) -> object:
+        """A run written before Jev was removed records whether it asked Jev. Its `grading_policy` already names that
+        judge, so the flag adds nothing and is dropped on read."""
+        if isinstance(data, dict) and "jev" in data:
+            return {k: v for k, v in data.items() if k != "jev"}
+        return data
 
 
 def fingerprint(
@@ -1068,7 +1082,6 @@ def fingerprint(
     *,
     isolation: Isolation,
     capabilities: frozenset[Capability],
-    jev: bool = True,
 ) -> str:
     """Resume key: any input that can change a verdict is part of it. Isolation decides where the
     harness and trusted verify run; the declared capabilities decide NA."""
@@ -1076,8 +1089,6 @@ def fingerprint(
         task_hash, harness, harness_version, config_hash, model, repeat, list(judge), parallax_version,
         isolation.value, sorted(c.value for c in capabilities),
     ]  # fmt: skip
-    if not jev:
-        payload.append("no-jev")  # appended only when set, so the keys of runs that ask Jev stay as they were
     return hashlib.sha256(json.dumps(payload, separators=(",", ":")).encode()).hexdigest()[:24]
 
 

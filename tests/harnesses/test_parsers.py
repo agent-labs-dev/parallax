@@ -23,6 +23,68 @@ def tool_calls(out: TurnOutput) -> list[str | None]:
     return [s.name for s in out.steps if s.kind is StepKind.TOOL_CALL]
 
 
+def test_claude_turn_with_world_tool_call() -> None:
+    out = parse(ParserId.CLAUDE_STREAM_JSON, "claude-code", 1)
+    assert out.status is TurnStatus.COMPLETED
+    assert out.answer == "Posted nonce-4471 to #conf."
+    assert tool_calls(out) == ["chat_post_message"]
+    call = next(s for s in out.steps if s.kind is StepKind.TOOL_CALL)
+    assert call.args == {"channel": "#conf", "text": "nonce-4471"}
+    assert out.session_id is not None
+    assert out.actual_model == "claude-sonnet-4-5"
+
+
+def test_claude_answer_keeps_text_written_between_tool_calls() -> None:
+    out = parse(ParserId.CLAUDE_STREAM_JSON, "claude-code", "text-between-tools")
+    messages = [s.output or "" for s in out.steps if s.kind is StepKind.MESSAGE]
+    assert len(messages) == 3
+    assert messages[1].startswith("Here's where the thread stands")
+    assert out.answer == "\n\n".join(messages)
+
+
+def test_claude_answer_excludes_sub_agent_text() -> None:
+    lines = (FIXTURES / "claude-code" / "text-between-tools.stdout").read_text().splitlines()
+    sub = json.loads(lines[4])  # a top-level text message, re-parented under a Task call
+    sub["parent_tool_use_id"] = "toolu_task"
+    sub["message"]["content"] = [{"type": "text", "text": "SUB-AGENT NOTES"}]
+    out = PARSERS[ParserId.CLAUDE_STREAM_JSON]("\n".join([*lines[:-1], json.dumps(sub), lines[-1]]), "")
+    assert "SUB-AGENT NOTES" in [s.output for s in out.steps]
+    assert "SUB-AGENT NOTES" not in out.answer
+
+
+def test_claude_resumed_turn_keeps_session() -> None:
+    first = parse(ParserId.CLAUDE_STREAM_JSON, "claude-code", 1)
+    second = parse(ParserId.CLAUDE_STREAM_JSON, "claude-code", 2)
+    assert second.status is TurnStatus.COMPLETED
+    assert second.session_id == first.session_id
+    assert tool_calls(second) == []
+
+
+def test_codex_turn_with_mcp_tool_call() -> None:
+    out = parse(ParserId.CODEX_JSONL, "codex", 1)
+    assert out.status is TurnStatus.COMPLETED
+    assert out.answer == "Posted nonce-4471 to #conf."
+    assert tool_calls(out) == ["chat_post_message"]
+    assert out.session_id is not None
+
+
+def test_codex_resume_reports_same_thread() -> None:
+    assert parse(ParserId.CODEX_JSONL, "codex", 2).session_id == parse(ParserId.CODEX_JSONL, "codex", 1).session_id
+
+
+def test_codex_failed_turn_is_harness_error() -> None:
+    stdout = "\n".join(
+        json.dumps(e)
+        for e in [
+            {"type": "thread.started", "thread_id": "t1"},
+            {"type": "turn.failed", "error": {"message": "upstream 500"}},
+        ]
+    )
+    out = PARSERS[ParserId.CODEX_JSONL](stdout, "")
+    assert out.status is TurnStatus.HARNESS_ERROR
+    assert out.error is not None and "upstream 500" in out.error
+
+
 def test_hermes_session_from_stderr_trailer() -> None:
     out = parse(ParserId.HERMES_QUIET, "hermes", 1)
     assert out.status is TurnStatus.COMPLETED
