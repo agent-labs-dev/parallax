@@ -18,6 +18,12 @@ All notable changes to Parallax are recorded here. The format follows
   variable of the same name (`PARALLAX_UPSTREAM_ANTHROPIC`, `PARALLAX_UPSTREAM_OPENAI`), so one
   OpenRouter key can serve both wires.
 
+### Fixed
+
+- A run with `--world-public-url` checks at start that the URL reaches its world server, and stops
+  with an environment error when it does not. A tunnel routed elsewhere used to hand every remote
+  trial an empty world, scored as the agent's failure.
+
 ## [2.0.0.dev37] - 2026-11-17
 
 ### Added

@@ -68,6 +68,7 @@ from parallax.runner import (
 )
 from parallax.semantic import Graded
 from parallax.task import discover, load_task
+from starlette.applications import Starlette
 
 TASKS = Path(__file__).parent / "fixtures" / "tasks"
 
@@ -346,6 +347,22 @@ async def test_a_pinned_world_port_is_served_and_a_taken_one_is_an_environment_e
         with pytest.raises(BoxError, match=f"{port}.*taken"):
             async with runner.services(Isolation.REMOTE, None, False, "port-test-2", world_port=port):
                 pass
+
+
+async def test_a_world_public_url_must_reach_the_runs_world(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A tunnel routed elsewhere (here, a server that answers 404 to everything) fails the run at start."""
+    monkeypatch.setattr(runner, "PUBLIC_WORLD_WAIT_S", 0.0)
+    elsewhere = await runner.serve_embedded(Starlette(), "127.0.0.1")
+    try:
+        with pytest.raises(BoxError, match="does not reach this run's world server.*HTTP 404"):
+            async with runner.services(Isolation.REMOTE, f"http://127.0.0.1:{elsewhere.port}", False, "public-test"):
+                pass
+    finally:
+        await elsewhere.stop()
+    async with runner.services(Isolation.REMOTE, None, False, "public-probe", world_port=0) as probe:
+        port = int(probe.world_local.rsplit(":", 1)[1])
+    async with runner.services(Isolation.REMOTE, f"http://127.0.0.1:{port}/", False, "public-ok", world_port=port):
+        pass
 
 
 async def test_harness_cleanup_outlives_a_cancelled_trial() -> None:
