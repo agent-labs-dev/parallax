@@ -472,6 +472,11 @@ class JudgePolicy(Model):
     use_jev: bool = True  # False sends every question to the fallback panel
 
 
+def asks_jev(policy: JudgePolicy, panel: JudgePanel | None) -> bool:
+    """Whether Jev is asked first: the policy uses it and the run did not leave it out (`--no-jev`)."""
+    return policy.use_jev and (panel is None or panel.jev)
+
+
 def identity(
     policy: JudgePolicy,
     panel: JudgePanel | None,
@@ -497,7 +502,7 @@ def identity(
             "attached_images": ATTACHED_IMAGES,
         }
     primary: JsonObject | None = None
-    if policy.use_jev:
+    if asks_jev(policy, panel):
         primary = {
             # The route `_ask_jev` resolves: the given config, else the environment's (no key is part of it).
             "model": jev_config.model if jev_config is not None else os.environ.get(jev.MODEL_ENV, jev.DEFAULT_MODEL),
@@ -543,7 +548,9 @@ async def judge_parts(
         raise ValueError("no evidence parts to judge")
     route = identity(policy, panel, llm_config, jev_config)
     questions = policy.questions if len(parts) == 1 else {k: q + PART_RULE for k, q in policy.questions.items()}
-    fallback_only = None if policy.use_jev else f"policy {policy.name} judges with the fallback panel only"
+    fallback_only = (
+        None if asks_jev(policy, panel) else f"policy {policy.name} judges with the fallback panel only under this run"
+    )
     judged: list[Judgment] = []
     for part in parts:  # in order, one at a time: parts of one state share the judge's rate limit
         judgment = await judge_questions(

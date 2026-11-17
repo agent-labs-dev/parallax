@@ -283,12 +283,17 @@ async def test_v4_run_declares_structured_output_and_host_scoped_secret_bindings
         0,
         output_schema=schema,
         secret_bindings=bindings,
+        max_cost_usd=1000.0,
+        proxy_country="us",
     )
     assert client.runs.created == {
         "goal": "sign in and find the price",
         "model": "provider/model",
         "output_schema": schema,
         "secret_bindings": bindings,
+        # Omitted, Browser Use would cap the session at $25 and run its fast presets without a proxy.
+        "max_cost_usd": 1000.0,
+        "browser_settings": {"proxyCountryCode": "us"},
     }
 
 
@@ -531,6 +536,31 @@ async def test_browser_timing_starts_before_execute_finishes() -> None:
     harness._clock = AttemptClock(bounded=False)
     await harness.turn(SimpleNamespace(index=1, text="find it"))
     assert harness.trial_timing().breakdown["agent"] >= 5
+
+
+async def test_agent_time_ends_when_the_agent_answers_not_after_cleanup() -> None:
+    import asyncio
+
+    from parallax.harnesses.browser.clock import AttemptClock
+    from parallax.harnesses.browser.harnesses import BrowserHarness
+    from parallax.models import Trial
+
+    class Harness(BrowserHarness):
+        info = BrowserHarnessOSS.info
+
+        async def execute(self, _: object) -> dict[str, object]:
+            await asyncio.sleep(0.01)
+            self._agent_finished()
+            await asyncio.sleep(0.2)  # reading the final page, stopping the browser, settling its charges
+            return {"status": "done", "answer": "ok", "ready": True}
+
+    harness = Harness()
+    harness._trial = Trial.model_construct(model=None)
+    harness._clock = AttemptClock(bounded=False)
+    out = await harness.turn(SimpleNamespace(index=1, text="find it"))
+    assert 5 <= harness.trial_timing().breakdown["agent"] < 150
+    # The runner's agent time is the turn's latency, so it must stop at the answer too.
+    assert out.latency_ms is not None and 5 <= out.latency_ms < 150
 
 
 async def test_browser_site_preflight_is_an_environment_interruption(monkeypatch) -> None:

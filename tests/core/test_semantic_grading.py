@@ -508,6 +508,42 @@ async def test_a_corrected_fallback_reply_keeps_the_jev_probability() -> None:
     assert len(result.fallback_calls) == 2
 
 
+async def test_a_run_without_jev_grades_with_the_panel_alone_under_its_own_identity() -> None:
+    import httpx
+    from parallax import jev
+    from parallax.judge import JudgeConfig, JudgePanel
+    from parallax.judging import JudgePolicy, identity, judge_parts
+
+    seen: list[str] = []
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.path)
+        if request.url.path.endswith("/systemone"):
+            return httpx.Response(200, json=_jev_reply(0.99))
+        return httpx.Response(200, json=_fallback_reply(True))
+
+    policy = JudgePolicy(name="test", questions={"q": "Requirement"}, evidence_form="test")
+    jev_config = jev.JevConfig(base_url="https://fake/v1", model="jev", api_key="test")
+    llm = JudgeConfig(base_url="https://fake/v1", api_key="test")
+    with_jev, alone = JudgePanel(models=("fallback",)), JudgePanel(models=("fallback",), jev=False)
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+        decisions, judgments = await judge_parts([{}], client, jev_config, llm, alone, policy)
+    assert seen == ["/v1/chat/completions"]
+    assert decisions["q"].source == "llm" and judgments[0].jev_call is None
+    # Rows graded with and without Jev never pool.
+    assert identity(policy, alone, llm, jev_config) != identity(policy, with_jev, llm, jev_config)
+
+
+def test_no_jev_needs_a_panel_to_grade_with(monkeypatch: pytest.MonkeyPatch) -> None:
+    from parallax.runner import judge_setup
+
+    monkeypatch.delenv("PARALLAX_JUDGE_MODELS", raising=False)
+    monkeypatch.delenv("PARALLAX_JUDGE_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    with pytest.raises(ValueError, match="--no-jev needs a judge panel"):
+        judge_setup((), jev=False)
+
+
 async def test_a_fallback_only_question_never_reaches_jev() -> None:
     import httpx
     from parallax import jev

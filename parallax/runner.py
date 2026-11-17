@@ -180,6 +180,7 @@ class RunOptions(Model):
     world_public_url: str | None = None
     world_port: int | None = None  # remote isolation: the fixed port a tunnel points at (None: any free port)
     judge: tuple[str, ...] = ()
+    jev: bool = True  # False (`--no-jev`): the judge panel grades alone, never asking Jev first
     include_xfail: bool = False
     # Further attempts for a trial that ended INVALID for a transient execution fault (RETRYABLE_INVALID).
     retry_invalid: int = 1
@@ -1436,6 +1437,7 @@ def plan_trials(
                     key = fingerprint(
                         task.hash, hp.name, hp.version or "unavailable", hp.config_hash, model, repeat, opts.judge,
                         f"{__version__}:{policy}", isolation=opts.isolation, capabilities=hp.info.capabilities,
+                        jev=opts.jev,
                     )  # fmt: skip
                     plans.append(TrialPlan(task=task, harness=hp, model=model, repeat=repeat, key=key))
     return plans
@@ -1524,9 +1526,13 @@ def default_out() -> Path:
     return Path("runs") / datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
 
 
-def judge_setup(models: Sequence[str]) -> tuple[JudgePanel | None, JudgeConfig | None]:
+def judge_setup(models: Sequence[str], *, jev: bool = True) -> tuple[JudgePanel | None, JudgeConfig | None]:
     panel = JudgePanel(models=tuple(models)) if models else panel_from_env()
-    return (panel, config_from_env()) if panel is not None else (None, None)
+    if panel is None:
+        if not jev:
+            raise ValueError("--no-jev needs a judge panel: pass --judge or set PARALLAX_JUDGE_MODELS")
+        return None, None
+    return panel.model_copy(update={"jev": jev}), config_from_env()
 
 
 def manifest_for(opts: RunOptions, plans: Sequence[TrialPlan], harnesses: Sequence[HarnessPlan]) -> RunManifest:
@@ -1535,7 +1541,7 @@ def manifest_for(opts: RunOptions, plans: Sequence[TrialPlan], harnesses: Sequen
         run_id=opts.out.name, created_at=datetime.now(UTC), parallax_version=__version__,
         harnesses=tuple(h.info for h in harnesses),
         models=tuple(dict.fromkeys(p.model for p in plans)), tasks=tuple(sorted(tasks.items())),
-        repeats=opts.repeats, judge=opts.judge, isolation=opts.isolation, selection=opts.selection,
+        repeats=opts.repeats, judge=opts.judge, jev=opts.jev, isolation=opts.isolation, selection=opts.selection,
         grading_policy=policy_identity(list({p.task.id: p.task for p in plans}.values())),
     )  # fmt: skip
 
@@ -1554,7 +1560,7 @@ async def run_async(
         raise ValueError(
             f"no campaign budget journal at {opts.budget_journal}; pass --budget and --reserve to start one"
         )
-    panel, judge_config = judge_setup(opts.judge)
+    panel, judge_config = judge_setup(opts.judge, jev=opts.jev)
     opts = opts.model_copy(update={"judge": panel.models if panel else ()})
     infos = [load_harness(h).info for h in harnesses]
     need_meter = any(i.cost_source is CostSource.METERED for i in infos)

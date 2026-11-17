@@ -51,6 +51,9 @@ comparison's judge cannot move under it, on OpenRouter with the key Jev already 
 
 class JudgePanel(Model):
     models: tuple[str, ...] = Field(min_length=1)  # from --judge, PARALLAX_JUDGE_MODELS or DEFAULT_MODEL
+    # False (`--no-jev`): the panel answers every question and Jev is never asked, for a run whose agent uses
+    # Jev itself, where Jev grading it would not be independent.
+    jev: bool = True
 
 
 class JudgeConfig(Model):
