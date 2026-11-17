@@ -6,6 +6,10 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The meter relays and meters decision model calls (the AI Gateway's `evaluate`, OpenRouter's `systemone`), priced at the charge the provider reports, instead of refusing them.
+
 ## [2.0.0.dev43] - 2026-11-17
 
 ### Added
