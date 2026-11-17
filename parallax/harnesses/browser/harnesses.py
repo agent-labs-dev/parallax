@@ -281,6 +281,7 @@ class BrowserHarness(ABC):
         self._finished_at: float | None = None  # this turn's agent returned its answer
         self._turn_agent_at: float | None = None  # this turn's agent started: its first ready, else the turn's start
         self._turn_ready = False
+        self._turn_ends_at: float | None = None  # when the runner cancels this turn; None: no limit
         # Per turn: something billable was created, and whether that turn reported its charges.
         self._turn_spending = False
         self._turn_priced = False
@@ -367,6 +368,7 @@ class BrowserHarness(ABC):
 
     async def turn(self, turn: TurnInput) -> TurnOutput:
         began = time.monotonic()
+        self._turn_ends_at = None if turn.deadline_s is None else began + turn.deadline_s
         try:
             reason = await self._site_preflight()
             if reason is not None:
@@ -459,6 +461,12 @@ class BrowserHarness(ABC):
             if self._secret_values and self._page.pop("screenshot_png_b64", None) is not None:
                 # Text replacement cannot reach pixels, and a page can show a bound login; the judge reads its text.
                 self.trial_notes.append("final-page screenshot omitted: the task binds secrets")
+
+    def seconds_left(self) -> float | None:
+        """What is left of this turn's `deadline_s`, for `execute` to give a product that can stop itself; None when
+        the turn has no limit. Reading the final page and closing the browser come after, so a product that uses all
+        of it can still be cancelled: `cancelled()` keeps its evidence then."""
+        return None if self._turn_ends_at is None else max(0.0, self._turn_ends_at - time.monotonic())
 
     def cancelled(self) -> Mapping[str, Any]:
         """What the agent reached before the runner cancelled its turn, in the keys `execute` returns (`pages`,

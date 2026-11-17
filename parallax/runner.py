@@ -1196,7 +1196,13 @@ class TrialExecution:
         """One turn, waited on until the harness returns or `--turn-timeout` passes (none by default:
         the product under test owns its limits). False ends the trial (a non-completed turn)."""
         t_in = TurnInput(
-            index=index, text=text, new_session=new_session, attachments=attached, origin=origin, approval=approval
+            index=index,
+            text=text,
+            new_session=new_session,
+            attachments=attached,
+            origin=origin,
+            approval=approval,
+            deadline_s=self.s.turn_timeout_s,
         )
         self.t.delivered_turns.append(t_in)
         submitted = time.monotonic()
