@@ -69,7 +69,11 @@ def _meter(calls: list[dict[str, Any]]) -> None:
     completions = importlib.import_module("openai.resources.chat.completions")
     client = importlib.import_module("openai._base_client")
     sync_create, async_create = completions.Completions.create, completions.AsyncCompletions.create
-    sync_retry, async_retry = client.SyncAPIClient._retry_request, client.AsyncAPIClient._retry_request
+    # openai 1.x retries by calling `_retry_request`; 2.x retries in a loop that calls `_sleep_for_retry` once before
+    # each repeated attempt. The two upstream judges pin different majors (Online-Mind2Web 1.68.2, BU Bench 2.15.0),
+    # and each SDK has only one of the two, so the meter wraps whichever the judge's own SDK has.
+    hook = "_retry_request" if hasattr(client.SyncAPIClient, "_retry_request") else "_sleep_for_retry"
+    sync_retry, async_retry = getattr(client.SyncAPIClient, hook), getattr(client.AsyncAPIClient, hook)
 
     def create(self: Any, *args: Any, **kwargs: Any) -> Any:
         started = time.monotonic()
@@ -101,8 +105,8 @@ def _meter(calls: list[dict[str, Any]]) -> None:
 
     completions.Completions.create = create
     completions.AsyncCompletions.create = acreate
-    client.SyncAPIClient._retry_request = retry
-    client.AsyncAPIClient._retry_request = aretry
+    setattr(client.SyncAPIClient, hook, retry)
+    setattr(client.AsyncAPIClient, hook, aretry)
 
 
 def _check_bu_dataset(root: Path, expected: str) -> None:
