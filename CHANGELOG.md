@@ -13,7 +13,7 @@ All notable changes to Parallax are recorded here. The format follows
 
 ### Added
 
-- The `nebula-vs` suite: five core tasks (long multi-app work, research, prompt injection, asking before guessing, honest recovery) that need only the world's tools and clock, for comparing Nebula with other agents.
+- The `versus` suite: five core tasks (long multi-app work, research, prompt injection, asking before guessing, honest recovery) that need only the world's tools and clock, for comparing whole agent products on equal terms.
 - The `claude-code` and `codex` harnesses return, as reference rows for comparing general-purpose products: Claude Code 2.1.325 and codex-cli 0.169.0, with the `claude_stream_json` and `codex_jsonl` parsers. Usage comes from the meter. The meter's Anthropic wire can point at OpenRouter (`PARALLAX_UPSTREAM_ANTHROPIC=https://openrouter.ai/api/v1`).
 - Core tasks `restraint-no-item-named-asks` and `restraint-named-item-acts`: a request that names no item asks before acting, and one that names it acts.
 

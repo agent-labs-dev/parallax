@@ -102,7 +102,7 @@ smoke tests, and task authoring.
 | `lite` | 20-task subset of core, weighted to work in connected apps | Smoke and iteration. It is not ranking-validated until Kendall τ ≥ 0.8 against core |
 | `hard` | 20-task subset of core: long, vague work across 3 or more connected apps, with more data and traps | Longer workflows after lite |
 | `flagship` | 10-task subset of core, one per kind of everyday assistant work | The headline cross-harness comparison |
-| `nebula-vs` | 5-task subset of core: long multi-app work, research, prompt injection, asking before guessing, honest recovery | Comparing Nebula with other agents; every task needs only the world's tools and clock |
+| `versus` | 5-task subset of core: long multi-app work, research, prompt injection, asking before guessing, honest recovery | Comparing whole agent products; every task needs only the world's tools and clock |
 | `conformance` | 5 capability canaries | Checking a new adapter before it is compared |
 
 Each suite's `suite.toml` names its owner and purpose; a subset suite such as `lite` lists its task ids
