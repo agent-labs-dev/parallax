@@ -329,6 +329,15 @@ PROMPT_TOO_LONG = (
 )
 
 
+# Recorded 2026-11-17 from OpenRouter for GPT-6.1 Terra sent `temperature` with `require_parameters`.
+NO_ENDPOINTS = (
+    b'{"error": {"message": "No endpoints found that can handle the requested parameters. To learn more about provider'
+    b' routing, visit: https://openrouter.ai/docs/guides/routing/provider-selection", "code": 404, "metadata":'
+    b' {"routing_funnel": [{"step": "Initial Endpoints", "endpoint_count": 7}], "failed_routing_step":'
+    b' "Filter by Parameters"}}}'
+)
+
+
 async def _fallback(handle, state, model="anthropic/claude-opus-5.5"):
     async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
         return await judge_questions(
@@ -506,3 +515,25 @@ def test_a_venv_the_agent_made_is_tooling_and_a_link_is_judged_by_its_target(tmp
     (tmp_path / "latest.md").symlink_to("notes.md")
     state = evidence_state(TASK, EV.model_copy(update={"workspace": tmp_path}))
     assert state["files"] == {"latest.md": {"symlink": "notes.md"}, "notes.md": "budget\n"}
+
+
+async def test_a_judge_model_is_sent_only_the_sampling_fields_its_hosts_accept() -> None:
+    """2026-11-17: every GPT-6.1 Terra judge call failed, because `temperature` reached a model no host serves it
+    for; the gateway's message is what named the cause, and the row had kept only "404 Not Found"."""
+    bodies: list[dict[str, object]] = []
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content)
+        bodies.append(body)
+        if "temperature" in body:
+            return httpx.Response(404, content=NO_ENDPOINTS)
+        return httpx.Response(200, json=_fallback_reply(True))
+
+    result = await _fallback(handle, {"text": "x"}, model="openai/gpt-6.1-terra")
+    assert result.decisions["q"].passed is True
+    assert bodies[0]["reasoning"] == {"effort": "medium"}
+
+    bodies.clear()
+    result = await _fallback(handle, {"text": "x"}, model="deepseek/deepseek-v4.1-flash-1017")
+    assert bodies[0]["temperature"] == 0 and result.fallback_calls[0].error is not None
+    assert result.fallback_calls[0].error.startswith("HTTP 404: No endpoints found that can handle")

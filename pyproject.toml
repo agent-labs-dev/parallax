@@ -49,6 +49,7 @@ plain-cdp = "parallax.harnesses.browser.observer:PlainCDPObserver"
 [project.entry-points."parallax.task_sources"]
 bu-bench = "parallax.official_suites:bu_tasks"
 online-mind2web = "parallax.official_suites:mind2web_tasks"
+live-web = "parallax.live_web:task_records"
 
 [project.entry-points."parallax.task_extensions"]
 official-bu-bench = "parallax.official_suites:BU_POLICY_EXTENSION"

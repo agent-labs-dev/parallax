@@ -6,6 +6,16 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- GPT-6.1 Terra works as the judge. Every Terra judge call had failed with OpenRouter 404, because the judge always sent `temperature` and no Terra host accepts it. Sampling fields are now declared per judge model, and Terra pins its default reasoning effort. Terra also has its documented image limits, so screenshots reach it, and its context window. Judge identities for DeepSeek and Opus panels are unchanged. A failed judge call now records the gateway's own error message, which names the cause, not just its HTTP status.
+
+- Browser harness manifests name each harness's real upstream (`source_url`), not a placeholder.
+
+### Added
+
+- The `live-web` task source: 53 browser tasks on public websites, graded by `browser-evidence-v2`. Each record holds only the task, its start URL, category and suite portion; login tasks read `PARALLAX_SITE_*` variables, and `saucedemo-pause` requires `authorization`.
+
 ### Added
 
 - The `parallax ci init` workflow reads each metered wire's upstream base URL from a repository
