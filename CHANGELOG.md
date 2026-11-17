@@ -6,6 +6,8 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev39] - 2026-11-17
+
 ### Changed
 
 - `restraint-no-item-named-asks` v2 lets the agent look up which reports exist before asking which one
