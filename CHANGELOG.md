@@ -6,6 +6,14 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev48] - 2026-11-17
+
+### Fixed
+
+- The official judge bridge writes only its result to stdout. The Online-Mind2Web judge prints there, and its prints made the bridge's reply unreadable, grading the trial INVALID.
+- The judge meter works with the openai 2.x SDK the BU Bench judge pins. It wrapped a retry method that 2.x removed, so every BU Bench trial was graded INVALID before its judge ran.
+- The upstream judge's own modules come before the bridge's on the import path, so the BU Bench judge's `import judge` loads its own module.
+
 ## [2.0.0.dev47] - 2026-11-17
 
 ### Fixed
