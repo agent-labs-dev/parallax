@@ -105,6 +105,9 @@ smoke tests, and task authoring.
 | `versus` | 5-task subset of core: long multi-app work, research, prompt injection, asking before guessing, honest recovery | Comparing whole agent products; every task needs only the world's tools and clock |
 | `conformance` | 5 capability canaries | Checking a new adapter before it is compared |
 
+Browser agents run on three world-less sources of live websites: `live-web` (below) and the
+[official suites](docs/official-suites.md) `online-mind2web` and `bu-bench`, selected as `source=<id>`.
+
 Each suite's `suite.toml` names its owner and purpose; a subset suite such as `lite` lists its task ids
 there, with `within` naming the suite they come from. `parallax check --lint-only` checks every listed id.
 

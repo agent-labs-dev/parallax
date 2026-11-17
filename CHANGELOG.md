@@ -8,6 +8,10 @@ All notable changes to Parallax are recorded here. The format follows
 
 ### Added
 
+- The `live-web` task source: 56 browser tasks on public websites, moved from fastbrowse's release benchmark so every browser agent is measured on a suite none of them owns. Task ids and versions are unchanged; each record keeps only the start URL, category and suite portion, so the judge no longer sees fastbrowse's arm lists or an expected outcome, and login tasks read neutral `PARALLAX_SITE_*` variables.
+
+### Added
+
 - The `parallax ci init` workflow reads each metered wire's upstream base URL from a repository
   variable of the same name (`PARALLAX_UPSTREAM_ANTHROPIC`, `PARALLAX_UPSTREAM_OPENAI`), so one
   OpenRouter key can serve both wires.
