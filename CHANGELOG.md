@@ -6,19 +6,22 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev43] - 2026-11-17
+
+### Added
+
+- A metered trial's `trial.llm.relay_url` names its relay, built from the meter as the run's host reaches it, so a product's backend on that host can send its provider calls there.
+
 ## [2.0.0.dev42] - 2026-11-17
 
 ### Added
 
-- The meter relays a product's own provider calls, with its own keys, to OpenRouter, OpenAI, the AI Gateway, Anthropic and Gemini, and meters each response. This lets a product run as shipped report metered cost. A harness reads its trial's relay as `trial.llm.relay_url`.
+- The meter relays a product's own provider calls, with its own keys, to OpenRouter, OpenAI, the AI Gateway, Anthropic and Gemini, and meters each response. This lets a product run as shipped report metered cost.
 - The meter refuses models that search the web on every call (`perplexity/*`, `gpt-5-search-api`, `openrouter/fusion`, `x-ai/grok-4.20-multi-agent`), as it already refused `:online` models.
 
 ### Fixed
 
 - A published suite's upstream judge is priced. The bridge records each call the judge makes, with the cost its endpoint reported, so a campaign budget settles the trial instead of keeping the full hold, and `judgments.jsonl` names every generation. A call with no reported price, an attempt the SDK retried, a call that raised, or a bridge that fails still leaves the cost unknown.
-
-### Fixed
-
 - The LLM judge on OpenRouter no longer routes to OpenInference unless `PARALLAX_JUDGE_PROVIDERS` names it. That host answered long quality calls as if evidence it was sent were missing, which graded trials INVALID (#65). The route is part of judge identity, so verdicts from the old route are not reused.
 - `saas-invoice-chase-reconcile` v2 lets an agent add a Note to an unreconciled row, such as the part-paid INV-3031, and no longer asks the reply to list every invoice under 30 days overdue. Both had failed agents for sound bookkeeping the request never ruled out.
 
