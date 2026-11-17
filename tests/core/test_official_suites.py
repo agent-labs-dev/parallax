@@ -1,7 +1,9 @@
 import base64
 import hashlib
 import json
+import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import httpx
 import pytest
@@ -208,3 +210,18 @@ async def test_a_published_judge_score_is_the_trial_score(tmp_path, monkeypatch)
 def test_a_bridge_failure_names_its_cause_without_the_key() -> None:
     exc = RuntimeError("401 from https://judge.example: key sk-secret\nis invalid")
     assert failure(exc, "sk-secret") == "RuntimeError: 401 from https://judge.example: key [redacted] is invalid"
+
+
+def test_the_judge_interpreter_is_launched_through_its_venv_link(tmp_path, monkeypatch):
+    """2026-11-17: resolving `.venv/bin/python` launched the base interpreter, which never reads the venv's
+    `pyvenv.cfg`, so every Online-Mind2Web judgment failed on `No module named 'openai'`."""
+    link = tmp_path / ".venv" / "bin" / "python"
+    link.parent.mkdir(parents=True)
+    link.symlink_to(sys.executable)
+    monkeypatch.setenv("PARALLAX_OFFICIAL_ONLINE_MIND2WEB_ROOT", str(tmp_path))
+    monkeypatch.delenv("PARALLAX_OFFICIAL_ONLINE_MIND2WEB_JUDGE_PYTHON", raising=False)
+    monkeypatch.delenv("PARALLAX_OFFICIAL_JUDGE_PYTHON", raising=False)
+    request = SimpleNamespace(judge_config=JudgeConfig(base_url="https://judge.invalid/v1", api_key="test"))
+    config = official._config(request, official.MIND2WEB_SPEC)
+    assert config.python == tmp_path.resolve() / ".venv" / "bin" / "python"
+    assert config.python.is_symlink()

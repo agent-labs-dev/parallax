@@ -6,6 +6,10 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The official judges run in their own virtual environment. The judge interpreter path was resolved to the base interpreter, which never loads the environment's packages, so every Online-Mind2Web judgment failed with `No module named 'openai'`.
+
 ## [2.0.0.dev40] - 2026-11-17
 
 ### Fixed
