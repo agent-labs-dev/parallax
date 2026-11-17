@@ -54,26 +54,54 @@ def _call(response: Any, started: float) -> dict[str, Any]:
     }
 
 
+def _unpriced(error: str) -> dict[str, Any]:
+    """An attempt that may have been billed but returned no usage: Parallax counts it as unpriced, never as zero."""
+    return {"generation_id": None, "input_tokens": None, "output_tokens": None, "cost_usd": None, "latency_ms": 0,
+            "error": error}  # fmt: skip
+
+
 def _meter(calls: list[dict[str, Any]]) -> None:
     """Record every chat completion the upstream judge makes, whichever client it builds, by wrapping the SDK's own
-    `create` in this process; the judge's prompts and parsing are untouched."""
+    `create` in this process; the judge's prompts and parsing are untouched. The SDK retries inside `create`, and a
+    retried attempt may already have been billed, so each retry, and each `create` that raises, records an unpriced
+    attempt and the trial keeps its budget hold."""
     completions = importlib.import_module("openai.resources.chat.completions")
+    client = importlib.import_module("openai._base_client")
     sync_create, async_create = completions.Completions.create, completions.AsyncCompletions.create
+    sync_retry, async_retry = client.SyncAPIClient._retry_request, client.AsyncAPIClient._retry_request
 
     def create(self: Any, *args: Any, **kwargs: Any) -> Any:
         started = time.monotonic()
-        response = sync_create(self, *args, **kwargs)
+        try:
+            response = sync_create(self, *args, **kwargs)
+        except BaseException as exc:
+            calls.append(_unpriced(type(exc).__name__))
+            raise
         calls.append(_call(response, started))
         return response
 
     async def acreate(self: Any, *args: Any, **kwargs: Any) -> Any:
         started = time.monotonic()
-        response = await async_create(self, *args, **kwargs)
+        try:
+            response = await async_create(self, *args, **kwargs)
+        except BaseException as exc:
+            calls.append(_unpriced(type(exc).__name__))
+            raise
         calls.append(_call(response, started))
         return response
 
+    def retry(self: Any, *args: Any, **kwargs: Any) -> Any:
+        calls.append(_unpriced("retried"))
+        return sync_retry(self, *args, **kwargs)
+
+    async def aretry(self: Any, *args: Any, **kwargs: Any) -> Any:
+        calls.append(_unpriced("retried"))
+        return await async_retry(self, *args, **kwargs)
+
     completions.Completions.create = create
     completions.AsyncCompletions.create = acreate
+    client.SyncAPIClient._retry_request = retry
+    client.AsyncAPIClient._retry_request = aretry
 
 
 def _check_bu_dataset(root: Path, expected: str) -> None:

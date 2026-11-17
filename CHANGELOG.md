@@ -8,7 +8,7 @@ All notable changes to Parallax are recorded here. The format follows
 
 ### Fixed
 
-- A published suite's upstream judge is priced. The bridge records each call the judge makes, with the cost its endpoint reported, so a campaign budget settles the trial instead of keeping the full hold, and `judgments.jsonl` names every generation. A call with no reported price, or a bridge that fails, still leaves the cost unknown.
+- A published suite's upstream judge is priced. The bridge records each call the judge makes, with the cost its endpoint reported, so a campaign budget settles the trial instead of keeping the full hold, and `judgments.jsonl` names every generation. A call with no reported price, an attempt the SDK retried, a call that raised, or a bridge that fails still leaves the cost unknown.
 
 ### Fixed
 

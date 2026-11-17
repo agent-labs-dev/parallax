@@ -188,6 +188,35 @@ def test_the_bridge_records_each_judge_call_with_the_price_the_endpoint_reported
     assert [{**call, "latency_ms": 0} for call in calls] == [RECORDED_CALL]
 
 
+@pytest.mark.parametrize("asynchronous", [False, True])
+def test_a_retried_judge_call_leaves_the_judge_cost_unknown(monkeypatch, asynchronous):
+    """The SDK retries inside `create`, and the first attempt may already have been billed, so the price the final
+    response reports is not the whole spend."""
+    completions = importlib.import_module("openai.resources.chat.completions")
+    base = importlib.import_module("openai._base_client")
+    for cls, name in ((completions.Completions, "create"), (completions.AsyncCompletions, "create"),
+                      (base.SyncAPIClient, "_retry_request"), (base.AsyncAPIClient, "_retry_request")):  # fmt: skip
+        monkeypatch.setattr(cls, name, getattr(cls, name))  # restored after the test
+    calls: list[dict[str, object]] = []
+    official_bridge._meter(calls)
+    replies = iter((httpx.Response(500, json={}), httpx.Response(200, json=RECORDED_COMPLETION)))
+    reply = httpx.MockTransport(lambda _request: next(replies))
+    message = [{"role": "user", "content": "Reply with OK"}]
+    if asynchronous:
+        http = httpx.AsyncClient(transport=reply)
+        client = openai.AsyncOpenAI(
+            api_key="test", base_url="https://judge.invalid/v1", http_client=http, max_retries=1
+        )
+        asyncio.run(client.chat.completions.create(model="openai/gpt-6.1-terra", messages=message))
+    else:
+        http = httpx.Client(transport=reply)
+        client = openai.OpenAI(api_key="test", base_url="https://judge.invalid/v1", http_client=http, max_retries=1)
+        client.chat.completions.create(model="openai/gpt-6.1-terra", messages=message)
+    assert [call["cost_usd"] for call in calls] == [None, RECORDED_CALL["cost_usd"]]
+    judgment = official._judgment(official.MIND2WEB_SPEC, "openai/gpt-6.1-terra", {}, calls)
+    assert judgment is not None and judgment.cost()[1] == 1  # one unpriced attempt: the budget keeps the hold
+
+
 @pytest.mark.asyncio
 async def test_a_bridge_that_fails_leaves_the_judge_cost_unknown(monkeypatch):
     row = {"task_id": "row-1", "confirmed_task": "Complete the task", "website": "https://example.test/start"}
