@@ -379,3 +379,11 @@ def test_the_bridge_writes_only_its_result_to_stdout_when_the_upstream_judge_pri
     out = capsys.readouterr()
     assert json.loads(out.out) == {"passed": False, "calls": []}
     assert "Error processing response" in out.err
+
+
+def test_the_upstream_checkout_shadows_the_bridges_own_modules(tmp_path):
+    """BU Bench's `import judge` must load the checkout's `judge.py`, not Parallax's, even when an editable install
+    already lists the checkout after the bridge's own directory."""
+    here = str(Path(official_bridge.__file__).parent)
+    path = official_bridge._import_path(tmp_path, [here, "/usr/lib/python3.12", str(tmp_path)])
+    assert path == [str(tmp_path / "src"), str(tmp_path), "/usr/lib/python3.12"]

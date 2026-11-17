@@ -35,10 +35,18 @@ def _root(request: dict[str, Any]) -> Path:
     ).stdout.strip()
     if status:
         raise RuntimeError("upstream checkout has tracked changes")
-    for entry in (root, root / "src"):
-        if str(entry) not in sys.path:
-            sys.path.insert(0, str(entry))
+    sys.path[:] = _import_path(root, sys.path)
     return root
+
+
+def _import_path(root: Path, path: list[str]) -> list[str]:
+    """The checkout first, and never this file's own directory. Run as a script, the bridge has the `parallax`
+    package first on `sys.path`, where its `judge` and `models` shadow the upstream modules of those names: BU
+    Bench's `import judge` loaded Parallax's and failed with `No module named 'parallax'`. An editable install of
+    the upstream project already lists the root, but after that directory, so the root moves to the front."""
+    here = Path(__file__).resolve().parent
+    front = [str(root / "src"), str(root)]
+    return [*front, *(entry for entry in path if entry not in front and Path(entry or ".").resolve() != here)]
 
 
 def _call(response: Any, started: float) -> dict[str, Any]:
