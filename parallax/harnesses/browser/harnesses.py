@@ -29,6 +29,7 @@ from pydantic import BaseModel, ConfigDict
 
 from parallax.harnesses.base import HarnessError, config_hash
 from parallax.harnesses.browser import oss_worker
+from parallax.harnesses.browser.browser_harness_worker import Agent
 from parallax.harnesses.browser.clock import SESSION_INCLUDED, AttemptClock
 from parallax.harnesses.browser.cloud import (
     Browser,
@@ -157,6 +158,7 @@ def _usage(raw: object, model: str | None) -> tuple[Usage, ...]:
                     input=int(item.get("input", item.get("input_tokens", 0))),
                     output=int(item.get("output", item.get("output_tokens", 0))),
                     cache_read=int(item.get("cache_read", item.get("cached_input_tokens", 0))),
+                    cache_write=int(item.get("cache_write", 0)),
                     reasoning=int(item.get("reasoning", 0)),
                     requests=int(item.get("requests", 1)),
                     cost_usd=float(item["cost_usd"]) if item.get("cost_usd") is not None else None,
@@ -928,10 +930,25 @@ class BrowserHarnessOSS(BrowserHarness):
 
 
 class BrowserHarnessRunner(BrowserHarness):
-    """Base for workers that use a cloud browser and an external command."""
+    """Browser Use's browser-harness skill run by Codex on a cloud browser. The model is an OpenRouter id."""
 
     command_env = "PARALLAX_BROWSER_HARNESS_COMMAND"
+    agent = Agent.CODEX
     info = _info("browser-harness", pins_model=True, credential_env=("BROWSER_USE_API_KEY",))
+
+    async def version(self, box: Any) -> str:
+        """The skill's and the agent's versions, checked before any trial reserves budget."""
+        tools = {"browser-harness": "browser-harness", Agent.CODEX: "codex", Agent.CLAUDE_CODE: "claude"}
+        versions = []
+        for name in ("browser-harness", self.agent):
+            proc = await asyncio.create_subprocess_exec(
+                tools[name], "--version", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+            )
+            out, err = await proc.communicate()
+            if proc.returncode != 0:
+                raise HarnessError(f"{tools[name]} failed to start: {err.decode(errors='replace').strip()[-500:]}")
+            versions.append(f"{name} {out.decode().strip()}")
+        return "; ".join(versions)
 
     async def execute(self, turn: TurnInput) -> dict[str, Any]:
         browser = None
@@ -940,7 +957,12 @@ class BrowserHarnessRunner(BrowserHarness):
                 # The paid browser exists, so the attempt spends from here even if the worker never starts.
                 self._agent_started(browser.open_seconds)
                 self._browser = browser
-                request = {"goal": turn.text, "model": self.trial.model, "cdp_url": browser.cdp_url}
+                request = {
+                    "goal": turn.text,
+                    "model": self.trial.model,
+                    "agent": self.agent,
+                    "cdp_url": browser.cdp_url,
+                }
                 configured = os.environ.get(self.command_env)
                 command = (
                     tuple(shlex.split(configured))
@@ -967,9 +989,17 @@ class BrowserHarnessRunner(BrowserHarness):
             if browser is not None:
                 self._record_costs(list(browser.cost))
             raise
-        # The browser settles its charges as its context exits, so they are read only after it closes.
-        result["cost_lines"] = list(browser.cost)
+        # The browser settles its charges as its context exits, so they are read only after it closes. The worker's own
+        # lines price the agent's model, which the trial's cost would otherwise leave out.
+        result["cost_lines"] = [*_mapping_list(result.get("cost_lines")), *browser.cost]
         return result
+
+
+class BrowserHarnessClaudeCode(BrowserHarnessRunner):
+    """browser-harness run by Claude Code, for comparing the two agents on the same skill and browser."""
+
+    agent = Agent.CLAUDE_CODE
+    info = _info("browser-harness-claude-code", pins_model=True, credential_env=("BROWSER_USE_API_KEY",))
 
 
 class CuaCodexHarness(BrowserHarness):

@@ -430,7 +430,8 @@ The built-in browser harness entry points are:
 |---|---|---|
 | `browser-use-cloud` | Hosted Cloud API, V3 or V4 | Provider-reported costs; `browser`, `credentials` |
 | `browser-use-oss` | Optional Python browser worker | Browser and model costs from the worker; `browser` |
-| `browser-harness` | Optional command worker attached to a Cloud browser | Browser cost plus worker-reported cost; `browser` |
+| `browser-harness` | Browser Use's browser-harness skill run by Codex on a Cloud browser | Browser cost plus the model cost OpenRouter reports; `browser` |
+| `browser-harness-claude-code` | The same skill and browser, run by Claude Code | Browser cost plus the model cost OpenRouter reports; `browser` |
 | `cua-codex` | Optional desktop command worker | Worker-reported cost when available; `browser` |
 
 The caller selects the hosted model with the normal `--model` value, which
@@ -445,10 +446,20 @@ models are sent without provider parameters because the API rejects
 `modelParams`, `mode`, and `harness` for presets. The adapter never writes a
 preset identifier into source code.
 
+The two `browser-harness` harnesses compare coding agents on one skill. Each
+installs browser-harness's `SKILL.md` (named by `PARALLAX_BROWSER_HARNESS_SKILL`)
+where its agent reads skills (`.agents/skills` for Codex, `.claude/skills` for
+Claude Code), gives it the `browser-harness` CLI on `PATH` and the browser in
+`BU_CDP_WS`, and turns web search off so the browser answers. `--model` is an
+OpenRouter id, reached with `OPENROUTER_API_KEY` through a relay in the worker
+that records the cost OpenRouter reports on each response; Claude Code's model
+aliases and background work all resolve to that model. The version recorded is
+both CLIs' own.
+
 Useful configuration keys are `PARALLAX_BROWSER_OBSERVER`,
 `PARALLAX_BROWSER_CLOUD_API`, `PARALLAX_BROWSER_POLL_SECONDS`,
 `PARALLAX_BROWSER_MODEL_PARAMS`, `PARALLAX_BROWSER_HARNESS_COMMAND`,
-`PARALLAX_BROWSER_AGENT_COMMAND`, `PARALLAX_CUA_DRIVER`,
+`PARALLAX_BROWSER_HARNESS_SKILL`, `PARALLAX_CUA_DRIVER`,
 `PARALLAX_CUA_CODEX`, and `PARALLAX_CUA_COMMAND`. The optional dependencies
 are installed with `parallax-evals[browser]`; competitor versions are recorded
 in `parallax/harnesses/browser/pins.json` and checked with:

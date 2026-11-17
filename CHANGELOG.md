@@ -6,6 +6,15 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `browser-harness-claude-code` runs Browser Use's browser-harness skill under Claude Code, beside `browser-harness` under Codex, on the same skill, Cloud browser and OpenRouter model routing, so the two agents compare on equal terms.
+
+### Fixed
+
+- `browser-harness` gives its agent the skill it is named for. The worker ran `codex exec` on the bare task, so the agent never had browser-harness's `SKILL.md`, and it ran on Codex's configured model rather than the trial's.
+- A `browser-harness` trial's cost includes its agent's model. The trial's cost came only from the browser, so every row left the model spend out; the worker now relays model calls to OpenRouter and records the cost OpenRouter reports for each one, long-prompt and cache-write rates included.
+
 ## [2.0.0.dev35] - 2026-11-17
 
 ### Fixed

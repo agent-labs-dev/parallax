@@ -877,6 +877,46 @@ async def test_a_worker_that_fails_after_its_browser_opened_keeps_the_browser_co
     await harness.stop()
 
 
+async def test_a_browser_harness_trial_costs_its_agent_model_as_well_as_its_browser(monkeypatch, tmp_path) -> None:
+    import contextlib
+    import sys
+
+    from parallax.harnesses.browser import harnesses
+    from parallax.harnesses.browser.clock import AttemptClock
+    from parallax.models import Trial
+
+    browser = SimpleNamespace(cdp_url="wss://cdp.test", open_seconds=1.0, cost=())
+
+    @contextlib.asynccontextmanager
+    async def paid_browser(http: object, *, screen: object):  # noqa: ANN202
+        try:
+            yield browser
+        finally:
+            browser.cost = ({"component": "browser", "dollars": 0.02},)
+
+    worker = tmp_path / "worker.py"
+    worker.write_text(
+        "import json,sys; request=json.loads(sys.stdin.readline()); "
+        "print(json.dumps({'event':'result','status':'done','answer':request['agent'],"
+        "'cost_lines':[{'component':'agent model','dollars':0.003}]}),flush=True); "
+        "sys.stdin.readline(); print(json.dumps({'event':'stopped','stopped':True}),flush=True)"
+    )
+    monkeypatch.setattr(harnesses, "cloud_browser", paid_browser)
+    monkeypatch.setenv("PARALLAX_BROWSER_HARNESS_COMMAND", f"{sys.executable} {worker}")
+
+    class Observed(harnesses.BrowserHarnessClaudeCode):
+        async def observe(self, cdp_url: str, *, url: str | None = None) -> dict[str, object]:
+            return {"url": "https://example.test/"}
+
+    harness = Observed()
+    harness._trial = Trial.model_construct(model="anthropic/claude-haiku-5.5", home=tmp_path, env={})
+    harness._clock = AttemptClock(bounded=False)
+    output = await harness.turn(SimpleNamespace(index=1, text="find it"))
+    assert (output.error, output.answer) == (None, "claude-code")
+    assert harness.trial_costs() == {"agent model": 0.003, "browser": 0.02}
+    await harness.stop()
+
+
 async def test_a_v4_run_that_was_created_is_spending_even_if_polling_fails() -> None:
     from parallax.harnesses.browser import harnesses
 
