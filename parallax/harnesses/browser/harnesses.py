@@ -81,6 +81,7 @@ class BrowserConfig(BaseModel):
 def _info(
     name: str,
     *,
+    source_url: str,
     pins_model: bool,
     credentials: bool = False,
     credential_env: tuple[str, ...] = (),
@@ -99,7 +100,7 @@ def _info(
         isolation=isolation,
         install=install,
         credential_env=credential_env,
-        source_url="https://parallax.invalid/browser-harness",
+        source_url=source_url,
     )
 
 
@@ -551,7 +552,13 @@ def _known_costs(raw: object) -> dict[str, float | None]:
 
 class BrowserHarnessCloud(BrowserHarness):
     # A pinned model: omitted, the server picks the project's default, which depends on when the project was made.
-    info = _info("browser-use-cloud", pins_model=True, credentials=True, credential_env=("BROWSER_USE_API_KEY",))
+    info = _info(
+        "browser-use-cloud",
+        source_url="https://docs.browser-use.com",
+        pins_model=True,
+        credentials=True,
+        credential_env=("BROWSER_USE_API_KEY",),
+    )
 
     def __init__(self, *, observer: str | None = None) -> None:
         super().__init__(observer=observer)
@@ -885,6 +892,7 @@ def oss_python() -> tuple[str, ...]:
 class BrowserHarnessOSS(BrowserHarness):
     info = _info(
         "browser-use-oss",
+        source_url="https://github.com/browser-use/browser-use",
         pins_model=True,
         credential_env=("BROWSER_USE_API_KEY",),
         install="pip install --no-cache-dir 'browser-use==1.0.6'",
@@ -935,7 +943,12 @@ class BrowserHarnessRunner(BrowserHarness):
 
     command_env = "PARALLAX_BROWSER_HARNESS_COMMAND"
     agent = Agent.CODEX
-    info = _info("browser-harness", pins_model=True, credential_env=("BROWSER_USE_API_KEY",))
+    info = _info(
+        "browser-harness",
+        source_url="https://github.com/browser-use/browser-harness",
+        pins_model=True,
+        credential_env=("BROWSER_USE_API_KEY",),
+    )
 
     _toolchain: Toolchain | None = None
 
@@ -996,11 +1009,16 @@ class BrowserHarnessClaudeCode(BrowserHarnessRunner):
     """browser-harness run by Claude Code, for comparing the two agents on the same skill and browser."""
 
     agent = Agent.CLAUDE_CODE
-    info = _info("browser-harness-claude-code", pins_model=True, credential_env=("BROWSER_USE_API_KEY",))
+    info = _info(
+        "browser-harness-claude-code",
+        source_url="https://github.com/browser-use/browser-harness",
+        pins_model=True,
+        credential_env=("BROWSER_USE_API_KEY",),
+    )
 
 
 class CuaCodexHarness(BrowserHarness):
-    info = _info("cua-codex", pins_model=True)
+    info = _info("cua-codex", source_url="https://github.com/agent-labs-dev/parallax", pins_model=True)
 
     async def execute(self, turn: TurnInput) -> dict[str, Any]:
         request = {
