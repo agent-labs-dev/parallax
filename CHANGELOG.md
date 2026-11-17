@@ -6,6 +6,10 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- A usage line keeps the number of images its component's requests carried, as `images`, when a harness reports it. fastbrowse reports how many screenshots and crops each Jev call was shown, so a campaign can compare image-bearing calls alongside their tokens and dollars. A line with no images omits the field, and earlier ledgers read unchanged.
+
 ## [2.0.0.dev35] - 2026-11-17
 
 ### Fixed

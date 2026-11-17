@@ -159,6 +159,7 @@ def _usage(raw: object, model: str | None) -> tuple[Usage, ...]:
                     cache_read=int(item.get("cache_read", item.get("cached_input_tokens", 0))),
                     reasoning=int(item.get("reasoning", 0)),
                     requests=int(item.get("requests", 1)),
+                    images=int(item.get("images", 0)),
                     cost_usd=float(item["cost_usd"]) if item.get("cost_usd") is not None else None,
                     source=CostSource.HARNESS,
                 )

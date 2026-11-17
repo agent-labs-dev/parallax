@@ -32,6 +32,7 @@ from parallax.harnesses.browser.harnesses import (
     _run_result,
     _run_v3,
     _run_v4,
+    _usage,
 )
 from parallax.models import Capability
 
@@ -959,3 +960,15 @@ async def test_a_later_turn_that_reports_no_cost_lines_makes_the_trial_cost_unkn
     await harness.turn(SimpleNamespace(index=2, text="second"))
     assert None in harness.trial_costs().values()
     await harness.stop()
+
+
+def test_a_harness_reported_image_count_is_kept_on_usage_and_omitted_when_none() -> None:
+    usage = _usage(
+        [
+            {"model": "jev", "component": "jev", "input": 4200, "images": 3, "cost_usd": 0.01},
+            {"model": "llm", "component": "llm", "input": 900, "cost_usd": 0.002},
+        ],
+        None,
+    )
+    assert [u.images for u in usage] == [3, 0]
+    assert "images" not in usage[1].model_dump()
