@@ -88,6 +88,7 @@ RELAY_HOSTS: Mapping[str, RelayHost] = {
     "generativelanguage.googleapis.com": RelayHost(wire=Wire.GOOGLE, prefix="v1beta"),
     "api.inference.net": RelayHost(wire=Wire.OPENAI, prefix="v1", catalog=True),
 }
+CATALOG_TIMEOUT_S = 10.0  # a catalog read holds up the first call to its host
 VERCEL_GATEWAY_HOST = "ai-gateway.vercel.sh"
 # The AI Gateway charges each vendor's list price with no markup, and genai-prices has no gateway
 # provider, so a gateway response is priced at its model's vendor: the `vendor/` prefix of the id.
@@ -557,7 +558,7 @@ def app(
     """The meter ASGI app. `transport` exists so tests can mount an httpx MockTransport upstream."""
     trials: dict[str, TrialMeter] = {}
     clients: list[httpx.AsyncClient] = []
-    catalogs: dict[str, Provider] = {}
+    catalogs: dict[str, Provider | None] = {}  # None: the read failed, and is not retried
     catalog_lock = asyncio.Lock()
 
     def client() -> httpx.AsyncClient:
@@ -626,18 +627,22 @@ def app(
         return await forward(trial, wire, request, path, base_url, None, catalog)
 
     async def host_catalog(host: str, base_url: str) -> Provider | None:
-        """The host's published rates, read once per meter; None (calls priced unknown) while unreadable."""
+        """The host's published rates, read once per meter; None (calls priced unknown) if that read failed.
+
+        A failed read is not retried: each retry would hold up the call that made it.
+        """
         async with catalog_lock:
             if host not in catalogs:
                 try:
-                    response = await client().get(f"{base_url}/models")
+                    response = await client().get(f"{base_url}/models", timeout=CATALOG_TIMEOUT_S)
                     response.raise_for_status()
                 except httpx.HTTPError as exc:
                     logger.warning(
                         "meter: %s's price catalog is unreadable (%s); its calls are priced unknown", host, exc
                     )
-                    return None
-                catalogs[host] = catalog_provider(host, parse_json(response.content))
+                    catalogs[host] = None
+                else:
+                    catalogs[host] = catalog_provider(host, parse_json(response.content))
             return catalogs[host]
 
     async def forward(

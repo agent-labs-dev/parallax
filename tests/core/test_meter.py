@@ -465,6 +465,26 @@ async def test_a_catalog_host_is_priced_at_its_published_rate_and_unlisted_model
     assert usage["unlisted-model"].cost_usd is None
 
 
+async def test_an_unreadable_catalog_is_read_once_and_leaves_its_calls_unpriced(seen: list[httpx.Request]) -> None:
+    def handle(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if request.method == "GET":
+            return httpx.Response(503)
+        usage = {"prompt_tokens": 1000, "completion_tokens": 100}
+        return httpx.Response(200, json={"model": "deepseek-v4.1-flash-1017", "usage": usage, "choices": []})
+
+    no_keys = {w: Upstream(base_url="https://unused.example/v1", api_key=None) for w in meter_module.PROXY_WIRES}
+    meter = httpx.ASGITransport(app=app(ADMIN, no_keys, transport=httpx.MockTransport(handle)))
+    control = await register(meter)
+    base = meter_module.relay_url("http://meter", KEY)
+    async with httpx.AsyncClient(transport=meter) as c:
+        for _ in range(2):
+            await c.post(f"{base}/api.inference.net/v1/chat/completions", json={"model": "m", "messages": []})
+    assert [r.method for r in seen] == ["GET", "POST", "POST"]
+    (u,) = (await control.report(KEY)).usage
+    assert (u.requests, u.cost_usd) == (2, None)
+
+
 async def test_relayed_gemini_stream_is_metered_with_thinking_as_output(
     relay_meter: httpx.AsyncBaseTransport, seen: list[httpx.Request]
 ) -> None:
