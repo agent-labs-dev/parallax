@@ -429,14 +429,18 @@ async def _grade(spec: SuiteSpec, req: GradeRequest) -> Graded:
         return _unjudged(req.task, f"missing evidence: {exc}")
     if not evidence.observed():
         return _unjudged(req.task, "missing evidence: browser harness reported no observations")
-    # The upstream judge reports no price, so a trial that may have reached it has an unknown judge cost.
-    return (await _upstream(spec, req, evidence)).model_copy(update={"unpriced_calls": 1})
+    try:
+        model = _model(req, spec)
+        _config(req, spec)
+    except (OfficialSuiteError, OSError, ValueError) as exc:
+        return _unjudged(req.task, f"missing evidence: official judge unavailable: {exc}")
+    # From here the bridge may reach the upstream judge, which reports no price, so the judge cost is unknown.
+    return (await _upstream(spec, req, evidence, model)).model_copy(update={"unpriced_calls": 1})
 
 
-async def _upstream(spec: SuiteSpec, req: GradeRequest, evidence: BrowserEvidence) -> Graded:
+async def _upstream(spec: SuiteSpec, req: GradeRequest, evidence: BrowserEvidence, model: str) -> Graded:
     checks = _checks(req.task)
     try:
-        _model(req, spec)
         with tempfile.TemporaryDirectory(prefix="parallax-official-") as directory:
             result = await _bridge(spec, req, _request(spec, req, evidence, Path(directory)))
     except (OfficialSuiteError, OSError, ValueError) as exc:
@@ -446,7 +450,6 @@ async def _upstream(spec: SuiteSpec, req: GradeRequest, evidence: BrowserEvidenc
     score = float(result["score"])
     if not 0 <= score <= 1:
         return _unjudged(req.task, "missing evidence: upstream judge returned an out-of-range score")
-    model = _model(req, spec)
     detail = f"upstream judge score={score:.6g}; model={model}; revision={spec.upstream_commit}"
     return Graded(
         checks=tuple(_result(checks[0], bool(result["passed"]), detail) for _ in checks),

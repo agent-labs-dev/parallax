@@ -141,6 +141,29 @@ async def test_grade_sends_any_browser_evidence_to_the_upstream_judge(monkeypatc
 
 
 @pytest.mark.asyncio
+async def test_a_judge_that_cannot_start_leaves_the_judge_cost_known(monkeypatch):
+    monkeypatch.delenv("PARALLAX_OFFICIAL_ONLINE_JUDGE_MODEL", raising=False)
+    row = {"task_id": "row-1", "confirmed_task": "Complete the task", "website": "https://example.test/start"}
+    task = task_from_record(official.ONLINE_MIND2WEB, official._record(official.MIND2WEB_SPEC, row, 0, set()))
+    page = {"url": "https://example.test/done", "title": "Done", "text": "Finished", "screenshot_png_b64": "iVBORw=="}
+    request = GradeRequest(
+        task=task,
+        evidence=None,
+        answers=("Finished",),
+        product={"browser": {"final_page": page, "answer": "Finished", "steps": [], "pages": []}},
+        execution={},
+        harness_model=None,
+        panel=None,
+        judge_config=None,
+        client=httpx.AsyncClient(),
+    )
+    graded = await official._grade(official.MIND2WEB_SPEC, request)
+    await request.client.aclose()
+    assert graded.checks[0].passed is None and "official judge unavailable" in graded.checks[0].detail
+    assert graded.unpriced_calls == 0  # nothing reached the upstream judge, so the budget can release the hold
+
+
+@pytest.mark.asyncio
 async def test_environment_interruption_remains_retryable(monkeypatch):
     row = {"task_id": "row-1", "confirmed_task": "Complete the task", "website": "https://example.test/start"}
     task = task_from_record(official.ONLINE_MIND2WEB, official._record(official.MIND2WEB_SPEC, row, 0, set()))
