@@ -13,10 +13,12 @@ All notable changes to Parallax are recorded here. The format follows
 
 ### Added
 
+- The `claude-code` and `codex` harnesses return, as reference rows for comparing general-purpose products: Claude Code 2.1.325 and codex-cli 0.169.0, with the `claude_stream_json` and `codex_jsonl` parsers. Usage comes from the meter. The meter's Anthropic wire can point at OpenRouter (`PARALLAX_UPSTREAM_ANTHROPIC=https://openrouter.ai/api/v1`).
 - Core tasks `restraint-no-item-named-asks` and `restraint-named-item-acts`: a request that names no item asks before acting, and one that names it acts.
 
 ### Fixed
 
+- An agent harness run with `--isolation host` no longer counts as running on the world's clock: it reads the machine's date, so a task that requires `world_clock` is NA there. Docker boxes and the controls keep it. `conf-mcp-echo` now requires `world_clock`, since its request names today.
 - The judge is told its evidence is the trial's complete record, so an empty call or approval list reads as none made rather than as an abstain.
 - A judge on OpenRouter is only routed to hosts that support every parameter it sends (`provider.require_parameters`), so a host that ignores the strict reply schema never answers it.
 - A campaign budget settles each trial with its judges' spend as well as the harness's, and keeps the full hold when a judge call had no price.

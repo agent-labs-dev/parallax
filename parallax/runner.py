@@ -678,13 +678,18 @@ def harness_isolation(info: HarnessInfo, run_isolation: Isolation) -> Isolation:
 
 
 def trial_capabilities(info: HarnessInfo, run_isolation: Isolation) -> frozenset[Capability]:
-    """What a trial can rely on: the harness's capabilities, plus the world's clock wherever the
-    runner owns the harness's process. A docker box runs it under px-clock; host isolation is for
-    controls, which read no clock, and dev. A remote product keeps its own clock unless it declares
-    `world_clock`."""
+    """What a trial can rely on: the harness's capabilities, plus the world's clock where it holds.
+    A docker box runs the harness under px-clock, and a control (always on the host) reads no clock.
+    An agent run with `--isolation host` reads the machine's real date, and a remote product keeps
+    its own clock, so neither has it unless the harness declares `world_clock`."""
     caps = info.capabilities
-    if harness_isolation(info, run_isolation) is not Isolation.REMOTE:
-        caps |= {Capability.WORLD_CLOCK}
+    match harness_isolation(info, run_isolation):
+        case Isolation.DOCKER:
+            caps |= {Capability.WORLD_CLOCK}
+        case Isolation.HOST if info.isolation is Isolation.HOST:
+            caps |= {Capability.WORLD_CLOCK}
+        case _:
+            pass
     return caps
 
 

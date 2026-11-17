@@ -83,7 +83,7 @@ common setup failures.
 
 Parallax focuses on general-purpose agents: connected services, multi-step
 work, persistent memory and delegation. The in-tree harnesses are
-`hermes` and `openclaw`, plus the
+`hermes`, `openclaw`, `claude-code` and `codex`, plus the
 `oracle`, `null-claim` and `null-refuse` controls. The
 [harness matrix](docs/adapters.md#harness-matrix) records what has been verified
 for each. Docker is the default isolation boundary.

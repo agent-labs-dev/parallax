@@ -170,7 +170,7 @@ itself pass: untyped or `custom` tools, `bash` and `text_editor` on Anthropic,
 and `function`, `custom`, `local_shell` and `namespace` groups of those on
 OpenAI. A request body the meter cannot read is refused too, and the meter
 forwards the body it checked rather than the raw bytes. Nothing is stripped
-silently. Hermes and OpenClaw, measured with their Parallax
+silently. Hermes, OpenClaw, Claude Code and Codex, measured with their Parallax
 configuration, send no provider-side tool, so the refusal does not fire on
 their normal runs. It applies under every isolation mode. The meter does not
 refuse a model that searches the web without a tool, such as Perplexity Sonar

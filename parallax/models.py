@@ -98,8 +98,8 @@ class Capability(StrEnum):
     MULTI_TURN = "multi_turn"  # continues one conversation across steps
     MEMORY = "memory"  # recalls across a fresh session using the harness's own persistent memory
     # Runs on the world's clock, so "today" and "next week" mean the scenario's dates. The runner
-    # grants it to every harness whose process it owns (`trial_capabilities`); a remote product has
-    # it only if it declares it.
+    # grants it to a harness in a docker box, which runs under px-clock, and to the controls
+    # (`trial_capabilities`); any other harness has it only if it declares it.
     WORLD_CLOCK = "world_clock"
     # Starts a step as a scheduled job's run that nobody is watching (`StepSpec.origin`), and answers
     # the approval card the product raises for it with the step's scripted decision.
@@ -927,6 +927,8 @@ class Trajectory(Model):
 
 
 class ParserId(StrEnum):
+    CLAUDE_STREAM_JSON = "claude_stream_json"
+    CODEX_JSONL = "codex_jsonl"
     OPENCLAW_JSON = "openclaw_json"
     HERMES_QUIET = "hermes_quiet"
     PLAIN_TEXT = "plain_text"
