@@ -115,10 +115,14 @@ async def _stop(client: Any, browser_id: str) -> object | None:
 
 
 async def _settled(client: Any, browser_id: str) -> object | None:
+    """The browser's cost read once it has stopped and its proxy figure settled; None when the read fails or the
+    browser is still running, as it is when every stop attempt failed, so a still-counting cost is never final."""
     await asyncio.sleep(PROXY_SETTLE_SECONDS)
-    with contextlib.suppress(Exception):
-        return await client.browsers.get(browser_id)
-    return None
+    try:
+        view = await client.browsers.get(browser_id)
+    except Exception:
+        return None
+    return view if view.status.value == "stopped" else None
 
 
 @contextlib.asynccontextmanager
