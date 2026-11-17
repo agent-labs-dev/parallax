@@ -140,6 +140,25 @@ class _RouterEnvelope(BaseModel):
     error: _RouterError
 
 
+class _GatewayError(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    message: str
+
+
+class _GatewayEnvelope(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    error: _GatewayError
+
+
+def gateway_message(content: bytes) -> str | None:
+    """The gateway's own `error.message` in its documented error body (openrouter.ai/docs/api/reference/errors-and-debugging),
+    or None. It is what names the cause: a 404 says only "Not Found", its message that no host supports the request."""
+    try:
+        return _GatewayEnvelope.model_validate_json(content).error.message
+    except ValueError:
+        return None
+
+
 def fallback_rejection(content: bytes) -> str | None:
     """The upstream's own `invalid_request_error` message in an OpenRouter error body, or None."""
     try:
@@ -307,7 +326,12 @@ async def fallback(
                 else None
             )
             unbilled = refused is not None and refused.startswith(UNBILLED_FALLBACK_REJECTIONS)
-            error = f"HTTP 400: {refused}" if refused is not None else str(exc)
+            if refused is not None:
+                error = f"HTTP 400: {refused}"
+            elif response is not None and response.is_error and (message := gateway_message(response.content)):
+                error = f"HTTP {response.status_code}: {message}"
+            else:
+                error = str(exc)
             errors.append(f"{type(exc).__name__}: {error}")
             calls.append(
                 FallbackCall(
