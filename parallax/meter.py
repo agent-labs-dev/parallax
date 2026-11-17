@@ -893,6 +893,7 @@ def llm_endpoint(meter_url: str, trial_key: str) -> LlmEndpoint:
     return LlmEndpoint(
         openai_base_url=f"{base}/{trial_key}/openai/v1",
         anthropic_base_url=f"{base}/{trial_key}/anthropic",
+        relay_url=relay_url(meter_url, trial_key),
         api_key=trial_key,
     )
 

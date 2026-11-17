@@ -83,6 +83,7 @@ def make_trial(box: HostBox) -> Trial:
         llm=LlmEndpoint(
             openai_base_url="http://meter.test/openai/v1",
             anthropic_base_url="http://meter.test/anthropic",
+            relay_url="http://meter.test/relay",
             api_key="px-key",
         ),
         env={"PARALLAX_WORLD_TOKEN": "world-tok"},

@@ -273,7 +273,8 @@ A manifest points the harness at the meter through `[env]`, for example
 
 A product that is compared as shipped, with its own provider keys and model
 routing, sends its calls through the relay instead:
-`{meter}/{trial_key}/relay/{host}/{path}`, built with `parallax.meter.relay_url`.
+`{meter}/{trial_key}/relay/{host}/{path}`. A metered harness reads the trial's
+relay as `trial.llm.relay_url` and prefixes it to the provider's host and path.
 The caller's own credentials are forwarded, so the meter holds no key for
 these hosts. The relay knows these hosts, and refuses any other with HTTP 403:
 
