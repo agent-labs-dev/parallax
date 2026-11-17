@@ -6,6 +6,8 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev37] - 2026-11-17
+
 ### Added
 
 - `browser-harness-claude-code` runs Browser Use's browser-harness skill under Claude Code, beside `browser-harness` under Codex, on the same skill, Cloud browser and OpenRouter model routing, so the two agents compare on equal terms.
