@@ -595,6 +595,14 @@ class TrialPlan:
 class TrialRun:
     result: TrialResult
     evidence: Evidence | None
+    # What grading the trial cost in USD; None when a judge call had no price.
+    judge_cost_usd: float | None = 0.0
+
+    def spent(self) -> float | None:
+        """The trial's whole spend, the harness's and its judges'; None when either is unknown."""
+        if self.result.cost_usd is None or self.judge_cost_usd is None:
+            return None
+        return self.result.cost_usd + self.judge_cost_usd
 
 
 @dataclass
@@ -778,7 +786,7 @@ class Session:
         spent: float | None = None
         try:
             run = await self.execute(plan)
-            spent = run.result.cost_usd
+            spent = run.spent()
             return run
         finally:
             await finish_uncancelled(self.budget.settle(hold, spent))
@@ -1255,6 +1263,7 @@ class TrialExecution:
         execution_valid = None
         judged_under: str | None = None
         judged_score: float | None = None
+        judge_cost: float | None = 0.0
         # A world-less task has no world evidence; its policy grades what the harness reported. An interrupted
         # trial measured no agent, so nothing is judged.
         gradable = ev is not None or self.task.seed is None
@@ -1278,9 +1287,11 @@ class TrialExecution:
             record_grade(self.dir / "judgments.jsonl", self.task, g)
             execution_valid = g.execution_valid
             checks, same_family, judged_under, judged_score = g.checks, g.same_family, g.judge_identity, g.score
+            costs = [j.cost() for j in g.judgments]
+            judge_cost = None if any(unpriced for _, unpriced in costs) else sum(known for known, _ in costs)
         self.write_evidence(ev)
         finished = self.finish(started, meter, checks, same_family, execution_valid, judged_under, judged_score)
-        return TrialRun(finished, ev)
+        return TrialRun(finished, ev, judge_cost)
 
     def finish(
         self,

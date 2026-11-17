@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import asyncio
 import time
-from collections.abc import Awaitable, Callable
 from contextvars import ContextVar
 from types import TracebackType
 from typing import Literal, Self
@@ -139,34 +138,6 @@ _current: ContextVar[AttemptClock | None] = ContextVar("parallax_browser_attempt
 
 def current() -> AttemptClock | None:
     return _current.get()
-
-
-def session_ready(at: float | None = None) -> float:
-    moment = time.monotonic() if at is None else at
-    if (clock := _current.get()) is not None:
-        clock.ready(moment)
-    return moment
-
-
-def session_answered(at: float | None = None) -> float:
-    moment = time.monotonic() if at is None else at
-    if (clock := _current.get()) is not None:
-        clock.answered(moment)
-    return moment
-
-
-def setup_marks() -> tuple[Callable[[], None], Callable[[], Awaitable[None]]]:
-    clock = _current.get()
-
-    def asked() -> None:
-        if clock is not None:
-            clock.asked()
-
-    async def page_ready() -> None:
-        if clock is not None:
-            clock.page_ready()
-
-    return asked, page_ready
 
 
 def elapsed() -> float:

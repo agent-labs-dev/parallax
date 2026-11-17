@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-import asyncio
-
 import httpx
 import pytest
 from parallax.harnesses.browser.site import (
     RETRYABLE_STATUS,
-    SiteWatch,
     Unavailable,
     refusal,
     retryable_status,
@@ -37,17 +34,6 @@ async def test_site_down_does_not_block_browser_on_http_access_refusal(status: i
     transport = httpx.MockTransport(lambda _: httpx.Response(status))
     async with httpx.AsyncClient(transport=transport) as client:
         assert await site_down(client, "https://site.test/start") is None
-
-
-async def test_site_watch_records_an_overlapping_stall() -> None:
-    transport = httpx.MockTransport(lambda _: httpx.Response(503))
-    async with httpx.AsyncClient(transport=transport) as client:
-        watch = SiteWatch(client, ["https://site.test/start"], probe_seconds=0.01, stall_seconds=0)
-        running = asyncio.create_task(watch.run())
-        await asyncio.sleep(0.02)
-        await watch.stop()
-        await asyncio.wait_for(running, 1)
-        assert await watch.stalled("https://site.test/start", 0, 10**12) is not None
 
 
 @pytest.mark.parametrize("status", sorted(RETRYABLE_STATUS))

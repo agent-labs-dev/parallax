@@ -329,8 +329,8 @@ async def test_every_attempt_keeps_its_row_and_directory_and_an_interruption_wai
     assert len(set(dirs)) == 3 and all(d is not None and (run_dir / d / "result.json").is_file() for d in dirs)
     assert not (run_dir / str(dirs[0]) / "judgments.jsonl").exists()  # an interrupted attempt is never judged
     loaded = load_run(run_dir)
-    assert (len(loaded.attempts), len(loaded.results), loaded.retries) == (3, 1, 2)
-    assert [r.attempt for r in loaded.physical_runs(rows[0].key)] == [0, 1, 2]
+    assert (len(loaded.attempts), len(loaded.results)) == (3, 1)
+    assert [r.attempt for r in loaded.attempts] == [0, 1, 2]
     assert loaded.results[0].attempt == 2
 
 
@@ -354,6 +354,24 @@ async def test_a_trial_the_budget_cannot_hold_is_refused_and_never_retried(
     events = [json.loads(line) for line in (run_dir / "budget.jsonl").read_text().splitlines()]
     assert [e["event"] for e in events] == ["header", "reserve", "settle"]
     assert events[2]["charge_usd"] == pytest.approx(0.30)  # settled from the row's cost
+
+
+@pytest.mark.parametrize(
+    ("harness_usd", "judge_usd", "spent"),
+    [(0.30, 0.02, 0.32), (None, 0.02, None), (0.30, None, None)],
+    ids=["both known", "harness unknown", "an unpriced judge call"],
+)
+async def test_the_budget_settles_a_trial_with_its_judges_spend(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    harness_usd: float | None,
+    judge_usd: float | None,
+    spent: float | None,
+) -> None:
+    run_dir = await run_browsing(tmp_path, monkeypatch, Browsing(), retry_invalid=0)
+    [row] = read_results(run_dir / "results.jsonl")
+    trial = runner.TrialRun(row.model_copy(update={"cost_usd": harness_usd}), None, judge_usd)
+    assert trial.spent() == (None if spent is None else pytest.approx(spent))
 
 
 async def test_a_harness_whose_credentials_cannot_be_forwarded_reserves_nothing_and_is_not_retried(

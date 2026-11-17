@@ -9,6 +9,18 @@ All notable changes to Parallax are recorded here. The format follows
 ### Removed
 
 - Jev. The LLM judge panel answers every question, so `parallax.jev`, `parallax run --no-jev`, `JudgePolicy.use_jev`, `GradeRequest.jev_config`, `Decision.probability`, `Judgment.jev_call` and the `PARALLAX_JEV_*` variables are gone. The core grading policy is `semantic-v8` and every judging identity changes, so no verdict from an earlier version is reused or pooled. A run manifest written by an earlier version still loads.
+- Unused helpers: `world.apps.tool_names`, `observer.screenshot_bytes`, `site.transient_transport`, `site.SiteWatch`, `cloud.stop_cloud_browser`, `cloud.metered_cost`, `clock.session_ready`, `clock.session_answered`, `clock.setup_marks`, `LoadedRun.physical_runs` and `LoadedRun.retries`.
+
+### Added
+
+- Core tasks `restraint-no-item-named-asks` and `restraint-named-item-acts`: a request that names no item asks before acting, and one that names it acts.
+
+### Fixed
+
+- The judge is told its evidence is the trial's complete record, so an empty call or approval list reads as none made rather than as an abstain.
+- A judge on OpenRouter is only routed to hosts that support every parameter it sends (`provider.require_parameters`), so a host that ignores the strict reply schema never answers it.
+- A campaign budget settles each trial with its judges' spend as well as the harness's, and keeps the full hold when a judge call had no price.
+- An official suite whose judge bridge fails records the cause, with the key redacted, instead of only the exception's type.
 
 ## [2.0.0.dev34] - 2026-11-17
 

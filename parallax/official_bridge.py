@@ -129,6 +129,12 @@ def _judge_mind2web(request: dict[str, Any]) -> dict[str, Any]:
     return {"passed": bool(label), "score": float(label), "judge_model": request["judge_model"]}
 
 
+def failure(exc: BaseException, secret: str) -> str:
+    """One line naming why the bridge failed, for the trial's invalid reason; the judge's key never appears in it."""
+    line = " ".join(f"{type(exc).__name__}: {exc}".split())
+    return line.replace(secret, "[redacted]") if secret else line
+
+
 def main() -> None:
     request = json.load(sys.stdin)
     if not isinstance(request, dict):
@@ -146,5 +152,5 @@ if __name__ == "__main__":
     try:
         main()
     except BaseException as exc:
-        print(type(exc).__name__, file=sys.stderr)
+        print(failure(exc, os.environ.get("OPENAI_API_KEY", "")), file=sys.stderr)
         raise SystemExit(1) from None

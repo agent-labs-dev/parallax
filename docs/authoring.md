@@ -641,7 +641,7 @@ SECONDS` waits before the first retry round and doubles the wait each round afte
 
 `--budget USD --reserve USD` caps a campaign's spend. A trial starts only while its reservation fits the limit less
 what is committed, and is otherwise recorded invalid with `budget refused: ` and never retried. A finished trial
-settles its cost, and a trial of unknown cost keeps its reservation. The journal is `budget.jsonl` in the run
+settles its cost, the harness's and its judges', and a trial of unknown cost keeps its reservation. The journal is `budget.jsonl` in the run
 directory, or the path `--budget-journal PATH` names: runs that run one after another on one journal share its limit,
 so arms that need separate run directories spend one budget. A resume must use the same limits, and one process holds
 the journal at a time.

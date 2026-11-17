@@ -11,6 +11,7 @@ from parallax import runner
 from parallax.extensions import GradeRequest
 from parallax.judge import JudgeConfig, JudgePanel
 from parallax.models import CheckResult, FailureMode, Isolation, TrajectoryStatus, Verdict
+from parallax.official_bridge import failure
 from parallax.runner import RunOptions, decide, read_results, run_async
 from parallax.semantic import Graded
 from parallax.task import discover, task_from_record
@@ -178,3 +179,8 @@ async def test_a_published_judge_score_is_the_trial_score(tmp_path, monkeypatch)
     )
     rows = read_results(out / "results.jsonl")
     assert rows and all(r.verdict is Verdict.FAIL and r.score == 0.6 for r in rows)
+
+
+def test_a_bridge_failure_names_its_cause_without_the_key() -> None:
+    exc = RuntimeError("401 from https://judge.example: key sk-secret\nis invalid")
+    assert failure(exc, "sk-secret") == "RuntimeError: 401 from https://judge.example: key [redacted] is invalid"
