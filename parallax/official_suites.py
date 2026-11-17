@@ -292,7 +292,9 @@ def _config(req: GradeRequest, spec: SuiteSpec) -> _Config:
     api_key = config.api_key if config is not None else os.environ.get("PARALLAX_JUDGE_API_KEY", "")
     if not root.is_dir() or not python.is_file() or not base_url or not api_key:
         raise OfficialSuiteError("official judge checkout, interpreter, endpoint and key must be configured")
-    return _Config(root=root, python=python.resolve(), base_url=base_url, api_key=api_key)
+    # Absolute but not resolved: a virtual environment's `python` is a symlink to its base interpreter, and only
+    # launched through the link does it find the environment's `pyvenv.cfg` and the judge's installed packages.
+    return _Config(root=root, python=python.expanduser().absolute(), base_url=base_url, api_key=api_key)
 
 
 def _model(req: GradeRequest, spec: SuiteSpec) -> str:
