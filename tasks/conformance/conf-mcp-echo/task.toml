@@ -5,6 +5,6 @@ id = "conf-mcp-echo"
 version = 1
 area = "conformance"
 summary = "Post a given check-in code to #conf and repeat it back"
-requires = ["mcp"]
+requires = ["mcp", "world_clock"]
 provenance = "hand_authored"
 canary = "b3cb4758-262a-4a92-b3ea-9189a0a62e6d"

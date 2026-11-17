@@ -1,0 +1,45 @@
+now: 2026-06-03T09:10:00+01:00
+user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+mail:
+  messages:
+    - {id: m1, thread: t1, from: dana.reyes@northwind.test, to: [alex@northwind.test], cc: [],
+       subject: "Weekly pipeline report",
+       body: "Hi Alex, the weekly pipeline report is below. Open deals: 38. Weighted pipeline: 412,000. Three deals slipped to next quarter. Dana",
+       date: "2026-06-02T17:05:00+01:00", labels: [inbox]}
+    - {id: m2, thread: t2, from: sam.okafor@northwind.test, to: [alex@northwind.test], cc: [],
+       subject: "Lunch on Friday?",
+       body: "Are you free for lunch on Friday? Sam",
+       date: "2026-06-02T12:30:00+01:00", labels: [inbox]}
+drive:
+  folders:
+    - {id: f1, name: Reports, parent: null}
+  files:
+    - id: d1
+      name: "Q3 churn report"
+      folder: f1
+      owner: alex@northwind.test
+      created: "2026-05-28T10:00:00+01:00"
+      modified: "2026-06-01T16:00:00+01:00"
+      content: |
+        Q3 churn report
+        Monthly churn: 4.2 percent, up from 3.1 percent last quarter.
+        Main drivers: pricing changes, a slow onboarding flow, one large account lost.
+    - id: d2
+      name: "Meeting notes - 1 June"
+      folder: f1
+      owner: alex@northwind.test
+      created: "2026-06-01T11:00:00+01:00"
+      modified: "2026-06-01T11:30:00+01:00"
+      content: |
+        Meeting notes, 1 June
+        Agreed to review the hiring plan on Thursday.
+chat:
+  channels:
+    - {id: ch_team, name: team, members: [alex@northwind.test, dana.reyes@northwind.test, sam.okafor@northwind.test], topic: "Team channel", created: "2026-01-05T09:00:00+00:00"}
+  messages:
+    - {id: g1, channel: ch_team, author: sam.okafor@northwind.test, text: "Morning all.", ts: "2026-06-03T08:30:00+01:00", thread_id: null}
+contacts:
+  people:
+    - {id: c1, name: Northwind Team, email: team@northwind.test, company: Northwind, title: "", notes: "Team mailing list"}
+    - {id: c2, name: Dana Reyes, email: dana.reyes@northwind.test, company: Northwind, title: Sales lead, notes: ""}
+    - {id: c3, name: Sam Okafor, email: sam.okafor@northwind.test, company: Northwind, title: Product lead, notes: ""}

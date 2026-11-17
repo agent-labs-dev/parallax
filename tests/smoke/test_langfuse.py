@@ -72,7 +72,6 @@ async def _judges(monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[None]:
     url = f"http://127.0.0.1:{server.port}"
     try:
         monkeypatch.setenv("OPENROUTER_API_KEY", "replay")
-        monkeypatch.setenv("PARALLAX_JEV_BASE_URL", url)
         monkeypatch.setenv("PARALLAX_JUDGE_BASE_URL", url)
         monkeypatch.setenv("PARALLAX_JUDGE_API_KEY", "replay")
         monkeypatch.setenv("PARALLAX_JUDGE_MODELS", FALLBACK_MODEL)

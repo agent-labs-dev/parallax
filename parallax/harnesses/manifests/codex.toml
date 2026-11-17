@@ -1,0 +1,36 @@
+# Flags verified against codex-cli 0.169.0 (fixtures/codex/help.txt). `resume` accepts only the flags
+# listed after it; -C is a parent `exec` option, so it precedes the subcommand. Config checked with
+# `codex --strict-config`; `web_search = "disabled"` is the current top-level key.
+protocol = "cli"
+parser = "codex_jsonl"
+session = "from_output"
+stdin = "prompt"
+argv_first = ["codex", "exec", "--json", "--skip-git-repo-check", "--dangerously-bypass-approvals-and-sandbox",
+  "-m", "{model_name}", "-C", "{workspace}", "-"]
+argv_next = ["codex", "exec", "-C", "{workspace}", "resume", "--json", "--skip-git-repo-check",
+  "--dangerously-bypass-approvals-and-sandbox", "-m", "{model_name}", "{session}", "-"]
+
+[info]
+name = "codex"
+kind = "open"
+# No `memory`: codex 0.169.0 ships `features.memories` off, extracts only rollouts idle for
+# `memories.min_rollout_idle_hours`, and skips any rollout that used MCP (`no_memories_if_mcp_or_web_search`),
+# which is every trial here. Codex therefore has no cross-session memory to measure, so memory tasks are NA.
+capabilities = ["mcp", "workspace", "shell", "multi_turn"]
+pins_model = true
+cost_source = "metered"
+install = "npm i -g @openai/codex"
+version_cmd = ["codex", "--version"]
+web_disabled_by = "config"
+source_url = "https://github.com/openai/codex"
+
+[env]
+CODEX_HOME = "{home}/.codex"
+PARALLAX_METER_KEY = "{meter_key}"
+
+[[config]]
+path = "home:.codex/config.toml"
+format = "toml"
+content = { model_provider = "meter", web_search = "disabled", model_providers = { meter = { name = "meter", base_url = "{meter_openai}", env_key = "PARALLAX_METER_KEY", wire_api = "responses" } } }
+mcp_content = { mcp_servers = { world = { url = "{world_url}", bearer_token_env_var = "{world_token_env}" } } }
+

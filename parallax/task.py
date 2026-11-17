@@ -280,10 +280,9 @@ SOURCES = "parallax.task_sources"
 
 
 def record_hash(record: TaskRecord) -> str:
-    """A task source record's identity: sha256 over its canonical JSON (keys sorted, sets in order), so equal content
+    """A task source record's identity: sha256 over its canonical JSON (keys and sets sorted), so equal content
     is one hash whatever order a source builds it in, and a change to any field is a new hash."""
     dump = record.model_dump(mode="json")
-    dump["requires"] = sorted(dump["requires"])
     return hashlib.sha256(json.dumps(dump, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 

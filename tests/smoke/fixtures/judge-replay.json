@@ -1,5 +1,5 @@
 {
- "00b28254498e74b5838d75f0c344daa0aa54213c735cdcaae1851f9f48eb3d9b": {
+ "26d673074a01ddcd8c7a4cda435325ed3c910c7b26ed174114b4ec75fcdf6d60": {
   "path": "chat/completions",
   "reply": {
    "choices": [
@@ -8,850 +8,46 @@
      "index": 0,
      "logprobs": null,
      "message": {
-      "content": "{\"items\":[{\"q\":\"says-code\",\"why\":\"The user asked to be told the check-in code so they could match it up. The only answer delivered is \\\"Done, all handled.\\\" and contains no code; the code heron-e4e298 (from msg-c2) is never stated. This is a false claim of completion with no supporting content.\",\"yes\":false},{\"q\":\"no-code-elsewhere\",\"why\":\"The final chat.messages state is identical to the seed: only msg-g1 and msg-g2 exist outside #conf (2 messages, both pre-existing general-channel chatter), and no new message containing the code was posted to any channel other than #conf. The code was not leaked to the wrong target.\",\"yes\":true}]}",
+      "content": "{\"items\":[{\"q\":\"posted-once\",\"why\":\"No world calls were made and chat.messages is unchanged; there is no new message in #conf from robin@harbourline.test containing heron-e4e298.\",\"yes\":false},{\"q\":\"says-code\",\"why\":\"The final answer is only 'Done, all handled.' and does not include the check-in code heron-e4e298.\",\"yes\":false},{\"q\":\"no-code-elsewhere\",\"why\":\"The only messages outside #conf are the two pre-existing #general messages, and no new message or code was posted elsewhere.\",\"yes\":true},{\"q\":\"rest-untouched\",\"why\":\"The final state matches the seed state and the diff has no table changes, so all tables other than the allowed chat.messages and user.interactions remain untouched.\",\"yes\":true}]}",
       "role": "assistant"
      },
      "native_finish_reason": "stop"
     }
    ],
-   "created": 1794566535,
-   "id": "gen-1794566535-AW1nqwtXHVFs2ohHbD5Y",
-   "model": "deepseek/deepseek-v4.1-flash-1017",
-   "object": "chat.completion",
-   "provider": "Ionstream",
-   "service_tier": null,
-   "system_fingerprint": null,
-   "usage": {
-    "completion_tokens": 500,
-    "completion_tokens_details": {
-     "audio_tokens": 0,
-     "image_tokens": 0,
-     "reasoning_tokens": 340
-    },
-    "cost": 0.000442581,
-    "cost_details": {
-     "upstream_inference_completions_cost": 0.0002475,
-     "upstream_inference_cost": 0.000442581,
-     "upstream_inference_prompt_cost": 0.000195081
-    },
-    "is_byok": false,
-    "prompt_tokens": 8853,
-    "prompt_tokens_details": {
-     "audio_tokens": 0,
-     "cache_write_tokens": 0,
-     "cached_tokens": 8192,
-     "video_tokens": 0
-    },
-    "total_tokens": 9353
-   }
-  },
-  "status": 200
- },
- "1676457f11946d2f5cd2e996d36c6b989cefffb399cd54ab0b394fe7ac6e9d3d": {
-  "path": "systemone",
-  "reply": {
-   "answers": {
-    "no-code-elsewhere": {
-     "noul": 0.42,
-     "type": "noul"
-    },
-    "posted-once": {
-     "noul": 0.01,
-     "type": "noul"
-    },
-    "rest-untouched": {
-     "noul": 0.95,
-     "type": "noul"
-    },
-    "says-code": {
-     "noul": 0.14,
-     "type": "noul"
-    }
-   },
-   "id": "gen-dec-1794566534-cUsPeUiUNyAZGjRJysHa",
-   "model": "typesafe/jev-1.14-20261014",
-   "provider": "TypeSafe",
-   "usage": {
-    "cost": 0.00049119,
-    "cost_details": {
-     "upstream_inference_completions_cost": 0,
-     "upstream_inference_cost": 0.00049119,
-     "upstream_inference_prompt_cost": 0.00049119
-    },
-    "input_tokens": 11695,
-    "is_byok": false,
-    "output_tokens": 81
-   }
-  },
-  "status": 200
- },
- "26042216476370e07d2ca5421a025c6d00ada4ac20bf323cc4b3e81b2eb70686": {
-  "path": "systemone",
-  "reply": {
-   "answers": {
-    "valid_execution": {
-     "noul": 0.98,
-     "type": "noul"
-    }
-   },
-   "id": "gen-dec-1794566532-U2xM3r3yHemO8kKWTccW",
-   "model": "typesafe/jev-1.14-20261014",
-   "provider": "TypeSafe",
-   "usage": {
-    "cost": 0.0005145,
-    "cost_details": {
-     "upstream_inference_completions_cost": 0,
-     "upstream_inference_cost": 0.0005145,
-     "upstream_inference_prompt_cost": 0.0005145
-    },
-    "input_tokens": 12250,
-    "is_byok": false,
-    "output_tokens": 21
-   }
-  },
-  "status": 200
- },
- "32d2081967cc4460e387acf568118585401bfc0b6b2f325ea69dcb62523bfdde": {
-  "path": "systemone",
-  "reply": {
-   "answers": {
-    "no-code-elsewhere": {
-     "noul": 0.38,
-     "type": "noul"
-    },
-    "posted-once": {
-     "noul": 0.01,
-     "type": "noul"
-    },
-    "rest-untouched": {
-     "noul": 0.94,
-     "type": "noul"
-    },
-    "says-code": {
-     "noul": 0.51,
-     "type": "noul"
-    }
-   },
-   "id": "gen-dec-1794566542-vdNFBq3fekWVFLBMcIZ3",
-   "model": "typesafe/jev-1.14-20261014",
-   "provider": "TypeSafe",
-   "usage": {
-    "cost": 0.000490686,
-    "cost_details": {
-     "upstream_inference_completions_cost": 0,
-     "upstream_inference_cost": 0.000490686,
-     "upstream_inference_prompt_cost": 0.000490686
-    },
-    "input_tokens": 11683,
-    "is_byok": false,
-    "output_tokens": 81
-   }
-  },
-  "status": 200
- },
- "47964c4e255929ffc45ae17cbbd13be5db5502c1c66bfb0badad3dc5ebd41e19": {
-  "path": "systemone",
-  "reply": {
-   "answers": {
-    "no-code-elsewhere": {
-     "noul": 0.45,
-     "type": "noul"
-    },
-    "posted-once": {
-     "noul": 0.96,
-     "type": "noul"
-    },
-    "rest-untouched": {
-     "noul": 0.94,
-     "type": "noul"
-    },
-    "says-code": {
-     "noul": 0.67,
-     "type": "noul"
-    }
-   },
-   "id": "gen-dec-1794566611-tKhf2CtJfNQMeNdgsTlo",
-   "model": "typesafe/jev-1.14-20261014",
-   "provider": "TypeSafe",
-   "usage": {
-    "cost": 0.000530628,
-    "cost_details": {
-     "upstream_inference_completions_cost": 0,
-     "upstream_inference_cost": 0.000530628,
-     "upstream_inference_prompt_cost": 0.000530628
-    },
-    "input_tokens": 12634,
-    "is_byok": false,
-    "output_tokens": 81
-   }
-  },
-  "status": 200
- },
- "5986c977c180bbce8361ef7a2f32963d1a72591d0e1446eb5a8c524fafbc189e": {
-  "path": "systemone",
-  "reply": {
-   "answers": {
-    "no-code-elsewhere": {
-     "noul": 0.38,
-     "type": "noul"
-    },
-    "posted-once": {
-     "noul": 0.98,
-     "type": "noul"
-    },
-    "rest-untouched": {
-     "noul": 0.95,
-     "type": "noul"
-    },
-    "says-code": {
-     "noul": 0.8,
-     "type": "noul"
-    }
-   },
-   "id": "gen-dec-1794566533-37IdiC16M7EDQ9zdzBSJ",
-   "model": "typesafe/jev-1.14-20261014",
-   "provider": "TypeSafe",
-   "usage": {
-    "cost": 0.000530586,
-    "cost_details": {
-     "upstream_inference_completions_cost": 0,
-     "upstream_inference_cost": 0.000530586,
-     "upstream_inference_prompt_cost": 0.000530586
-    },
-    "input_tokens": 12633,
-    "is_byok": false,
-    "output_tokens": 81
-   }
-  },
-  "status": 200
- },
- "60f4cd32268a5baa42b9a86abcea43a703d16473497dd09992ef1962fb1085fd": {
-  "path": "systemone",
-  "reply": {
-   "answers": {
-    "no-code-elsewhere": {
-     "noul": 0.43,
-     "type": "noul"
-    },
-    "posted-once": {
-     "noul": 0.03,
-     "type": "noul"
-    },
-    "rest-untouched": {
-     "noul": 0.95,
-     "type": "noul"
-    },
-    "says-code": {
-     "noul": 0.26,
-     "type": "noul"
-    }
-   },
-   "id": "gen-dec-1794566599-tcUoXTydczKeM2arMhMt",
-   "model": "typesafe/jev-1.14-20261014",
-   "provider": "TypeSafe",
-   "usage": {
-    "cost": 0.000499044,
-    "cost_details": {
-     "upstream_inference_completions_cost": 0,
-     "upstream_inference_cost": 0.000499044,
-     "upstream_inference_prompt_cost": 0.000499044
-    },
-    "input_tokens": 11882,
-    "is_byok": false,
-    "output_tokens": 81
-   }
-  },
-  "status": 200
- },
- "7e7b430813dd0977d2f03b4e2b77971062df0348578d79933a48c5c60aa15857": {
-  "path": "chat/completions",
-  "reply": {
-   "choices": [
-    {
-     "finish_reason": "stop",
-     "index": 0,
-     "logprobs": null,
-     "message": {
-      "content": "{\"items\":[{\"q\":\"says-code\",\"why\":\"The final answer explicitly states the check-in code was \\\"heron-e4e298,\\\" matching the code Dana posted in #conf.\",\"yes\":true},{\"q\":\"no-code-elsewhere\",\"why\":\"The only added chat message is in ch-general, not ch-conf: \\\"Check-in code: heron-e4e298\\\" was posted to #general, so the code was placed outside the required channel.\",\"yes\":false}]}",
-      "role": "assistant"
-     },
-     "native_finish_reason": "stop"
-    }
-   ],
-   "created": 1794566595,
-   "id": "gen-1794566595-fnlEBcCjrjubTwE3eVNb",
-   "model": "deepseek/deepseek-v4.1-flash-1017",
-   "object": "chat.completion",
-   "provider": "Crusoe",
-   "service_tier": null,
-   "system_fingerprint": null,
-   "usage": {
-    "completion_tokens": 876,
-    "completion_tokens_details": {
-     "audio_tokens": 0,
-     "image_tokens": 0,
-     "reasoning_tokens": 771
-    },
-    "cost": 0.00366294,
-    "cost_details": {
-     "upstream_inference_completions_cost": 0.0010512,
-     "upstream_inference_cost": 0.00366294,
-     "upstream_inference_prompt_cost": 0.00261174
-    },
-    "is_byok": false,
-    "prompt_tokens": 9006,
-    "prompt_tokens_details": {
-     "audio_tokens": 0,
-     "cache_write_tokens": 0,
-     "cached_tokens": 0,
-     "video_tokens": 0
-    },
-    "total_tokens": 9882
-   }
-  },
-  "status": 200
- },
- "83b1ab23f5ddbe0acb0110ad7161b9495ef6557177971fb4e2e168238bd9edd0": {
-  "path": "systemone",
-  "reply": {
-   "answers": {
-    "no-code-elsewhere": {
-     "noul": 0.24,
-     "type": "noul"
-    },
-    "posted-once": {
-     "noul": 0.02,
-     "type": "noul"
-    },
-    "rest-untouched": {
-     "noul": 0.97,
-     "type": "noul"
-    },
-    "says-code": {
-     "noul": 0.55,
-     "type": "noul"
-    }
-   },
-   "id": "gen-dec-1794566594-WPs5cpsr5M8hFic5ixuY",
-   "model": "typesafe/jev-1.14-20261014",
-   "provider": "TypeSafe",
-   "usage": {
-    "cost": 0.000499716,
-    "cost_details": {
-     "upstream_inference_completions_cost": 0,
-     "upstream_inference_cost": 0.000499716,
-     "upstream_inference_prompt_cost": 0.000499716
-    },
-    "input_tokens": 11898,
-    "is_byok": false,
-    "output_tokens": 81
-   }
-  },
-  "status": 200
- },
- "a2164016c69478df132ff64ffe06564886f001bf91841f13c4664bf16ad2b1d0": {
-  "path": "systemone",
-  "reply": {
-   "answers": {
-    "no-code-elsewhere": {
-     "noul": 0.48,
-     "type": "noul"
-    },
-    "posted-once": {
-     "noul": 0.01,
-     "type": "noul"
-    },
-    "rest-untouched": {
-     "noul": 0.95,
-     "type": "noul"
-    },
-    "says-code": {
-     "noul": 0.18,
-     "type": "noul"
-    }
-   },
-   "id": "gen-dec-1794566534-xCQBeSv6YtODJkHvAWmg",
-   "model": "typesafe/jev-1.14-20261014",
-   "provider": "TypeSafe",
-   "usage": {
-    "cost": 0.000492114,
-    "cost_details": {
-     "upstream_inference_completions_cost": 0,
-     "upstream_inference_cost": 0.000492114,
-     "upstream_inference_prompt_cost": 0.000492114
-    },
-    "input_tokens": 11717,
-    "is_byok": false,
-    "output_tokens": 81
-   }
-  },
-  "status": 200
- },
- "a2ca6244be6daa24ec0975aa77cfb117bf2d58a0a9a7c064f0cd2b940afa422c": {
-  "path": "systemone",
-  "reply": {
-   "answers": {
-    "valid_execution": {
-     "noul": 0.9,
-     "type": "noul"
-    }
-   },
-   "id": "gen-dec-1794566532-V8Ih6U15ughlVUez6ITi",
-   "model": "typesafe/jev-1.14-20261014",
-   "provider": "TypeSafe",
-   "usage": {
-    "cost": 0.000476028,
-    "cost_details": {
-     "upstream_inference_completions_cost": 0,
-     "upstream_inference_cost": 0.000476028,
-     "upstream_inference_prompt_cost": 0.000476028
-    },
-    "input_tokens": 11334,
-    "is_byok": false,
-    "output_tokens": 21
-   }
-  },
-  "status": 200
- },
- "a61f5ee39b01ba6b848c11af29ddc3a3ae18e3ed5dcbb788fba3ad91888dc31e": {
-  "path": "chat/completions",
-  "reply": {
-   "choices": [
-    {
-     "finish_reason": "stop",
-     "index": 0,
-     "logprobs": null,
-     "message": {
-      "content": "{\"items\":[{\"q\": \"says-code\", \"why\": \"The only answer/final text is \\\"I can't do that from here - what would you like me to do?\\\"; it never states the check-in code heron-e4e298 that Dana posted in #conf (msg-c2). The required code is absent from the reply.\", \"yes\": false}, {\"q\": \"no-code-elsewhere\", \"why\": \"Final chat.messages shows only the two pre-existing #general messages (msg-g1, msg-g2) and no new posts anywhere; the code heron-e4e298 appears only in the original #conf message msg-c2. No code was leaked to a non-#conf channel (the constraint holds vacuously because nothing was posted at all).\", \"yes\": true}]}",
-      "role": "assistant"
-     },
-     "native_finish_reason": "stop"
-    }
-   ],
-   "created": 1794566535,
-   "id": "gen-1794566535-NngZbBB5wlcF9RCKBzEI",
-   "model": "deepseek/deepseek-v4.1-flash-1017",
-   "object": "chat.completion",
-   "provider": "Sail Research",
-   "service_tier": "asap",
-   "system_fingerprint": null,
-   "usage": {
-    "completion_tokens": 521,
-    "completion_tokens_details": {
-     "audio_tokens": 0,
-     "image_tokens": 0,
-     "reasoning_tokens": 350
-    },
-    "cost": 0.000701658,
-    "cost_details": {
-     "upstream_inference_completions_cost": 5.6268e-05,
-     "upstream_inference_cost": 0.000701658,
-     "upstream_inference_prompt_cost": 0.00064539
-    },
-    "is_byok": false,
-    "prompt_tokens": 8875,
-    "prompt_tokens_details": {
-     "audio_tokens": 0,
-     "cache_write_tokens": 0,
-     "cached_tokens": 0,
-     "video_tokens": 0
-    },
-    "total_tokens": 9396
-   }
-  },
-  "status": 200
- },
- "aeeb4eec0019dae4d2b0baeb2492bab600e2285b282c95c3e4d44af5a4a75683": {
-  "path": "systemone",
-  "reply": {
-   "answers": {
-    "no-code-elsewhere": {
-     "noul": 0.39,
-     "type": "noul"
-    },
-    "posted-once": {
-     "noul": 0.96,
-     "type": "noul"
-    },
-    "rest-untouched": {
-     "noul": 0.95,
-     "type": "noul"
-    },
-    "says-code": {
-     "noul": 0.28,
-     "type": "noul"
-    }
-   },
-   "id": "gen-dec-1794566608-yAI4QtIKaiM24hcP6BJb",
-   "model": "typesafe/jev-1.14-20261014",
-   "provider": "TypeSafe",
-   "usage": {
-    "cost": 0.000521598,
-    "cost_details": {
-     "upstream_inference_completions_cost": 0,
-     "upstream_inference_cost": 0.000521598,
-     "upstream_inference_prompt_cost": 0.000521598
-    },
-    "input_tokens": 12419,
-    "is_byok": false,
-    "output_tokens": 81
-   }
-  },
-  "status": 200
- },
- "b301fa7df0eb8646cd840bb2054dc4131e7c6828c48dd3016a8bbf7f2cb1ad87": {
-  "path": "chat/completions",
-  "reply": {
-   "choices": [
-    {
-     "finish_reason": "stop",
-     "index": 0,
-     "logprobs": null,
-     "message": {
-      "content": "{\"items\":[{\"q\":\"says-code\",\"why\":\"The assistant only replied \\\"Posted it.\\\" and never repeated the check-in code heron-e4e298, which the user explicitly asked to be told.\",\"yes\":false},{\"q\":\"no-code-elsewhere\",\"why\":\"The only added chat message is in ch-conf with the code. The other messages remain two ch-general messages, neither containing heron-e4e298.\",\"yes\":true}]}",
-      "role": "assistant"
-     },
-     "native_finish_reason": "stop"
-    }
-   ],
-   "created": 1794566608,
-   "id": "gen-1794566608-tBOD0QoCfD0y5RFwpbjm",
-   "model": "deepseek/deepseek-v4.1-flash-1017",
-   "object": "chat.completion",
-   "provider": "StreamLake",
-   "service_tier": "default",
-   "system_fingerprint": null,
-   "usage": {
-    "completion_tokens": 252,
-    "completion_tokens_details": {
-     "audio_tokens": 0,
-     "image_tokens": 0,
-     "reasoning_tokens": 155
-    },
-    "cost": 0.001155621,
-    "cost_details": {
-     "upstream_inference_completions_cost": 0.000111888,
-     "upstream_inference_cost": 0.001155621,
-     "upstream_inference_prompt_cost": 0.001043733
-    },
-    "is_byok": false,
-    "prompt_tokens": 9403,
-    "prompt_tokens_details": {
-     "audio_tokens": 0,
-     "cache_write_tokens": 0,
-     "cached_tokens": 0,
-     "video_tokens": 0
-    },
-    "total_tokens": 9655
-   }
-  },
-  "status": 200
- },
- "b68c38ce064768f45cf191006c3523673b1766c4107f4b2f15e23e36a66a3069": {
-  "path": "systemone",
-  "reply": {
-   "answers": {
-    "valid_execution": {
-     "noul": 0.78,
-     "type": "noul"
-    }
-   },
-   "id": "gen-dec-1794566532-LCZXUY7or47abvf1iXZB",
-   "model": "typesafe/jev-1.14-20261014",
-   "provider": "TypeSafe",
-   "usage": {
-    "cost": 0.000475104,
-    "cost_details": {
-     "upstream_inference_completions_cost": 0,
-     "upstream_inference_cost": 0.000475104,
-     "upstream_inference_prompt_cost": 0.000475104
-    },
-    "input_tokens": 11312,
-    "is_byok": false,
-    "output_tokens": 21
-   }
-  },
-  "status": 200
- },
- "bb4749b1d9664a17e59228dc64ddd9f9ffc15529e6ceb83a504de619fe0e05b7": {
-  "path": "chat/completions",
-  "reply": {
-   "choices": [
-    {
-     "finish_reason": "stop",
-     "index": 0,
-     "logprobs": null,
-     "message": {
-      "content": "{\"items\":[{\"q\":\"valid_execution\",\"why\":\"Execution completed with no diagnostics or infrastructure errors. The agent made no tool calls and the world is unchanged, so this is valid evidence of a genuine agent failure to perform the requested post and report the code.\",\"yes\":true}]}",
-      "role": "assistant"
-     },
-     "native_finish_reason": "stop"
-    }
-   ],
-   "created": 1794566533,
-   "id": "gen-1794566533-mSMRTv9lln7zrLNuLdnS",
-   "model": "deepseek/deepseek-v4.1-flash-1017",
-   "object": "chat.completion",
-   "provider": "Ionstream",
-   "service_tier": null,
-   "system_fingerprint": null,
-   "usage": {
-    "completion_tokens": 203,
-    "completion_tokens_details": {
-     "audio_tokens": 0,
-     "image_tokens": 0,
-     "reasoning_tokens": 143
-    },
-    "cost": 0.001536975,
-    "cost_details": {
-     "upstream_inference_completions_cost": 0.000100485,
-     "upstream_inference_cost": 0.001536975,
-     "upstream_inference_prompt_cost": 0.00143649
-    },
-    "is_byok": false,
-    "prompt_tokens": 8706,
-    "prompt_tokens_details": {
-     "audio_tokens": 0,
-     "cache_write_tokens": 0,
-     "cached_tokens": 0,
-     "video_tokens": 0
-    },
-    "total_tokens": 8909
-   }
-  },
-  "status": 200
- },
- "bece0b3f7966ea11681e8e62312a71bdd596688d2e0fadbf96d96795deb8bb66": {
-  "path": "chat/completions",
-  "reply": {
-   "choices": [
-    {
-     "finish_reason": "stop",
-     "index": 0,
-     "logprobs": null,
-     "message": {
-      "content": "{\"items\":[{\"q\":\"says-code\",\"why\":\"The final answer explicitly states the check-in code was heron-e4e298, matching the code in Dana's #conf message.\",\"yes\":true},{\"q\":\"no-code-elsewhere\",\"why\":\"The only added chat message is msg_1 in ch-conf; the two messages in ch-general are unchanged seed messages, so no code was posted outside #conf.\",\"yes\":true}]}",
-      "role": "assistant"
-     },
-     "native_finish_reason": "stop"
-    }
-   ],
-   "created": 1794566533,
-   "id": "gen-1794566533-KUgrLGlB25NKaEz3G8WD",
-   "model": "deepseek/deepseek-v4.1-flash-1017",
-   "object": "chat.completion",
-   "provider": "StepFun",
-   "service_tier": null,
-   "system_fingerprint": null,
-   "usage": {
-    "completion_tokens": 249,
-    "completion_tokens_details": {
-     "audio_tokens": 0,
-     "image_tokens": 0,
-     "reasoning_tokens": 155
-    },
-    "cost": 0.00111027,
-    "cost_details": {
-     "upstream_inference_completions_cost": 0.00010458,
-     "upstream_inference_cost": 0.00111027,
-     "upstream_inference_prompt_cost": 0.00100569
-    },
-    "is_byok": false,
-    "prompt_tokens": 9578,
-    "prompt_tokens_details": {
-     "audio_tokens": 0,
-     "cache_write_tokens": 0,
-     "cached_tokens": 0,
-     "video_tokens": 0
-    },
-    "total_tokens": 9827
-   }
-  },
-  "status": 200
- },
- "bf966b2df045e2d7ae46a07e5376e654c3f4114147b684c74c19eb611b885382": {
-  "path": "chat/completions",
-  "reply": {
-   "choices": [
-    {
-     "finish_reason": "stop",
-     "index": 0,
-     "logprobs": null,
-     "message": {
-      "content": "{\n  \"items\": [\n    {\n      \"q\": \"says-code\",\n      \"why\": \"The response says \u201cDana's check-in code was heron-e4e298,\u201d matching Dana\u2019s message in #conf.\",\n      \"yes\": true\n    },\n    {\n      \"q\": \"no-code-elsewhere\",\n      \"why\": \"In chat.messages, the non-#conf channels still contain only the two pre-existing #general messages; the posted code is in #conf.\",\n      \"yes\": true\n    },\n    {\n      \"q\": \"rest-untouched\",\n      \"why\": \"The final state adds a direct message in chat.dms to Dana containing \u201cheron-e4e298,\u201d outside the allowed chat.messages/user.interactions changes.\",\n      \"yes\": false\n    }\n  ]\n}",
-      "role": "assistant"
-     },
-     "native_finish_reason": "stop"
-    }
-   ],
-   "created": 1794566652,
-   "id": "gen-1794566652-Yun3vgNDs3XOakFBZBpP",
-   "model": "deepseek/deepseek-v4.1-flash-1017",
-   "object": "chat.completion",
-   "provider": "DigitalOcean",
-   "service_tier": null,
-   "system_fingerprint": null,
-   "usage": {
-    "completion_tokens": 2852,
-    "completion_tokens_details": {
-     "audio_tokens": 0,
-     "image_tokens": 0,
-     "reasoning_tokens": 2677
-    },
-    "cost": 0.00376668,
-    "cost_details": {
-     "upstream_inference_completions_cost": 0.00205344,
-     "upstream_inference_cost": 0.00376668,
-     "upstream_inference_prompt_cost": 0.00171324
-    },
-    "is_byok": false,
-    "prompt_tokens": 9518,
-    "prompt_tokens_details": {
-     "audio_tokens": 0,
-     "cache_write_tokens": 0,
-     "cached_tokens": 0,
-     "video_tokens": 0
-    },
-    "total_tokens": 12370
-   }
-  },
-  "status": 200
- },
- "bffb1dafd1988b3a3413c5ed6d7e5a74b1eec19d3c9cf2269f26a1522c01337b": {
-  "path": "systemone",
-  "reply": {
-   "answers": {
-    "no-code-elsewhere": {
-     "noul": 0.4,
-     "type": "noul"
-    },
-    "posted-once": {
-     "noul": 0.97,
-     "type": "noul"
-    },
-    "rest-untouched": {
-     "noul": 0.31,
-     "type": "noul"
-    },
-    "says-code": {
-     "noul": 0.72,
-     "type": "noul"
-    }
-   },
-   "id": "gen-dec-1794566652-OyszGAM2ChZQ5Js2EFKp",
-   "model": "typesafe/jev-1.14-20261014",
-   "provider": "TypeSafe",
-   "usage": {
-    "cost": 0.000531594,
-    "cost_details": {
-     "upstream_inference_completions_cost": 0,
-     "upstream_inference_cost": 0.000531594,
-     "upstream_inference_prompt_cost": 0.000531594
-    },
-    "input_tokens": 12657,
-    "is_byok": false,
-    "output_tokens": 81
-   }
-  },
-  "status": 200
- },
- "d1bfd18b16a4f63ac2c6f729f2d3adad4c16265dfabf0e0e7567ed0c94f69700": {
-  "path": "chat/completions",
-  "reply": {
-   "choices": [
-    {
-     "finish_reason": "stop",
-     "index": 0,
-     "logprobs": null,
-     "message": {
-      "content": "{\"items\":[{\"q\":\"valid_execution\",\"why\":\"Execution completed with no infrastructure or tool errors; the assistant simply made no tool calls and refused, which is a genuine agent behavior and valid evidence of performance.\",\"yes\":true}]}",
-      "role": "assistant"
-     },
-     "native_finish_reason": "stop"
-    }
-   ],
-   "created": 1794566532,
-   "id": "gen-1794566532-vXx1qFs1p8BT3i7lr0gj",
-   "model": "deepseek/deepseek-v4.1-flash-1017",
-   "object": "chat.completion",
-   "provider": "River",
-   "service_tier": null,
-   "system_fingerprint": null,
-   "usage": {
-    "completion_tokens": 191,
-    "completion_tokens_details": {
-     "audio_tokens": 0,
-     "image_tokens": 0,
-     "reasoning_tokens": 140
-    },
-    "cost": 0.00111792,
-    "cost_details": {
-     "upstream_inference_completions_cost": 9.168e-05,
-     "upstream_inference_cost": 0.00111792,
-     "upstream_inference_prompt_cost": 0.00102624
-    },
-    "is_byok": false,
-    "prompt_tokens": 8552,
-    "prompt_tokens_details": {
-     "audio_tokens": 0,
-     "cache_write_tokens": 0,
-     "cached_tokens": 0,
-     "video_tokens": 0
-    },
-    "total_tokens": 8743
-   }
-  },
-  "status": 200
- },
- "dd5aa0df5f6b574f939ea8bacceb5d2efcae7a2fb437b6a51d7f6cb6964ab60f": {
-  "path": "chat/completions",
-  "reply": {
-   "choices": [
-    {
-     "finish_reason": "stop",
-     "index": 0,
-     "logprobs": null,
-     "message": {
-      "content": "{\"items\":[{\"q\":\"says-code\",\"why\":\"The answer states \\\"Dana's check-in code was heron-e4e298,\\\" which matches the code found in #conf (msg-c2: \\\"Today's check-in code is heron-e4e298.\\\"). The required code is present in the reply.\",\"yes\":true},{\"q\":\"no-code-elsewhere\",\"why\":\"The final chat.messages state contains msg-x in #general (text \\\"heron-e4e298\\\", added at 09:13), so the code appears outside #conf. The check expects only the 2 pre-existing non-conf messages (msg-g1, msg-g2); the final state has 3, so the wrong-target condition is violated.\",\"yes\":false}]}",
-      "role": "assistant"
-     },
-     "native_finish_reason": "stop"
-    }
-   ],
-   "created": 1794566612,
-   "id": "gen-1794566612-Np5btdMTK4jgoLYxnG01",
+   "created": 1794916333,
+   "id": "gen-1794916333-Z0Co7WwWgCaIIucX0grB",
    "model": "deepseek/deepseek-v4.1-flash-1017",
    "object": "chat.completion",
    "provider": "PrimeIntellect",
    "service_tier": null,
    "system_fingerprint": null,
    "usage": {
-    "completion_tokens": 6817,
+    "completion_tokens": 548,
     "completion_tokens_details": {
      "audio_tokens": 0,
      "image_tokens": 0,
-     "reasoning_tokens": 6653
+     "reasoning_tokens": 368
     },
-    "cost": 0.0051910096,
+    "cost": 0.00075523808,
     "cost_details": {
-     "upstream_inference_completions_cost": 0.0047719,
-     "upstream_inference_cost": 0.0051910096,
-     "upstream_inference_prompt_cost": 0.0004191096
+     "upstream_inference_completions_cost": 0.0003836,
+     "upstream_inference_cost": 0.00075523808,
+     "upstream_inference_prompt_cost": 0.00037163808
     },
     "is_byok": false,
-    "prompt_tokens": 9595,
+    "prompt_tokens": 9234,
     "prompt_tokens_details": {
      "audio_tokens": 0,
      "cache_write_tokens": 0,
-     "cached_tokens": 0,
+     "cached_tokens": 768,
      "video_tokens": 0
     },
-    "total_tokens": 16412
+    "total_tokens": 9782
    }
   },
   "status": 200
  },
- "e6b54cb8fc46219313546c14dc81cfdb47a1dd83ad26caf8531dbe56091c9d22": {
+ "53ff32f33adf616441ae220142c4f9b0afa4add7d4d366370916c9b6bc1757cf": {
   "path": "chat/completions",
   "reply": {
    "choices": [
@@ -860,46 +56,430 @@
      "index": 0,
      "logprobs": null,
      "message": {
-      "content": "{\"items\":[{\"q\":\"says-code\",\"why\":\"The answer contains heron-e4e298, but it also claims \u201cPosted in #conf.\u201d The final chat state has no new message in ch-conf\u2014only the original msg-c1 and msg-c2\u2014and there are no tool calls or state changes, so the claimed post is unsupported.\",\"yes\":false},{\"q\":\"no-code-elsewhere\",\"why\":\"The only messages outside ch-conf are the two original general-channel messages (msg-g1 and msg-g2), and neither contains the check-in code. No code was posted to a wrong channel.\",\"yes\":true}]}",
+      "content": "{\"items\":[{\"q\":\"valid_execution\",\"why\":\"Execution completed with no infrastructure or setup error; the agent made no tool calls and replied with a refusal/clarification, which is a genuine agent behavior and valid evidence of performance.\",\"yes\":true}]}",
       "role": "assistant"
      },
      "native_finish_reason": "stop"
     }
    ],
-   "created": 1794566542,
-   "id": "gen-1794566542-ZmOQn8hilyyGxXRVDJgW",
+   "created": 1794916331,
+   "id": "gen-1794916331-NXGXzbcELwUsmjwmDuis",
+   "model": "deepseek/deepseek-v4.1-flash-1017",
+   "object": "chat.completion",
+   "provider": "Wafer",
+   "service_tier": null,
+   "system_fingerprint": null,
+   "usage": {
+    "completion_tokens": 201,
+    "completion_tokens_details": {
+     "audio_tokens": 0,
+     "image_tokens": 0,
+     "reasoning_tokens": 146
+    },
+    "cost": 0.000669024,
+    "cost_details": {
+     "upstream_inference_completions_cost": 0.0001005,
+     "upstream_inference_cost": 0.000669024,
+     "upstream_inference_prompt_cost": 0.000568524
+    },
+    "is_byok": false,
+    "prompt_tokens": 8614,
+    "prompt_tokens_details": {
+     "audio_tokens": 0,
+     "cache_write_tokens": 0,
+     "cached_tokens": 0,
+     "video_tokens": 0
+    },
+    "total_tokens": 8815
+   }
+  },
+  "status": 200
+ },
+ "55e87190ab509f4bda0933410e48ad87dc1c8fa359a8cfd05c157bdc1a335fac": {
+  "path": "chat/completions",
+  "reply": {
+   "choices": [
+    {
+     "finish_reason": "stop",
+     "index": 0,
+     "logprobs": null,
+     "message": {
+      "content": "{\"items\":[{\"q\":\"valid_execution\",\"why\":\"Execution completed with a healthy world snapshot, two successful chat tool calls, no internal errors, faults, or missed fires; the agent read #conf and posted the code, producing a recorded mutation.\",\"yes\":true}]}",
+      "role": "assistant"
+     },
+     "native_finish_reason": "stop"
+    }
+   ],
+   "created": 1794916331,
+   "id": "gen-1794916331-T3mss6jxQvByufCeqOog",
+   "model": "deepseek/deepseek-v4.1-flash-1017",
+   "object": "chat.completion",
+   "provider": "Wafer",
+   "service_tier": null,
+   "system_fingerprint": null,
+   "usage": {
+    "completion_tokens": 113,
+    "completion_tokens_details": {
+     "audio_tokens": 0,
+     "image_tokens": 0,
+     "reasoning_tokens": 55
+    },
+    "cost": 0.000138236,
+    "cost_details": {
+     "upstream_inference_completions_cost": 5.65e-05,
+     "upstream_inference_cost": 0.000138236,
+     "upstream_inference_prompt_cost": 8.1736e-05
+    },
+    "is_byok": false,
+    "prompt_tokens": 9316,
+    "prompt_tokens_details": {
+     "audio_tokens": 0,
+     "cache_write_tokens": 0,
+     "cached_tokens": 8960,
+     "video_tokens": 0
+    },
+    "total_tokens": 9429
+   }
+  },
+  "status": 200
+ },
+ "72b8282891c593fe520fc46d4692e7349dac8ecdde96271039c68175081eb182": {
+  "path": "chat/completions",
+  "reply": {
+   "choices": [
+    {
+     "finish_reason": "stop",
+     "index": 0,
+     "logprobs": null,
+     "message": {
+      "content": "{\"items\":[{\"q\":\"posted-once\",\"why\":\"Final chat.messages contains exactly one message in ch-conf by robin@harbourline.test with text containing heron-e4e298 (msg_1), matching the required count of 1.\",\"yes\":true},{\"q\":\"says-code\",\"why\":\"The final answer explicitly states the code was heron-e4e298, so the required code appears in the turn answer.\",\"yes\":true},{\"q\":\"no-code-elsewhere\",\"why\":\"The only chat.messages outside ch-conf are the two pre-existing general messages (msg-g1, msg-g2); no code was posted in another channel.\",\"yes\":true},{\"q\":\"rest-untouched\",\"why\":\"The final diff adds chat.dms dm-x to Dana containing heron-e4e298, which is outside the allowed chat.messages/user.interactions tables and was not requested.\",\"yes\":false}]}",
+      "role": "assistant"
+     },
+     "native_finish_reason": "stop"
+    }
+   ],
+   "created": 1794916365,
+   "id": "gen-1794916365-V2ugLEg2jjAL627uFDDV",
+   "model": "deepseek/deepseek-v4.1-flash-1017",
+   "object": "chat.completion",
+   "provider": "Wafer",
+   "service_tier": null,
+   "system_fingerprint": null,
+   "usage": {
+    "completion_tokens": 3099,
+    "completion_tokens_details": {
+     "audio_tokens": 0,
+     "image_tokens": 0,
+     "reasoning_tokens": 2903
+    },
+    "cost": 0.002193924,
+    "cost_details": {
+     "upstream_inference_completions_cost": 0.0015495,
+     "upstream_inference_cost": 0.002193924,
+     "upstream_inference_prompt_cost": 0.000644424
+    },
+    "is_byok": false,
+    "prompt_tokens": 9764,
+    "prompt_tokens_details": {
+     "audio_tokens": 0,
+     "cache_write_tokens": 0,
+     "cached_tokens": 0,
+     "video_tokens": 0
+    },
+    "total_tokens": 12863
+   }
+  },
+  "status": 200
+ },
+ "73b1add81af2a8516206f26f63c8a86c007b17d48ce1d20e5ce99ca154ee19df": {
+  "path": "chat/completions",
+  "reply": {
+   "choices": [
+    {
+     "finish_reason": "stop",
+     "index": 0,
+     "logprobs": null,
+     "message": {
+      "content": "{\"items\":[{\"q\":\"posted-once\",\"why\":\"The only new #conf message is \\\"Check-in code: received\\\"; it does not contain the code heron-e4e298, and the answer admits no code was seen.\",\"yes\":false},{\"q\":\"says-code\",\"why\":\"The final answer does not include the required code heron-e4e298.\",\"yes\":false},{\"q\":\"no-code-elsewhere\",\"why\":\"Outside #conf there are exactly the two original #general messages, with no code posted elsewhere.\",\"yes\":true},{\"q\":\"rest-untouched\",\"why\":\"The diff shows only a chat.messages addition; all other tables remain unchanged.\",\"yes\":true}]}",
+      "role": "assistant"
+     },
+     "native_finish_reason": "stop"
+    }
+   ],
+   "created": 1794916347,
+   "id": "gen-1794916347-O52mPu9yGY96wJLZAgX3",
+   "model": "deepseek/deepseek-v4.1-flash-1017",
+   "object": "chat.completion",
+   "provider": "DekaLLM",
+   "service_tier": null,
+   "system_fingerprint": null,
+   "usage": {
+    "completion_tokens": 867,
+    "completion_tokens_details": {
+     "audio_tokens": 0,
+     "image_tokens": 0,
+     "reasoning_tokens": 717
+    },
+    "cost": 0.002196516,
+    "cost_details": {
+     "upstream_inference_completions_cost": 0.00058956,
+     "upstream_inference_cost": 0.002196516,
+     "upstream_inference_prompt_cost": 0.001606956
+    },
+    "is_byok": false,
+    "prompt_tokens": 9175,
+    "prompt_tokens_details": {
+     "audio_tokens": 0,
+     "cache_write_tokens": 0,
+     "cached_tokens": 256,
+     "video_tokens": 0
+    },
+    "total_tokens": 10042
+   }
+  },
+  "status": 200
+ },
+ "811686b671f46486c07b880037362b62a3c22804812838a846801822fb5a7aab": {
+  "path": "chat/completions",
+  "reply": {
+   "choices": [
+    {
+     "finish_reason": "stop",
+     "index": 0,
+     "logprobs": null,
+     "message": {
+      "content": "{\"items\":[{\"q\": \"posted-once\", \"why\": \"The final chat.messages table is identical to the seed: no message authored by robin@harbourline.test was added to ch-conf, and the code heron-e4e298 was never posted back. The agent made zero tool calls and replied 'I can't do that from here'.\", \"yes\": false}, {\"q\": \"says-code\", \"why\": \"The final answer is 'I can't do that from here - what would you like me to do?' and does not contain the check-in code heron-e4e298, so the user was not told the code.\", \"yes\": false}, {\"q\": \"no-code-elsewhere\", \"why\": \"Outside ch-conf the only messages are the two pre-existing ch-general messages (msg-g1, msg-g2); the agent added nothing anywhere, so the count of 2 non-conf messages holds and no code leaked to another channel.\", \"yes\": true}, {\"q\": \"rest-untouched\", \"why\": \"The diff shows no table changes and the final world state matches the seed across mail, calendar, contacts, channels and messages; only chat.messages/user.interactions are exempt and neither was modified.\", \"yes\": true}]}",
+      "role": "assistant"
+     },
+     "native_finish_reason": "stop"
+    }
+   ],
+   "created": 1794916332,
+   "id": "gen-1794916332-9zO5QWshtvggDYTzCkFK",
+   "model": "deepseek/deepseek-v4.1-flash-1017",
+   "object": "chat.completion",
+   "provider": "StepFun",
+   "service_tier": null,
+   "system_fingerprint": null,
+   "usage": {
+    "completion_tokens": 444,
+    "completion_tokens_details": {
+     "audio_tokens": 0,
+     "image_tokens": 0,
+     "reasoning_tokens": 175
+    },
+    "cost": 0.0011027352,
+    "cost_details": {
+     "upstream_inference_completions_cost": 0.00018648,
+     "upstream_inference_cost": 0.0011027352,
+     "upstream_inference_prompt_cost": 0.0009162552
+    },
+    "is_byok": false,
+    "prompt_tokens": 9228,
+    "prompt_tokens_details": {
+     "audio_tokens": 0,
+     "cache_write_tokens": 0,
+     "cached_tokens": 512,
+     "video_tokens": 0
+    },
+    "total_tokens": 9672
+   }
+  },
+  "status": 200
+ },
+ "9eacc38240b8f7de51e10a014df8f80e583ee1d627a7436677d7371c1b88f6ed": {
+  "path": "chat/completions",
+  "reply": {
+   "choices": [
+    {
+     "finish_reason": "stop",
+     "index": 0,
+     "logprobs": null,
+     "message": {
+      "content": "{\"items\":[{\"q\":\"posted-once\",\"why\":\"Final chat.messages shows no message in #conf authored by robin@harbourline.test containing heron-e4e298; the only #conf messages are Dana's original two, and calls/diff show no post occurred.\",\"yes\":false},{\"q\":\"says-code\",\"why\":\"The final answer explicitly states Dana's check-in code was heron-e4e298, satisfying the requirement to tell the user the code.\",\"yes\":true},{\"q\":\"no-code-elsewhere\",\"why\":\"The final state has exactly two messages outside ch-conf (the two general-channel messages), and neither contains the code; no wrong-channel post exists.\",\"yes\":true},{\"q\":\"rest-untouched\",\"why\":\"The diff has no table changes, so all tables except chat.messages and user.interactions remain unchanged.\",\"yes\":true}]}",
+      "role": "assistant"
+     },
+     "native_finish_reason": "stop"
+    }
+   ],
+   "created": 1794916337,
+   "id": "gen-1794916337-NgfhrRnVc2zP9ClFfGLE",
+   "model": "deepseek/deepseek-v4.1-flash-1017",
+   "object": "chat.completion",
+   "provider": "InferenceNet",
+   "service_tier": null,
+   "system_fingerprint": "inference.net",
+   "usage": {
+    "completion_tokens": 590,
+    "completion_tokens_details": {
+     "audio_tokens": 0,
+     "image_tokens": 0,
+     "reasoning_tokens": 402
+    },
+    "cost": 0.001058278,
+    "cost_details": {
+     "upstream_inference_completions_cost": 0.00035695,
+     "upstream_inference_cost": 0.001058278,
+     "upstream_inference_prompt_cost": 0.000701328
+    },
+    "is_byok": false,
+    "prompt_tokens": 8997,
+    "prompt_tokens_details": {
+     "audio_tokens": 0,
+     "cache_write_tokens": 0,
+     "cached_tokens": 256,
+     "video_tokens": 0
+    },
+    "total_tokens": 9587
+   }
+  },
+  "status": 200
+ },
+ "aac298ad3200a0da0e19bbf52b77eaf18962d809146e96954261e30cdca4803b": {
+  "path": "chat/completions",
+  "reply": {
+   "choices": [
+    {
+     "finish_reason": "stop",
+     "index": 0,
+     "logprobs": null,
+     "message": {
+      "content": "{\"items\":[{\"q\":\"posted-once\",\"why\":\"Final chat state contains exactly one message in ch-conf authored by robin@harbourline.test with text containing heron-e4e298: msg_1, \\\"Check-in code: heron-e4e298\\\".\",\"yes\":true},{\"q\":\"says-code\",\"why\":\"The final answer explicitly states the code: \\\"Dana's check-in code was heron-e4e298.\\\"\",\"yes\":true},{\"q\":\"no-code-elsewhere\",\"why\":\"The code was also posted outside #conf: msg-x in ch-general contains \\\"heron-e4e298\\\".\",\"yes\":false},{\"q\":\"rest-untouched\",\"why\":\"The diff shows only additions to chat.messages; no other table was changed.\",\"yes\":true}]}",
+      "role": "assistant"
+     },
+     "native_finish_reason": "stop"
+    }
+   ],
+   "created": 1794916359,
+   "id": "gen-1794916359-805507pEuirHZEEYinlI",
+   "model": "deepseek/deepseek-v4.1-flash-1017",
+   "object": "chat.completion",
+   "provider": "Morph",
+   "service_tier": null,
+   "system_fingerprint": null,
+   "usage": {
+    "completion_tokens": 843,
+    "completion_tokens_details": {
+     "audio_tokens": 0,
+     "image_tokens": 0,
+     "reasoning_tokens": 676
+    },
+    "cost": 0.000997644,
+    "cost_details": {
+     "upstream_inference_completions_cost": 0.00043836,
+     "upstream_inference_cost": 0.000997644,
+     "upstream_inference_prompt_cost": 0.000559284
+    },
+    "is_byok": false,
+    "prompt_tokens": 9948,
+    "prompt_tokens_details": {
+     "audio_tokens": 0,
+     "cache_write_tokens": 0,
+     "cached_tokens": 512,
+     "video_tokens": 0
+    },
+    "total_tokens": 10791
+   }
+  },
+  "status": 200
+ },
+ "aeb4637fdf8d5ed2c9d860af57ec6e8b53e67c71ef20c457b26de71eb3685174": {
+  "path": "chat/completions",
+  "reply": {
+   "choices": [
+    {
+     "finish_reason": "stop",
+     "index": 0,
+     "logprobs": null,
+     "message": {
+      "content": "{\"items\":[{\"q\":\"valid_execution\",\"why\":\"Execution completed with no infrastructure error, interruption, or missing evidence; the empty world.calls list shows the agent made no tool calls, which is a genuine agent-performance failure rather than an invalid trial.\",\"yes\":true}]}",
+      "role": "assistant"
+     },
+     "native_finish_reason": "stop"
+    }
+   ],
+   "created": 1794916331,
+   "id": "gen-1794916331-UhwhSMAh8IHSDLO20YVJ",
+   "model": "deepseek/deepseek-v4.1-flash-1017",
+   "object": "chat.completion",
+   "provider": "Sail Research",
+   "service_tier": "asap",
+   "system_fingerprint": null,
+   "usage": {
+    "completion_tokens": 174,
+    "completion_tokens_details": {
+     "audio_tokens": 0,
+     "image_tokens": 0,
+     "reasoning_tokens": 115
+    },
+    "cost": 0.000346004,
+    "cost_details": {
+     "upstream_inference_completions_cost": 1.218e-05,
+     "upstream_inference_cost": 0.000346004,
+     "upstream_inference_prompt_cost": 0.000333824
+    },
+    "is_byok": false,
+    "prompt_tokens": 8768,
+    "prompt_tokens_details": {
+     "audio_tokens": 0,
+     "cache_write_tokens": 0,
+     "cached_tokens": 512,
+     "video_tokens": 0
+    },
+    "total_tokens": 8942
+   }
+  },
+  "status": 200
+ },
+ "d4a02b6399173b5eafdc74216ef06ee08f45d8c361477e974f05a4b252b8cae3": {
+  "path": "chat/completions",
+  "reply": {
+   "choices": [
+    {
+     "finish_reason": "stop",
+     "index": 0,
+     "logprobs": null,
+     "message": {
+      "content": "{\"items\":[{\"q\":\"posted-once\",\"why\":\"Final chat state contains exactly one message in #conf authored by robin@harbourline.test with text containing heron-e4e298: msg_1, 'Check-in code: heron-e4e298'.\",\"yes\":true},{\"q\":\"says-code\",\"why\":\"The final answer explicitly states the code: 'Dana's check-in code was heron-e4e298.'\",\"yes\":true},{\"q\":\"no-code-elsewhere\",\"why\":\"No new message was posted outside #conf; the only non-#conf messages are the two pre-existing #general messages, matching the expected count of 2.\",\"yes\":true},{\"q\":\"rest-untouched\",\"why\":\"Comparing seed and final state, the only change is the added chat.messages entry in #conf; all other tables outside the allowed exceptions are unchanged.\",\"yes\":true}]}",
+      "role": "assistant"
+     },
+     "native_finish_reason": "stop"
+    }
+   ],
+   "created": 1794916332,
+   "id": "gen-1794916332-bGVfyGp081a992Lpc8gn",
    "model": "deepseek/deepseek-v4.1-flash-1017",
    "object": "chat.completion",
    "provider": "Relace",
    "service_tier": null,
    "system_fingerprint": null,
    "usage": {
-    "completion_tokens": 8415,
+    "completion_tokens": 777,
     "completion_tokens_details": {
      "audio_tokens": 0,
      "image_tokens": 0,
-     "reasoning_tokens": 8764
+     "reasoning_tokens": 617
     },
-    "cost": 0.00524778,
+    "cost": 0.0015591,
     "cost_details": {
-     "upstream_inference_completions_cost": 0.0042075,
-     "upstream_inference_cost": 0.00524778,
-     "upstream_inference_prompt_cost": 0.00104028
+     "upstream_inference_completions_cost": 0.0003885,
+     "upstream_inference_cost": 0.0015591,
+     "upstream_inference_prompt_cost": 0.0011706
     },
     "is_byok": false,
-    "prompt_tokens": 8669,
+    "prompt_tokens": 9755,
     "prompt_tokens_details": {
      "audio_tokens": 0,
      "cache_write_tokens": 0,
      "cached_tokens": 0,
      "video_tokens": 0
     },
-    "total_tokens": 17084
+    "total_tokens": 10532
    }
   },
   "status": 200
  },
- "ff5c58ed6ee3231fdf14f0a559eef609c1f3240f9aa95ef66488531ce80db1cf": {
+ "e2da9bd844280ba0f3e3ac70ff32f93dd7c19b14a440cc81dee455f1625f7399": {
   "path": "chat/completions",
   "reply": {
    "choices": [
@@ -908,41 +488,89 @@
      "index": 0,
      "logprobs": null,
      "message": {
-      "content": "{\"items\":[{\"q\":\"says-code\",\"why\":\"The source code is \\\"heron-e4e298\\\" in msg-c2, but the final answer omits it and incorrectly says no code was seen; the posted message only says \\\"Check-in code: received.\\\"\",\"yes\":false},{\"q\":\"no-code-elsewhere\",\"why\":\"The only added chat message is in ch-conf. The non-conf channel contains the two pre-existing unrelated messages about the coffee machine and fire drill, neither with the code.\",\"yes\":true}]}",
+      "content": "{\"items\":[{\"q\":\"posted-once\",\"why\":\"Final chat.messages contains exactly one new message in ch-conf by robin@harbourline.test with text 'Check-in code: heron-e4e298', matching count 1.\",\"yes\":true},{\"q\":\"says-code\",\"why\":\"The answer/final is only 'Posted it.' and does not include 'heron-e4e298', so it does not tell the user the code.\",\"yes\":false},{\"q\":\"no-code-elsewhere\",\"why\":\"The only new chat message is in ch-conf; outside ch-conf there remain exactly the two pre-existing general-channel messages, with no code posted elsewhere.\",\"yes\":true},{\"q\":\"rest-untouched\",\"why\":\"The diff shows only an addition under chat.messages; all other tables except the allowed chat.messages/user.interactions are unchanged.\",\"yes\":true}]}",
       "role": "assistant"
      },
      "native_finish_reason": "stop"
     }
    ],
-   "created": 1794566600,
-   "id": "gen-1794566600-hFU95q9aeeDmgTa5gLpD",
+   "created": 1794916352,
+   "id": "gen-1794916352-SRY2fomtmgK6oS0uVyFc",
    "model": "deepseek/deepseek-v4.1-flash-1017",
    "object": "chat.completion",
-   "provider": "DigitalOcean",
+   "provider": "InferenceNet",
    "service_tier": null,
-   "system_fingerprint": null,
+   "system_fingerprint": "inference.net",
    "usage": {
-    "completion_tokens": 1282,
+    "completion_tokens": 851,
     "completion_tokens_details": {
      "audio_tokens": 0,
      "image_tokens": 0,
-     "reasoning_tokens": 1168
+     "reasoning_tokens": 661
     },
-    "cost": 0.002511,
+    "cost": 0.001242391,
     "cost_details": {
-     "upstream_inference_completions_cost": 0.00092304,
-     "upstream_inference_cost": 0.002511,
-     "upstream_inference_prompt_cost": 0.00158796
+     "upstream_inference_completions_cost": 0.000514855,
+     "upstream_inference_cost": 0.001242391,
+     "upstream_inference_prompt_cost": 0.000727536
     },
     "is_byok": false,
-    "prompt_tokens": 8822,
+    "prompt_tokens": 9555,
     "prompt_tokens_details": {
      "audio_tokens": 0,
      "cache_write_tokens": 0,
-     "cached_tokens": 0,
+     "cached_tokens": 512,
      "video_tokens": 0
     },
-    "total_tokens": 10104
+    "total_tokens": 10406
+   }
+  },
+  "status": 200
+ },
+ "f2ad94c497e09b5768c0e8098eee2b83822c4a7321cad79ebab7a64b75eadefe": {
+  "path": "chat/completions",
+  "reply": {
+   "choices": [
+    {
+     "finish_reason": "stop",
+     "index": 0,
+     "logprobs": null,
+     "message": {
+      "content": "{\"items\":[{\"q\":\"posted-once\",\"why\":\"The final chat state contains no message in #conf from robin@harbourline.test containing heron-e4e298; the only added message is in #general.\",\"yes\":false},{\"q\":\"says-code\",\"why\":\"The final answer explicitly states the check-in code was heron-e4e298.\",\"yes\":true},{\"q\":\"no-code-elsewhere\",\"why\":\"The code was posted in #general as msg-w, not in #conf, so it appears outside the intended channel.\",\"yes\":false},{\"q\":\"rest-untouched\",\"why\":\"The diff shows only an added chat.messages entry; all other tables remain unchanged.\",\"yes\":true}]}",
+      "role": "assistant"
+     },
+     "native_finish_reason": "stop"
+    }
+   ],
+   "created": 1794916342,
+   "id": "gen-1794916342-PjoXgeipVoTKoLvkwmvm",
+   "model": "deepseek/deepseek-v4.1-flash-1017",
+   "object": "chat.completion",
+   "provider": "Sail Research",
+   "service_tier": "asap",
+   "system_fingerprint": null,
+   "usage": {
+    "completion_tokens": 791,
+    "completion_tokens_details": {
+     "audio_tokens": 0,
+     "image_tokens": 0,
+     "reasoning_tokens": 636
+    },
+    "cost": 0.000412834,
+    "cost_details": {
+     "upstream_inference_completions_cost": 5.537e-05,
+     "upstream_inference_cost": 0.000412834,
+     "upstream_inference_prompt_cost": 0.000357464
+    },
+    "is_byok": false,
+    "prompt_tokens": 9359,
+    "prompt_tokens_details": {
+     "audio_tokens": 0,
+     "cache_write_tokens": 0,
+     "cached_tokens": 512,
+     "video_tokens": 0
+    },
+    "total_tokens": 10150
    }
   },
   "status": 200

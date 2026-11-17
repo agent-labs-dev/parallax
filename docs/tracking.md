@@ -91,8 +91,8 @@ pointing at the version they ran.
 Runs pair only when they measured the same thing. A row is reported as not
 compared, with the reason, when the two runs differ in:
 
-- the judge configuration that graded them (judge policy version, Jev model and
-  endpoint, fallback endpoint and judge models), or a run predates that record;
+- the judge configuration that graded them (judge policy version, panel
+  endpoint and judge models), or a run predates that record;
 - the version of a shared task;
 - harness versions or configs;
 - the Parallax revision.

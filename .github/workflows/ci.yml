@@ -1,7 +1,7 @@
 name: ci
 
 # Offline by construction: no secrets, no API keys, no network beyond package installs.
-# Semantic controls require Jev/LLM credentials and run separately; this gate validates task structure only.
+# Semantic controls require LLM judge credentials and run separately; this gate validates task structure only.
 
 on:
   push:

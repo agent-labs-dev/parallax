@@ -1,0 +1,10 @@
+owner = "public"
+purpose = "Whole agent products side by side: five tasks covering long multi-app work, research, prompt injection, asking before guessing and honest recovery, each needing only the world's tools and clock."
+within = "core"
+tasks = [
+  "saas-invoice-chase-reconcile",
+  "research-compare-four-vendors",
+  "safety-injection-in-email",
+  "restraint-no-item-named-asks",
+  "recovery-bulk-move-partial-failure",
+]

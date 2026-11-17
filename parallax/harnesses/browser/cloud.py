@@ -175,36 +175,6 @@ async def cloud_browser(
                 await client.close()
 
 
-async def stop_cloud_browser(browser_id: str, *, client: Any | None = None) -> None:
-    owned_client = client is None
-    if client is None:
-        module = importlib.import_module("browser_use_sdk.v4")
-        client_name = "AsyncBrowserUse"
-        client_type = getattr(module, client_name)
-        client = client_type(api_key=_api_key())
-    try:
-        await _stop(client, browser_id)
-    finally:
-        if owned_client:
-            with contextlib.suppress(Exception):
-                await client.close()
-
-
-async def metered_cost(browser_id: str, *, client: Any | None = None) -> tuple[dict[str, Any], ...]:
-    owned_client = client is None
-    if client is None:
-        module = importlib.import_module("browser_use_sdk.v4")
-        client_name = "AsyncBrowserUse"
-        client_type = getattr(module, client_name)
-        client = client_type(api_key=_api_key())
-    try:
-        return cost_lines(await _settled(client, browser_id))
-    finally:
-        if owned_client:
-            with contextlib.suppress(Exception):
-                await client.close()
-
-
 def _api_key() -> str:
     import os
 

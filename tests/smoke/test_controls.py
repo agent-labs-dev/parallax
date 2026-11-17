@@ -28,7 +28,6 @@ def test_controls_pass_offline(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
         try:
             # The replay never forwards these keys; they only satisfy the judges' configuration checks.
             monkeypatch.setenv("OPENROUTER_API_KEY", "replay")
-            monkeypatch.setenv("PARALLAX_JEV_BASE_URL", url)
             monkeypatch.setenv("PARALLAX_JUDGE_BASE_URL", url)
             monkeypatch.setenv("PARALLAX_JUDGE_API_KEY", "replay")
             monkeypatch.setenv("PARALLAX_JUDGE_MODELS", FALLBACK_MODEL)

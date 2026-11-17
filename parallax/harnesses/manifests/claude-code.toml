@@ -1,0 +1,38 @@
+# Flags verified against claude 2.1.325 (tests/harnesses/fixtures/claude-code/help.txt).
+protocol = "cli"
+parser = "claude_stream_json"
+session = "preassigned"
+stdin = "prompt"
+argv_first = ["claude", "-p", "--output-format", "stream-json", "--verbose", "--model", "{model_name}",
+  "--session-id", "{session}", "--mcp-config", "{home}/mcp.json", "--strict-mcp-config",
+  "--setting-sources", "project", "--permission-mode", "bypassPermissions",
+  "--disallowedTools", "WebSearch,WebFetch"]
+mcp_argv = ["--mcp-config", "{home}/mcp.json", "--strict-mcp-config"]
+argv_next = ["claude", "-p", "--output-format", "stream-json", "--verbose", "--model", "{model_name}",
+  "--resume", "{session}", "--mcp-config", "{home}/mcp.json", "--strict-mcp-config",
+  "--setting-sources", "project", "--permission-mode", "bypassPermissions",
+  "--disallowedTools", "WebSearch,WebFetch"]
+
+[info]
+name = "claude-code"
+kind = "open"
+capabilities = ["mcp", "workspace", "shell", "multi_turn", "memory"]
+pins_model = true
+cost_source = "metered"
+install = "npm i -g @anthropic-ai/claude-code"
+version_cmd = ["claude", "--version"]
+web_disabled_by = "flag"
+source_url = "https://github.com/anthropics/claude-code"
+
+[env]
+# claude appends /v1/messages to the base URL.
+ANTHROPIC_BASE_URL = "{meter_anthropic}"
+ANTHROPIC_API_KEY = "{meter_key}"
+
+
+[[config]]
+path = "home:mcp.json"
+requires_mcp = true
+format = "json"
+content = { mcpServers = { world = { type = "http", url = "{world_url}", headers = { Authorization = "Bearer {world_token}" } } } }
+

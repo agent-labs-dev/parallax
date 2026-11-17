@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import contextvars
-
-from parallax.harnesses.browser.clock import SESSION_INCLUDED, TIMING_BASIS, AttemptClock, setup_marks
+from parallax.harnesses.browser.clock import SESSION_INCLUDED, TIMING_BASIS, AttemptClock
 
 
 def test_clock_breaks_open_agent_and_close_into_one_basis() -> None:
@@ -16,16 +14,6 @@ def test_clock_breaks_open_agent_and_close_into_one_basis() -> None:
     timing = clock.timing()
     assert timing.basis == TIMING_BASIS
     assert timing.breakdown == {"open": 3000.0, "agent": 7000.0, "close": 3000.0}
-
-
-async def test_setup_marks_cross_context_reaches_the_attempt_clock() -> None:
-    clock = AttemptClock(bounded=False)
-    async with clock:
-        asked, ready = setup_marks()
-        asked()
-        await contextvars.copy_context().run(ready)
-    assert clock.asked_at is None
-    assert clock.opened >= 0
 
 
 def test_unready_clock_identifies_session_included_basis() -> None:

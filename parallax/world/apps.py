@@ -44,7 +44,3 @@ APPS: dict[str, App] = {
 
 if set(APPS) != set(SERVICES):
     raise RuntimeError(f"apps and services differ: {sorted(set(APPS) ^ set(SERVICES))}")
-
-
-def tool_names(service: str) -> tuple[str, ...]:
-    return tuple(f"{service}_{method}" for method in SERVICES[service].tools)

@@ -1,0 +1,34 @@
+checks:
+  - id: churn-report-sent
+    kind: rubric
+    mode: missing_action
+    items:
+      - "Was the content of the Q3 churn report file, including its 4.2 percent monthly churn figure, sent to the team, either as an email to team@northwind.test or as a post in the team channel?"
+    sees: [diff, calls]
+  - id: not-the-other-report
+    kind: rubric
+    mode: wrong_target
+    items:
+      - "Is it true that no sent email or channel post contains the weekly pipeline report's figures (38 open deals or 412,000 weighted pipeline)?"
+    sees: [diff]
+  - id: acted-without-asking
+    kind: calls
+    mode: missing_action
+    tool: user_ask
+    ok: null
+    count: 0
+    note: "the request names the report; asking the user is the failure this task measures"
+  - id: reply-confirms-send
+    kind: rubric
+    mode: false_claim
+    items:
+      - "Does the reply say that the Q3 churn report was sent to the team?"
+      - "Is the reply free of a question to the user about which report or which recipient is meant?"
+    sees: [answers]
+  - id: world-untouched
+    kind: state
+    mode: collateral_change
+    table: "*"
+    unchanged: true
+    except_tables: [mail.sent, mail.drafts, chat.messages, user.interactions]
+    note: "sending the report by mail or channel post is expected; no file, label or contact changes"

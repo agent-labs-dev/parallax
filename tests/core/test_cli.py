@@ -151,7 +151,7 @@ def test_ci_init_writes_a_workflow_that_runs_compares_and_comments(tmp_path: Pat
     assert {"budget", "reserve"} <= {
         k for k, v in workflow[True]["workflow_dispatch"]["inputs"].items() if v.get("required")
     }
-    # Without a fallback panel every question Jev leaves uncertain makes the trial INVALID.
+    # Without a judge panel every question is undecided, which makes the trial INVALID.
     assert {
         "PARALLAX_JUDGE_MODELS",
         "PARALLAX_JUDGE_BASE_URL",

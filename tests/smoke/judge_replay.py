@@ -1,4 +1,4 @@
-"""A judge endpoint that replays recorded Jev and fallback replies, keyed by the exact request body.
+"""A judge endpoint that replays recorded judge replies, keyed by the exact request body.
 
 The world runs on a fixed clock, so a control's evidence, and therefore its judge request, is identical on
 every run. Any change to evidence, questions, prompt or model misses the recording and fails loudly

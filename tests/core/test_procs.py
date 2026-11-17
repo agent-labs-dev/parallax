@@ -28,7 +28,8 @@ def alive(pid: int) -> bool:
     # A killed grandchild is reparented to init and reaped; until then it is a zombie, which is not running.
     try:
         return Path(f"/proc/{pid}/stat").read_text().split()[2] != "Z"
-    except FileNotFoundError:
+    # Reaped between the two checks: the read fails with ENOENT, or with ESRCH while the kernel tears the entry down.
+    except (FileNotFoundError, ProcessLookupError):
         return False
 
 

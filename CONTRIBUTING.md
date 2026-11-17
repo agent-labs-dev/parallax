@@ -1,7 +1,7 @@
 # Contributing to Parallax
 
 Thanks for helping. Parallax is a benchmark, so its credibility depends on
-Jev grading with LLM fallback, honest controls and clean provenance. Most of the
+LLM-panel grading, honest controls and clean provenance. Most of the
 rules below exist to protect one of those three.
 
 New here? [Quick start](docs/quickstart.md) walks through the workflow, and
@@ -52,9 +52,9 @@ Read [docs/authoring.md](docs/authoring.md) first. In short:
 - Every task must pass `uv run parallax check <task>`. That means the oracle
   scores 1, both null controls score 0, and every mutant fails at least one
   named check.
-- Each task needs a semantic gate. Use Jev with LLM fallback; never implement
+- Each task needs a semantic gate. The LLM judge panel grades it; never implement
   heuristic quality grading. Controls need configured judges; offline tests
-  verify protocol behavior only. See [judging](docs/jev-judge.md).
+  verify protocol behavior only. See [judging](docs/judging.md).
 - New tasks start as proposals in `review/drafts/`. A maintainer promotes them
   into `tasks/core/`.
 

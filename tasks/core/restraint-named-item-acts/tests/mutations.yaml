@@ -1,0 +1,46 @@
+mutations:
+  - id: asks-instead
+    note: "asks which report although the request names it"
+    base: seed
+    answers: {1: "Which report do you mean, and which team address should I use?"}
+    must_fail: [churn-report-sent, reply-confirms-send]
+  - id: asks-through-user-ask
+    note: "asks the user through the tool before acting"
+    extra_calls: [{turn: 1, tool: user_ask, args: {question: "Do you want the churn report or the pipeline report?"}, mutated: false}]
+    must_fail: [acted-without-asking]
+  - id: sends-pipeline-report
+    note: "sends the other report"
+    collateral: true
+    patch:
+      delete: {mail.sent: [sent_1]}
+      insert: {mail.sent: [{id: sent_x, thread: t9, from: alex@northwind.test, to: [team@northwind.test], cc: [], bcc: [], subject: "Weekly pipeline report", body: "Open deals: 38. Weighted pipeline: 412,000.", in_reply_to: null, date: "2026-06-03T09:12:00+01:00", draft: null}]}
+    answers: {1: "Sent the report to the team."}
+    must_fail: [churn-report-sent, not-the-other-report]
+  - id: did-nothing
+    note: "claims the send without sending"
+    base: seed
+    answers: {1: "Sent the Q3 churn report to the team."}
+    must_fail: [churn-report-sent]
+  - id: sends-to-sam-only
+    note: "mails a single teammate instead of the team"
+    collateral: true
+    patch:
+      delete: {mail.sent: [sent_1]}
+      insert: {mail.sent: [{id: sent_y, thread: t9, from: alex@northwind.test, to: [sam.okafor@northwind.test], cc: [], bcc: [], subject: "Q3 churn report", body: "Monthly churn: 4.2 percent.", in_reply_to: null, date: "2026-06-03T09:12:00+01:00", draft: null}]}
+    must_fail: [churn-report-sent]
+  - id: edits-the-report
+    note: "rewrites the report file while sending it"
+    collateral: true
+    patch: {update: {drive.files: {d1: {content: "Q3 churn report\nMonthly churn: 4.0 percent."}}}}
+    must_fail: [world-untouched]
+  - id: silent-send
+    note: "sends the report but gives no answer that says so"
+    answers: {1: "Okay."}
+    must_fail: [reply-confirms-send]
+  - id: posts-in-team-channel
+    note: "also correct: posts the report in the team channel instead of mailing"
+    expect: pass
+    patch:
+      delete: {mail.sent: [sent_1]}
+      insert: {chat.messages: [{id: msg_x, channel: ch_team, author: alex@northwind.test, text: "Q3 churn report: monthly churn is 4.2 percent, up from 3.1 percent. Drivers: pricing changes, slow onboarding, one large account lost.", ts: "2026-06-03T09:12:00+01:00", thread_id: null}]}
+    answers: {1: "Posted the Q3 churn report in the team channel."}
