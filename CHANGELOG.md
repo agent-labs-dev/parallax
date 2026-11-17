@@ -6,6 +6,8 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev34] - 2026-11-17
+
 ### Added
 
 - `parallax run --no-jev` grades with the judge panel alone, for an agent that uses Jev itself. The run's manifest records it, and rows graded without Jev never pool with rows graded with it.
