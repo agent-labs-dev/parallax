@@ -15,6 +15,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -37,6 +38,70 @@ def _root(request: dict[str, Any]) -> Path:
         if str(entry) not in sys.path:
             sys.path.insert(0, str(entry))
     return root
+
+
+def _call(response: Any, started: float) -> dict[str, Any]:
+    """One judge call's measured usage. The cost is the endpoint's own `usage.cost` (OpenRouter reports it on every
+    completion); an endpoint that reports none leaves it None, which Parallax counts as unpriced, never as zero."""
+    usage = getattr(response, "usage", None)
+    cost = (getattr(usage, "model_extra", None) or {}).get("cost")
+    return {
+        "generation_id": getattr(response, "id", None),
+        "input_tokens": getattr(usage, "prompt_tokens", None),
+        "output_tokens": getattr(usage, "completion_tokens", None),
+        "cost_usd": float(cost) if isinstance(cost, (int, float)) else None,
+        "latency_ms": int((time.monotonic() - started) * 1000),
+    }
+
+
+def _unpriced(error: str) -> dict[str, Any]:
+    """An attempt that may have been billed but returned no usage: Parallax counts it as unpriced, never as zero."""
+    return {"generation_id": None, "input_tokens": None, "output_tokens": None, "cost_usd": None, "latency_ms": 0,
+            "error": error}  # fmt: skip
+
+
+def _meter(calls: list[dict[str, Any]]) -> None:
+    """Record every chat completion the upstream judge makes, whichever client it builds, by wrapping the SDK's own
+    `create` in this process; the judge's prompts and parsing are untouched. The SDK retries inside `create`, and a
+    retried attempt may already have been billed, so each retry, and each `create` that raises, records an unpriced
+    attempt and the trial keeps its budget hold."""
+    completions = importlib.import_module("openai.resources.chat.completions")
+    client = importlib.import_module("openai._base_client")
+    sync_create, async_create = completions.Completions.create, completions.AsyncCompletions.create
+    sync_retry, async_retry = client.SyncAPIClient._retry_request, client.AsyncAPIClient._retry_request
+
+    def create(self: Any, *args: Any, **kwargs: Any) -> Any:
+        started = time.monotonic()
+        try:
+            response = sync_create(self, *args, **kwargs)
+        except BaseException as exc:
+            calls.append(_unpriced(type(exc).__name__))
+            raise
+        calls.append(_call(response, started))
+        return response
+
+    async def acreate(self: Any, *args: Any, **kwargs: Any) -> Any:
+        started = time.monotonic()
+        try:
+            response = await async_create(self, *args, **kwargs)
+        except BaseException as exc:
+            calls.append(_unpriced(type(exc).__name__))
+            raise
+        calls.append(_call(response, started))
+        return response
+
+    def retry(self: Any, *args: Any, **kwargs: Any) -> Any:
+        calls.append(_unpriced("retried"))
+        return sync_retry(self, *args, **kwargs)
+
+    async def aretry(self: Any, *args: Any, **kwargs: Any) -> Any:
+        calls.append(_unpriced("retried"))
+        return await async_retry(self, *args, **kwargs)
+
+    completions.Completions.create = create
+    completions.AsyncCompletions.create = acreate
+    client.SyncAPIClient._retry_request = retry
+    client.AsyncAPIClient._retry_request = aretry
 
 
 def _check_bu_dataset(root: Path, expected: str) -> None:
@@ -143,8 +208,10 @@ def main() -> None:
     suite = request.get("suite")
     if request.get("operation") != "judge":
         raise RuntimeError("unsupported bridge operation")
+    calls: list[dict[str, Any]] = []
+    _meter(calls)
     result = _judge_bu(request) if suite == "bu-bench" else _judge_mind2web(request)
-    json.dump(result, sys.stdout)
+    json.dump({**result, "calls": calls}, sys.stdout)
     sys.stdout.write("\n")
 
 

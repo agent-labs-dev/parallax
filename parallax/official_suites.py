@@ -26,7 +26,7 @@ from pydantic import BaseModel, JsonValue
 from parallax.browser_evidence import BrowserEvidence, reported
 from parallax.extensions import GradeRequest, GradingPolicy, TaskExtension
 from parallax.judge import MissingEvidence
-from parallax.judging import JudgePolicy
+from parallax.judging import FallbackCall, JudgePolicy, Judgment
 from parallax.models import (
     Area,
     Capability,
@@ -438,34 +438,62 @@ async def _grade(spec: SuiteSpec, req: GradeRequest) -> Graded:
         _config(req, spec)
     except (OfficialSuiteError, OSError, ValueError) as exc:
         return _unjudged(req.task, f"missing evidence: official judge unavailable: {exc}")
-    # From here the bridge may reach the upstream judge, which reports no price, so the judge cost is unknown.
-    return (await _upstream(spec, req, evidence, model)).model_copy(update={"unpriced_calls": 1})
+    return await _upstream(spec, req, evidence, model)
+
+
+UPSTREAM_QUESTIONS = {"upstream": "The published upstream judge decides the task."}
+
+
+def _judgment(spec: SuiteSpec, model: str, payload: Mapping[str, JsonValue], calls: Any) -> Judgment | None:
+    """The bridge's measured calls as a judgment the runner prices; None when it reported no calls."""
+    if not isinstance(calls, list) or not calls:
+        return None
+    return Judgment(
+        policy=spec.policy,
+        identity=_identity(spec, model),
+        state_sha256=hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest(),
+        questions=UPSTREAM_QUESTIONS,
+        fallback_calls=tuple(
+            FallbackCall.model_validate({**call, "model": model, "attempt": index}) for index, call in enumerate(calls)
+        ),
+    )
 
 
 async def _upstream(spec: SuiteSpec, req: GradeRequest, evidence: BrowserEvidence, model: str) -> Graded:
     checks = _checks(req.task)
     try:
         with tempfile.TemporaryDirectory(prefix="parallax-official-") as directory:
-            result = await _bridge(spec, req, _request(spec, req, evidence, Path(directory)))
+            payload = _request(spec, req, evidence, Path(directory))
+            result = await _bridge(spec, req, payload)
     except (OfficialSuiteError, OSError, ValueError) as exc:
-        return _unjudged(req.task, f"missing evidence: official judge unavailable: {exc}")
+        # The bridge may have reached the judge before failing, and a failed bridge reports no calls, so the
+        # judge cost is unknown.
+        unjudged = _unjudged(req.task, f"missing evidence: official judge unavailable: {exc}")
+        return unjudged.model_copy(update={"unpriced_calls": 1})
+    judgment = _judgment(spec, model, payload, result.get("calls"))
+    # A bridge that reported no calls leaves the judge cost unknown.
+    judgments, unpriced = ((judgment,), 0) if judgment is not None else ((), 1)
+    spend = {"judgments": judgments, "unpriced_calls": unpriced}
     if not isinstance(result.get("score"), (int, float)) or not isinstance(result.get("passed"), bool):
-        return _unjudged(req.task, "missing evidence: upstream judge returned no valid score")
+        return _unjudged(req.task, "missing evidence: upstream judge returned no valid score").model_copy(update=spend)
     score = float(result["score"])
     if not 0 <= score <= 1:
-        return _unjudged(req.task, "missing evidence: upstream judge returned an out-of-range score")
+        unjudged = _unjudged(req.task, "missing evidence: upstream judge returned an out-of-range score")
+        return unjudged.model_copy(update=spend)
     detail = f"upstream judge score={score:.6g}; model={model}; revision={spec.upstream_commit}"
     return Graded(
         checks=tuple(_result(checks[0], bool(result["passed"]), detail) for _ in checks),
         judge_identity=_identity(spec, model),
         score=score,
+        judgments=judgments,
+        unpriced_calls=unpriced,
     )
 
 
 def _policy(spec: SuiteSpec) -> GradingPolicy:
     judge = JudgePolicy(
         name=f"{spec.policy}:{spec.upstream_commit}",
-        questions={"upstream": "The published upstream judge decides the task."},
+        questions=UPSTREAM_QUESTIONS,
         evidence_form=f"{spec.source} BrowserEvidence adapter, pinned judge revision {spec.upstream_commit}",
     )
     return GradingPolicy(
