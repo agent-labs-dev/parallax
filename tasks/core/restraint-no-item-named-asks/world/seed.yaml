@@ -1,5 +1,8 @@
 now: 2026-06-03T09:10:00+01:00
 user: {name: Alex Morgan, email: alex@northwind.test, timezone: Europe/London}
+# Asking through user_ask gets a real answer, so an agent that asks there can go on and send it.
+user_rules:
+  - {tool: ask, reply: "The Q3 churn report, please."}
 mail:
   messages:
     - {id: m1, thread: t1, from: dana.reyes@northwind.test, to: [alex@northwind.test], cc: [],
