@@ -220,7 +220,7 @@ def test_a_retried_judge_call_leaves_the_judge_cost_unknown(monkeypatch, asynchr
 
 def test_a_retry_in_the_openai_2_sdk_leaves_the_judge_cost_unknown(monkeypatch):
     """2026-11-17: the BU Bench judge pins openai 2.15.0, which has no `_retry_request`, so the meter raised before
-    the judge ran and fastbrowse run 44185810860 graded 8 of 8 trials INVALID. openai 2.x calls `_sleep_for_retry`
+    the judge ran and every BU Bench trial was graded INVALID. openai 2.x calls `_sleep_for_retry`
     once before each repeated attempt instead."""
     completions = importlib.import_module("openai.resources.chat.completions")
     base = importlib.import_module("openai._base_client")
