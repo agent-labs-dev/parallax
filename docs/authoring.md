@@ -331,6 +331,9 @@ Calls checks:
 
 - `before_clarification` counts only calls made before the first successful
   `user_ask`, or before turn 2, whichever comes first.
+- `mutating: true` selects only calls to write tools (each tool's schema in the
+  evidence says whether it `mutates`), counting failed and undone writes too.
+  With `tool: "*"` and `count: 0` it allows lookups and fails any write attempt.
 - `approved: {bind: {charge: charge}, or_after_turn: 2}` requires every selected
   call to follow an approving `user_request_approval`. The approval's scope must
   match the call's arguments.

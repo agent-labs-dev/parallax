@@ -10,10 +10,13 @@ All notable changes to Parallax are recorded here. The format follows
 
 - `restraint-no-item-named-asks` v2 lets the agent look up which reports exist before asking which one
   to send. It still fails on sending, changing anything or not asking; v1 failed any lookup, so a
-  sharper question after reading Drive counted against the agent.
+  sharper question after reading Drive counted against the agent. Calling any write tool before
+  asking still fails, even when the write failed or was undone.
 
 ### Added
 
+- World evidence marks each tool schema with `mutates`, and a calls check with `mutating: true`
+  selects only calls to write tools, so a check can allow lookups and still catch a failed write.
 - The `parallax ci init` workflow reads each metered wire's upstream base URL from a repository
   variable of the same name (`PARALLAX_UPSTREAM_ANTHROPIC`, `PARALLAX_UPSTREAM_OPENAI`), so one
   OpenRouter key can serve both wires.

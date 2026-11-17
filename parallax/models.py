@@ -408,6 +408,7 @@ class WorldToolSpec(Model):
     name: str
     description: str
     input_schema: JsonObject
+    mutates: bool | None = None  # the tool can change world state; None in evidence recorded without it
 
 
 State = dict[str, dict[str, JsonObject]]  # "svc.table" -> id -> row
@@ -481,6 +482,7 @@ class CallsCheck(CheckBase):
     before_turn: int | None = None  # only calls in turns < N
     after_turn: int | None = None  # only calls in turns >= N
     before_clarification: bool = False  # only calls before min(first ok user_ask call, first turn >= 2)
+    mutating: bool = False  # only calls to tools whose `tool_schemas` entry says `mutates`, whatever their outcome
     approved: ApprovalBinding | None = None  # every selected ok call has a prior approving receipt with matching scope
 
 

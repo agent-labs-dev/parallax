@@ -63,6 +63,8 @@ async def test_oracle_calls_are_recorded_with_world_changes() -> None:
     mail_send = next(spec for spec in world.tool_schemas if spec.name == "mail_send")
     assert "body" in mail_send.input_schema["properties"]
     assert "attachments" not in mail_send.input_schema["properties"]
+    assert mail_send.mutates is True
+    assert next(spec for spec in world.tool_schemas if spec.name == "mail_search").mutates is False
 
 
 async def test_extra_calls_survive_the_evidence_round_trip() -> None:
