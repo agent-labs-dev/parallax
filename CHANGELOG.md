@@ -6,6 +6,11 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The Online-Mind2Web and BU Bench judge bridges run without writing bytecode. The pinned upstream checkout tracks its own `__pycache__`, so the first judge call left tracked changes and the bridge refused every later call, leaving each trial INVALID.
+- `browser-harness` runs its agent command on the model the trial pins (`codex exec --model`). It required `--model` but never passed it on, so the agent ran on its own default.
+
 ## [2.0.0.dev34] - 2026-11-17
 
 ### Added

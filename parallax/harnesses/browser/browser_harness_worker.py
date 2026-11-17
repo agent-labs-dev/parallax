@@ -16,7 +16,10 @@ async def run(request: dict[str, object]) -> None:
     if isinstance(cdp_url, str):
         env["BU_CDP_WS"] = cdp_url
         env["PARALLAX_BROWSER_CDP_URL"] = cdp_url
-    argv = [*shlex.split(command), "exec", "--json", "--", str(request["goal"])]
+    model = request.get("model")
+    if not isinstance(model, str) or not model:
+        raise ValueError("browser-harness requires the model it runs")
+    argv = [*shlex.split(command), "exec", "--json", "--model", model, "--", str(request["goal"])]
     process = await asyncio.create_subprocess_exec(
         *argv,
         stdin=asyncio.subprocess.DEVNULL,
