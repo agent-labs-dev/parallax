@@ -240,10 +240,14 @@ def _upstream_env(upstreams: Sequence[str]) -> str:
     """The meter's provider-key lines, or nothing when the repository's models use no metered wire."""
     if not upstreams:
         return ""
-    lines = ["      # The metering proxy's provider keys; a wire without one answers 503."]
+    lines = [
+        "      # The metering proxy's provider keys; a wire without one answers 503. A variable of the",
+        "      # wire's name overrides its upstream base URL, e.g. OpenRouter for the Anthropic wire.",
+    ]
     for wire in upstreams:
-        key = f"PARALLAX_UPSTREAM_{wire.upper()}_KEY"
-        lines.append(f"      {key}: " + "${{ secrets." + key + " }}")
+        url = f"PARALLAX_UPSTREAM_{wire.upper()}"
+        lines.append(f"      {url}: " + "${{ vars." + url + " }}")
+        lines.append(f"      {url}_KEY: " + "${{ secrets." + url + "_KEY }}")
     return "\n" + "\n".join(lines)
 
 

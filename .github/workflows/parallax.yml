@@ -83,8 +83,11 @@ jobs:
       PARALLAX_JUDGE_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       PARALLAX_JUDGE_MODELS: ${{ vars.PARALLAX_JUDGE_MODELS || 'deepseek/deepseek-v4.1-flash-1017' }}
       PARALLAX_JUDGE_PROVIDERS: ${{ vars.PARALLAX_JUDGE_PROVIDERS }}
-      # The metering proxy's provider keys; a wire without one answers 503.
+      # The metering proxy's provider keys; a wire without one answers 503. A variable of the
+      # wire's name overrides its upstream base URL, e.g. OpenRouter for the Anthropic wire.
+      PARALLAX_UPSTREAM_OPENAI: ${{ vars.PARALLAX_UPSTREAM_OPENAI }}
       PARALLAX_UPSTREAM_OPENAI_KEY: ${{ secrets.PARALLAX_UPSTREAM_OPENAI_KEY }}
+      PARALLAX_UPSTREAM_ANTHROPIC: ${{ vars.PARALLAX_UPSTREAM_ANTHROPIC }}
       PARALLAX_UPSTREAM_ANTHROPIC_KEY: ${{ secrets.PARALLAX_UPSTREAM_ANTHROPIC_KEY }}
       BRANCH: ${{ github.head_ref || github.ref_name }}
       RUN_ID: gh-${{ github.run_id }}-${{ github.run_attempt }}
