@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import contextlib
 import hashlib
 import importlib
 import json
@@ -210,7 +211,11 @@ def main() -> None:
         raise RuntimeError("unsupported bridge operation")
     calls: list[dict[str, Any]] = []
     _meter(calls)
-    result = _judge_bu(request) if suite == "bu-bench" else _judge_mind2web(request)
+    # stdout carries only the bridge's JSON result. The upstream judges print their own diagnostics to stdout (the
+    # Online-Mind2Web WebJudge prints "Error processing response" when a snapshot reply holds no score), so they
+    # write to stderr while they run.
+    with contextlib.redirect_stdout(sys.stderr):
+        result = _judge_bu(request) if suite == "bu-bench" else _judge_mind2web(request)
     json.dump({**result, "calls": calls}, sys.stdout)
     sys.stdout.write("\n")
 

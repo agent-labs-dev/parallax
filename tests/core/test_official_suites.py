@@ -2,6 +2,7 @@ import asyncio
 import base64
 import hashlib
 import importlib
+import io
 import json
 import sys
 from pathlib import Path
@@ -334,3 +335,18 @@ def test_the_judge_interpreter_is_launched_through_its_venv_link(tmp_path, monke
     config = official._config(request, official.MIND2WEB_SPEC)
     assert config.python == tmp_path.resolve() / ".venv" / "bin" / "python"
     assert config.python.is_symlink()
+
+
+def test_the_bridge_writes_only_its_result_to_stdout_when_the_upstream_judge_prints(monkeypatch, capsys):
+    def judge(request):
+        print("Error processing response: list index out of range")
+        return {"passed": False}
+
+    monkeypatch.setattr(official_bridge, "_root", lambda request: None)
+    monkeypatch.setattr(official_bridge, "_meter", lambda calls: None)
+    monkeypatch.setattr(official_bridge, "_judge_mind2web", judge)
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps({"operation": "judge", "suite": "online-mind2web"})))
+    official_bridge.main()
+    out = capsys.readouterr()
+    assert json.loads(out.out) == {"passed": False, "calls": []}
+    assert "Error processing response" in out.err
