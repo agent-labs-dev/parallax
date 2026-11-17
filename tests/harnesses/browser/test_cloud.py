@@ -4,8 +4,14 @@ from types import SimpleNamespace
 
 import httpx
 import pytest
+from browser_use_sdk.generated.v4.models import BrowserSessionStatus
 from parallax.harnesses.browser import cloud
-from parallax.harnesses.browser.cloud import cost_lines, devtools_websocket, with_stopped_browser_cost
+from parallax.harnesses.browser.cloud import (
+    cost_lines,
+    devtools_websocket,
+    stopped_browser_cost,
+    with_stopped_browser_cost,
+)
 from parallax.harnesses.browser.site import Unavailable
 
 
@@ -46,7 +52,7 @@ async def test_cloud_browser_stops_and_settles_the_owned_browser(monkeypatch: py
 
         async def get(self, browser_id: str) -> SimpleNamespace:
             assert browser_id == "browser-1"
-            return SimpleNamespace(browser_cost="0.10", proxy_cost="0.02")
+            return SimpleNamespace(status=BrowserSessionStatus.stopped, browser_cost="0.10", proxy_cost="0.02")
 
     class Client:
         def __init__(self) -> None:
@@ -83,3 +89,37 @@ def test_the_cost_read_after_the_browser_stopped_replaces_the_open_browser_place
     ]
     # A browser that could not be read after stopping keeps the earlier figures.
     assert with_stopped_browser_cost(at_answer, cost_lines(None)) == at_answer
+
+
+async def test_a_browser_another_process_stopped_reports_its_settled_cost(monkeypatch: pytest.MonkeyPatch) -> None:
+    class Refused(Exception):
+        status_code = 409
+
+    class Browsers:
+        async def stop(self, _: str) -> None:
+            raise Refused("browser already stopped")
+
+        async def get(self, browser_id: str) -> SimpleNamespace:
+            assert browser_id == "browser-1"
+            return SimpleNamespace(status=BrowserSessionStatus.stopped, browser_cost="0.000333", proxy_cost="0.000139")
+
+    monkeypatch.setattr(cloud, "PROXY_SETTLE_SECONDS", 0)
+    lines = await stopped_browser_cost("browser-1", client=SimpleNamespace(browsers=Browsers()))
+    assert lines == cost_lines(SimpleNamespace(browser_cost="0.000333", proxy_cost="0.000139"))
+
+
+async def test_a_browser_that_would_not_stop_reports_no_final_cost(monkeypatch: pytest.MonkeyPatch) -> None:
+    class Rejected(Exception):
+        status_code = 400
+
+    class Browsers:
+        async def stop(self, _: str) -> None:
+            raise Rejected("stop rejected")
+
+        async def get(self, _: str) -> SimpleNamespace:
+            return SimpleNamespace(status=BrowserSessionStatus.active, browser_cost="0.000333", proxy_cost="0.000139")
+
+    monkeypatch.setattr(cloud, "PROXY_SETTLE_SECONDS", 0)
+    lines = await stopped_browser_cost("browser-1", client=SimpleNamespace(browsers=Browsers()))
+    # Still running, so its cost is still counting: unknown, and the earlier read is kept.
+    assert lines == cost_lines(None)

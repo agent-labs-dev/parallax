@@ -39,6 +39,7 @@ from parallax.harnesses.browser.cloud import (
     cloud_browser,
     cost_lines,
     devtools_websocket,
+    stopped_browser_cost,
     with_stopped_browser_cost,
 )
 from parallax.harnesses.browser.observer import AmbiguousFinalPage, load_observer
@@ -960,7 +961,12 @@ class BrowserHarnessOSS(BrowserHarness):
             await worker.send({})
             stopped = await worker.receive("stopped")
             result["stopped"] = stopped.get("stopped", False)
-            return result
+        # The agent ran on a Browser Use cloud browser with a US proxy, as every other arm does; it reports only its
+        # model's cost, so the browser and proxy are read from the API once that browser has stopped.
+        if isinstance(ready.get("browser_id"), str):
+            browser_cost = await stopped_browser_cost(ready["browser_id"])
+            result["cost_lines"] = [*_mapping_list(result.get("cost_lines")), *browser_cost]
+        return result
 
 
 class BrowserHarnessRunner(BrowserHarness):

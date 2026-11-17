@@ -138,6 +138,8 @@ def _judge_bu(request: dict[str, Any]) -> dict[str, Any]:
         "passed": bool(result.get("verdict")),
         "score": float(result.get("score", result.get("raw_score"))),
         "judge_model": request["judge_model"],
+        # The rubric findings the score was computed from.
+        "reason": json.dumps(result.get("judgement"), ensure_ascii=False, sort_keys=True),
     }
 
 
@@ -191,7 +193,7 @@ def _judge_mind2web(request: dict[str, Any]) -> dict[str, Any]:
     label = extract_predication(response, "WebJudge_Online_Mind2Web_eval")
     if label not in (0, 1):
         raise RuntimeError("upstream judge did not return a binary result")
-    return {"passed": bool(label), "score": float(label), "judge_model": request["judge_model"]}
+    return {"passed": bool(label), "score": float(label), "judge_model": request["judge_model"], "reason": response}
 
 
 def failure(exc: BaseException, secret: str) -> str:
