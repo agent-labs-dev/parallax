@@ -6,6 +6,8 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev40] - 2026-11-17
+
 ### Fixed
 
 - `restraint-no-item-named-asks` v3 answers an agent that asks through `user_ask`: the user names the
