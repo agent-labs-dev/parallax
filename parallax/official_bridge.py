@@ -15,6 +15,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -37,6 +38,42 @@ def _root(request: dict[str, Any]) -> Path:
         if str(entry) not in sys.path:
             sys.path.insert(0, str(entry))
     return root
+
+
+def _call(response: Any, started: float) -> dict[str, Any]:
+    """One judge call's measured usage. The cost is the endpoint's own `usage.cost` (OpenRouter reports it on every
+    completion); an endpoint that reports none leaves it None, which Parallax counts as unpriced, never as zero."""
+    usage = getattr(response, "usage", None)
+    cost = (getattr(usage, "model_extra", None) or {}).get("cost")
+    return {
+        "generation_id": getattr(response, "id", None),
+        "input_tokens": getattr(usage, "prompt_tokens", None),
+        "output_tokens": getattr(usage, "completion_tokens", None),
+        "cost_usd": float(cost) if isinstance(cost, (int, float)) else None,
+        "latency_ms": int((time.monotonic() - started) * 1000),
+    }
+
+
+def _meter(calls: list[dict[str, Any]]) -> None:
+    """Record every chat completion the upstream judge makes, whichever client it builds, by wrapping the SDK's own
+    `create` in this process; the judge's prompts and parsing are untouched."""
+    completions = importlib.import_module("openai.resources.chat.completions")
+    sync_create, async_create = completions.Completions.create, completions.AsyncCompletions.create
+
+    def create(self: Any, *args: Any, **kwargs: Any) -> Any:
+        started = time.monotonic()
+        response = sync_create(self, *args, **kwargs)
+        calls.append(_call(response, started))
+        return response
+
+    async def acreate(self: Any, *args: Any, **kwargs: Any) -> Any:
+        started = time.monotonic()
+        response = await async_create(self, *args, **kwargs)
+        calls.append(_call(response, started))
+        return response
+
+    completions.Completions.create = create
+    completions.AsyncCompletions.create = acreate
 
 
 def _check_bu_dataset(root: Path, expected: str) -> None:
@@ -143,8 +180,10 @@ def main() -> None:
     suite = request.get("suite")
     if request.get("operation") != "judge":
         raise RuntimeError("unsupported bridge operation")
+    calls: list[dict[str, Any]] = []
+    _meter(calls)
     result = _judge_bu(request) if suite == "bu-bench" else _judge_mind2web(request)
-    json.dump(result, sys.stdout)
+    json.dump({**result, "calls": calls}, sys.stdout)
     sys.stdout.write("\n")
 
 

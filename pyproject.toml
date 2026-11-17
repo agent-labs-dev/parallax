@@ -63,6 +63,8 @@ dev = [
     { include-group = "verify" },
     # The browser harness tests build the hosted SDK's own response models.
     "parallax-evals[browser]",
+    # The judge bridge meters this SDK; the version the pinned Online-Mind2Web judge installs.
+    "openai==1.68.2",
     "pytest-asyncio",
     "pytest-xdist>=3.8.0",
     "ruff",
