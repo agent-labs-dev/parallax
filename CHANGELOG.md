@@ -6,6 +6,12 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The `parallax ci init` workflow reads each metered wire's upstream base URL from a repository
+  variable of the same name (`PARALLAX_UPSTREAM_ANTHROPIC`, `PARALLAX_UPSTREAM_OPENAI`), so one
+  OpenRouter key can serve both wires.
+
 ## [2.0.0.dev37] - 2026-11-17
 
 ### Added
