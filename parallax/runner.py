@@ -123,6 +123,7 @@ from parallax.task import (
 )
 from parallax.track.live import LiveFeed
 from parallax.track.live import label as live_label
+from parallax.track.rows import is_validity_control
 from parallax.world.client import ControlClient, ControlError, admin_register
 from parallax.world.core import World, WorldError
 from parallax.world.server import WorldServer
@@ -599,10 +600,13 @@ class TrialRun:
     judge_cost_usd: float | None = 0.0
 
     def spent(self) -> float | None:
-        """The trial's whole spend, the harness's and its judges'; None when either is unknown."""
-        if self.result.cost_usd is None or self.judge_cost_usd is None:
+        """The trial's whole spend, the harness's and its judges'; None when either is unknown. A validity control
+        runs no model, so it spends nothing, though its row shows its cost as unreported rather than $0."""
+        r = self.result
+        harness = 0.0 if is_validity_control(r.harness_kind, r.model) else r.cost_usd
+        if harness is None or self.judge_cost_usd is None:
             return None
-        return self.result.cost_usd + self.judge_cost_usd
+        return harness + self.judge_cost_usd
 
 
 @dataclass

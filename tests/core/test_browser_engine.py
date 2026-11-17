@@ -357,20 +357,29 @@ async def test_a_trial_the_budget_cannot_hold_is_refused_and_never_retried(
 
 
 @pytest.mark.parametrize(
-    ("harness_usd", "judge_usd", "spent"),
-    [(0.30, 0.02, 0.32), (None, 0.02, None), (0.30, None, None)],
-    ids=["both known", "harness unknown", "an unpriced judge call"],
+    ("kind", "model", "harness_usd", "judge_usd", "spent"),
+    [
+        (HarnessKind.OPEN, "m", 0.30, 0.02, 0.32),
+        (HarnessKind.OPEN, "m", None, 0.02, None),
+        (HarnessKind.OPEN, "m", 0.30, None, None),
+        (HarnessKind.CONTROL, None, None, 0.02, 0.02),
+        (HarnessKind.CONTROL, "m", None, 0.02, None),
+    ],
+    ids=["both known", "harness unknown", "an unpriced judge call", "a validity control", "a model-driven control"],
 )
 async def test_the_budget_settles_a_trial_with_its_judges_spend(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    kind: HarnessKind,
+    model: str | None,
     harness_usd: float | None,
     judge_usd: float | None,
     spent: float | None,
 ) -> None:
     run_dir = await run_browsing(tmp_path, monkeypatch, Browsing(), retry_invalid=0)
     [row] = read_results(run_dir / "results.jsonl")
-    trial = runner.TrialRun(row.model_copy(update={"cost_usd": harness_usd}), None, judge_usd)
+    update = {"harness_kind": kind, "model": model, "cost_usd": harness_usd}
+    trial = runner.TrialRun(row.model_copy(update=update), None, judge_usd)
     assert trial.spent() == (None if spent is None else pytest.approx(spent))
 
 
