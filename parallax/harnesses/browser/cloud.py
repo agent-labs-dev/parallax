@@ -74,8 +74,9 @@ def with_stopped_browser_cost(
 ) -> list[Mapping[str, Any]]:
     """The run's cost lines with the browser and proxy read after the browser stopped in place of the read taken when
     the run ended. While the browser is open Browser Use reports a placeholder browser charge and no proxy traffic,
-    so a known stopped figure always wins; an unknown one keeps the earlier read."""
-    known = {line["component"]: line for line in stopped if line["dollars"] is not None}
+    so a settled stopped figure always wins. An unknown or unsettled one (the post-stop read failed, so the proxy may
+    still be counting) keeps the earlier read."""
+    known = {line["component"]: line for line in stopped if line["basis"] == "metered"}
     present = {line.get("component") for line in lines}
     return [
         *(known.get(line.get("component"), line) for line in lines),

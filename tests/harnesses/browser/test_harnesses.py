@@ -546,12 +546,12 @@ async def test_a_turn_reports_every_model_the_harness_ran() -> None:
         info = BrowserHarnessOSS.info
 
         async def execute(self, _: object) -> dict[str, object]:
-            return {"status": "done", "answer": "ok", "actual_models": ["openai/gpt-6-luna", "jev-1"]}
+            return {"status": "done", "answer": "ok", "actual_models": ["openai/gpt-6-luna", "classifier-1"]}
 
     harness = Harness()
     harness._trial = Trial.model_construct(model=None)
     out = await harness.turn(TurnInput(index=1, text="find it", new_session=True))
-    assert out.actual_models == ("openai/gpt-6-luna", "jev-1")
+    assert out.actual_models == ("openai/gpt-6-luna", "classifier-1")
 
 
 async def test_a_reattached_browser_does_not_restart_the_turns_agent_time() -> None:
