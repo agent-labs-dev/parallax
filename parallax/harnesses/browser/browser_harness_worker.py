@@ -208,6 +208,8 @@ def argv(agent: Agent, agent_bin: str, model: str, goal: str, relay: str) -> lis
                 "-c", f'{provider}.env_key="OPENROUTER_API_KEY"',
                 # The browser is the instrument measured: no search tool to answer around it.
                 "-c", 'web_search="disabled"',
+                # The CLI reaches its browser through environment variables, which the shell tool must pass on.
+                "-c", 'shell_environment_policy.inherit="all"',
                 "--model", model, "--", goal,
             ]  # fmt: skip
         case Agent.CLAUDE_CODE:
@@ -221,13 +223,15 @@ def argv(agent: Agent, agent_bin: str, model: str, goal: str, relay: str) -> lis
             assert_never(agent)
 
 
-def agent_env(agent: Agent, model: str, relay: str, base: dict[str, str]) -> dict[str, str]:
+def agent_env(agent: Agent, model: str, relay: str, base: dict[str, str], home: Path) -> dict[str, str]:
     key = base.get("OPENROUTER_API_KEY")
     if not key:
         raise RuntimeError("a browser CLI harness needs OPENROUTER_API_KEY for its agent's model")
     match agent:
         case Agent.CODEX:
-            return base
+            # Its own home, not the host user's: their config.toml would set the shell's environment, MCP servers
+            # and hooks, so a trial would measure the machine it happens to run on.
+            return base | {"CODEX_HOME": str(home)}
         case Agent.CLAUDE_CODE:
             # OpenRouter's documented Claude Code setup; every model alias, background work included, is the trial's.
             return base | {
@@ -338,13 +342,14 @@ async def run(request: dict[str, Any]) -> None:
     detach = _argv(request.get("detach"))
     try:
         install_skill(agent, cwd, Path(request["skill"]), str(request.get("skill_name", "browser-harness")))
+        (cwd / ".codex-home").mkdir(exist_ok=True)
         async with relay.serving() as relay_url:
             process = await asyncio.create_subprocess_exec(
                 *argv(agent, str(request["agent_bin"]), model, goal, relay_url),
                 stdin=asyncio.subprocess.DEVNULL,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
-                env=agent_env(agent, model, relay_url, environ),
+                env=agent_env(agent, model, relay_url, environ, cwd / ".codex-home"),
                 cwd=cwd,
             )
             stdout, stderr = await process.communicate()

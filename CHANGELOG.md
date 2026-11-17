@@ -10,6 +10,10 @@ All notable changes to Parallax are recorded here. The format follows
 
 - `agent-browser` runs Vercel's agent-browser CLI and its skill under Codex on a Cloud browser, as `browser-harness` does: the same pinned agent, OpenRouter model routing, browser and cost accounting. agent-browser reaches the trial's browser through `AGENT_BROWSER_CDP`, whichever session its skill has the agent name, its daemons are closed after the browser is observed, and its skill is the `SKILL.md` of the pinned npm package.
 
+### Fixed
+
+- A Codex browser-harness trial runs in a home of its own and passes its environment to the agent's shell. It used the host user's `~/.codex/config.toml`, whose `shell_environment_policy` (for example `inherit = "core"`) stripped the browser's CDP URL from every command the agent ran, along with the user's MCP servers and hooks.
+
 ## [2.0.0.dev46] - 2026-11-17
 
 ### Added
