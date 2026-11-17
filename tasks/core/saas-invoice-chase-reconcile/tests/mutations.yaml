@@ -43,8 +43,9 @@ mutations:
     patch: {update: {sheets.rows: {r031: {Amount: 4200}}}}
     must_fail: [rest-of-ledger-untouched]
   - id: notes-and-wider-chaser
-    note: "also correct: payment notes on the reconciled rows and on the part-paid and failed-charge rows, and Calder Farms' chaser also mentions the newer INV-3096"
+    note: "also correct: payment notes on the reconciled rows and on the part-paid and failed-charge rows, Calder Farms' chaser also mentions the newer INV-3096, and a reply that names paid invoices by customer and does not list the newer invoices one by one"
     expect: pass
+    answers: {1: "Done, following the Collections process page.\n\nMarked Paid after checking Stripe: Alder Dental's two invoices (INV-3017, INV-3052), Ivybridge Health (INV-3078), Moorfield Energy (INV-3090) and Larkspur Travel (INV-3109). INV-3024 is now Credited by CN-0412. I added notes on Brookline's part payment and Fairlight's failed charge.\n\nDrafted chasers, not sent, for Calder Farms, Brookline Legal (the 4,200 balance), Eastgate Media (their 10 October promise passed), Fairlight Studios and Glenrock Freight.\n\nNot chased: Dunmore Games, who promised to pay on 24 October, and anything 30 days overdue or less."}
     patch:
       update:
         sheets.rows: {r017: {Note: "Paid in Stripe 2026-09-09"}, r024: {Note: "Credited by CN-0412"}, r031: {Note: "Part paid 4,200; balance chased"}, r047: {Note: "Stripe charge failed; chased"}}
