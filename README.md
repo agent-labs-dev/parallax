@@ -32,6 +32,11 @@ records every run in [Langfuse](https://langfuse.com):
 - **Scores, reliability and cost.** pass@1 comes with task-clustered confidence
   intervals, pass^k measures reliability, and cost comes from a metering proxy
   when available. Unknown cost stays unknown, never `$0`.
+- **Browser and desktop agents too.** A browser task needs no seeded world:
+  the agent drives a real browser, a CDP observer reads the final page, and an
+  LLM judge grades it against the task
+  ([browser harnesses](docs/adapters.md#browser-harnesses)). Desktop tasks run
+  seeded GTK apps and grade their saved files.
 - **Regressions, not just scores.** `parallax compare` pairs a run with an
   earlier one task by task and reports the pass@1 delta with a 95% confidence
   interval, so a pull request can be gated on it.
