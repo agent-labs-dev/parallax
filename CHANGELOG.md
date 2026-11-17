@@ -6,6 +6,8 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev42] - 2026-11-17
+
 ### Added
 
 - The meter relays a product's own provider calls, with its own keys, to OpenRouter, OpenAI, the AI Gateway, Anthropic and Gemini, and meters each response. This lets a product run as shipped report metered cost.
