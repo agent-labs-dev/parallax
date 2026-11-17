@@ -6,6 +6,8 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev38] - 2026-11-17
+
 ### Fixed
 
 - GPT-6.1 Terra works as the judge. Every Terra judge call had failed with OpenRouter 404, because the judge always sent `temperature` and no Terra host accepts it. Sampling fields are now declared per judge model, and Terra pins its default reasoning effort. Terra also has its documented image limits, so screenshots reach it, and its context window. Judge identities for DeepSeek and Opus panels are unchanged. A failed judge call now records the gateway's own error message, which names the cause, not just its HTTP status.
