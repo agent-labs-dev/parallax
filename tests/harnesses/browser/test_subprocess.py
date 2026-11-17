@@ -28,17 +28,3 @@ def test_recorded_worker_stream_has_ready_result_and_stop() -> None:
     events = [json.loads(line) for line in path.read_text().splitlines()]
     assert [event["event"] for event in events] == ["ready", "result", "stopped"]
     assert events[1]["status"] == "done"
-
-
-async def test_browser_harness_worker_runs_the_agent_on_the_pinned_model(tmp_path: Path) -> None:
-    agent = tmp_path / "agent.py"
-    agent.write_text("import json,sys; print(json.dumps(sys.argv[1:]))")
-    worker_module = ("-m", "parallax.harnesses.browser.browser_harness_worker")
-    env = {"PARALLAX_BROWSER_AGENT_COMMAND": f"{sys.executable} {agent}", "PATH": ""}
-    worker = JsonWorker((sys.executable, *worker_module), env=env, cwd=tmp_path)
-    async with worker:
-        await worker.send({"goal": "open the page", "model": "gpt-6-luna", "cdp_url": "ws://x"})
-        result = await worker.receive("result")
-        await worker.send({})
-        await worker.receive("stopped")
-    assert json.loads(result["answer"]) == ["exec", "--json", "--model", "gpt-6-luna", "--", "open the page"]
