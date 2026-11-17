@@ -819,6 +819,9 @@ class TurnInput(Model):
     attachments: tuple[str, ...] = ()  # workspace-relative paths
     origin: RunOrigin = Field(default=RunOrigin.MEMBER, exclude_if=lambda v: v is RunOrigin.MEMBER)
     approval: ApprovalDecision | None = Field(default=None, exclude_if=lambda v: v is None)
+    # Seconds the runner allows this turn (`--turn-timeout`) before cancelling it; None: no limit. A harness passes
+    # what is left of it to a product that can stop itself, so the product reports its own result before the cancel.
+    deadline_s: float | None = Field(default=None, exclude_if=lambda v: v is None)
 
 
 class StepKind(StrEnum):

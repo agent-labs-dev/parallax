@@ -33,7 +33,7 @@ from parallax.harnesses.browser.harnesses import (
     _run_v3,
     _run_v4,
 )
-from parallax.models import Capability
+from parallax.models import Capability, TurnInput
 
 NOW = datetime(2026, 1, 1, tzinfo=UTC)
 RUN_ID = UUID("00000000-0000-0000-0000-000000000001")
@@ -316,7 +316,7 @@ async def test_a_structured_answer_keeps_every_field() -> None:
     harness = Harness()
     harness._answer_schema = {"type": "object", "properties": {"answer": {}, "currency": {}}}
     await harness.start(Trial.model_construct(model=None, task_id="t", env={}), SimpleNamespace())
-    output = await harness.turn(SimpleNamespace(index=1, text="find the price"))
+    output = await harness.turn(TurnInput(index=1, text="find the price", new_session=True))
     assert output.answer == '{"answer":"$24","currency":"USD"}'
 
 
@@ -394,7 +394,7 @@ async def test_browser_evidence_replaces_secret_values_with_named_tags(monkeypat
     task = task_from_record("fixture-source", record)
     harness.bind_task(task)
     await harness.start(Trial.model_construct(model=None, task_id=task.id, env={}), SimpleNamespace())
-    output = await harness.turn(SimpleNamespace(index=1, text="sign in"))
+    output = await harness.turn(TurnInput(index=1, text="sign in", new_session=True))
 
     tag = "<secret>shop_password</secret>"
     assert output.answer == f"logged in with {tag}"
@@ -428,8 +428,8 @@ async def test_pages_a_run_read_without_navigating_reach_the_evidence_with_their
 
     harness = Harness()
     await harness.start(Trial.model_construct(model=None, task_id="t", env={}), SimpleNamespace())
-    await harness.turn(SimpleNamespace(index=1, text="read"))
-    await harness.turn(SimpleNamespace(index=2, text="read again"))
+    await harness.turn(TurnInput(index=1, text="read", new_session=True))
+    await harness.turn(TurnInput(index=2, text="read again", new_session=False))
 
     evidence = BrowserEvidence.model_validate(harness.trial_metadata["browser"])
     assert [page.text for page in evidence.pages] == ["Heading 1", "Heading 2"]
@@ -534,7 +534,7 @@ async def test_browser_timing_starts_before_execute_finishes() -> None:
     harness = Harness()
     harness._trial = Trial.model_construct(model=None)
     harness._clock = AttemptClock(bounded=False)
-    await harness.turn(SimpleNamespace(index=1, text="find it"))
+    await harness.turn(TurnInput(index=1, text="find it", new_session=True))
     assert harness.trial_timing().breakdown["agent"] >= 5
 
 
@@ -559,7 +559,7 @@ async def test_a_reattached_browser_does_not_restart_the_turns_agent_time() -> N
     harness = Harness()
     harness._trial = Trial.model_construct(model=None)
     harness._clock = AttemptClock(bounded=False)
-    out = await harness.turn(SimpleNamespace(index=1, text="find it"))
+    out = await harness.turn(TurnInput(index=1, text="find it", new_session=True))
     assert out.latency_ms is not None and out.latency_ms >= 100
 
 
@@ -582,7 +582,7 @@ async def test_agent_time_ends_when_the_agent_answers_not_after_cleanup() -> Non
     harness = Harness()
     harness._trial = Trial.model_construct(model=None)
     harness._clock = AttemptClock(bounded=False)
-    out = await harness.turn(SimpleNamespace(index=1, text="find it"))
+    out = await harness.turn(TurnInput(index=1, text="find it", new_session=True))
     assert 5 <= harness.trial_timing().breakdown["agent"] < 150
     # The runner's agent time is the turn's latency, so it must stop at the answer too.
     assert out.latency_ms is not None and 5 <= out.latency_ms < 150
@@ -624,7 +624,7 @@ async def test_browser_site_preflight_is_an_environment_interruption(monkeypatch
     from parallax.harnesses.browser.clock import AttemptClock
 
     harness._clock = AttemptClock(bounded=False)
-    output = await harness.turn(SimpleNamespace(index=1, text="visit"))
+    output = await harness.turn(TurnInput(index=1, text="visit", new_session=True))
     assert output.error == "environment interruption: site unavailable"
     assert not harness.executed
     assert harness.trial_costs() == {"model": 0.0}
@@ -667,7 +667,7 @@ async def test_browser_access_refusal_still_starts_the_browser(monkeypatch) -> N
     from parallax.harnesses.browser.clock import AttemptClock
 
     harness._clock = AttemptClock(bounded=False)
-    output = await harness.turn(SimpleNamespace(index=1, text="visit"))
+    output = await harness.turn(TurnInput(index=1, text="visit", new_session=True))
     assert harness.executed
     assert output.error is None
 
@@ -733,8 +733,8 @@ async def test_every_open_tab_is_evidence_when_no_final_page_is_singled_out(monk
 
     harness = Harness()
     await harness.start(Trial.model_construct(model=None, task_id="t", env={}), SimpleNamespace())
-    await harness.turn(SimpleNamespace(index=1, text="open the page"))
-    await harness.turn(SimpleNamespace(index=2, text="follow the link"))
+    await harness.turn(TurnInput(index=1, text="open the page", new_session=True))
+    await harness.turn(TurnInput(index=2, text="follow the link", new_session=False))
 
     evidence = BrowserEvidence.model_validate(harness.trial_metadata["browser"])
     assert evidence.final_page is None
@@ -767,7 +767,7 @@ async def test_a_host_worker_runs_in_a_host_directory_even_when_the_box_is_docke
     harness = BrowserHarnessOSS()
     harness._trial = Trial.model_construct(model="bu-fast", home=Path("/home/agent"), env={})
     with pytest.raises(RuntimeError, match="stop after spawn"):
-        await harness.execute(SimpleNamespace(index=1, text="find it"))
+        await harness.execute(TurnInput(index=1, text="find it", new_session=True))
     assert seen and seen[0] != Path("/home/agent")
     await harness.stop()
     assert not seen[0].exists()
@@ -789,7 +789,7 @@ async def test_a_worker_that_fails_to_start_costs_nothing(monkeypatch) -> None:
     harness = BrowserHarnessOSS()
     harness._trial = Trial.model_construct(model="bu-fast", home=Path("/home/agent"), env={})
     harness._clock = AttemptClock(bounded=False)
-    out = await harness.turn(SimpleNamespace(index=1, text="find it"))
+    out = await harness.turn(TurnInput(index=1, text="find it", new_session=True))
     assert "FileNotFoundError" in str(out)
     assert harness.trial_costs() == {"model": 0.0}
     await harness.stop()
@@ -872,7 +872,7 @@ async def test_a_worker_that_fails_after_its_browser_opened_keeps_the_browser_co
     harness = BrowserHarnessRunner()
     harness._trial = Trial.model_construct(model="m", home=Path("/home/agent"), env={})
     harness._clock = AttemptClock(bounded=False)
-    await harness.turn(SimpleNamespace(index=1, text="find it"))
+    await harness.turn(TurnInput(index=1, text="find it", new_session=True))
     assert harness.trial_costs() == {"browser": 0.02}
     await harness.stop()
 
@@ -913,7 +913,7 @@ async def test_a_browser_harness_trial_costs_its_agent_model_as_well_as_its_brow
     harness._toolchain = Toolchain(agent_bin=tmp_path, bin_dir=tmp_path, skill=tmp_path, version="v")
     harness._trial = Trial.model_construct(model="anthropic/claude-haiku-5.5", home=tmp_path, env={})
     harness._clock = AttemptClock(bounded=False)
-    output = await harness.turn(SimpleNamespace(index=1, text="find it"))
+    output = await harness.turn(TurnInput(index=1, text="find it", new_session=True))
     assert (output.error, output.answer) == (None, "claude-code")
     assert harness.trial_costs() == {"agent model": 0.003, "browser": 0.02}
     await harness.stop()
@@ -975,9 +975,9 @@ async def test_a_later_turn_that_spent_without_a_price_makes_the_trial_cost_unkn
     harness = TwoTurns()
     harness._trial = Trial.model_construct(model="m", home=Path("/home/agent"), env={})
     harness._clock = AttemptClock(bounded=False)
-    await harness.turn(SimpleNamespace(index=1, text="first"))
+    await harness.turn(TurnInput(index=1, text="first", new_session=True))
     assert harness.trial_costs() == {"model": 0.01}
-    await harness.turn(SimpleNamespace(index=2, text="second"))
+    await harness.turn(TurnInput(index=2, text="second", new_session=False))
     assert None in harness.trial_costs().values()
     await harness.stop()
 
@@ -997,7 +997,58 @@ async def test_a_later_turn_that_reports_no_cost_lines_makes_the_trial_cost_unkn
     harness = TwoTurns()
     harness._trial = Trial.model_construct(model="m", home=Path("/home/agent"), env={})
     harness._clock = AttemptClock(bounded=False)
-    await harness.turn(SimpleNamespace(index=1, text="first"))
-    await harness.turn(SimpleNamespace(index=2, text="second"))
+    await harness.turn(TurnInput(index=1, text="first", new_session=True))
+    await harness.turn(TurnInput(index=2, text="second", new_session=False))
     assert None in harness.trial_costs().values()
     await harness.stop()
+
+
+async def test_a_turn_cancelled_at_its_limit_keeps_the_pages_and_steps_the_agent_reached() -> None:
+    """2026-11-17: a browser agent turn stuck in a wait was cancelled at the 1800 s limit, and the trial reported no
+    page or step, so the judge could not attribute the timeout and the trial was graded invalid and retried."""
+    import asyncio
+
+    from parallax.harnesses.browser.harnesses import BrowserHarness
+    from parallax.models import Trial
+
+    page = {"url": "https://practice.test/dynamic-loading/2", "title": "Dynamic Loading 2", "text": "Start"}
+
+    class Harness(BrowserHarness):
+        info = BrowserHarnessOSS.info
+
+        async def execute(self, _: object) -> dict[str, object]:
+            await asyncio.sleep(3600)  # a wait on a page that never changes
+            return {"status": "done", "answer": "ok"}
+
+        def cancelled(self) -> dict[str, object]:
+            return {"pages": [page], "step_log": [{"action": "wait (in progress)", "url": page["url"], "page": 0}]}
+
+    harness = Harness()
+    harness._trial = Trial.model_construct(model=None)
+    with pytest.raises(TimeoutError):
+        async with asyncio.timeout(0.05):
+            await harness.turn(TurnInput(index=1, text="find it", new_session=True))
+    browser = harness.trial_metadata["browser"]
+    assert browser["pages"] == [page]
+    assert browser["steps"] == [{"action": "wait (in progress)", "url": page["url"], "page": 0}]
+
+
+async def test_a_turn_tells_the_harness_how_long_it_has_left() -> None:
+    from parallax.harnesses.browser.harnesses import BrowserHarness
+    from parallax.models import Trial, TurnInput
+
+    left: list[float | None] = []
+
+    class Harness(BrowserHarness):
+        info = BrowserHarnessOSS.info
+
+        async def execute(self, _: object) -> dict[str, object]:
+            left.append(self.seconds_left())
+            return {"status": "done", "answer": "ok"}
+
+    harness = Harness()
+    harness._trial = Trial.model_construct(model=None)
+    await harness.turn(TurnInput(index=1, text="find it", new_session=True, deadline_s=1800))
+    await harness.turn(TurnInput(index=2, text="and this", new_session=False))
+    assert left[0] is not None and 1790 < left[0] <= 1800
+    assert left[1] is None
