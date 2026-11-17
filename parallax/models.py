@@ -1049,6 +1049,7 @@ class RunManifest(Model):
     tasks: tuple[tuple[str, str], ...]  # (id, hash)
     repeats: int
     judge: tuple[str, ...]
+    jev: bool = True  # False: the judge panel graded alone (`--no-jev`)
     isolation: Isolation
     selection: str
     bootstrap_seed: int = 0
@@ -1067,6 +1068,7 @@ def fingerprint(
     *,
     isolation: Isolation,
     capabilities: frozenset[Capability],
+    jev: bool = True,
 ) -> str:
     """Resume key: any input that can change a verdict is part of it. Isolation decides where the
     harness and trusted verify run; the declared capabilities decide NA."""
@@ -1074,6 +1076,8 @@ def fingerprint(
         task_hash, harness, harness_version, config_hash, model, repeat, list(judge), parallax_version,
         isolation.value, sorted(c.value for c in capabilities),
     ]  # fmt: skip
+    if not jev:
+        payload.append("no-jev")  # appended only when set, so the keys of runs that ask Jev stay as they were
     return hashlib.sha256(json.dumps(payload, separators=(",", ":")).encode()).hexdigest()[:24]
 
 

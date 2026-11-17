@@ -6,6 +6,20 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `parallax run --no-jev` grades with the judge panel alone, for an agent that uses Jev itself. The run's manifest records it, and rows graded without Jev never pool with rows graded with it.
+
+### Changed
+
+- `browser-use-cloud` requires `--model`: left out, Browser Use picks the project's default model, which depends on when the project was created. A run that reports a different model than the one asked for is INVALID.
+- `browser-use-cloud` sends every V4 run an explicit spend cap (`PARALLAX_BROWSER_MAX_COST_USD`, default $1000) and proxy country (`PARALLAX_BROWSER_PROXY_COUNTRY`, default `us`), so Browser Use's $25 session cap and proxyless fast presets never decide an arm's result. Both are recorded in the trial details, with the model the run reports.
+- The `browser-use-oss` harness installs browser-use 1.0.6.
+
+### Fixed
+
+- Browser agent time (`agent_ms` and the timing breakdown) ends when the agent answers, failed turns included. It used to include reading the final page and stopping the browser, and for `browser-use-cloud` and `browser-harness` a further 45 s wait for the proxy charge to settle.
+
 ## [2.0.0.dev33] - 2026-11-16
 
 ### Changed

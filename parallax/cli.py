@@ -125,7 +125,7 @@ def cmd_run(a: argparse.Namespace) -> int:
     connect(write=True)
     opts = RunOptions(
         out=out, repeats=a.repeats, isolation=a.isolation, concurrency=a.concurrency,
-        world_public_url=a.world_public_url, world_port=a.world_port, judge=csv(a.judge) if a.judge else (),
+        world_public_url=a.world_public_url, world_port=a.world_port, judge=csv(a.judge) if a.judge else (), jev=a.jev,
         include_xfail=a.include_xfail, selection=" ".join(a.select), provenance_extra=extra,
         pairs=pinned, retry_invalid=a.retry_invalid, turn_timeout_s=a.turn_timeout, retry_wait_s=a.retry_wait,
         budget_usd=a.budget, reserve_usd=a.reserve, budget_journal=a.budget_journal,
@@ -373,6 +373,10 @@ def run_parser(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None
         "--world-port", type=int, metavar="PORT", help="remote isolation: serve the world on this port (for a tunnel)"
     )
     p.add_argument("--judge", help="M[,M]")
+    p.add_argument(
+        "--no-jev", dest="jev", action="store_false",
+        help="grade with the judge panel alone, never asking Jev first (for an agent that uses Jev itself)",
+    )  # fmt: skip
     p.add_argument("--include-xfail", action="store_true")
     p.add_argument(
         "--provenance", action="append", default=[], metavar="KEY=VALUE",

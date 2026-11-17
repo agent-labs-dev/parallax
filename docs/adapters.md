@@ -433,7 +433,14 @@ The built-in browser harness entry points are:
 | `browser-harness` | Optional command worker attached to a Cloud browser | Browser cost plus worker-reported cost; `browser` |
 | `cua-codex` | Optional desktop command worker | Worker-reported cost when available; `browser` |
 
-The caller selects the hosted model with the normal `--model` value. V4 preset
+The caller selects the hosted model with the normal `--model` value, which
+`browser-use-cloud` requires: left out, the server picks the project's default,
+which depends on when the project was created. A run that reports a different
+model is INVALID. Every V4 run is sent an explicit spend cap
+(`PARALLAX_BROWSER_MAX_COST_USD`, default 1000; the server's own default is
+$25) and proxy country (`PARALLAX_BROWSER_PROXY_COUNTRY`, default `us`; the
+fast presets otherwise run without a proxy), and both are recorded in the trial
+details. V4 preset
 models are sent without provider parameters because the API rejects
 `modelParams`, `mode`, and `harness` for presets. The adapter never writes a
 preset identifier into source code.
@@ -450,7 +457,9 @@ in `parallax/harnesses/browser/pins.json` and checked with:
 uv run python -m parallax.harnesses.browser.pins check
 ```
 
-Timing uses the `session-ready-to-answer` basis. Browser opening and closing
+Timing uses the `session-ready-to-answer` basis: agent time ends when the agent
+returns its answer, before Parallax reads the final page, stops the browser and
+waits for its charges to settle. Browser opening and closing
 are separate phases, and a provider or site outage returns a harness error
 whose reason starts with `environment interruption: ` so it can be retried by
 the runner.

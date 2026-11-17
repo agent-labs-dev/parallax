@@ -70,6 +70,10 @@ class BrowserConfig(BaseModel):
     observer: str = "plain-cdp"
     cloud_api: str = "v4"
     poll_seconds: float = 1.0
+    # Sent on every V4 run, so no vendor default decides an arm's limits: Browser Use caps a session at $25 and
+    # runs its fast presets without a proxy unless told otherwise. The cap sits far above any run's cost.
+    max_cost_usd: float = 1000.0
+    proxy_country: str = "us"
 
 
 def _info(
@@ -248,6 +252,8 @@ class BrowserHarness(ABC):
             observer=observer or os.environ.get("PARALLAX_BROWSER_OBSERVER", "plain-cdp"),
             cloud_api=os.environ.get("PARALLAX_BROWSER_CLOUD_API", "v4"),
             poll_seconds=float(os.environ.get("PARALLAX_BROWSER_POLL_SECONDS", "1")),
+            max_cost_usd=float(os.environ.get("PARALLAX_BROWSER_MAX_COST_USD", "1000")),
+            proxy_country=os.environ.get("PARALLAX_BROWSER_PROXY_COUNTRY", "us"),
         )
         self._trial: Trial | None = None
         self._clock: AttemptClock | None = None
@@ -268,6 +274,9 @@ class BrowserHarness(ABC):
         self._answer_schema: dict[str, Any] | None = None
         self._site_preflight_done = False
         self._agent_has_started = False
+        self._finished_at: float | None = None  # this turn's agent returned its answer
+        self._turn_agent_at: float | None = None  # this turn's agent started: its first ready, else the turn's start
+        self._turn_ready = False
         # Per turn: something billable was created, and whether that turn reported its charges.
         self._turn_spending = False
         self._turn_priced = False
@@ -362,6 +371,8 @@ class BrowserHarness(ABC):
                 # The clock starts now; spending starts only when `execute` reports its agent started.
                 self._clock_started()
                 self._turn_spending = self._turn_priced = False
+                self._finished_at = None
+                self._turn_agent_at, self._turn_ready = time.monotonic(), False
                 result = await self.execute(turn)
         except Unavailable as error:
             result = {"status": "unavailable", "answer": None, "error": str(error)}
@@ -393,8 +404,9 @@ class BrowserHarness(ABC):
             self._open_tabs = []
         if isinstance(result.get("observe_error"), str):
             self.trial_notes.append(f"final page not observed: {self._scrub(result['observe_error'])}")
-        if self._clock is not None and status is TurnStatus.COMPLETED:
-            self._clock.answered()
+        if self._clock is not None and (status is TurnStatus.COMPLETED or self._finished_at is not None):
+            # Agent time ends when the agent answered; reading the final page and closing the browser are ours.
+            self._clock.answered(self._finished_at)
         page = result.get("final_page")
         if isinstance(page, Mapping):
             self._page = self._scrub(dict(page))
@@ -418,6 +430,9 @@ class BrowserHarness(ABC):
         error = interruption or (self._scrub(str(result["error"])) if result.get("error") is not None else None)
         latency = result.get("latency_ms")
         latency_ms = int(float(latency)) if isinstance(latency, int | float) else None
+        if latency_ms is None and self._finished_at is not None and self._turn_agent_at is not None:
+            # The runner's agent time is this, else the whole turn, which would include our cleanup.
+            latency_ms = int((self._finished_at - self._turn_agent_at) * 1000)
         return TurnOutput(
             status=status,
             answer=self._answer or "",
@@ -488,7 +503,15 @@ class BrowserHarness(ABC):
     def _agent_started(self, open_seconds: object = None) -> None:
         """The agent is running and may spend: a worker reported ready, or a cloud task exists."""
         self._spending()
+        if not self._turn_ready:
+            # Only the first: a cloud run reports `browser.reattached` after `browser.ready`, mid-turn.
+            self._turn_agent_at, self._turn_ready = time.monotonic(), True
         self._clock_started(open_seconds)
+
+    def _agent_finished(self) -> None:
+        """The agent returned: what `execute` does after this (observing, stopping, settling) is not agent time."""
+        if self._finished_at is None:
+            self._finished_at = time.monotonic()
 
     def _spending(self) -> None:
         """Something billable exists for this attempt, so an absent cost is unknown, not zero."""
@@ -524,7 +547,8 @@ def _known_costs(raw: object) -> dict[str, float | None]:
 
 
 class BrowserHarnessCloud(BrowserHarness):
-    info = _info("browser-use-cloud", pins_model=False, credentials=True, credential_env=("BROWSER_USE_API_KEY",))
+    # A pinned model: omitted, the server picks the project's default, which depends on when the project was made.
+    info = _info("browser-use-cloud", pins_model=True, credentials=True, credential_env=("BROWSER_USE_API_KEY",))
 
     def __init__(self, *, observer: str | None = None) -> None:
         super().__init__(observer=observer)
@@ -539,7 +563,13 @@ class BrowserHarnessCloud(BrowserHarness):
         client = client_cls(api_key=self.trial.env.get("BROWSER_USE_API_KEY") or os.environ.get("BROWSER_USE_API_KEY"))
         try:
             if self.config.cloud_api == "v3":
-                result = await _run_v3(client, turn.text, self.trial.model, agent_started=self._agent_started)
+                result = await _run_v3(
+                    client,
+                    turn.text,
+                    self.trial.model,
+                    agent_started=self._agent_started,
+                    finished=self._agent_finished,
+                )
             else:
                 result = await _run_v4(
                     client,
@@ -548,9 +578,22 @@ class BrowserHarnessCloud(BrowserHarness):
                     self.config.poll_seconds,
                     agent_started=self._agent_started,
                     spending=self._spending,
+                    finished=self._agent_finished,
                     output_schema=self._answer_schema,
                     secret_bindings=self._secret_bindings or None,
+                    max_cost_usd=self.config.max_cost_usd,
+                    proxy_country=self.config.proxy_country,
                 )
+                self._details.update(
+                    {"max_cost_usd": self.config.max_cost_usd, "proxy_country": self.config.proxy_country}
+                )
+            actual = result.get("actual_model")
+            self._details["actual_model"] = actual
+            if not isinstance(actual, str):
+                self.trial_notes.append("the run did not report the model it ran")
+            elif actual != self.trial.model:
+                # The row would be filed under a model that never ran.
+                self.trial_invalid.append(f"asked for model {self.trial.model}, the run reports {actual}")
             browser_id = result.get("browser_id")
             if isinstance(browser_id, str):
                 try:
@@ -590,11 +633,19 @@ async def _run_v4(
     *,
     agent_started: Callable[[], None] | None = None,
     spending: Callable[[], None] | None = None,
+    finished: Callable[[], None] | None = None,
     output_schema: dict[str, Any] | None = None,
     secret_bindings: list[dict[str, Any]] | None = None,
+    max_cost_usd: float | None = None,
+    proxy_country: str | None = None,
 ) -> dict[str, Any]:
-    """`spending` is called once the cloud run exists, which may bill before its browser is ready."""
+    """`spending` is called once the cloud run exists, which may bill before its browser is ready; `finished` once
+    the run reaches a terminal status, before its result and costs are read."""
     request: dict[str, Any] = {"model": model} if model else {}
+    if max_cost_usd is not None:
+        request["max_cost_usd"] = max_cost_usd
+    if proxy_country is not None:
+        request["browser_settings"] = {"proxyCountryCode": proxy_country}
     if output_schema is not None:
         request["output_schema"] = output_schema
     if secret_bindings is not None:
@@ -647,6 +698,8 @@ async def _run_v4(
                 if not getattr(page, "has_more", False):
                     break
             if state in {"completed", "failed", "cancelled"}:
+                if finished is not None:
+                    finished()
                 break
             await asyncio.sleep(poll)
         try:
@@ -685,6 +738,7 @@ async def _run_v3(
     model: str | None,
     *,
     agent_started: Callable[[], None] | None = None,
+    finished: Callable[[], None] | None = None,
 ) -> dict[str, Any]:
     session_id: str | None = None
     try:
@@ -702,6 +756,8 @@ async def _run_v3(
                 raise _failure("session status", error) from None
             state = _status_value(getattr(view, "status", view))
             if state in {"completed", "idle", "failed", "stopped", "timed_out", "cancelled"}:
+                if finished is not None:
+                    finished()
                 result = _run_result(view, [])
                 try:
                     browsers = await client.browsers.list(agent_session_id=session_id)
@@ -828,7 +884,7 @@ class BrowserHarnessOSS(BrowserHarness):
         "browser-use-oss",
         pins_model=True,
         credential_env=("BROWSER_USE_API_KEY",),
-        install="pip install --no-cache-dir 'browser-use==1.0.5'",
+        install="pip install --no-cache-dir 'browser-use==1.0.6'",
     )
 
     async def version(self, box: Any) -> str:
@@ -860,6 +916,7 @@ class BrowserHarnessOSS(BrowserHarness):
             ready = await worker.receive("ready")
             self._agent_started(ready.get("open_seconds"))
             result = await worker.receive("result")
+            self._agent_finished()
             result["ready"] = True
             result["open_seconds"] = ready.get("open_seconds")
             if isinstance(ready.get("cdp_url"), str):
@@ -898,6 +955,7 @@ class BrowserHarnessRunner(BrowserHarness):
                 async with worker:
                     await worker.send(request)
                     result = await worker.receive("result")
+                    self._agent_finished()
                     result["ready"] = True
                     result["open_seconds"] = browser.open_seconds
                     result["final_page"] = await self.observe(browser.cdp_url, url=result.get("url"))
@@ -933,6 +991,7 @@ class CuaCodexHarness(BrowserHarness):
             ready = await worker.receive("ready")
             self._agent_started(ready.get("open_seconds"))
             result = await worker.receive("result")
+            self._agent_finished()
             result["ready"] = True
             result["open_seconds"] = ready.get("open_seconds")
             if isinstance(ready.get("cdp_url"), str):

@@ -60,6 +60,10 @@ graded by different evaluators unless `--allow-identity-change` is given.
   endpoint refuses it. Set it when some of a model's hosts ignore the strict
   reply schema. A malformed reply is retried once with the reply and its
   validation error sent back to the model.
+- `parallax run --no-jev`: the fallback panel answers every question and Jev is
+  never asked, for an agent that uses Jev itself and so cannot be graded by it
+  independently. It needs a panel, is recorded as `jev: false` in the run's
+  manifest, and is part of resume and judge identity.
 - `parallax check` uses the same judges for oracle, null controls and mutants.
   It makes model calls. `parallax check --lint-only` and CI protocol tests run
   offline.
