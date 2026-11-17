@@ -378,6 +378,14 @@ class BrowserHarness(ABC):
                 self._finished_at = None
                 self._turn_agent_at, self._turn_ready = time.monotonic(), False
                 result = await self.execute(turn)
+        except asyncio.CancelledError:
+            # The runner's turn limit cancelled the agent. Keep the pages and steps it reached, so the judge can see
+            # where it stopped and attribute the timeout, instead of grading a run that left no record.
+            try:
+                self._keep_evidence(self.cancelled())
+            except Exception as error:  # the cancellation, not this, is what the runner must see
+                self.trial_notes.append(f"cancelled turn's evidence not kept: {type(error).__name__}: {error}")
+            raise
         except Unavailable as error:
             result = {"status": "unavailable", "answer": None, "error": str(error)}
         except Exception as error:
@@ -385,38 +393,12 @@ class BrowserHarness(ABC):
         status = _normalise_status(result.get("status"))
         answer = self._scrub(result.get("answer"))
         self._answer = _answer_text(answer, structured=self._answer_schema is not None)
-        # A turn's steps point into that turn's `pages`; across turns the pages accumulate, so the indices shift.
-        offset = len(self._pages)
-        self._pages.extend(
-            # As on the final page: text replacement cannot reach pixels.
-            {key: value for key, value in read.items() if key != "screenshot_png_b64"} if self._secret_values else read
-            for read in self._scrub(_mapping_list(result.get("pages")))
-        )
-        self._steps.extend(
-            {**step, "page": step["page"] + offset} if isinstance(step.get("page"), int) else step
-            for step in self._scrub(_mapping_list(result.get("step_log")))
-        )
-        self._citations.extend(self._scrub(_mapping_list(result.get("citations"))))
-        if self._open_tabs:
-            self._page = None  # this turn ended on one of the tabs, not on an earlier turn's final page
-            self._pages.extend(
-                {key: value for key, value in tab.items() if key != "screenshot_png_b64"}
-                if self._secret_values
-                else tab
-                for tab in self._scrub(self._open_tabs)
-            )
-            self._open_tabs = []
+        self._keep_evidence(result)
         if isinstance(result.get("observe_error"), str):
             self.trial_notes.append(f"final page not observed: {self._scrub(result['observe_error'])}")
         if self._clock is not None and (status is TurnStatus.COMPLETED or self._finished_at is not None):
             # Agent time ends when the agent answered; reading the final page and closing the browser are ours.
             self._clock.answered(self._finished_at)
-        page = result.get("final_page")
-        if isinstance(page, Mapping):
-            self._page = self._scrub(dict(page))
-            if self._secret_values and self._page.pop("screenshot_png_b64", None) is not None:
-                # Text replacement cannot reach pixels, and a page can show a bound login; the judge reads its text.
-                self.trial_notes.append("final-page screenshot omitted: the task binds secrets")
         if isinstance(lines := result.get("cost_lines"), list):
             self._record_costs(lines)
         if self._turn_spending and not self._turn_priced:
@@ -447,6 +429,42 @@ class BrowserHarness(ABC):
             latency_ms=latency_ms,
             error=error,
         )
+
+    def _keep_evidence(self, result: Mapping[str, Any]) -> None:
+        """Record a turn's pages, steps, citations and final page from `execute`'s result."""
+        # A turn's steps point into that turn's `pages`; across turns the pages accumulate, so the indices shift.
+        offset = len(self._pages)
+        self._pages.extend(
+            # As on the final page: text replacement cannot reach pixels.
+            {key: value for key, value in read.items() if key != "screenshot_png_b64"} if self._secret_values else read
+            for read in self._scrub(_mapping_list(result.get("pages")))
+        )
+        self._steps.extend(
+            {**step, "page": step["page"] + offset} if isinstance(step.get("page"), int) else step
+            for step in self._scrub(_mapping_list(result.get("step_log")))
+        )
+        self._citations.extend(self._scrub(_mapping_list(result.get("citations"))))
+        if self._open_tabs:
+            self._page = None  # this turn ended on one of the tabs, not on an earlier turn's final page
+            self._pages.extend(
+                {key: value for key, value in tab.items() if key != "screenshot_png_b64"}
+                if self._secret_values
+                else tab
+                for tab in self._scrub(self._open_tabs)
+            )
+            self._open_tabs = []
+        page = result.get("final_page")
+        if isinstance(page, Mapping):
+            self._page = self._scrub(dict(page))
+            if self._secret_values and self._page.pop("screenshot_png_b64", None) is not None:
+                # Text replacement cannot reach pixels, and a page can show a bound login; the judge reads its text.
+                self.trial_notes.append("final-page screenshot omitted: the task binds secrets")
+
+    def cancelled(self) -> Mapping[str, Any]:
+        """What the agent reached before the runner cancelled its turn, in the keys `execute` returns (`pages`,
+        `step_log`, `citations`, `final_page`). Called during the cancellation, so it must not await. Empty for a
+        harness that keeps no running record."""
+        return {}
 
     async def stop(self) -> None:
         if self._clock is not None:

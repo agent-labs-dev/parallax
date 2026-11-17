@@ -6,6 +6,10 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- A browser turn cancelled at its turn limit keeps the pages and steps the agent reached. A harness reports them through the new `BrowserHarness.cancelled()`, so the judge can see where the run stopped and attribute the timeout, rather than grading a run that left no record as invalid and retrying it.
+
 ## [2.0.0.dev43] - 2026-11-17
 
 ### Added

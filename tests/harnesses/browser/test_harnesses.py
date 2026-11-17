@@ -1001,3 +1001,33 @@ async def test_a_later_turn_that_reports_no_cost_lines_makes_the_trial_cost_unkn
     await harness.turn(SimpleNamespace(index=2, text="second"))
     assert None in harness.trial_costs().values()
     await harness.stop()
+
+
+async def test_a_turn_cancelled_at_its_limit_keeps_the_pages_and_steps_the_agent_reached() -> None:
+    """2026-11-17: a fastbrowse turn stuck in a wait was cancelled at the 1800 s limit, and the trial reported no
+    page or step, so the judge could not attribute the timeout and the trial was graded invalid and retried."""
+    import asyncio
+
+    from parallax.harnesses.browser.harnesses import BrowserHarness
+    from parallax.models import Trial
+
+    page = {"url": "https://practice.test/dynamic-loading/2", "title": "Dynamic Loading 2", "text": "Start"}
+
+    class Harness(BrowserHarness):
+        info = BrowserHarnessOSS.info
+
+        async def execute(self, _: object) -> dict[str, object]:
+            await asyncio.sleep(3600)  # a wait on a page that never changes
+            return {"status": "done", "answer": "ok"}
+
+        def cancelled(self) -> dict[str, object]:
+            return {"pages": [page], "step_log": [{"action": "wait (in progress)", "url": page["url"], "page": 0}]}
+
+    harness = Harness()
+    harness._trial = Trial.model_construct(model=None)
+    with pytest.raises(TimeoutError):
+        async with asyncio.timeout(0.05):
+            await harness.turn(SimpleNamespace(index=1, text="find it"))
+    browser = harness.trial_metadata["browser"]
+    assert browser["pages"] == [page]
+    assert browser["steps"] == [{"action": "wait (in progress)", "url": page["url"], "page": 0}]
