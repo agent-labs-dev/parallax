@@ -135,6 +135,18 @@ def test_judge_configuration_changes_resume_identity(monkeypatch: pytest.MonkeyP
     assert policy_identity() != before
 
 
+def test_a_provider_pin_changes_resume_identity(monkeypatch: pytest.MonkeyPatch) -> None:
+    from parallax.judge import PROVIDERS_ENV
+    from parallax.semantic import policy_identity
+
+    monkeypatch.setenv("PARALLAX_JUDGE_API_KEY", "k")
+    monkeypatch.setenv("PARALLAX_JUDGE_BASE_URL", "https://openrouter.ai/api/v1")
+    monkeypatch.delenv(PROVIDERS_ENV, raising=False)
+    before = policy_identity()
+    monkeypatch.setenv(PROVIDERS_ENV, "deepinfra")
+    assert policy_identity() != before
+
+
 async def test_world_failure_is_execution_invalid_before_judging() -> None:
     from parallax.semantic import grade_checks
 

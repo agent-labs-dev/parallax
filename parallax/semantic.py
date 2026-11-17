@@ -77,6 +77,7 @@ def policy_identity(tasks: Sequence[Task] = ()) -> str:
         (
             POLICY_VERSION,
             os.environ.get("PARALLAX_JUDGE_BASE_URL", ""),
+            json.dumps(route.routing(), sort_keys=True) if (route := _route_config()) is not None else "",
             *sorted(
                 ext.policy.id
                 for ext in extensions.task_extensions().values()
@@ -204,6 +205,8 @@ class Graded(Model):
     judge_identity: str | None = Field(default=None, exclude_if=lambda v: v is None)
     # A published judge's own score in [0, 1], used as the trial score in place of the checks' weighted fraction.
     score: float | None = Field(default=None, ge=0, le=1, exclude_if=lambda v: v is None)
+    # Judge calls made outside `judgments` that report no price, such as a published judge's own bridge.
+    unpriced_calls: int = Field(default=0, ge=0, exclude_if=lambda v: v == 0)
 
 
 async def grade_checks(

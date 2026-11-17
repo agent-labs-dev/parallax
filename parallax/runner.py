@@ -1288,7 +1288,8 @@ class TrialExecution:
             execution_valid = g.execution_valid
             checks, same_family, judged_under, judged_score = g.checks, g.same_family, g.judge_identity, g.score
             costs = [j.cost() for j in g.judgments]
-            judge_cost = None if any(unpriced for _, unpriced in costs) else sum(known for known, _ in costs)
+            unpriced = g.unpriced_calls + sum(n for _, n in costs)
+            judge_cost = None if unpriced else sum(known for known, _ in costs)
         self.write_evidence(ev)
         finished = self.finish(started, meter, checks, same_family, execution_valid, judged_under, judged_score)
         return TrialRun(finished, ev, judge_cost)

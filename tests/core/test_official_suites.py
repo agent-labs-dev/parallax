@@ -132,6 +132,7 @@ async def test_grade_sends_any_browser_evidence_to_the_upstream_judge(monkeypatc
     graded = await official._grade(official.MIND2WEB_SPEC, request)
     await request.client.aclose()
     assert graded.checks[0].passed is True
+    assert graded.unpriced_calls == 1  # the upstream judge reports no price, so the budget keeps the hold
     assert graded.judge_identity and official.MIND2WEB_UPSTREAM_COMMIT in graded.judge_identity
     assert "configured/model" in graded.judge_identity
     assert seen["task"] == "Complete the task"

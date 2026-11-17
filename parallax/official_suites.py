@@ -23,7 +23,7 @@ from urllib.parse import urlparse
 import httpx
 from pydantic import BaseModel, JsonValue
 
-from parallax.browser_evidence import reported
+from parallax.browser_evidence import BrowserEvidence, reported
 from parallax.extensions import GradeRequest, GradingPolicy, TaskExtension
 from parallax.judge import MissingEvidence
 from parallax.judging import JudgePolicy
@@ -420,7 +420,6 @@ async def _bridge(spec: SuiteSpec, req: GradeRequest, payload: dict[str, JsonVal
 
 
 async def _grade(spec: SuiteSpec, req: GradeRequest) -> Graded:
-    checks = _checks(req.task)
     interruption = req.execution.get("error")
     if isinstance(interruption, str) and interruption.startswith("environment interruption: "):
         return _unjudged(req.task, interruption)
@@ -430,6 +429,12 @@ async def _grade(spec: SuiteSpec, req: GradeRequest) -> Graded:
         return _unjudged(req.task, f"missing evidence: {exc}")
     if not evidence.observed():
         return _unjudged(req.task, "missing evidence: browser harness reported no observations")
+    # The upstream judge reports no price, so a trial that may have reached it has an unknown judge cost.
+    return (await _upstream(spec, req, evidence)).model_copy(update={"unpriced_calls": 1})
+
+
+async def _upstream(spec: SuiteSpec, req: GradeRequest, evidence: BrowserEvidence) -> Graded:
+    checks = _checks(req.task)
     try:
         _model(req, spec)
         with tempfile.TemporaryDirectory(prefix="parallax-official-") as directory:

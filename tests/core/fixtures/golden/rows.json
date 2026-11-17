@@ -152,7 +152,7 @@
       "xfail": false
     }
   ],
-  "policy_identity": "semantic-v8:",
+  "policy_identity": "semantic-v8::",
   "r1": {
     "manifest_sha256": "9d14178ccb53aa91dcff4add58ab4b3af5a57a4c76878477409b2852249c2de5",
     "projection_sha256": "b1411e538d74e752e7e56e5fac4f79daa658ed03fd5b68814189cf453d7a1ec0",
