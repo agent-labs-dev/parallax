@@ -429,6 +429,8 @@ class BrowserHarness(ABC):
             steps=_steps(turn.index, self._scrub(result.get("step_log"))),
             usage=_usage(result.get("usage"), self.trial.model),
             actual_model=result.get("actual_model") if isinstance(result.get("actual_model"), str) else None,
+            # A harness that runs several models (fastbrowse: its writer and Jev) names each one it ran.
+            actual_models=tuple(m for m in result.get("actual_models") or () if isinstance(m, str)),
             latency_ms=latency_ms,
             error=error,
         )
