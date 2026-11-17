@@ -776,6 +776,7 @@ class McpEndpoint(Model):
 class LlmEndpoint(Model):
     openai_base_url: str
     anthropic_base_url: str
+    relay_url: str  # for a product that keeps its own provider keys (`parallax.meter.relay_url`)
     api_key: str  # per-trial meter key
 
 

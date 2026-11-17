@@ -883,8 +883,9 @@ def new_trial_key() -> str:
     return secrets.token_urlsafe(32)
 
 
-def llm_endpoint(meter_url: str, trial_key: str) -> LlmEndpoint:
-    """The URLs a harness sees; `meter_url` is the meter as reachable from the box.
+def llm_endpoint(meter_url: str, trial_key: str, host_meter_url: str) -> LlmEndpoint:
+    """The URLs a harness sees; `meter_url` is the meter as reachable from the box, `host_meter_url` from the
+    run's host. The relay is called by a product's own backend, not the box, so it is built from the host's view.
 
     Each follows its vendor SDK's base-URL convention: OpenAI clients take the `/v1` base, while
     Anthropic clients (Claude Code included) append `/v1/messages` to a base without it.
@@ -893,6 +894,7 @@ def llm_endpoint(meter_url: str, trial_key: str) -> LlmEndpoint:
     return LlmEndpoint(
         openai_base_url=f"{base}/{trial_key}/openai/v1",
         anthropic_base_url=f"{base}/{trial_key}/anthropic",
+        relay_url=relay_url(host_meter_url, trial_key),
         api_key=trial_key,
     )
 
