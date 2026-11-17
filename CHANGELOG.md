@@ -6,6 +6,10 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- `saas-invoice-chase-reconcile` v2 lets an agent add a Note to an unreconciled row, such as the part-paid INV-3031, and no longer asks the reply to list every invoice under 30 days overdue. Both had failed agents for sound bookkeeping the request never ruled out.
+
 ## [2.0.0.dev41] - 2026-11-17
 
 ### Fixed

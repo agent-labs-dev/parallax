@@ -43,9 +43,9 @@ mutations:
     patch: {update: {sheets.rows: {r031: {Amount: 4200}}}}
     must_fail: [rest-of-ledger-untouched]
   - id: notes-and-wider-chaser
-    note: "also correct: payment notes on the reconciled rows, and Calder Farms' chaser also mentions the newer INV-3096"
+    note: "also correct: payment notes on the reconciled rows and on the part-paid and failed-charge rows, and Calder Farms' chaser also mentions the newer INV-3096"
     expect: pass
     patch:
       update:
-        sheets.rows: {r017: {Note: "Paid in Stripe 2026-09-09"}, r024: {Note: "Credited by CN-0412"}}
+        sheets.rows: {r017: {Note: "Paid in Stripe 2026-09-09"}, r024: {Note: "Credited by CN-0412"}, r031: {Note: "Part paid 4,200; balance chased"}, r047: {Note: "Stripe charge failed; chased"}}
         mail.drafts: {draft_1: {body: "Hello,\n\nINV-3009 (GBP 6,200.00, due 30 July 2026) is now more than 30 days overdue. For information, INV-3096 (GBP 1,250.00) fell due on 9 October.\n\nPlease arrange payment of INV-3009 this week or let me know when we can expect it.\n\nThanks,\nPriya Nair\nFernhill Accounts"}}
