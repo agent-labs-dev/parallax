@@ -288,12 +288,16 @@ these hosts. The relay knows these hosts, and refuses any other with HTTP 403:
 | `ai-gateway.vercel.sh` | OpenAI | `v1` |
 | `api.anthropic.com` | Anthropic | `v1` |
 | `generativelanguage.googleapis.com` | Gemini | `v1beta` |
+| `api.inference.net` | OpenAI | `v1` |
 
 The same endpoint allowlist and provider-tool refusal apply. The OpenAI wire
 also allows `POST embeddings`. Gemini allows `generateContent`,
 `streamGenerateContent` and `countTokens`, and refuses any tool other than
 function declarations. The AI Gateway charges each vendor's list price, so its
-responses are priced at the vendor named in the model id.
+responses are priced at the vendor named in the model id. genai-prices has no
+entry for inference.net, so the meter reads the rates its public `v1/models`
+catalog publishes, once per run. A model the catalog does not price, or a run
+where the catalog cannot be read, is metered with its cost unknown.
 
 Decision models answer typed questions instead of generating text: the AI
 Gateway's `POST evaluate` and OpenRouter's `POST systemone`. No price table
