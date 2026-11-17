@@ -8,6 +8,7 @@ All notable changes to Parallax are recorded here. The format follows
 
 ### Fixed
 
+- The open-source Browser Use arm records its cloud browser and proxy cost, read once its browser stops, beside its model cost.
 - A Browser Use Cloud trial records the browser and proxy cost read after its browser stops. It used to keep the read taken when the run ended, while the browser was still open, when Browser Use reports a placeholder browser charge of $0.08 and no proxy traffic.
 - A browser harness's turn keeps every model the harness reports it ran (`actual_models`), not only a single `actual_model`.
 

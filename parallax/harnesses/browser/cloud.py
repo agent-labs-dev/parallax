@@ -132,13 +132,7 @@ async def cloud_browser(
     """Create a hosted browser, yield its CDP URL, and always stop and settle it."""
     owned_client = client is None
     if client is None:
-        if client_factory is None:
-            module = importlib.import_module("browser_use_sdk.v4")
-            client_name = "AsyncBrowserUse"
-            client_type = getattr(module, client_name)
-            client = client_type(api_key=_api_key())
-        else:
-            client = client_factory()
+        client = _client() if client_factory is None else client_factory()
     width, height = screen or (None, None)
     began = time.monotonic()
     created: object | None = None
@@ -188,6 +182,28 @@ async def cloud_browser(
         if owned_client:
             with contextlib.suppress(Exception):
                 await client.close()
+
+
+async def stopped_browser_cost(browser_id: str, *, client: Any | None = None) -> tuple[dict[str, Any], ...]:
+    """The settled cost of a cloud browser another process opened, read once it has stopped. Stopping again makes sure
+    it stops even if that process could not; Browser Use refuses a second stop, which leaves the settled read."""
+    owned_client = client is None
+    if client is None:
+        client = _client()
+    try:
+        stopped = await asyncio.shield(_stop(client, browser_id))
+        settled = await asyncio.shield(_settled(client, browser_id))
+        return cost_lines(settled or stopped, settled=settled is not None)
+    finally:
+        if owned_client:
+            with contextlib.suppress(Exception):
+                await client.close()
+
+
+def _client() -> Any:
+    module = importlib.import_module("browser_use_sdk.v4")
+    client_name = "AsyncBrowserUse"
+    return getattr(module, client_name)(api_key=_api_key())
 
 
 def _api_key() -> str:
