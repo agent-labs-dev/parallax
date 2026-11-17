@@ -1004,7 +1004,7 @@ async def test_a_later_turn_that_reports_no_cost_lines_makes_the_trial_cost_unkn
 
 
 async def test_a_turn_cancelled_at_its_limit_keeps_the_pages_and_steps_the_agent_reached() -> None:
-    """2026-11-17: a fastbrowse turn stuck in a wait was cancelled at the 1800 s limit, and the trial reported no
+    """2026-11-17: a browser agent turn stuck in a wait was cancelled at the 1800 s limit, and the trial reported no
     page or step, so the judge could not attribute the timeout and the trial was graded invalid and retried."""
     import asyncio
 
