@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import contextlib
 import hashlib
 import importlib
 import json
@@ -34,10 +35,18 @@ def _root(request: dict[str, Any]) -> Path:
     ).stdout.strip()
     if status:
         raise RuntimeError("upstream checkout has tracked changes")
-    for entry in (root, root / "src"):
-        if str(entry) not in sys.path:
-            sys.path.insert(0, str(entry))
+    sys.path[:] = _import_path(root, sys.path)
     return root
+
+
+def _import_path(root: Path, path: list[str]) -> list[str]:
+    """The checkout first, and never this file's own directory. Run as a script, the bridge has the `parallax`
+    package first on `sys.path`, where its `judge` and `models` shadow the upstream modules of those names: BU
+    Bench's `import judge` loaded Parallax's and failed with `No module named 'parallax'`. An editable install of
+    the upstream project already lists the root, but after that directory, so the root moves to the front."""
+    here = Path(__file__).resolve().parent
+    front = [str(root / "src"), str(root)]
+    return [*front, *(entry for entry in path if entry not in front and Path(entry or ".").resolve() != here)]
 
 
 def _call(response: Any, started: float) -> dict[str, Any]:
@@ -68,7 +77,11 @@ def _meter(calls: list[dict[str, Any]]) -> None:
     completions = importlib.import_module("openai.resources.chat.completions")
     client = importlib.import_module("openai._base_client")
     sync_create, async_create = completions.Completions.create, completions.AsyncCompletions.create
-    sync_retry, async_retry = client.SyncAPIClient._retry_request, client.AsyncAPIClient._retry_request
+    # openai 1.x retries by calling `_retry_request`; 2.x retries in a loop that calls `_sleep_for_retry` once before
+    # each repeated attempt. The two upstream judges pin different majors (Online-Mind2Web 1.68.2, BU Bench 2.15.0),
+    # and each SDK has only one of the two, so the meter wraps whichever the judge's own SDK has.
+    hook = "_retry_request" if hasattr(client.SyncAPIClient, "_retry_request") else "_sleep_for_retry"
+    sync_retry, async_retry = getattr(client.SyncAPIClient, hook), getattr(client.AsyncAPIClient, hook)
 
     def create(self: Any, *args: Any, **kwargs: Any) -> Any:
         started = time.monotonic()
@@ -100,8 +113,8 @@ def _meter(calls: list[dict[str, Any]]) -> None:
 
     completions.Completions.create = create
     completions.AsyncCompletions.create = acreate
-    client.SyncAPIClient._retry_request = retry
-    client.AsyncAPIClient._retry_request = aretry
+    setattr(client.SyncAPIClient, hook, retry)
+    setattr(client.AsyncAPIClient, hook, aretry)
 
 
 def _check_bu_dataset(root: Path, expected: str) -> None:
@@ -212,7 +225,11 @@ def main() -> None:
         raise RuntimeError("unsupported bridge operation")
     calls: list[dict[str, Any]] = []
     _meter(calls)
-    result = _judge_bu(request) if suite == "bu-bench" else _judge_mind2web(request)
+    # stdout carries only the bridge's JSON result. The upstream judges print their own diagnostics to stdout (the
+    # Online-Mind2Web WebJudge prints "Error processing response" when a snapshot reply holds no score), so they
+    # write to stderr while they run.
+    with contextlib.redirect_stdout(sys.stderr):
+        result = _judge_bu(request) if suite == "bu-bench" else _judge_mind2web(request)
     json.dump({**result, "calls": calls}, sys.stdout)
     sys.stdout.write("\n")
 
