@@ -121,7 +121,12 @@ async def test_grade_sends_any_browser_evidence_to_the_upstream_judge(monkeypatc
 
     async def bridge(_spec, _request, payload):
         seen.update(payload)
-        return {"passed": True, "score": 1.0, "calls": [RECORDED_CALL, {**RECORDED_CALL, "cost_usd": 0.5}]}
+        return {
+            "passed": True,
+            "score": 1.0,
+            "reason": "Thoughts: the final page shows the task done. Status: success",
+            "calls": [RECORDED_CALL, {**RECORDED_CALL, "cost_usd": 0.5}],
+        }
 
     monkeypatch.setattr(official, "_bridge", bridge)
     monkeypatch.setattr(
@@ -139,6 +144,8 @@ async def test_grade_sends_any_browser_evidence_to_the_upstream_judge(monkeypatc
     assert graded.checks[0].passed is True
     assert graded.unpriced_calls == 0
     assert [j.cost() for j in graded.judgments] == [(0.500034, 0)]  # every metered call, so the budget settles it
+    # The judge's own reasoning is kept, so an audit can read why the trial passed.
+    assert graded.judgments[0].decisions["upstream"].reason.endswith("Status: success")
     assert graded.judge_identity and official.MIND2WEB_UPSTREAM_COMMIT in graded.judge_identity
     assert "configured/model" in graded.judge_identity
     assert seen["task"] == "Complete the task"
@@ -213,7 +220,7 @@ def test_a_retried_judge_call_leaves_the_judge_cost_unknown(monkeypatch, asynchr
         client = openai.OpenAI(api_key="test", base_url="https://judge.invalid/v1", http_client=http, max_retries=1)
         client.chat.completions.create(model="openai/gpt-6.1-terra", messages=message)
     assert [call["cost_usd"] for call in calls] == [None, RECORDED_CALL["cost_usd"]]
-    judgment = official._judgment(official.MIND2WEB_SPEC, "openai/gpt-6.1-terra", {}, calls)
+    judgment = official._judgment(official.MIND2WEB_SPEC, "openai/gpt-6.1-terra", {}, {"calls": calls})
     assert judgment is not None and judgment.cost()[1] == 1  # one unpriced attempt: the budget keeps the hold
 
 

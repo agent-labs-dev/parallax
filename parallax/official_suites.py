@@ -26,7 +26,7 @@ from pydantic import BaseModel, JsonValue
 from parallax.browser_evidence import BrowserEvidence, reported
 from parallax.extensions import GradeRequest, GradingPolicy, TaskExtension
 from parallax.judge import MissingEvidence
-from parallax.judging import FallbackCall, JudgePolicy, Judgment
+from parallax.judging import Decision, FallbackCall, JudgePolicy, Judgment
 from parallax.models import (
     Area,
     Capability,
@@ -444,15 +444,26 @@ async def _grade(spec: SuiteSpec, req: GradeRequest) -> Graded:
 UPSTREAM_QUESTIONS = {"upstream": "The published upstream judge decides the task."}
 
 
-def _judgment(spec: SuiteSpec, model: str, payload: Mapping[str, JsonValue], calls: Any) -> Judgment | None:
-    """The bridge's measured calls as a judgment the runner prices; None when it reported no calls."""
+def _judgment(
+    spec: SuiteSpec, model: str, payload: Mapping[str, JsonValue], result: Mapping[str, Any]
+) -> Judgment | None:
+    """The bridge's measured calls as a judgment the runner prices, with the upstream judge's verdict and its
+    reasoning so an audit can read why a trial passed or failed; None when it reported no calls."""
+    calls = result.get("calls")
     if not isinstance(calls, list) or not calls:
         return None
+    passed, reason = result.get("passed"), result.get("reason")
+    decisions = (
+        {"upstream": Decision(passed=passed, source="llm", reason=reason)}
+        if isinstance(passed, bool) and isinstance(reason, str)
+        else {}
+    )
     return Judgment(
         policy=spec.policy,
         identity=_identity(spec, model),
         state_sha256=hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest(),
         questions=UPSTREAM_QUESTIONS,
+        decisions=decisions,
         fallback_calls=tuple(
             FallbackCall.model_validate({**call, "model": model, "attempt": index}) for index, call in enumerate(calls)
         ),
@@ -470,7 +481,7 @@ async def _upstream(spec: SuiteSpec, req: GradeRequest, evidence: BrowserEvidenc
         # judge cost is unknown.
         unjudged = _unjudged(req.task, f"missing evidence: official judge unavailable: {exc}")
         return unjudged.model_copy(update={"unpriced_calls": 1})
-    judgment = _judgment(spec, model, payload, result.get("calls"))
+    judgment = _judgment(spec, model, payload, result)
     # A bridge that reported no calls leaves the judge cost unknown.
     judgments, unpriced = ((judgment,), 0) if judgment is not None else ((), 1)
     spend = {"judgments": judgments, "unpriced_calls": unpriced}
