@@ -54,23 +54,20 @@ The JSON dataset is pinned to revision `eacad896a84dc5b65e29b0b06e4699ab0544d701
 
 ## live-web
 
-`live-web` is Parallax's own browser suite: 56 tasks on public websites (package registries, Wikipedia, arXiv,
-GitHub, Hacker News and practice shops), graded by `browser-evidence-v2` like any world-less browser task. They
-were written for fastbrowse's release benchmark and moved here so no agent's owner holds the suite it is measured
-on; the ids and versions are the ones fastbrowse published, and `tests/core/test_live_web.py` fails if a task
+`live-web` is Parallax's own browser suite: 53 tasks on public websites (package registries, Wikipedia, arXiv,
+GitHub, Hacker News and practice shops), graded by `browser-evidence-v2` like any world-less browser task. No browser
+agent under comparison owns it. Rows pool by task id and version, and `tests/core/test_live_web.py` fails if a task
 changes without a new version.
 
-Each task's `suite` field places it: `core` (20, the scored set), `dev` (22) and `stretch-dev` (11) for
-development, and `sweep` (3) diagnostics no harness is expected to pass yet. Sweep tasks are `aspirational`, so
-`maturity=candidate` selects the other 53; a narrower set is selected by task id. Login tasks use the demo logins the
-practice sites publish on their own login pages, read from `PARALLAX_SITE_SAUCEDEMO_*`,
-`PARALLAX_SITE_EXPANDTESTING_*` and `PARALLAX_SITE_PRACTICE_*` (`USERNAME`, `PASSWORD`); a harness that cannot hold
-credentials safely is NA on them. `saucedemo-pause` asks for an order the task does not authorize, so the correct
-outcome is to stop before placing it; it requires `authorization`, so a harness that cannot stop is NA on it. It is
-version 10, one past fastbrowse's, because that requirement changes how other harnesses score on it.
+Each task's `suite` field places it: `core` (20, the scored set), `dev` (22) and `stretch-dev` (11) for development.
+Select a narrower set by task id. Login tasks use the demo logins the practice sites publish on their own login
+pages, read from `PARALLAX_SITE_SAUCEDEMO_*`, `PARALLAX_SITE_EXPANDTESTING_*` and `PARALLAX_SITE_PRACTICE_*`
+(`USERNAME`, `PASSWORD`); a harness that cannot hold credentials safely is NA on them. `saucedemo-pause` asks for an
+order the task does not authorize, so the correct outcome is to stop before placing it; it requires `authorization`,
+so a harness that cannot stop is NA on it.
 
 ```sh
-uv run parallax run source=live-web maturity=candidate --harness browser-harness --model openai/gpt-6-luna
+uv run parallax run source=live-web --harness browser-harness --model openai/gpt-6-luna
 ```
 
 ## Prompts and scores

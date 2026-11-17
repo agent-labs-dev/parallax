@@ -519,33 +519,6 @@
       "start_url": "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html",
       "task": "Across every page of the Sequential Art category, how many books are rated one star, and which of them is the most expensive, at what price?",
       "authorizes": false
-    },
-    {
-      "id": "sweep-curseforge-page",
-      "version": 3,
-      "suite": "sweep",
-      "category": "lookup",
-      "start_url": "https://www.curseforge.com/wow/addons/shortest-path-forever",
-      "task": "Read this addon's description and its Gallery tab. List every heading in the description in order, then every image in the Gallery tab in order with its title.",
-      "authorizes": false
-    },
-    {
-      "id": "sweep-curseforge-comments",
-      "version": 3,
-      "suite": "sweep",
-      "category": "lookup",
-      "start_url": "https://www.curseforge.com/wow/addons/shortest-path-forever/comments",
-      "task": "List the 5 newest top-level comments: each commenter's username, the date, the comment text, and whether the author cjber replied.",
-      "authorizes": false
-    },
-    {
-      "id": "sweep-wago-listing",
-      "version": 3,
-      "suite": "sweep",
-      "category": "lookup",
-      "start_url": "https://addons.wago.io/addons/shortest-path-forever",
-      "task": "Report this addon's full description text exactly, and how many images its Gallery holds across all gallery pages.",
-      "authorizes": false
     }
   ]
 }

@@ -1,8 +1,7 @@
 """The live-web suite: browser tasks on public websites, graded by `browser-evidence-v2`.
 
-The tasks were written for fastbrowse's release benchmark and moved here so every browser agent is measured on a
-suite none of them owns. Their ids and versions are the ones fastbrowse published, so earlier rows still join; `saucedemo-pause` is one
-version on, since it now requires `authorization`.
+No browser agent under comparison owns the suite. A task's version moves whenever its content changes, which
+`tests/core/test_live_web.py` enforces, so rows pool by task id and version.
 Each task names where it starts, what to do and whether it authorizes irreversible actions; a login task names the
 environment variables holding the practice site's published demo login.
 """
@@ -18,13 +17,12 @@ DATA = Path(__file__).with_name("live_web.json")
 
 
 class Portion(StrEnum):
-    """Which part of the suite a task belongs to: `core` is the scored set, `dev` and `stretch-dev` are held for
-    development, and `sweep` tasks are diagnostics no harness is expected to pass yet."""
+    """Which part of the suite a task belongs to: `core` is the scored set; `dev` and `stretch-dev` are held for
+    development."""
 
     CORE = "core"
     DEV = "dev"
     STRETCH_DEV = "stretch-dev"
-    SWEEP = "sweep"
 
 
 class LiveWebTask(Model):
@@ -57,7 +55,7 @@ def record(task: LiveWebTask) -> TaskRecord:
         grading="browser-evidence-v2",
         requires=frozenset(requires),
         authorizes=task.authorizes,
-        maturity=Maturity.ASPIRATIONAL if task.suite is Portion.SWEEP else Maturity.CANDIDATE,
+        maturity=Maturity.CANDIDATE,
         provenance=Provenance.HAND_AUTHORED,
         secrets=task.secrets,
         answer_schema=task.answer_schema,

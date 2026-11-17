@@ -14,7 +14,7 @@ All notable changes to Parallax are recorded here. The format follows
 
 ### Added
 
-- The `live-web` task source: 56 browser tasks on public websites, moved from fastbrowse's release benchmark so every browser agent is measured on a suite none of them owns. Task ids and versions are unchanged, except `saucedemo-pause`, which now requires `authorization` and is version 10; each record keeps only the start URL, category and suite portion, so the judge no longer sees fastbrowse's arm lists or an expected outcome, and login tasks read neutral `PARALLAX_SITE_*` variables.
+- The `live-web` task source: 53 browser tasks on public websites, graded by `browser-evidence-v2`. Each record holds only the task, its start URL, category and suite portion; login tasks read `PARALLAX_SITE_*` variables, and `saucedemo-pause` requires `authorization`.
 
 ### Added
 
