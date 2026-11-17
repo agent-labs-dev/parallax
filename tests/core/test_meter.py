@@ -404,6 +404,18 @@ def provider_handler(seen: list[httpx.Request]) -> httpx.MockTransport:
             sse = "".join(f"data: {json.dumps(e)}\r\n\r\n" for e in GEMINI_SSE).encode()
             return httpx.Response(200, headers={"content-type": "text/event-stream"}, stream=ChunkedStream([sse]))
         body = json.loads(request.content)
+        if request.url.path == "/v1/evaluate":  # the AI Gateway's evaluation reply
+            gateway = {} if body["model"] == "unbilled/jev" else {"cost": "0.00001155", "generationId": "gen_1"}
+            reply = {
+                "answers": {"refund": {"type": "boolean", "probability": 0.98}},
+                "model": body["model"],
+                "usage": {"inputTokens": 275, "outputTokens": 20},
+                "providerMetadata": {"gateway": gateway},
+            }
+            return httpx.Response(200, json=reply)
+        if request.url.path == "/api/v1/systemone":  # OpenRouter's System One reply
+            usage = {"input_tokens": 275, "output_tokens": 20, "cost": 0.0000116}
+            return httpx.Response(200, json={"model": body["model"], "answers": {}, "usage": usage})
         usage = {"prompt_tokens": 1000, "completion_tokens": 100}
         return httpx.Response(200, json={"model": body["model"], "usage": usage, "data": [], "choices": []})
 
@@ -462,6 +474,28 @@ async def test_the_ai_gateway_is_priced_at_its_models_vendor(relay_meter: httpx.
     costs = {u.model: u.cost_usd for u in report.usage}
     assert costs["deepseek/deepseek-v4-flash-0731"] is not None and costs["deepseek/deepseek-v4-flash-0731"] > 0
     assert costs["nobody/unreal-9"] is None and report.unpriced_requests == 1
+
+
+async def test_a_decision_call_is_metered_at_the_charge_the_provider_reports(
+    relay_meter: httpx.AsyncBaseTransport,
+) -> None:
+    control = await register(relay_meter)
+    base = meter_module.relay_url("http://meter", KEY)
+    question = {"state": "s", "questions": {"refund": {"type": "noul", "instructions": "?"}}}
+    async with httpx.AsyncClient(transport=relay_meter) as c:
+        for url, model in (
+            ("ai-gateway.vercel.sh/v1/evaluate", "typesafe-ai/jev-1.14.0"),
+            ("openrouter.ai/api/v1/systemone", "typesafe/jev-1.14"),
+            ("ai-gateway.vercel.sh/v1/evaluate", "unbilled/jev"),
+        ):
+            r = await c.post(f"{base}/{url}", json={"model": model, **question})
+            assert r.status_code == 200
+    report = await control.report(KEY)
+    usage = {u.model: (u.input, u.output, u.requests, u.cost_usd) for u in report.usage}
+    assert usage["typesafe-ai/jev-1.14.0"] == (275, 20, 1, pytest.approx(0.00001155))
+    assert usage["typesafe/jev-1.14"] == (275, 20, 1, pytest.approx(0.0000116))
+    # A decision priced by nobody leaves the run's cost unknown rather than free.
+    assert usage["unbilled/jev"][3] is None and report.unpriced_requests == 1
 
 
 @pytest.mark.parametrize(

@@ -102,6 +102,9 @@ class Endpoint(StrEnum):
 
     GENERATION = "generation"  # returns usage; priced and recorded
     FREE = "free"  # token counting and model listing: no generation, so nothing to record
+    # A decision model's typed answers. genai-prices prices no decision model, so the call is priced at the
+    # charge the provider reports with it; a reply without one is recorded as unpriced.
+    DECISION = "decision"
 
 
 # The only (method, path) pairs the meter forwards, relative to the wire's /v1. The upstream key
@@ -117,6 +120,8 @@ ALLOWED_ENDPOINTS: Mapping[Wire, Mapping[tuple[str, str], Endpoint]] = {
         ("POST", "responses/input_tokens"): Endpoint.FREE,
         ("POST", "embeddings"): Endpoint.GENERATION,
         ("GET", "models"): Endpoint.FREE,
+        ("POST", "evaluate"): Endpoint.DECISION,  # the AI Gateway's evaluation (decision) API
+        ("POST", "systemone"): Endpoint.DECISION,  # OpenRouter's System One decision API
     },
     Wire.ANTHROPIC: {
         ("POST", "messages"): Endpoint.GENERATION,
@@ -289,8 +294,10 @@ class UsageAccumulator:
     final chunk, Responses' `response.completed`), so the latest value of each field wins.
     """
 
-    def __init__(self, wire: Wire, request_model: str | None) -> None:
+    def __init__(self, wire: Wire, request_model: str | None, endpoint: Endpoint = Endpoint.GENERATION) -> None:
         self.wire = wire
+        self.endpoint = endpoint
+        self.reported_cost: float | None = None  # the charge the provider reported, in dollars (`Endpoint.DECISION`)
         self.model = request_model  # labels usage and prices it; the request's model until a response names one
         self.served: str | None = None  # only what a response named: the evidence for board placement
         self.fields: dict[str, int] = {}
@@ -311,6 +318,21 @@ class UsageAccumulator:
             usage = holder.get("usage", holder.get("usageMetadata"))
             if isinstance(usage, dict):
                 self.fields.update(flatten_ints(usage))
+                self.report_cost(usage.get("cost"))  # OpenRouter: a number of dollars
+            metadata = holder.get("providerMetadata", holder.get("provider_metadata"))
+            gateway = metadata.get("gateway") if isinstance(metadata, dict) else None
+            if isinstance(gateway, dict):
+                self.report_cost(gateway.get("cost"))  # the AI Gateway: a decimal string of dollars
+
+    def report_cost(self, value: JsonValue) -> None:
+        if isinstance(value, bool) or not isinstance(value, int | float | str):
+            return
+        try:
+            cost = float(value)
+        except ValueError:
+            return
+        if math.isfinite(cost) and cost >= 0:
+            self.reported_cost = cost
 
     def observed(self) -> Observed | None:
         if not self.fields or self.model is None:
@@ -318,6 +340,15 @@ class UsageAccumulator:
         f = self.fields.get
         match self.wire:
             case Wire.OPENAI:
+                if "inputTokens" in self.fields:  # the AI Gateway's evaluation API
+                    return Observed(
+                        model=self.model,
+                        input=f("inputTokens", 0),
+                        output=f("outputTokens", 0),
+                        cache_read=0,
+                        cache_write=0,
+                        reasoning=0,
+                    )
                 if "input_tokens" in self.fields:  # Responses API (OpenRouter adds cache_write_tokens)
                     return Observed(
                         model=self.model,
@@ -437,7 +468,7 @@ def record(trial: TrialMeter, acc: UsageAccumulator, upstream_url: str) -> None:
     tally.cache_read += observed.cache_read
     tally.cache_write += observed.cache_write
     tally.reasoning += observed.reasoning
-    cost = price(observed, upstream_url)
+    cost = acc.reported_cost if acc.endpoint is Endpoint.DECISION else price(observed, upstream_url)
     if cost is None:
         trial.unpriced_requests += 1
         tally.unpriced = True
@@ -559,7 +590,7 @@ def app(
             )
         raw = await request.body()
         parsed = parse_json(raw) if raw else None
-        if endpoint is Endpoint.GENERATION:
+        if endpoint is not Endpoint.FREE:
             if not isinstance(parsed, dict):
                 # A body the meter cannot read (compressed, not JSON) could carry server tools unseen.
                 logger.warning("meter: refused a %s request on the %s wire: body is not a JSON object", path, wire)
@@ -609,9 +640,9 @@ def app(
                 wire, 502, MeterError.UPSTREAM_UNREACHABLE, f"parallax meter: upstream unreachable ({exc})"
             )
         out_headers = {k: v for k, v in response.headers.items() if k.lower() in KEEP_RESPONSE_HEADERS}
-        acc = UsageAccumulator(wire, request_model)
+        acc = UsageAccumulator(wire, request_model, endpoint)
         ok = response.is_success
-        metered = ok and endpoint is Endpoint.GENERATION
+        metered = ok and endpoint is not Endpoint.FREE
         if not ok:
             trial.upstream_errors += 1
         if response.headers.get("content-type", "").startswith("text/event-stream"):

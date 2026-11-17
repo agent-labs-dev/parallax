@@ -295,6 +295,12 @@ also allows `POST embeddings`. Gemini allows `generateContent`,
 function declarations. The AI Gateway charges each vendor's list price, so its
 responses are priced at the vendor named in the model id.
 
+Decision models answer typed questions instead of generating text: the AI
+Gateway's `POST evaluate` and OpenRouter's `POST systemone`. No price table
+covers them, so each call is priced at the charge the provider reports in its
+reply (`providerMetadata.gateway.cost`, or `usage.cost` on OpenRouter). A reply
+without one leaves the trial's cost unknown.
+
 | `cost_source` | Meaning | Rendered |
 |---|---|---|
 | `metered` | Priced by the meter from observed usage. The observed model is recorded | `M` |
