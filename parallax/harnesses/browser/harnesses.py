@@ -154,6 +154,7 @@ def _usage(raw: object, model: str | None) -> tuple[Usage, ...]:
             output.append(
                 Usage(
                     model=str(item.get("model") or model or "unreported"),
+                    component=str(item["component"]) if item.get("component") else None,
                     input=int(item.get("input", item.get("input_tokens", 0))),
                     output=int(item.get("output", item.get("output_tokens", 0))),
                     cache_read=int(item.get("cache_read", item.get("cached_input_tokens", 0))),

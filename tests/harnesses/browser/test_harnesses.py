@@ -962,7 +962,7 @@ async def test_a_later_turn_that_reports_no_cost_lines_makes_the_trial_cost_unkn
     await harness.stop()
 
 
-def test_a_harness_reported_image_count_is_kept_on_usage_and_omitted_when_none() -> None:
+def test_a_harness_reported_component_and_image_count_are_kept_on_usage() -> None:
     usage = _usage(
         [
             {"model": "jev", "component": "jev", "input": 4200, "images": 3, "cost_usd": 0.01},
@@ -970,5 +970,5 @@ def test_a_harness_reported_image_count_is_kept_on_usage_and_omitted_when_none()
         ],
         None,
     )
-    assert [u.images for u in usage] == [3, 0]
+    assert [(u.component, u.images) for u in usage] == [("jev", 3), ("llm", 0)]
     assert "images" not in usage[1].model_dump()
