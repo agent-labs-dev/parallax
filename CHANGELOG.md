@@ -6,6 +6,8 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev47] - 2026-11-17
+
 ### Fixed
 
 - The open-source Browser Use arm records its cloud browser and proxy cost, read once its browser stops, beside its model cost.
