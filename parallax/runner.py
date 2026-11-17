@@ -1099,7 +1099,8 @@ class TrialExecution:
             self.meter_key = new_trial_key()
             self.secrets.append(self.meter_key)
             await self.s.svc.meter_client().register(self.meter_key)
-            llm = llm_endpoint(self.s.svc.meter_for_box(box_isolation(box)), self.meter_key)
+            svc = self.s.svc
+            llm = llm_endpoint(svc.meter_for_box(box_isolation(box)), self.meter_key, svc.meter_for_box(Isolation.HOST))
             env[METER_KEY_ENV] = self.meter_key
         mcp = None
         if token is not None:

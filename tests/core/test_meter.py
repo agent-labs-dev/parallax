@@ -90,7 +90,7 @@ async def register(meter: httpx.AsyncBaseTransport) -> MeterClient:
 
 async def test_openai_json_is_metered_and_priced(meter: httpx.AsyncBaseTransport, seen: list[httpx.Request]) -> None:
     control = await register(meter)
-    ep = llm_endpoint("http://meter", KEY)
+    ep = llm_endpoint("http://meter", KEY, "http://meter")
     async with httpx.AsyncClient(transport=meter) as c:
         r = await c.post(
             f"{ep.openai_base_url}/chat/completions",
@@ -112,7 +112,7 @@ async def test_anthropic_sse_passes_through_and_is_metered(
     meter: httpx.AsyncBaseTransport, seen: list[httpx.Request]
 ) -> None:
     control = await register(meter)
-    ep = llm_endpoint("http://meter", KEY)
+    ep = llm_endpoint("http://meter", KEY, "http://meter")
     async with httpx.AsyncClient(transport=meter) as c:
         r = await c.post(
             f"{ep.anthropic_base_url}/v1/messages",
@@ -135,7 +135,7 @@ async def test_anthropic_sse_passes_through_and_is_metered(
 
 async def test_unknown_price_is_none_not_zero(meter: httpx.AsyncBaseTransport) -> None:
     control = await register(meter)
-    ep = llm_endpoint("http://meter", KEY)
+    ep = llm_endpoint("http://meter", KEY, "http://meter")
     async with httpx.AsyncClient(transport=meter) as c:
         await c.post(f"{ep.openai_base_url}/chat/completions", json={"model": "nobody/unreal-model-9", "messages": []})
     report = await control.report(KEY)
@@ -172,7 +172,7 @@ async def test_streaming_chat_completions_request_usage(
 async def test_free_endpoints_are_relayed_but_not_metered(meter: httpx.AsyncBaseTransport) -> None:
     # Claude Code calls count_tokens every turn; recording it made a fully priced trial's cost unknown.
     control = await register(meter)
-    ep = llm_endpoint("http://meter", KEY)
+    ep = llm_endpoint("http://meter", KEY, "http://meter")
     async with httpx.AsyncClient(transport=meter) as c:
         counted = await c.post(f"{ep.anthropic_base_url}/v1/messages/count_tokens", json={"model": "claude-sonnet-4-5"})
     assert counted.status_code == 200
@@ -185,7 +185,7 @@ async def test_non_inference_endpoints_never_reach_upstream(
 ) -> None:
     # The upstream key can read, write and delete account files; only inference may borrow it.
     control = await register(meter)
-    ep = llm_endpoint("http://meter", KEY)
+    ep = llm_endpoint("http://meter", KEY, "http://meter")
     async with httpx.AsyncClient(transport=meter) as c:
         refused = [
             await c.get(f"{ep.openai_base_url}/files"),
@@ -211,7 +211,7 @@ async def test_server_side_tools_are_refused_before_upstream(
 ) -> None:
     # A provider-run web search or fetch would read the live web from outside the box's isolation.
     await register(meter)
-    ep = llm_endpoint("http://meter", KEY)
+    ep = llm_endpoint("http://meter", KEY, "http://meter")
     fn = {"type": "function", "name": "f", "parameters": {}}
     async with httpx.AsyncClient(transport=meter) as c:
         anthropic = f"{ep.anthropic_base_url}/v1/messages"
@@ -486,3 +486,9 @@ async def test_relay_refuses_what_it_cannot_meter_before_upstream(
     async with httpx.AsyncClient(transport=relay_meter) as c:
         r = await c.post(f"{meter_module.relay_url('http://meter', KEY)}/{path}", json=body)
     assert r.status_code == 403 and not seen
+
+
+def test_the_relay_is_the_meter_as_the_host_reaches_it_while_the_box_keeps_its_own() -> None:
+    ep = llm_endpoint("http://meter-sidecar:9", KEY, "http://127.0.0.1:9")
+    assert ep.openai_base_url.startswith("http://meter-sidecar:9/")
+    assert ep.relay_url == f"http://127.0.0.1:9/{KEY}/relay"

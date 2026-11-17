@@ -275,6 +275,9 @@ A product that is compared as shipped, with its own provider keys and model
 routing, sends its calls through the relay instead:
 `{meter}/{trial_key}/relay/{host}/{path}`. A metered harness reads the trial's
 relay as `trial.llm.relay_url` and prefixes it to the provider's host and path.
+The URL is the meter as the run's host reaches it, so the product's backend
+must run on that host, as a local stack does; Parallax does not expose the
+meter to a backend elsewhere.
 The caller's own credentials are forwarded, so the meter holds no key for
 these hosts. The relay knows these hosts, and refuses any other with HTTP 403:
 
