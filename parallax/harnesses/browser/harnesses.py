@@ -39,6 +39,7 @@ from parallax.harnesses.browser.cloud import (
     cloud_browser,
     cost_lines,
     devtools_websocket,
+    with_stopped_browser_cost,
 )
 from parallax.harnesses.browser.observer import AmbiguousFinalPage, load_observer
 from parallax.harnesses.browser.site import Unavailable, site_down
@@ -428,6 +429,8 @@ class BrowserHarness(ABC):
             steps=_steps(turn.index, self._scrub(result.get("step_log"))),
             usage=_usage(result.get("usage"), self.trial.model),
             actual_model=result.get("actual_model") if isinstance(result.get("actual_model"), str) else None,
+            # A harness that runs several models (a writer and a classifier) names each one it ran.
+            actual_models=tuple(m for m in result.get("actual_models") or () if isinstance(m, str)),
             latency_ms=latency_ms,
             error=error,
         )
@@ -639,14 +642,10 @@ class BrowserHarnessCloud(BrowserHarness):
                 stopped = await asyncio.shield(_stop(client, browser_id))
                 settled = await asyncio.shield(_settled(client, browser_id)) if stopped is not None else None
                 existing = result.get("cost_lines")
-                lines = list(existing) if isinstance(existing, list) else []
-                known = {item.get("component") for item in lines if isinstance(item, Mapping)}
-                lines.extend(
-                    line
-                    for line in cost_lines(settled or stopped, settled=settled is not None)
-                    if line["component"] not in known
+                result["cost_lines"] = with_stopped_browser_cost(
+                    existing if isinstance(existing, list) else [],
+                    cost_lines(settled or stopped, settled=settled is not None),
                 )
-                result["cost_lines"] = lines
             return result
         finally:
             with contextlib.suppress(Exception):

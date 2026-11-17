@@ -6,6 +6,11 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- A Browser Use Cloud trial records the browser and proxy cost read after its browser stops. It used to keep the read taken when the run ended, while the browser was still open, when Browser Use reports a placeholder browser charge of $0.08 and no proxy traffic.
+- A browser harness's turn keeps every model the harness reports it ran (`actual_models`), not only a single `actual_model`.
+
 ## [2.0.0.dev46] - 2026-11-17
 
 ### Added
