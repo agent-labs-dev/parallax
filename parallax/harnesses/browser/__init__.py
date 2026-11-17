@@ -2,6 +2,7 @@
 
 from parallax.harnesses.browser.harnesses import (
     BrowserHarness,
+    BrowserHarnessClaudeCode,
     BrowserHarnessCloud,
     BrowserHarnessOSS,
     BrowserHarnessRunner,
@@ -12,6 +13,7 @@ __all__ = [
     "BrowserHarness",
     "BrowserHarnessCloud",
     "BrowserHarnessOSS",
+    "BrowserHarnessClaudeCode",
     "BrowserHarnessRunner",
     "CuaCodexHarness",
 ]
