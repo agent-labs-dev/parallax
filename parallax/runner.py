@@ -498,6 +498,8 @@ class Services:
             meter = await serve_embedded(meter_app(self.meter_admin, upstreams_from_env(os.environ)), "127.0.0.1")
             self._embedded.append(meter)
             self.meter_local = self.meter_internal = f"http://127.0.0.1:{meter.port}"
+        if self.public_url is not None:
+            await check_public_world(self.public_url, self.world_local)
 
     async def stop(self) -> None:
         for embedded in reversed(self._embedded):
@@ -541,6 +543,29 @@ class Services:
         if self.meter_local is None:
             raise BoxError("a metered harness needs the meter, which this run did not start")
         return MeterClient(self.meter_local, self.meter_admin)
+
+
+PUBLIC_WORLD_WAIT_S = 60.0  # a fresh quick tunnel's hostname can take some seconds to resolve
+
+
+async def check_public_world(public_url: str, world_local: str) -> None:
+    """The public URL must reach this run's world server: its `/mcp` answers exactly as the local one.
+    A tunnel routed elsewhere would otherwise hand every remote trial an empty world."""
+    public = f"{public_url.rstrip('/')}/mcp"
+    async with httpx.AsyncClient(timeout=10.0) as http:
+        local = await http.get(f"{world_local}/mcp")
+        deadline = time.monotonic() + PUBLIC_WORLD_WAIT_S
+        while True:
+            try:
+                seen = await http.get(public)
+                if (seen.status_code, seen.content) == (local.status_code, local.content):
+                    return
+                answer = f"HTTP {seen.status_code}"
+            except httpx.TransportError as exc:
+                answer = f"{type(exc).__name__}"
+            if time.monotonic() > deadline:
+                raise BoxError(f"--world-public-url {public} does not reach this run's world server ({answer})")
+            await asyncio.sleep(1.0)
 
 
 @contextlib.asynccontextmanager
