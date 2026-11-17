@@ -83,8 +83,8 @@ def test_the_fallback_panel_defaults_once_a_key_can_reach_it(
         pytest.param(
             "https://openrouter.ai/api/v1",
             "",
-            {"provider": {"require_parameters": True}},
-            id="OpenRouter unpinned still requires the reply schema",
+            {"provider": {"require_parameters": True, "ignore": ["OpenInference"]}},
+            id="OpenRouter unpinned requires the reply schema and skips hosts that drop evidence",
         ),
         pytest.param("https://judge.example/v1", "", {}, id="another endpoint unpinned"),
         pytest.param("https://judge.example/v1", "deepinfra", None, id="a pin no gateway can honour is refused"),

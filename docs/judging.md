@@ -47,7 +47,8 @@ graded by different evaluators unless `--allow-identity-change` is given.
 - `PARALLAX_JUDGE_PROVIDERS` (comma-separated, in preference order) holds the
   panel to those upstream hosts on the AI Gateway or OpenRouter; any other
   endpoint refuses it. Set it when some of a model's hosts ignore the strict
-  reply schema.
+  reply schema. Unset on OpenRouter, the panel skips the hosts in
+  `IGNORED_OPENROUTER_HOSTS`, measured to drop evidence on long calls.
 - `parallax check` uses the same judges for oracle, null controls and mutants.
   It makes model calls. `parallax check --lint-only` and CI protocol tests run
   offline.

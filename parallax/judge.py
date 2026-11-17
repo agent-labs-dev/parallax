@@ -44,6 +44,12 @@ PROVIDERS_ENV = "PARALLAX_JUDGE_PROVIDERS"
 model over many hosts, and not all of them enforce `response_format`: on 2026-11-16 four of the AI Gateway's ten
 DeepSeek V4.1 Flash 1017 hosts (boundless, digitalocean, gmicloud, morph) ignored the strict schema on 23 of 23
 calls and invented their own keys, while the other six matched it on every call."""
+IGNORED_OPENROUTER_HOSTS = ("OpenInference",)
+"""OpenRouter hosts the judge is never served by unless `PROVIDERS_ENV` names them. On 2026-11-17 OpenInference served
+the semantic quality call of a 70k-token saas-invoice-chase-reconcile trial with DeepSeek V4.1 Flash 1017 and failed
+30 of 30 times: it answered that state it had been sent was absent, abstaining on up to ten checks, or stopped at
+`finish_reason: length`. Seven other hosts (Wafer, Ambient, Relace, Sail Research, DeepInfra, Fireworks, Together)
+judged the same input 42 of 42 times without one abstention (agent-labs-dev/parallax#65)."""
 DEFAULT_MODEL = "deepseek/deepseek-v4.1-flash-1017"
 """The fallback panel when none is named: the newest DeepSeek V4.1 Flash release, pinned by its dated id so a
 comparison's judge cannot move under it, on OpenRouter."""
@@ -62,13 +68,16 @@ class JudgeConfig(Model):
         """The request fields that route the judge, in the gateway's own shape. OpenRouter is always told to use only
         hosts that support every parameter sent, the strict `response_format` among them: by default a host that
         ignores it can still serve the request (openrouter.ai/docs/guides/routing/provider-selection). The AI Gateway
-        has no such filter, so there only `providers` holds the judge to hosts that enforce the schema."""
+        has no such filter, so there only `providers` holds the judge to hosts that enforce the schema. Unpinned, OpenRouter
+        also skips `IGNORED_OPENROUTER_HOSTS`."""
         host = urlsplit(self.base_url).hostname
         pinned: JsonObject = {"only": list(self.providers), "order": list(self.providers)} if self.providers else {}
         if host == OPENROUTER_HOST:
             provider: JsonObject = {"require_parameters": True, **pinned}
             if pinned:
                 provider["allow_fallbacks"] = False
+            else:
+                provider["ignore"] = list(IGNORED_OPENROUTER_HOSTS)
             return {"provider": provider}
         if not self.providers:
             return {}
