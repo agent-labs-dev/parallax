@@ -275,7 +275,8 @@ class BrowserHarness(ABC):
         self._site_preflight_done = False
         self._agent_has_started = False
         self._finished_at: float | None = None  # this turn's agent returned its answer
-        self._turn_agent_at: float | None = None  # this turn's agent started (its browser was ready)
+        self._turn_agent_at: float | None = None  # this turn's agent started: its first ready, else the turn's start
+        self._turn_ready = False
         # Per turn: something billable was created, and whether that turn reported its charges.
         self._turn_spending = False
         self._turn_priced = False
@@ -371,6 +372,7 @@ class BrowserHarness(ABC):
                 self._clock_started()
                 self._turn_spending = self._turn_priced = False
                 self._finished_at = None
+                self._turn_agent_at, self._turn_ready = time.monotonic(), False
                 result = await self.execute(turn)
         except Unavailable as error:
             result = {"status": "unavailable", "answer": None, "error": str(error)}
@@ -501,6 +503,9 @@ class BrowserHarness(ABC):
     def _agent_started(self, open_seconds: object = None) -> None:
         """The agent is running and may spend: a worker reported ready, or a cloud task exists."""
         self._spending()
+        if not self._turn_ready:
+            # Only the first: a cloud run reports `browser.reattached` after `browser.ready`, mid-turn.
+            self._turn_agent_at, self._turn_ready = time.monotonic(), True
         self._clock_started(open_seconds)
 
     def _agent_finished(self) -> None:
@@ -514,7 +519,6 @@ class BrowserHarness(ABC):
         self._turn_spending = True
 
     def _clock_started(self, open_seconds: object = None) -> None:
-        self._turn_agent_at = time.monotonic()
         if self._clock is None:
             return
         if isinstance(open_seconds, int | float):

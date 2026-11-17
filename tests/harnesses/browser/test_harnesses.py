@@ -538,6 +538,31 @@ async def test_browser_timing_starts_before_execute_finishes() -> None:
     assert harness.trial_timing().breakdown["agent"] >= 5
 
 
+async def test_a_reattached_browser_does_not_restart_the_turns_agent_time() -> None:
+    import asyncio
+
+    from parallax.harnesses.browser.clock import AttemptClock
+    from parallax.harnesses.browser.harnesses import BrowserHarness
+    from parallax.models import Trial
+
+    class Harness(BrowserHarness):
+        info = BrowserHarnessOSS.info
+
+        async def execute(self, _: object) -> dict[str, object]:
+            self._agent_started()  # browser.ready
+            await asyncio.sleep(0.1)
+            self._agent_started()  # browser.reattached
+            await asyncio.sleep(0.01)
+            self._agent_finished()
+            return {"status": "done", "answer": "ok", "ready": True}
+
+    harness = Harness()
+    harness._trial = Trial.model_construct(model=None)
+    harness._clock = AttemptClock(bounded=False)
+    out = await harness.turn(SimpleNamespace(index=1, text="find it"))
+    assert out.latency_ms is not None and out.latency_ms >= 100
+
+
 async def test_agent_time_ends_when_the_agent_answers_not_after_cleanup() -> None:
     import asyncio
 
