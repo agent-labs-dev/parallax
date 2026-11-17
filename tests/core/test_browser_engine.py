@@ -262,7 +262,7 @@ async def test_missing_task_secret_is_invalid_before_the_harness_starts(
     harness_plan = runner.HarnessPlan(
         name="browser-use-cloud", info=BrowserHarnessCloud.info, version="1", config_hash="c"
     )
-    (plan,) = runner.plan_trials([task], [harness_plan], [None], RunOptions(out=tmp_path, isolation=Isolation.HOST))
+    (plan,) = runner.plan_trials([task], [harness_plan], ["bu-4.0"], RunOptions(out=tmp_path, isolation=Isolation.HOST))
     session = runner.Session(SimpleNamespace(isolation=Isolation.HOST), tmp_path, None, None)
     result = await session.trial(plan)
     assert result.result.verdict is Verdict.INVALID
