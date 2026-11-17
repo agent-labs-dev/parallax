@@ -9,6 +9,7 @@ All notable changes to Parallax are recorded here. The format follows
 ### Added
 
 - The meter relays a product's own provider calls, with its own keys, to OpenRouter, OpenAI, the AI Gateway, Anthropic and Gemini, and meters each response. This lets a product run as shipped report metered cost.
+- The meter refuses models that search the web on every call (`perplexity/*`, `gpt-5-search-api`, `openrouter/fusion`, `x-ai/grok-4.20-multi-agent`), as it already refused `:online` models.
 
 ### Fixed
 

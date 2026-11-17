@@ -228,6 +228,9 @@ async def test_server_side_tools_are_refused_before_upstream(
             await c.post(chat, json={"model": "m", "plugins": [{"id": "web"}]}),
             await c.post(chat, json={"model": "m", "web_search_options": {}}),
             await c.post(chat, json={"model": "openai/gpt-4o:online"}),
+            # Models that search on every call, with nothing in the request to say so.
+            await c.post(chat, json={"model": "perplexity/sonar"}),
+            await c.post(chat, json={"model": "gpt-5-search-api"}),
         ]
         unreadable = await c.post(anthropic, content=b"\x1f\x8b gzip", headers={"content-encoding": "gzip"})
         # The shapes harnesses send: untyped Anthropic tools, function + namespace.

@@ -157,6 +157,13 @@ SERVER_TOOL_FIELDS: Mapping[Wire, frozenset[str]] = {
     Wire.GOOGLE: frozenset({"cachedContent"}),  # a server-side cache made outside the trial
 }
 ONLINE_MODEL_SUFFIX = ":online"  # OpenRouter's web-search variant of any model
+# Models whose provider searches the web on every call, with no request field to say so. Checked against
+# OpenAI's and OpenRouter's model lists on 2026-11-17; a vendor listed here has no model that does not search.
+SEARCHING_VENDORS = frozenset({"perplexity"})
+SEARCHING_MODELS = frozenset({
+    "gpt-5-search-api", "gpt-5-search-api-2025-10-14", "openai/gpt-5-search-api",
+    "openrouter/fusion", "x-ai/grok-4.20-multi-agent",
+})  # fmt: skip
 TOOL_TYPE_VERSION = re.compile(r"_\d{8}$")
 # How long a report waits for streams whose client hung up to finish (see `pump`).
 STREAM_DRAIN_WAIT_S = 120.0
@@ -752,8 +759,14 @@ def server_tools(wire: Wire, body: Mapping[str, JsonValue]) -> list[str]:
     ]
     fallbacks = body.get("models")  # OpenRouter's fallback list
     models = [body.get("model"), *(fallbacks if isinstance(fallbacks, list) else [])]
-    offending += [f"model {m}" for m in models if isinstance(m, str) and m.endswith(ONLINE_MODEL_SUFFIX)]
+    offending += [f"model {m}" for m in models if isinstance(m, str) and searches(m)]
     return offending + server_tool_types(wire, body.get("tools"))
+
+
+def searches(model: str) -> bool:
+    """Whether the model searches the web on the provider's side whatever the request asks."""
+    vendor, _, _ = model.partition("/")
+    return model.endswith(ONLINE_MODEL_SUFFIX) or model in SEARCHING_MODELS or vendor in SEARCHING_VENDORS
 
 
 def server_tool_types(wire: Wire, tools: JsonValue) -> list[str]:
