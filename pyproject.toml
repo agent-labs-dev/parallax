@@ -41,6 +41,7 @@ browser-use-cloud = "parallax.harnesses.browser:BrowserHarnessCloud"
 browser-use-oss = "parallax.harnesses.browser:BrowserHarnessOSS"
 browser-harness = "parallax.harnesses.browser:BrowserHarnessRunner"
 browser-harness-claude-code = "parallax.harnesses.browser:BrowserHarnessClaudeCode"
+agent-browser = "parallax.harnesses.browser:AgentBrowserRunner"
 cua-codex = "parallax.harnesses.browser:CuaCodexHarness"
 
 [project.entry-points."parallax.browser_observers"]

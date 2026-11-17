@@ -1052,3 +1052,18 @@ async def test_a_turn_tells_the_harness_how_long_it_has_left() -> None:
     await harness.turn(TurnInput(index=2, text="and this", new_session=False))
     assert left[0] is not None and 1790 < left[0] <= 1800
     assert left[1] is None
+
+
+def test_agent_browser_reaches_the_trials_browser_from_every_session_and_browser_harness_by_its_own_variable() -> None:
+    from parallax.harnesses.browser.harnesses import AgentBrowserRunner
+    from parallax.harnesses.browser.toolchain import Cli
+
+    assert AgentBrowserRunner.info.name == "agent-browser"
+    assert AgentBrowserRunner.cli is Cli.AGENT_BROWSER and BrowserHarnessRunner.cli is Cli.BROWSER_HARNESS
+    assert Cli.AGENT_BROWSER.environment("wss://cdp.test", "t1") == {
+        "AGENT_BROWSER_CDP": "wss://cdp.test",
+        "AGENT_BROWSER_NAMESPACE": "t1",
+    }
+    assert Cli.AGENT_BROWSER.detach() == ["agent-browser", "close", "--all"]
+    assert Cli.BROWSER_HARNESS.environment("wss://cdp.test", "t1") == {"BU_CDP_WS": "wss://cdp.test"}
+    assert Cli.BROWSER_HARNESS.detach() == []

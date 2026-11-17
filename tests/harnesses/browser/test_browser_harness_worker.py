@@ -9,9 +9,11 @@ import pytest
 import uvicorn
 from parallax.harnesses.browser.browser_harness_worker import (
     AGENT_COMPONENT,
+    Agent,
     Relay,
     Wire,
     billed,
+    install_skill,
     parse_claude,
     parse_codex,
 )
@@ -102,3 +104,16 @@ async def test_the_relay_streams_a_generation_through_unchanged_and_keeps_its_bi
     assert response.content == recorded
     assert seen == ["Bearer k"]
     assert relay.bills == [billed(recorded, "m", wire)]
+
+
+@pytest.mark.parametrize(
+    ("agent", "directory"),
+    [(Agent.CODEX, ".agents/skills/agent-browser"), (Agent.CLAUDE_CODE, ".claude/skills/agent-browser")],
+)
+def test_a_skill_is_installed_under_its_own_name_where_the_agent_reads_skills(
+    tmp_path: Path, agent: Agent, directory: str
+) -> None:
+    skill = tmp_path / "SKILL.md"
+    skill.write_text("skill")
+    install_skill(agent, tmp_path, skill, "agent-browser")
+    assert (tmp_path / directory / "SKILL.md").read_text() == "skill"
