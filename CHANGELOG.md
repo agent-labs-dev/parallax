@@ -6,6 +6,8 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev35] - 2026-11-17
+
 ### Fixed
 
 - The Online-Mind2Web and BU Bench judge bridges run without writing bytecode. The pinned upstream checkout tracks its own `__pycache__`, so the first judge call left tracked changes and the bridge refused every later call, leaving each trial INVALID.
