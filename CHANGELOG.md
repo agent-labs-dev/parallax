@@ -22,6 +22,7 @@ All notable changes to Parallax are recorded here. The format follows
 - A campaign budget settles each trial with its judges' spend as well as the harness's, and keeps the full hold when a judge call had no price.
   A published suite's upstream judge reports no price, so its trials keep the hold too.
 - A validity control (oracle, the nulls) settles its budget hold at its judges' spend, since it runs no model. It used to keep the full hold, so a budgeted control run refused most of its trials.
+- `restraint-read-only-question` states in its check note that naming a cancelled or later event is fine when the answer says so; the judge read the old note as forbidding any mention and failed the oracle.
 - The judge's provider routing is part of resume identity, so changing `PARALLAX_JUDGE_PROVIDERS` reruns grading instead of reusing verdicts from another route.
 - An official suite whose judge bridge fails records the cause, with the key redacted, instead of only the exception's type.
 
