@@ -55,7 +55,7 @@ compared.
 
 ## Grading and calibration
 
-- Run held-out, human-labelled calibration for the Jev-with-LLM-fallback
+- Run held-out, human-labelled calibration for the LLM judge panel
   policy; offline fixtures prove transport and verdict propagation, not judge
   quality.
 - Pin and record the judge model, endpoint and policy hash for every published
@@ -65,8 +65,8 @@ compared.
 
 ## Non-goals
 
-- No heuristic quality grader. Semantic grading stays Jev-first with an LLM
-  fallback; missing judges leave trials `INVALID` or `ungraded` rather than
+- No heuristic quality grader. Semantic grading stays with the LLM
+  judge panel; missing judges leave trials `INVALID` or `ungraded` rather than
   inventing a score.
 - No cost or time caps. The meter records every request and refuses none for
   spend; the product under test owns its limits.

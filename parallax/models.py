@@ -1049,11 +1049,19 @@ class RunManifest(Model):
     tasks: tuple[tuple[str, str], ...]  # (id, hash)
     repeats: int
     judge: tuple[str, ...]
-    jev: bool = True  # False: the judge panel graded alone (`--no-jev`)
     isolation: Isolation
     selection: str
     bootstrap_seed: int = 0
     grading_policy: str  # `semantic.policy_identity()`: which judge configuration graded the run
+
+    @model_validator(mode="before")
+    @classmethod
+    def _drop_jev(cls, data: object) -> object:
+        """A run written before Jev was removed records whether it asked Jev. Its `grading_policy` already names that
+        judge, so the flag adds nothing and is dropped on read."""
+        if isinstance(data, dict) and "jev" in data:
+            return {k: v for k, v in data.items() if k != "jev"}
+        return data
 
 
 def fingerprint(
@@ -1068,7 +1076,6 @@ def fingerprint(
     *,
     isolation: Isolation,
     capabilities: frozenset[Capability],
-    jev: bool = True,
 ) -> str:
     """Resume key: any input that can change a verdict is part of it. Isolation decides where the
     harness and trusted verify run; the declared capabilities decide NA."""
@@ -1076,8 +1083,6 @@ def fingerprint(
         task_hash, harness, harness_version, config_hash, model, repeat, list(judge), parallax_version,
         isolation.value, sorted(c.value for c in capabilities),
     ]  # fmt: skip
-    if not jev:
-        payload.append("no-jev")  # appended only when set, so the keys of runs that ask Jev stay as they were
     return hashlib.sha256(json.dumps(payload, separators=(",", ":")).encode()).hexdigest()[:24]
 
 

@@ -25,7 +25,9 @@ def test_family(model: str, expected: str) -> None:
     ("env", "panel", "base_url"),
     [
         pytest.param({}, None, None, id="no key: no panel, nothing spent"),
-        pytest.param({"OPENROUTER_API_KEY": "or"}, (judge.DEFAULT_MODEL,), judge.OPENROUTER_BASE_URL, id="jev key"),
+        pytest.param(
+            {"OPENROUTER_API_KEY": "or"}, (judge.DEFAULT_MODEL,), judge.OPENROUTER_BASE_URL, id="openrouter key"
+        ),
         pytest.param(
             {
                 "OPENROUTER_API_KEY": "or",
@@ -68,9 +70,23 @@ def test_the_fallback_panel_defaults_once_a_key_can_reach_it(
         pytest.param(
             "https://openrouter.ai/api/v1",
             "deepinfra",
-            {"provider": {"only": ["deepinfra"], "order": ["deepinfra"], "allow_fallbacks": False}},
+            {
+                "provider": {
+                    "require_parameters": True,
+                    "only": ["deepinfra"],
+                    "order": ["deepinfra"],
+                    "allow_fallbacks": False,
+                }
+            },
             id="OpenRouter",
         ),
+        pytest.param(
+            "https://openrouter.ai/api/v1",
+            "",
+            {"provider": {"require_parameters": True}},
+            id="OpenRouter unpinned still requires the reply schema",
+        ),
+        pytest.param("https://judge.example/v1", "", {}, id="another endpoint unpinned"),
         pytest.param("https://judge.example/v1", "deepinfra", None, id="a pin no gateway can honour is refused"),
     ],
 )

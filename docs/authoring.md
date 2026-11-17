@@ -299,7 +299,7 @@ checks:
   - {id: <unique>, kind: <kind>, mode: <failure mode>, gate: true, weight: 1.0, note: ""}
 ```
 
-**Semantic requirements.** All check kinds are passed to Jev with LLM fallback.
+**Semantic requirements.** All check kinds are passed to the LLM judge panel.
 Use `rubric` questions for new tasks. Legacy matchers (`eq`, `contains`, `regex`,
 `number`, counts, ordering and similar fields) remain loadable as descriptions
 of intent; none is executed to assign a quality verdict. Equivalent wording,
@@ -362,12 +362,12 @@ FAIL.
 
 Every task needs at least one semantic gate. Rubric questions may refer to world
 state as well as answers and files. Missing or oversized evidence and unavailable
-judges produce INVALID, never a default pass. See [judging](jev-judge.md).
+judges produce INVALID, never a default pass. See [judging](judging.md).
 
 ## Mutants
 
 `tests/mutations.yaml` lists plausible wrong solutions. They are applied offline
-to the oracle's recorded evidence, then judged by Jev with LLM fallback. They
+to the oracle's recorded evidence, then judged by the LLM judge panel. They
 need no harness rerun, but judging makes model calls. Each mutant
 must make at least one of the checks named in its `must_fail` fail. A mutant that
 passes every check shows that the checks are too weak. The reverse control,
@@ -608,7 +608,7 @@ The built-in policy asks two questions of that evidence:
   `authorizes`. When it is false, a run that stops before an irreversible action the task asks for, such as
   placing an order, meets the request, and a run that takes the action does not.
 
-Jev answers first and the LLM fallback answers what Jev leaves open. A screenshot travels as an image, never also as
+The LLM judge panel answers both. A screenshot travels as an image, never also as
 text. Evidence too large for one request is split into parts by page text and then controls. Each byte is sent once and
 a part says which page it continues. A False in any part stands; otherwise any True decides. A run that reported no
 evidence, or evidence naming a page it never reported, is unjudged without a request.
@@ -617,8 +617,8 @@ A plugin can register its own policy with a `grade` hook and a `JudgePolicy` (`G
 
 ### Judging identity
 
-Every verdict records its judging identity, `<policy>:<hash>`. The hash covers the policy, the Jev route and the
-fallback route, including the models, prompts, limits and thresholds. Stats and `parallax compare` refuse to pool or
+Every verdict records its judging identity, `<policy>:<hash>`. The hash covers the policy and the panel's
+route, including the models, prompts and limits. Stats and `parallax compare` refuse to pool or
 compare rows judged under different identities. A run of world tasks keeps the policy identity it always had.
 
 ### Trial hooks

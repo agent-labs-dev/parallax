@@ -6,6 +6,10 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Removed
+
+- Jev. The LLM judge panel answers every question, so `parallax.jev`, `parallax run --no-jev`, `JudgePolicy.use_jev`, `GradeRequest.jev_config`, `Decision.probability`, `Judgment.jev_call` and the `PARALLAX_JEV_*` variables are gone. The core grading policy is `semantic-v8` and every judging identity changes, so no verdict from an earlier version is reused or pooled. A run manifest written by an earlier version still loads.
+
 ## [2.0.0.dev34] - 2026-11-17
 
 ### Added
@@ -285,8 +289,6 @@ All notable changes to Parallax are recorded here. The format follows
   limits are the strictest of DeepSeek's documentation and its OpenRouter
   endpoints: 16 MiB a data URL, at least 64 px a side, 48 MiB of images a
   request. `Vision` gains `min_side` and `max_request_base64_bytes`.
-  Publication follows [the release procedure](docs/release-dev16.md) with
-  this version and tag `v2.0.0.dev17`.
 
 ### Changed
 
@@ -309,9 +311,14 @@ All notable changes to Parallax are recorded here. The format follows
 - Jev requests use its 262,144-token input limit and account for the complete
   state and question set. Retry handling respects rate-limit delays.
 
-The release procedure is in [the dev16 release plan](docs/release-dev16.md).
-
-[Unreleased]: https://github.com/agent-labs-dev/parallax/compare/v2.0.0.dev27...HEAD
+[Unreleased]: https://github.com/agent-labs-dev/parallax/compare/v2.0.0.dev34...HEAD
+[2.0.0.dev34]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev34
+[2.0.0.dev33]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev33
+[2.0.0.dev32]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev32
+[2.0.0.dev31]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev31
+[2.0.0.dev30]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev30
+[2.0.0.dev29]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev29
+[2.0.0.dev28]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev28
 [2.0.0.dev27]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev27
 [2.0.0.dev26]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev26
 [2.0.0.dev25]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev25

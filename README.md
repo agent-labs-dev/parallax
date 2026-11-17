@@ -60,7 +60,7 @@ export LANGFUSE_BASE_URL=https://cloud.langfuse.com
 export LANGFUSE_PUBLIC_KEY=pk-lf-...
 export LANGFUSE_SECRET_KEY=sk-lf-...
 export PARALLAX_LANGFUSE_PROJECT=my-evals    # the project id or name results belong in
-export OPENROUTER_API_KEY=...                # the Jev judge
+export OPENROUTER_API_KEY=...                # the LLM judge panel
 export PARALLAX_UPSTREAM_OPENAI_KEY=...      # the meter's OpenAI-wire key (OpenRouter by default)
 ```
 

@@ -19,8 +19,8 @@ import shlex
 from collections.abc import Sequence
 from pathlib import Path
 
-from parallax import __version__, jev
-from parallax.judge import DEFAULT_MODEL
+from parallax import __version__
+from parallax.judge import DEFAULT_MODEL, OPENROUTER_BASE_URL
 
 MARKER = "<!-- parallax-evals -->"
 JUDGE_MODEL = DEFAULT_MODEL
@@ -91,7 +91,6 @@ jobs:
       LANGFUSE_SECRET_KEY: ${{{{ secrets.LANGFUSE_SECRET_KEY }}}}
       PARALLAX_LANGFUSE_PROJECT: ${{{{ vars.PARALLAX_LANGFUSE_PROJECT }}}}
       OPENROUTER_API_KEY: ${{{{ secrets.OPENROUTER_API_KEY }}}}
-      # Without a fallback panel, a question Jev leaves uncertain makes the trial INVALID.
       PARALLAX_JUDGE_BASE_URL: {judge_base_url}
       PARALLAX_JUDGE_API_KEY: ${{{{ secrets.OPENROUTER_API_KEY }}}}
       PARALLAX_JUDGE_MODELS: ${{{{ vars.PARALLAX_JUDGE_MODELS || '{judge}' }}}}
@@ -198,7 +197,7 @@ def _header(*, branch: str, upstreams: Sequence[str], sinks: Sequence[str]) -> s
         "# Written by `parallax ci init`. Settings: repository variables LANGFUSE_BASE_URL,",
         "# PARALLAX_LANGFUSE_PROJECT and optionally PARALLAX_JUDGE_MODELS (the fallback panel) and",
         "# PARALLAX_JUDGE_PROVIDERS (the hosts it may be served by); secrets",
-        "# LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY and OPENROUTER_API_KEY (Jev and the fallback panel)",
+        "# LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY and OPENROUTER_API_KEY (the judge panel)",
     ]
     if upstreams:
         keys = [f"PARALLAX_UPSTREAM_{wire.upper()}_KEY" for wire in upstreams]
@@ -319,7 +318,7 @@ def render(
         # From a checkout, the Parallax revision is what the pull request changes, so a differing one is paired.
         compare_flags=" --allow-identity-change" if from_checkout else "",
         parallax="uv run --locked parallax" if from_checkout else f"uvx --from parallax-evals=={__version__} parallax",
-        judge_base_url=jev.DEFAULT_BASE_URL,
+        judge_base_url=OPENROUTER_BASE_URL,
         judge=JUDGE_MODEL,
         install=step.rstrip("\n"),
         select=shlex.quote(select),

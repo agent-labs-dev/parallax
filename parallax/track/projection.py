@@ -171,8 +171,7 @@ def run_name(manifest: RunManifest, harness: str, model: str | None) -> str:
 def judge_policy(manifest: RunManifest, trials: Sequence[TrialResult]) -> str:
     """A short identity of what graded these trials, so a comparison only pairs runs graded alike.
 
-    Covers the run's grading policy (judge policy version, Jev model and endpoint, fallback
-    endpoint) and the judge models the trials actually used.
+    Covers the run's grading policy (judge policy version and panel endpoint) and the judge models the trials actually used.
     """
     payload = {
         "grading_policy": manifest.grading_policy,

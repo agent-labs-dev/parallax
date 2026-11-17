@@ -152,9 +152,9 @@
       "xfail": false
     }
   ],
-  "policy_identity": "jev-semantic-v7:typesafe/jev-1.14:https://openrouter.ai/api/v1:jev-unavailable:",
+  "policy_identity": "semantic-v8:",
   "r1": {
-    "manifest_sha256": "9192617a2c5b13e62f2b759a6b76ddc36b7696abcca7c492f5690c69e0bd244c",
+    "manifest_sha256": "9d14178ccb53aa91dcff4add58ab4b3af5a57a4c76878477409b2852249c2de5",
     "projection_sha256": "b1411e538d74e752e7e56e5fac4f79daa658ed03fd5b68814189cf453d7a1ec0",
     "results_sha256": "3ade1544105c2a120a709057808c490062b9012d658c9d8cbb6afa8f64c5b9ce",
     "results_unchanged": true

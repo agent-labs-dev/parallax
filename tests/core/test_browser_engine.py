@@ -14,7 +14,7 @@ from pathlib import Path
 
 import httpx
 import pytest
-from parallax import browser_evidence, extensions, jev, runner, semantic
+from parallax import browser_evidence, extensions, runner, semantic
 from parallax.browser_evidence import BrowserEvidence, BrowserPage, BrowserStep, parts
 from parallax.judge import JudgeConfig, JudgePanel
 from parallax.judging import Decision, JudgePolicy, combined, identity
@@ -51,7 +51,6 @@ RECORD = TaskRecord(
     grading="browser-evidence-v2",
     data={"start_url": "https://shop.example/", "intended": "$24.00"},
 )
-JEV = jev.JevConfig(base_url="https://fake/v1", model="jev", api_key="test")
 INFO = HarnessInfo(
     name="browsing", kind=HarnessKind.PRODUCT, capabilities=frozenset(), pins_model=False,
     cost_source=CostSource.HARNESS, isolation=Isolation.HOST,
@@ -414,43 +413,52 @@ async def test_a_named_budget_journal_that_does_not_exist_is_refused_without_lim
 # ---------------------------------------------------------------------------
 
 
-def jev_answering(probabilities: dict[str, float], seen: list[JsonObject]) -> httpx.MockTransport:
+JUDGES = JudgePanel(models=("m/judge",))
+JUDGE_ROUTE = JudgeConfig(base_url="https://fake/v1", api_key="t")
+
+
+def panel_answering(answers: dict[str, bool | None], seen: list[JsonObject]) -> httpx.MockTransport:
+    """A judge panel that answers each question it is asked with `answers`, recording the evidence it was sent."""
+
     def handle(request: httpx.Request) -> httpx.Response:
         body = json.loads(request.content)
-        seen.append(body)
-        answers = {k: {"type": "noul", "noul": probabilities[k]} for k in body["questions"]}
-        return httpx.Response(200, json={"answers": answers, "usage": {"input_tokens": 1, "output_tokens": 0}})
+        content = body["messages"][1]["content"]
+        seen.append(json.loads(content if isinstance(content, str) else content[0]["text"]))
+        items = [{"q": q, "why": "seen", "yes": answers[q]} for q in seen[-1]["questions"]]
+        return httpx.Response(200, json={"choices": [{"message": {"content": json.dumps({"items": items})}}]})
 
     return httpx.MockTransport(handle)
 
 
-async def grade(product: JsonObject | None, transport: httpx.MockTransport, **route: object) -> semantic.Graded:
+async def grade(product: JsonObject | None, transport: httpx.MockTransport) -> semantic.Graded:
     async with httpx.AsyncClient(transport=transport) as client:
         return await semantic.grade_checks(
-            source_task(), None, route.get("panel"), route.get("config"), None, client=client,  # type: ignore[arg-type]
-            jev_config=JEV, execution={"status": "completed"}, product=product, answers=("$24.00",),
+            source_task(), None, JUDGES, JUDGE_ROUTE, None, client=client,
+            execution={"status": "completed"}, product=product, answers=("$24.00",),
         )  # fmt: skip
 
 
 @pytest.mark.parametrize(
     ("available", "satisfied", "verdict"),
     [
-        (0.99, 0.99, Verdict.PASS),
-        (0.99, 0.01, Verdict.FAIL),
-        (0.01, 0.99, Verdict.INVALID),  # evidence the judge finds unavailable measured no agent
-        (0.5, 0.99, Verdict.INVALID),  # unsettled and no fallback: unjudged
+        (True, True, Verdict.PASS),
+        (True, False, Verdict.FAIL),
+        (False, True, Verdict.INVALID),  # evidence the judge finds unavailable measured no agent
+        (None, True, Verdict.INVALID),  # the panel abstained: unjudged
     ],
 )
-async def test_the_browser_policy_answers_both_questions(available: float, satisfied: float, verdict: Verdict) -> None:
+async def test_the_browser_policy_answers_both_questions(
+    available: bool | None, satisfied: bool | None, verdict: Verdict
+) -> None:
     seen: list[JsonObject] = []
-    probabilities = {"evidence_available": available, "task_satisfied": satisfied}
-    graded = await grade({"browser": OBSERVED.model_dump(mode="json")}, jev_answering(probabilities, seen))
+    answers = {"evidence_available": available, "task_satisfied": satisfied}
+    graded = await grade({"browser": OBSERVED.model_dump(mode="json")}, panel_answering(answers, seen))
     assert decide(None, [], runner.TrajectoryStatus.COMPLETED, graded.checks)[0] is verdict
     (body,) = seen
-    state = body["state"]
+    state = body["evidence"]
     assert state["data"] == RECORD.data and state["answer"] == "$24.00"
     assert [p["id"] for p in state["pages"]] == ["page-1", "page-2"] and state["timeline"][0]["saw"] == "page-1"
-    assert graded.judge_identity == identity(browser_evidence.JUDGE, None, None, JEV)
+    assert graded.judge_identity == identity(browser_evidence.JUDGE, JUDGES, JUDGE_ROUTE)
 
 
 async def test_a_page_read_again_as_the_final_page_is_listed_once() -> None:
@@ -458,10 +466,10 @@ async def test_a_page_read_again_as_the_final_page_is_listed_once() -> None:
     revisit = OBSERVED.model_copy(update={"final_page": OBSERVED.pages[0]})
     await grade(
         {"browser": revisit.model_dump(mode="json")},
-        jev_answering({"evidence_available": 0.9, "task_satisfied": 0.9}, seen),
+        panel_answering({"evidence_available": True, "task_satisfied": True}, seen),
     )
     (body,) = seen
-    assert [(p["id"], p.get("final")) for p in body["state"]["pages"]] == [("page-1", True)]
+    assert [(p["id"], p.get("final")) for p in body["evidence"]["pages"]] == [("page-1", True)]
 
 
 @pytest.mark.parametrize(
@@ -496,11 +504,12 @@ async def test_a_screenshot_reaches_the_fallback_as_an_image() -> None:
     shot = OBSERVED.model_copy(
         update={"final_page": OBSERVED.final_page.model_copy(update={"screenshot_png_b64": png()})}
     )  # type: ignore[union-attr]
-    graded = await grade(
-        {"browser": shot.model_dump(mode="json")}, httpx.MockTransport(handle),
-        panel=JudgePanel(models=("anthropic/claude-opus-5.5",)), config=JudgeConfig(base_url="https://fake/v1", api_key="t"),
-    )  # fmt: skip
-    (body,) = seen  # Jev reads text only, so a state holding an image goes to the fallback alone
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+        graded = await semantic.grade_checks(
+            source_task(), None, JudgePanel(models=("anthropic/claude-opus-5.5",)), JUDGE_ROUTE, None, client=client,
+            execution={"status": "completed"}, product={"browser": shot.model_dump(mode="json")}, answers=("$24.00",),
+        )  # fmt: skip
+    (body,) = seen
     content = body["messages"][1]["content"]
     assert [p["image_url"]["url"] for p in content if p["type"] == "image_url"] == ["data:image/png;base64," + png()]
     assert png() not in content[0]["text"]  # the image travels once, as an image, never also as text
@@ -553,7 +562,7 @@ def test_a_split_state_sends_every_byte_of_every_page_once_within_the_limit(page
     [((False, True), False), ((True, None), True), ((None, True, False), False), ((None, None), None)],
 )
 def test_part_decisions_combine_with_a_false_standing(answers: tuple[bool | None, ...], want: bool | None) -> None:
-    assert combined([Decision(passed=a, source="jev", reason=str(a)) for a in answers]).passed is want
+    assert combined([Decision(passed=a, source="llm", reason=str(a)) for a in answers]).passed is want
 
 
 # ---------------------------------------------------------------------------
@@ -567,21 +576,19 @@ PANEL, CONFIG = JudgePanel(models=("m/a",)), JudgeConfig(base_url="https://judge
 @pytest.mark.parametrize(
     ("change", "same"),
     [
-        (lambda: (POLICY, PANEL, CONFIG.model_copy(update={"api_key": "other"}), JEV), True),  # a key is no identity
-        (lambda: (POLICY.model_copy(update={"questions": {"q": "Is it finished?"}}), PANEL, CONFIG, JEV), False),
-        (lambda: (POLICY.model_copy(update={"evidence_form": "f-v2"}), PANEL, CONFIG, JEV), False),
-        (lambda: (POLICY.model_copy(update={"part_bytes": 2000}), PANEL, CONFIG, JEV), False),
-        (lambda: (POLICY.model_copy(update={"use_jev": False}), PANEL, CONFIG, JEV), False),
-        (lambda: (POLICY, JudgePanel(models=("m/b",)), CONFIG, JEV), False),
-        (lambda: (POLICY, PANEL, CONFIG.model_copy(update={"base_url": "https://other/v1"}), JEV), False),
-        (lambda: (POLICY, PANEL, CONFIG, JEV.model_copy(update={"model": "jev-2"})), False),
-        (lambda: (POLICY, None, None, JEV), False),
+        (lambda: (POLICY, PANEL, CONFIG.model_copy(update={"api_key": "other"})), True),  # a key is no identity
+        (lambda: (POLICY.model_copy(update={"questions": {"q": "Is it finished?"}}), PANEL, CONFIG), False),
+        (lambda: (POLICY.model_copy(update={"evidence_form": "f-v2"}), PANEL, CONFIG), False),
+        (lambda: (POLICY.model_copy(update={"part_bytes": 2000}), PANEL, CONFIG), False),
+        (lambda: (POLICY, JudgePanel(models=("m/b",)), CONFIG), False),
+        (lambda: (POLICY, PANEL, CONFIG.model_copy(update={"base_url": "https://other/v1"})), False),
+        (lambda: (POLICY, None, None), False),
     ],
 )
 def test_a_judging_identity_moves_with_everything_its_judge_uses(
-    change: Callable[[], tuple[JudgePolicy, JudgePanel | None, JudgeConfig | None, jev.JevConfig]], same: bool
+    change: Callable[[], tuple[JudgePolicy, JudgePanel | None, JudgeConfig | None]], same: bool
 ) -> None:
-    assert (identity(*change()) == identity(POLICY, PANEL, CONFIG, JEV)) is same
+    assert (identity(*change()) == identity(POLICY, PANEL, CONFIG)) is same
 
 
 def test_a_run_of_source_tasks_adds_its_policys_identity_and_a_world_run_keeps_its_own() -> None:

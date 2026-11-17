@@ -109,7 +109,6 @@ async def test_grade_sends_any_browser_evidence_to_the_upstream_judge(monkeypatc
         harness_model="agent/model",
         panel=JudgePanel(models=("configured/model",)),
         judge_config=JudgeConfig(base_url="https://judge.invalid/v1", api_key="test"),
-        jev_config=None,
         client=httpx.AsyncClient(),
     )
     seen: dict[str, object] = {}
@@ -152,7 +151,6 @@ async def test_environment_interruption_remains_retryable(monkeypatch):
         harness_model=None,
         panel=None,
         judge_config=None,
-        jev_config=None,
         client=httpx.AsyncClient(),
     )
     graded = await official._grade(official.MIND2WEB_SPEC, request)

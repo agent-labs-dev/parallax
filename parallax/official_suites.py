@@ -455,7 +455,6 @@ def _policy(spec: SuiteSpec) -> GradingPolicy:
         name=f"{spec.policy}:{spec.upstream_commit}",
         questions={"upstream": "The published upstream judge decides the task."},
         evidence_form=f"{spec.source} BrowserEvidence adapter, pinned judge revision {spec.upstream_commit}",
-        use_jev=False,
     )
     return GradingPolicy(
         id=spec.policy,
