@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import gzip
 from pathlib import Path
 
 import httpx
@@ -56,6 +57,7 @@ def test_claude_code_events_give_the_answer_and_each_tool_call_with_its_result()
     ]
 
 
+@pytest.mark.parametrize("compressed", [False, True], ids=["plain", "gzip"])
 @pytest.mark.parametrize(
     ("path", "fixture", "wire"),
     [
@@ -64,13 +66,17 @@ def test_claude_code_events_give_the_answer_and_each_tool_call_with_its_result()
     ],
 )
 async def test_the_relay_streams_a_generation_through_unchanged_and_keeps_its_bill(
-    path: str, fixture: str, wire: Wire
+    path: str, fixture: str, wire: Wire, compressed: bool
 ) -> None:
     recorded = (FIXTURES / fixture).read_bytes()
     seen: list[str | None] = []
 
     async def upstream(request: Request) -> Response:
         seen.append(request.headers.get("authorization"))
+        if compressed:
+            return Response(
+                gzip.compress(recorded), media_type="text/event-stream", headers={"content-encoding": "gzip"}
+            )
         return Response(recorded, media_type="text/event-stream")
 
     app = Starlette(routes=[Route(path, upstream, methods=["POST"])])

@@ -883,6 +883,7 @@ async def test_a_browser_harness_trial_costs_its_agent_model_as_well_as_its_brow
 
     from parallax.harnesses.browser import harnesses
     from parallax.harnesses.browser.clock import AttemptClock
+    from parallax.harnesses.browser.toolchain import Toolchain
     from parallax.models import Trial
 
     browser = SimpleNamespace(cdp_url="wss://cdp.test", open_seconds=1.0, cost=())
@@ -909,6 +910,7 @@ async def test_a_browser_harness_trial_costs_its_agent_model_as_well_as_its_brow
             return {"url": "https://example.test/"}
 
     harness = Observed()
+    harness._toolchain = Toolchain(agent_bin=tmp_path, bin_dir=tmp_path, skill=tmp_path, version="v")
     harness._trial = Trial.model_construct(model="anthropic/claude-haiku-5.5", home=tmp_path, env={})
     harness._clock = AttemptClock(bounded=False)
     output = await harness.turn(SimpleNamespace(index=1, text="find it"))

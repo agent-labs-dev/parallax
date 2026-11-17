@@ -43,6 +43,7 @@ from parallax.harnesses.browser.cloud import (
 from parallax.harnesses.browser.observer import AmbiguousFinalPage, load_observer
 from parallax.harnesses.browser.site import Unavailable, site_down
 from parallax.harnesses.browser.subprocess import JsonWorker
+from parallax.harnesses.browser.toolchain import Toolchain, provision
 from parallax.models import (
     Area,
     Capability,
@@ -936,21 +937,16 @@ class BrowserHarnessRunner(BrowserHarness):
     agent = Agent.CODEX
     info = _info("browser-harness", pins_model=True, credential_env=("BROWSER_USE_API_KEY",))
 
+    _toolchain: Toolchain | None = None
+
     async def version(self, box: Any) -> str:
-        """The skill's and the agent's versions, checked before any trial reserves budget."""
-        tools = {"browser-harness": "browser-harness", Agent.CODEX: "codex", Agent.CLAUDE_CODE: "claude"}
-        versions = []
-        for name in ("browser-harness", self.agent):
-            proc = await asyncio.create_subprocess_exec(
-                tools[name], "--version", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-            )
-            out, err = await proc.communicate()
-            if proc.returncode != 0:
-                raise HarnessError(f"{tools[name]} failed to start: {err.decode(errors='replace').strip()[-500:]}")
-            versions.append(f"{name} {out.decode().strip()}")
-        return "; ".join(versions)
+        """Installs the pinned browser-harness and agent, before any trial reserves budget, and reports both."""
+        self._toolchain = await provision(self.agent)
+        return self._toolchain.version
 
     async def execute(self, turn: TurnInput) -> dict[str, Any]:
+        # Before the browser opens, so a missing tool costs nothing.
+        toolchain = self._toolchain or await provision(self.agent)
         browser = None
         try:
             async with httpx.AsyncClient() as http, cloud_browser(http, screen=(1120, 780)) as browser:
@@ -962,6 +958,7 @@ class BrowserHarnessRunner(BrowserHarness):
                     "model": self.trial.model,
                     "agent": self.agent,
                     "cdp_url": browser.cdp_url,
+                    **toolchain.request(),
                 }
                 configured = os.environ.get(self.command_env)
                 command = (

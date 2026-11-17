@@ -28,7 +28,6 @@ from starlette.responses import StreamingResponse
 from starlette.routing import Route
 
 OPENROUTER = "https://openrouter.ai"
-SKILL_ENV = "PARALLAX_BROWSER_HARNESS_SKILL"
 AGENT_COMPONENT = "agent model"
 # What the relay forwards: the agent's credentials and the request's encoding, never hop-by-hop headers.
 FORWARDED_HEADERS = ("authorization", "x-api-key", "content-type", "accept", "anthropic-version", "anthropic-beta")
@@ -146,7 +145,8 @@ class Relay:
         async def stream() -> AsyncIterator[bytes]:
             received = bytearray()
             try:
-                async for chunk in upstream.aiter_raw():
+                # Decoded: the agent is told the upstream content type, never its compression.
+                async for chunk in upstream.aiter_bytes():
                     received.extend(chunk)
                     yield chunk
             finally:
@@ -193,12 +193,12 @@ class Run:
     steps: list[dict[str, Any]] = field(default_factory=list)
 
 
-def argv(agent: Agent, model: str, goal: str, relay: str) -> list[str]:
+def argv(agent: Agent, agent_bin: str, model: str, goal: str, relay: str) -> list[str]:
     match agent:
         case Agent.CODEX:
             provider = "model_providers.openrouter"
             return [
-                "codex", "exec", "--json", "--skip-git-repo-check",
+                agent_bin, "exec", "--json", "--skip-git-repo-check",
                 # The browser is reached over the network, which Codex's sandbox blocks; the runner is disposable.
                 "--sandbox", "danger-full-access",
                 "-c", "model_provider=openrouter",
@@ -211,7 +211,7 @@ def argv(agent: Agent, model: str, goal: str, relay: str) -> list[str]:
             ]  # fmt: skip
         case Agent.CLAUDE_CODE:
             return [
-                "claude", "-p", "--output-format", "stream-json", "--verbose",
+                agent_bin, "-p", "--output-format", "stream-json", "--verbose",
                 "--dangerously-skip-permissions",
                 "--disallowedTools", "WebSearch", "WebFetch",
                 "--model", model, "--", goal,
@@ -323,23 +323,22 @@ def parse(agent: Agent, stdout: str) -> Run:
             assert_never(agent)
 
 
-def install_skill(agent: Agent, cwd: Path, environ: dict[str, str]) -> None:
-    source = environ.get(SKILL_ENV)
-    if not source or not Path(source).is_file():
-        raise RuntimeError(f"{SKILL_ENV} must name browser-harness's SKILL.md")
+def install_skill(agent: Agent, cwd: Path, skill: Path) -> None:
     target = cwd / agent.skill_dir()
     target.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(source, target / "SKILL.md")
+    shutil.copyfile(skill, target / "SKILL.md")
 
 
 async def run(request: dict[str, Any]) -> None:
     agent, model, goal = Agent(request["agent"]), str(request["model"]), str(request["goal"])
-    cwd, environ, relay = Path.cwd(), dict(os.environ), Relay()
+    cwd, relay = Path.cwd(), Relay()
+    # The pinned browser-harness CLI comes first on the agent's PATH.
+    environ = os.environ | {"PATH": os.pathsep.join((str(request["bin_dir"]), os.environ.get("PATH", "")))}
     try:
-        install_skill(agent, cwd, environ)
+        install_skill(agent, cwd, Path(request["skill"]))
         async with relay.serving() as relay_url:
             process = await asyncio.create_subprocess_exec(
-                *argv(agent, model, goal, relay_url),
+                *argv(agent, str(request["agent_bin"]), model, goal, relay_url),
                 stdin=asyncio.subprocess.DEVNULL,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
