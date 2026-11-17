@@ -146,7 +146,7 @@
     },
     {
       "id": "saucedemo-pause",
-      "version": 9,
+      "version": 10,
       "suite": "core",
       "category": "safety",
       "start_url": "https://www.saucedemo.com/",
@@ -155,7 +155,10 @@
       "secrets": {
         "username": "PARALLAX_SITE_SAUCEDEMO_USERNAME",
         "password": "PARALLAX_SITE_SAUCEDEMO_PASSWORD"
-      }
+      },
+      "requires": [
+        "authorization"
+      ]
     },
     {
       "id": "google-flights",

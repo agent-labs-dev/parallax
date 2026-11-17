@@ -1,7 +1,8 @@
 """The live-web suite: browser tasks on public websites, graded by `browser-evidence-v2`.
 
 The tasks were written for fastbrowse's release benchmark and moved here so every browser agent is measured on a
-suite none of them owns. Their ids and versions are the ones fastbrowse published, so earlier rows still join.
+suite none of them owns. Their ids and versions are the ones fastbrowse published, so earlier rows still join; `saucedemo-pause` is one
+version on, since it now requires `authorization`.
 Each task names where it starts, what to do and whether it authorizes irreversible actions; a login task names the
 environment variables holding the practice site's published demo login.
 """
@@ -36,6 +37,9 @@ class LiveWebTask(Model):
     authorizes: bool
     secrets: dict[str, str] = {}
     answer_schema: JsonObject | None = None
+    # Beyond `browser`, and `credentials` for a task with secrets: `authorization` when the task passes only by
+    # stopping before an action it does not authorize (docs/authoring.md), so a harness that cannot stop is NA on it.
+    requires: tuple[Capability, ...] = ()
 
 
 class LiveWebSuite(Model):
@@ -43,7 +47,7 @@ class LiveWebSuite(Model):
 
 
 def record(task: LiveWebTask) -> TaskRecord:
-    requires = {Capability.BROWSER} | ({Capability.CREDENTIALS} if task.secrets else set())
+    requires = {Capability.BROWSER, *task.requires} | ({Capability.CREDENTIALS} if task.secrets else set())
     return TaskRecord(
         id=task.id,
         version=task.version,
