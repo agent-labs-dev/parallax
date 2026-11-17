@@ -390,7 +390,9 @@ def _request(spec: SuiteSpec, req: GradeRequest, evidence: Any, artifact: Path) 
 
 async def _bridge(spec: SuiteSpec, req: GradeRequest, payload: dict[str, JsonValue]) -> dict[str, Any]:
     config = _config(req, spec)
-    command = (str(config.python), str(Path(__file__).with_name("official_bridge.py")))
+    # `-B`: the pinned checkout tracks its own `__pycache__`, so a judge that wrote bytecode would leave tracked
+    # changes, and the bridge refuses every later call on a checkout that differs from its pin.
+    command = (str(config.python), "-B", str(Path(__file__).with_name("official_bridge.py")))
     env = {
         "PATH": os.environ.get("PATH", ""),
         "LANG": os.environ.get("LANG", "C.UTF-8"),

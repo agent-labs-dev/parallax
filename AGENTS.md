@@ -30,6 +30,16 @@ uv run --no-project python ci/rules/run.py
   `ci/rules/check-tests/<id>/`. Suppress a hit with a `# rule-ignore: <id> - <reason>` comment line at
   most three lines above it, the reason stating why the site is safe. `run.py --test` runs the fixtures.
 
+## Judging
+
+**Every eval verdict on an agent's answer comes from an LLM judge alone.** No grader, task check, suite, side bench
+or test helper in `parallax/` or a plugin (an eval plugin's own `evals/` included) may decide a verdict by matching answer
+text: no substring, regex, keyword list, case fold or other string heuristic. State the expectation as plain words
+for the judge, expected values included (`parallax.semantic`). Structured state may still be compared in code: a
+simulated world's rows and call arguments through `parallax.match`, and protocol data such as URLs, SHAs and JSON.
+`Match` `contains`/`regex` on an `AnswerCheck` is a declaration routed to the judge as a requirement, never run
+against the answer. `tests/core/test_judge_only.py` fails if answer-side code reaches `parallax.match`.
+
 ## Standards
 
 - `repo-standards`: the RS-* requirements every agent-labs-dev repo meets (repo, Actions and security settings,
