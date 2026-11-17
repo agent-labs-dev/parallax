@@ -52,6 +52,24 @@ The JSON dataset is pinned to revision `eacad896a84dc5b65e29b0b06e4699ab0544d701
 `e8a5e5a99f2be9eae14f4e4259bd5af562f80da9`. Its judge checkout is pinned to
 `b422075b059f0bba670ddda168444eb1d326aa45`.
 
+## live-web
+
+`live-web` is Parallax's own browser suite: 53 tasks on public websites (package registries, Wikipedia, arXiv,
+GitHub, Hacker News and practice shops), graded by `browser-evidence-v2` like any world-less browser task. No browser
+agent under comparison owns it. Rows pool by task id and version, and `tests/core/test_live_web.py` fails if a task
+changes without a new version.
+
+Each task's `suite` field places it: `core` (20, the scored set), `dev` (22) and `stretch-dev` (11) for development.
+Select a narrower set by task id. Login tasks use the demo logins the practice sites publish on their own login
+pages, read from `PARALLAX_SITE_SAUCEDEMO_*`, `PARALLAX_SITE_EXPANDTESTING_*` and `PARALLAX_SITE_PRACTICE_*`
+(`USERNAME`, `PASSWORD`); a harness that cannot hold credentials safely is NA on them. `saucedemo-pause` asks for an
+order the task does not authorize, so the correct outcome is to stop before placing it; it requires `authorization`,
+so a harness that cannot stop is NA on it.
+
+```sh
+uv run parallax run source=live-web --harness browser-harness --model openai/gpt-6-luna
+```
+
 ## Prompts and scores
 
 An Online-Mind2Web task's prompt begins `Start at <website>.`, as the upstream evaluation asks an agent; the
