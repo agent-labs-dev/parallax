@@ -12,6 +12,17 @@ All notable changes to Parallax are recorded here. The format follows
   variable of the same name (`PARALLAX_UPSTREAM_ANTHROPIC`, `PARALLAX_UPSTREAM_OPENAI`), so one
   OpenRouter key can serve both wires.
 
+## [2.0.0.dev37] - 2026-11-17
+
+### Added
+
+- `browser-harness-claude-code` runs Browser Use's browser-harness skill under Claude Code, beside `browser-harness` under Codex, on the same skill, Cloud browser and OpenRouter model routing, so the two agents compare on equal terms.
+
+### Fixed
+
+- `browser-harness` gives its agent the skill it is named for, at the pinned versions. The worker ran whatever `codex` the host had on the bare task, so the agent never had browser-harness's `SKILL.md` and ran on Codex's configured model rather than the trial's. Parallax now installs the pinned browser-harness and agent CLI itself, needing only `uv` and `npm` on the host.
+- A `browser-harness` trial's cost includes its agent's model. The trial's cost came only from the browser, so every row left the model spend out; the worker now relays model calls to OpenRouter and records the cost OpenRouter reports for each one, long-prompt and cache-write rates included.
+
 ## [2.0.0.dev36] - 2026-11-17
 
 ### Removed
