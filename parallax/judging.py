@@ -42,9 +42,11 @@ FALLBACK_INSTRUCTIONS = (
 FALLBACK_CONTEXT_TOKENS = {
     "anthropic/claude-opus-5.5": 1_000_000,
     "deepseek/deepseek-v4.1-flash-1017": 1_000_000,
+    "openai/gpt-6.1-terra": 1_050_000,
 }
 """Each pinned fallback model's documented input window (OpenRouter's catalog `context_length`, checked 2026-10-16;
-DeepSeek 2026-11-13, the smallest of its OpenRouter endpoints, which run 1,000,000 to 1,048,576).
+DeepSeek 2026-11-13, the smallest of its OpenRouter endpoints, which run 1,000,000 to 1,048,576; GPT-6.1 Terra
+2026-11-17, matching OpenAI's model page).
 A model missing here gets no pre-flight check; the provider's own refusal still applies."""
 FALLBACK_TOKENS_PER_TEXT_BYTE = 0.4
 FALLBACK_TOKENS_PER_IMAGE_BYTE = 0.9
@@ -68,6 +70,17 @@ REPLY_CORRECTION = (
     '{{"items": [{{"q": "<question ID>", "why": "<reason>", "yes": true | false | null}}]}}, one item per question.'
 )
 """Sent back with a malformed reply on the next attempt, after Pydantic AI's output retries."""
+LEGACY_SAMPLING: JsonObject = {"temperature": 0}
+FALLBACK_SAMPLING: dict[str, JsonObject] = {
+    "anthropic/claude-opus-5.5": LEGACY_SAMPLING,
+    "deepseek/deepseek-v4.1-flash-1017": LEGACY_SAMPLING,
+    "openai/gpt-6.1-terra": {"reasoning": {"effort": "medium"}},
+}
+"""Each pinned fallback model's sampling fields, from its catalog `supported_parameters` (checked 2026-11-17). OpenRouter
+serves the judge only from hosts that support every field sent (`JudgeConfig.routing`), and no GPT-6.1 Terra host
+accepts `temperature`: sent anyway, every call was refused with 404 "No endpoints found that can handle the requested
+parameters". Terra's reasoning effort is pinned at its documented default so the default cannot move under a
+comparison. A model missing here is sent no sampling field and runs at its host's defaults."""
 FALLBACK_TIMEOUT_S = 120
 FALLBACK_MAX_TOKENS = 32_768
 """A judge reply's output budget, reasoning included. Replies take up to about 10k tokens, but a reasoning model can
@@ -238,7 +251,7 @@ async def fallback(
                 headers={"Authorization": f"Bearer {config.api_key}"},
                 json={
                     "model": model,
-                    "temperature": 0,
+                    **FALLBACK_SAMPLING.get(model, {}),
                     "max_tokens": FALLBACK_MAX_TOKENS,
                     "response_format": {
                         "type": "json_schema",
@@ -417,6 +430,10 @@ def identity(policy: JudgePolicy, panel: JudgePanel | None, llm_config: JudgeCon
             "vision": {m: asdict(v) if (v := images.VISION.get(m)) is not None else None for m in panel.models},
             "attached_images": ATTACHED_IMAGES,
         }
+        # Every request once sent `temperature: 0`; a panel still sent exactly that keeps the identity its runs recorded.
+        sampling: JsonObject = {m: FALLBACK_SAMPLING.get(m, {}) for m in panel.models}
+        if any(fields != LEGACY_SAMPLING for fields in sampling.values()):
+            route["sampling"] = sampling
     declared = {
         "policy": policy.model_dump(mode="json"),
         "part_rule": PART_RULE if policy.part_bytes is not None else None,

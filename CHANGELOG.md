@@ -6,6 +6,10 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- GPT-6.1 Terra works as the judge. Every Terra judge call had failed with OpenRouter 404, because the judge always sent `temperature` and no Terra host accepts it. Sampling fields are now declared per judge model, and Terra pins its default reasoning effort. Terra also has its documented image limits, so screenshots reach it, and its context window. Judge identities for DeepSeek and Opus panels are unchanged.
+
 ### Added
 
 - The `live-web` task source: 56 browser tasks on public websites, moved from fastbrowse's release benchmark so every browser agent is measured on a suite none of them owns. Task ids and versions are unchanged; each record keeps only the start URL, category and suite portion, so the judge no longer sees fastbrowse's arm lists or an expected outcome, and login tasks read neutral `PARALLAX_SITE_*` variables.

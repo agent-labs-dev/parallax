@@ -59,6 +59,13 @@ class Vision:
     every image counts at 182, the fewest any endpoint billed. The limits hold for the 1017 release: DeepSeek
     documents one set for V4.1 Flash, and its OpenRouter endpoints refuse an over-limit image themselves (checked
     2026-11-13).
+
+    GPT-6.1 Terra (developers.openai.com/api/docs/guides/images-vision, checked 2026-11-17): PNG, JPEG, WebP and
+    non-animated GIF; at most 1,500 images and a 512 MB payload a request, with no per-image size limit beyond that;
+    no image under 30,000 32 px patches is resized at the default detail, and one over that is refused. The guide's
+    sizing table stops at GPT-6 Astra, so the rule was measured the same day through OpenRouter's OpenAI endpoint:
+    1024x1024, 1280x800, 1920x1080 and 3000x3000 PNGs billed exactly ceil(width / 32) x ceil(height / 32) x 1.2
+    tokens, the documented rule of its family. `visual_tokens` leaves out the 1.2 multiplier, so it stays a floor.
     """
 
     max_images: int
@@ -98,6 +105,18 @@ VISION: dict[str, Vision] = {
         native_long_edge=8192,
         native_tokens=182,
         patch=1,
+    ),
+    "openai/gpt-6.1-terra": Vision(
+        max_images=1500,
+        max_side=65_535,
+        many_images=1500,
+        many_images_side=65_535,
+        max_base64_bytes=512 * 1024 * 1024,
+        min_side=1,
+        max_request_base64_bytes=512 * 1024 * 1024,
+        native_long_edge=65_535,
+        native_tokens=30_000,
+        patch=32,
     ),
 }
 
