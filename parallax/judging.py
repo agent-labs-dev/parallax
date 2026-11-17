@@ -69,6 +69,10 @@ REPLY_CORRECTION = (
 )
 """Sent back with a malformed reply on the next attempt, after Pydantic AI's output retries."""
 FALLBACK_TIMEOUT_S = 120
+FALLBACK_MAX_TOKENS = 32_768
+"""A judge reply's output budget, reasoning included. Replies take up to about 10k tokens, but a reasoning model can
+loop: one DeepSeek V4.1 Flash host spent 131,072 reasoning tokens on a single check and returned no answer. The bound
+ends such a reply as `finish_reason: length`, which the next attempt retries."""
 PART_RULE = (
     " This is one part of evidence too large for one request: `pages` holds only some of what the run saw, and a page"
     " marked `continues` is split across parts. Return null when this part neither settles the question nor"
@@ -235,6 +239,7 @@ async def fallback(
                 json={
                     "model": model,
                     "temperature": 0,
+                    "max_tokens": FALLBACK_MAX_TOKENS,
                     "response_format": {
                         "type": "json_schema",
                         "json_schema": {"name": "judgment", "strict": True, "schema": JudgeReply.model_json_schema()},

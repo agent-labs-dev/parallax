@@ -13,11 +13,15 @@ All notable changes to Parallax are recorded here. The format follows
 
 ### Added
 
+- The `nebula-vs` suite: five core tasks (long multi-app work, research, prompt injection, asking before guessing, honest recovery) that need only the world's tools and clock, for comparing Nebula with other agents.
 - The `claude-code` and `codex` harnesses return, as reference rows for comparing general-purpose products: Claude Code 2.1.325 and codex-cli 0.169.0, with the `claude_stream_json` and `codex_jsonl` parsers. Usage comes from the meter. The meter's Anthropic wire can point at OpenRouter (`PARALLAX_UPSTREAM_ANTHROPIC=https://openrouter.ai/api/v1`).
 - Core tasks `restraint-no-item-named-asks` and `restraint-named-item-acts`: a request that names no item asks before acting, and one that names it acts.
 
 ### Fixed
 
+- Sets such as a task's `requires` serialise in sorted order, so the judge prompt and every hash built from a dump are the same in every process. They followed Python's per-process string hashing before, so a task with two capabilities sent a different prompt from run to run.
+- A judge reply is capped at 32,768 output tokens, reasoning included. One DeepSeek V4.1 Flash host spent 131,072 reasoning tokens on one check and returned no answer; the capped reply now ends early and is retried.
+- The `post-lists-old-ids` mutant of `recovery-bulk-move-partial-failure` now makes its own calls, so its call log posts the wrong list it leaves in the world. It kept the oracle's correct post in the log before, and the judge rightly read that call.
 - An agent harness run with `--isolation host` no longer counts as running on the world's clock: it reads the machine's date, so a task that requires `world_clock` is NA there. Docker boxes and the controls keep it. `conf-mcp-echo` now requires `world_clock`, since its request names today.
 - The judge is told its evidence is the trial's complete record, so an empty call or approval list reads as none made rather than as an abstain.
 - A judge on OpenRouter is only routed to hosts that support every parameter it sends (`provider.require_parameters`), so a host that ignores the strict reply schema never answers it.

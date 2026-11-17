@@ -92,7 +92,7 @@ approval = "deny"                     # allow_once | allow_always | deny: the an
 time or cost limit on the agent: the product under test owns its own limits,
 and parallax waits for each turn to end and meters spend without refusing it.
 
-A task belongs to the directory suite it sits in. Subset suites (`lite`, `hard`, `flagship`) list
+A task belongs to the directory suite it sits in. Subset suites (`lite`, `hard`, `flagship`, `nebula-vs`) list
 their members in `tasks/<suite>/suite.toml`, so adding a task to one is an edit to that list, not to
 `task.toml`.
 

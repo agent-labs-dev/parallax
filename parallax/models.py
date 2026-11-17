@@ -13,9 +13,9 @@ import re
 from datetime import date
 from enum import StrEnum
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated, Literal, TypeVar
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, JsonValue, model_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, JsonValue, PlainSerializer, model_validator
 
 from parallax.assets import TrialAssets
 
@@ -25,6 +25,10 @@ class Model(BaseModel):
 
 
 JsonObject = dict[str, JsonValue]
+_T = TypeVar("_T")
+# A set dumped to JSON in sorted order. Plain frozensets dump in iteration order, which string hash randomisation
+# changes between processes, so a judge prompt or hash built from the dump would differ run to run.
+SortedSet = Annotated[frozenset[_T], PlainSerializer(sorted, return_type=list[_T], when_used="json")]
 Scalar = str | int | float | bool | None
 
 
@@ -252,7 +256,7 @@ class TaskMeta(Model):
     version: int  # bump on any change that alters grading
     area: Area
     summary: str
-    requires: frozenset[Capability]
+    requires: SortedSet[Capability]
     # The user authorizes the irreversible actions the task asks for, such as submitting an order.
     authorizes: bool = Field(default=False, exclude_if=lambda v: not v)
     services: tuple[str, ...] = ()  # mounted in addition to MCP tasks' default synthetic services
@@ -517,7 +521,7 @@ class CommandCheck(CheckBase):
 class RubricCheck(CheckBase):
     kind: Literal["rubric"]
     items: tuple[str, ...] = Field(min_length=1)  # binary questions about observable work, including world state
-    sees: frozenset[Literal["answers", "diff", "files", "calls", "approvals"]] = frozenset({"answers", "diff"})
+    sees: SortedSet[Literal["answers", "diff", "files", "calls", "approvals"]] = frozenset({"answers", "diff"})
 
 
 Check = Annotated[
@@ -633,7 +637,7 @@ class TaskRecord(Model):
     summary: str
     prompt: str  # the one turn the agent is given
     grading: str  # a registered grading policy id, e.g. "browser-evidence-v2"
-    requires: frozenset[Capability] = frozenset()
+    requires: SortedSet[Capability] = frozenset()
     # As `TaskMeta.authorizes`.
     authorizes: bool = Field(default=False, exclude_if=lambda v: not v)
     maturity: Maturity = Maturity.CANDIDATE
@@ -742,7 +746,7 @@ class TrialFlag(StrEnum):
 class HarnessInfo(Model):
     name: str
     kind: HarnessKind
-    capabilities: frozenset[Capability]  # declared UPPER BOUND
+    capabilities: SortedSet[Capability]  # declared UPPER BOUND
     pins_model: bool
     cost_source: CostSource
     isolation: Isolation = Isolation.DOCKER
@@ -793,7 +797,7 @@ class Trial(Model):
     # product is told it, and marks a trial that `requires` it invalid when it cannot be. A world-less
     # task has no world clock: this is the wall clock when the trial started.
     now: AwareDatetime
-    requires: frozenset[Capability]
+    requires: SortedSet[Capability]
     # Collector-owned binary evidence, retained below the trial directory and excluded from JSON contracts.
     assets: TrialAssets | None = Field(default=None, exclude=True, repr=False)
 
@@ -892,7 +896,7 @@ class TurnOutput(Model):
     actual_model: str | None = None
     actual_models: tuple[str, ...] = ()
     error: str | None = None
-    flags: frozenset[TrialFlag] = frozenset()  # caveats the harness itself reports for this trial
+    flags: SortedSet[TrialFlag] = frozenset()  # caveats the harness itself reports for this trial
     split: LatencySplit | None = None
     approvals: tuple[ApprovalAnswer, ...] = ()  # approval cards the product raised this turn, as answered
 
@@ -1023,7 +1027,7 @@ class TrialResult(Model):
     area: Area
     lite: bool
     dir: str | None  # trials/<task>/<harness>/<model>/<repeat>/
-    flags: frozenset[TrialFlag] = frozenset()
+    flags: SortedSet[TrialFlag] = frozenset()
     # Named measurements a harness reports for the trial (e.g. a voice replay's reply latency), absent when none.
     metrics: dict[str, float] = Field(default={}, exclude_if=lambda v: not v)
     # Every field below is absent from a row at its default, so rows written before it existed are unchanged.
