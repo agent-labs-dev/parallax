@@ -376,7 +376,7 @@ def test_one_process_owns_a_budget_journal(tmp_path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# relay: a product with its own keys (Nebula) is metered at the provider host it chose
+# relay: a product with its own keys is metered at the provider host it chose
 # ---------------------------------------------------------------------------
 
 GEMINI_SSE = [
@@ -421,12 +421,12 @@ async def test_relay_forwards_the_callers_own_key_and_meters_the_response(
     async with httpx.AsyncClient(transport=relay_meter) as c:
         r = await c.post(
             f"{base}/openrouter.ai/api/v1/chat/completions",
-            headers={"authorization": "Bearer sk-nebulas-own"},
+            headers={"authorization": "Bearer sk-products-own"},
             json={"model": "deepseek/deepseek-v4-flash-0731", "messages": []},
         )
     assert r.status_code == 200
     assert str(seen[0].url) == "https://openrouter.ai/api/v1/chat/completions"
-    assert seen[0].headers["authorization"] == "Bearer sk-nebulas-own"
+    assert seen[0].headers["authorization"] == "Bearer sk-products-own"
     (u,) = (await control.report(KEY)).usage
     assert (u.model, u.input, u.output, u.requests) == ("deepseek/deepseek-v4-flash-0731", 1000, 100, 1)
     assert u.cost_usd is not None and u.cost_usd > 0

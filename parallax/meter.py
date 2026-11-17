@@ -71,7 +71,7 @@ class RelayHost(Model):
     prefix: str  # the host's API root, before the path the wire's allowlist names
 
 
-# Hosts a product that keeps its own provider keys and routing (Nebula) is relayed to through
+# Hosts a product that keeps its own provider keys and routing is relayed to through
 # `/{trial_key}/relay/{host}/...`. The caller's credentials are forwarded, so the meter holds no key
 # for them; it applies the same endpoint allowlist and provider-tool refusal, and meters every
 # response. Prices are keyed by the host, except the AI Gateway (see `price`).

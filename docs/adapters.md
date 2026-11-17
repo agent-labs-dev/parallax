@@ -272,7 +272,7 @@ A manifest points the harness at the meter through `[env]`, for example
 ### The relay, for products that keep their own keys
 
 A product that is compared as shipped, with its own provider keys and model
-routing (Nebula), sends its calls through the relay instead:
+routing, sends its calls through the relay instead:
 `{meter}/{trial_key}/relay/{host}/{path}`, built with `parallax.meter.relay_url`.
 The caller's own credentials are forwarded, so the meter holds no key for
 these hosts. The relay knows these hosts, and refuses any other with HTTP 403:
