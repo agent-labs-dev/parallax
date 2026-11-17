@@ -6,6 +6,10 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The meter relays a product's own provider calls, with its own keys, to OpenRouter, OpenAI, the AI Gateway, Anthropic and Gemini, and meters each response. This lets a product run as shipped report metered cost.
+
 ### Fixed
 
 - The LLM judge on OpenRouter no longer routes to OpenInference unless `PARALLAX_JUDGE_PROVIDERS` names it. That host answered long quality calls as if evidence it was sent were missing, which graded trials INVALID (#65). The route is part of judge identity, so verdicts from the old route are not reused.

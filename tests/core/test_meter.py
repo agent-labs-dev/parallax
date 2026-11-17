@@ -373,3 +373,113 @@ def test_one_process_owns_a_budget_journal(tmp_path) -> None:
 
     with CampaignBudget(1.0, 0.5, tmp_path / "budget.jsonl"), pytest.raises(ValueError, match="another process"):
         CampaignBudget(1.0, 0.5, tmp_path / "budget.jsonl")
+
+
+# ---------------------------------------------------------------------------
+# relay: a product with its own keys (Nebula) is metered at the provider host it chose
+# ---------------------------------------------------------------------------
+
+GEMINI_SSE = [
+    {"candidates": [{"content": {"parts": [{"text": "h"}]}}], "modelVersion": "gemini-3.5-flash-lite"},
+    {
+        "candidates": [{"content": {"parts": [{"text": "i"}]}, "finishReason": "STOP"}],
+        "usageMetadata": {
+            "promptTokenCount": 1000,
+            "candidatesTokenCount": 60,
+            "thoughtsTokenCount": 40,
+            "cachedContentTokenCount": 300,
+        },
+        "modelVersion": "gemini-3.5-flash-lite",
+    },
+]
+
+
+def provider_handler(seen: list[httpx.Request]) -> httpx.MockTransport:
+    def handle(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if request.url.host == "generativelanguage.googleapis.com":
+            sse = "".join(f"data: {json.dumps(e)}\r\n\r\n" for e in GEMINI_SSE).encode()
+            return httpx.Response(200, headers={"content-type": "text/event-stream"}, stream=ChunkedStream([sse]))
+        body = json.loads(request.content)
+        usage = {"prompt_tokens": 1000, "completion_tokens": 100}
+        return httpx.Response(200, json={"model": body["model"], "usage": usage, "data": [], "choices": []})
+
+    return httpx.MockTransport(handle)
+
+
+@pytest.fixture
+def relay_meter(seen: list[httpx.Request]) -> httpx.AsyncBaseTransport:
+    no_keys = {w: Upstream(base_url="https://unused.example/v1", api_key=None) for w in meter_module.PROXY_WIRES}
+    return httpx.ASGITransport(app=app(ADMIN, no_keys, transport=provider_handler(seen)))
+
+
+async def test_relay_forwards_the_callers_own_key_and_meters_the_response(
+    relay_meter: httpx.AsyncBaseTransport, seen: list[httpx.Request]
+) -> None:
+    control = await register(relay_meter)
+    base = meter_module.relay_url("http://meter", KEY)
+    async with httpx.AsyncClient(transport=relay_meter) as c:
+        r = await c.post(
+            f"{base}/openrouter.ai/api/v1/chat/completions",
+            headers={"authorization": "Bearer sk-nebulas-own"},
+            json={"model": "deepseek/deepseek-v4-flash-0731", "messages": []},
+        )
+    assert r.status_code == 200
+    assert str(seen[0].url) == "https://openrouter.ai/api/v1/chat/completions"
+    assert seen[0].headers["authorization"] == "Bearer sk-nebulas-own"
+    (u,) = (await control.report(KEY)).usage
+    assert (u.model, u.input, u.output, u.requests) == ("deepseek/deepseek-v4-flash-0731", 1000, 100, 1)
+    assert u.cost_usd is not None and u.cost_usd > 0
+
+
+async def test_relayed_gemini_stream_is_metered_with_thinking_as_output(
+    relay_meter: httpx.AsyncBaseTransport, seen: list[httpx.Request]
+) -> None:
+    control = await register(relay_meter)
+    base = meter_module.relay_url("http://meter", KEY)
+    path = "generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:streamGenerateContent?alt=sse"
+    async with httpx.AsyncClient(transport=relay_meter) as c:
+        r = await c.post(f"{base}/{path}", headers={"x-goog-api-key": "g-own"}, json={"contents": []})
+    assert r.status_code == 200 and '"text": "i"' in r.text
+    assert seen[0].headers["x-goog-api-key"] == "g-own" and seen[0].url.params["alt"] == "sse"
+    report = await control.report(KEY)
+    assert report.actual_models == ("gemini-3.5-flash-lite",)
+    (u,) = report.usage
+    assert (u.input, u.output, u.cache_read, u.reasoning) == (1000, 100, 300, 40)
+    assert u.cost_usd is not None and u.cost_usd > 0
+
+
+async def test_the_ai_gateway_is_priced_at_its_models_vendor(relay_meter: httpx.AsyncBaseTransport) -> None:
+    control = await register(relay_meter)
+    base = meter_module.relay_url("http://meter", KEY)
+    async with httpx.AsyncClient(transport=relay_meter) as c:
+        for model in ("deepseek/deepseek-v4-flash-0731", "nobody/unreal-9"):
+            await c.post(f"{base}/ai-gateway.vercel.sh/v1/chat/completions", json={"model": model, "messages": []})
+    report = await control.report(KEY)
+    costs = {u.model: u.cost_usd for u in report.usage}
+    assert costs["deepseek/deepseek-v4-flash-0731"] is not None and costs["deepseek/deepseek-v4-flash-0731"] > 0
+    assert costs["nobody/unreal-9"] is None and report.unpriced_requests == 1
+
+
+@pytest.mark.parametrize(
+    ("path", "body"),
+    [
+        pytest.param("evil.example/v1/chat/completions", {"model": "m"}, id="an unknown host"),
+        pytest.param("openrouter.ai/api/v1/files", {}, id="a non-inference endpoint"),
+        pytest.param(
+            "generativelanguage.googleapis.com/v1beta/models/g:generateContent",
+            {"contents": [], "tools": [{"googleSearch": {}}]},
+            id="a Google-run tool",
+        ),
+        pytest.param(
+            "generativelanguage.googleapis.com/v1beta/models/g:embedContent", {}, id="an unmetered Gemini method"
+        ),
+    ],
+)
+async def test_relay_refuses_what_it_cannot_meter_before_upstream(
+    relay_meter: httpx.AsyncBaseTransport, seen: list[httpx.Request], path: str, body: dict[str, object]
+) -> None:
+    await register(relay_meter)
+    async with httpx.AsyncClient(transport=relay_meter) as c:
+        r = await c.post(f"{meter_module.relay_url('http://meter', KEY)}/{path}", json=body)
+    assert r.status_code == 403 and not seen
