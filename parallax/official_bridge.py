@@ -146,5 +146,8 @@ if __name__ == "__main__":
     try:
         main()
     except BaseException as exc:
-        print(type(exc).__name__, file=sys.stderr)
+        # The class alone, since an upstream message can quote page content into public rows; an import failure adds
+        # the module it could not find, which names only the checkout's own code or dependencies.
+        missing = f": {exc.name}" if isinstance(exc, ImportError) and exc.name else ""
+        print(f"{type(exc).__name__}{missing}", file=sys.stderr)
         raise SystemExit(1) from None

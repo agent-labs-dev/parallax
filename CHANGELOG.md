@@ -11,6 +11,7 @@ All notable changes to Parallax are recorded here. The format follows
 ### Fixed
 
 - The Online-Mind2Web and BU Bench judge bridges run without writing bytecode. The pinned upstream checkout tracks its own `__pycache__`, so the first judge call left tracked changes and the bridge refused every later call, leaving each trial INVALID.
+- A judge bridge that cannot import a module names the module, so an INVALID row says which dependency the upstream checkout lacks.
 
 ## [2.0.0.dev34] - 2026-11-17
 
