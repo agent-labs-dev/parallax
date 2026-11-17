@@ -269,6 +269,28 @@ Each trial gets a key to the metering proxy:
 A manifest points the harness at the meter through `[env]`, for example
 `ANTHROPIC_BASE_URL = "{meter_anthropic}"`.
 
+### The relay, for products that keep their own keys
+
+A product that is compared as shipped, with its own provider keys and model
+routing, sends its calls through the relay instead:
+`{meter}/{trial_key}/relay/{host}/{path}`, built with `parallax.meter.relay_url`.
+The caller's own credentials are forwarded, so the meter holds no key for
+these hosts. The relay knows these hosts, and refuses any other with HTTP 403:
+
+| Host | Wire | API root |
+|---|---|---|
+| `openrouter.ai` | OpenAI | `api/v1` |
+| `api.openai.com` | OpenAI | `v1` |
+| `ai-gateway.vercel.sh` | OpenAI | `v1` |
+| `api.anthropic.com` | Anthropic | `v1` |
+| `generativelanguage.googleapis.com` | Gemini | `v1beta` |
+
+The same endpoint allowlist and provider-tool refusal apply. The OpenAI wire
+also allows `POST embeddings`. Gemini allows `generateContent`,
+`streamGenerateContent` and `countTokens`, and refuses any tool other than
+function declarations. The AI Gateway charges each vendor's list price, so its
+responses are priced at the vendor named in the model id.
+
 | `cost_source` | Meaning | Rendered |
 |---|---|---|
 | `metered` | Priced by the meter from observed usage. The observed model is recorded | `M` |

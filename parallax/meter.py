@@ -29,6 +29,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, Literal, assert_never
+from urllib.parse import urlsplit
 
 import genai_prices
 import httpx
@@ -51,12 +52,49 @@ DEFAULT_UPSTREAM = {"openai": "https://openrouter.ai/api/v1", "anthropic": "http
 DROP_REQUEST_HEADERS = frozenset(
     {"host", "content-length", "authorization", "x-api-key", "accept-encoding", "connection", "transfer-encoding"}
 )
+CALLER_AUTH_HEADERS = frozenset({"authorization", "x-api-key"})  # forwarded by the relay only
 KEEP_RESPONSE_HEADERS = frozenset({"content-type", "retry-after", "request-id", "x-request-id", "openai-processing-ms"})
 
 
 class Wire(StrEnum):
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
+    GOOGLE = "google"  # Gemini's native API; reached only through the relay (see `RELAY_HOSTS`)
+
+
+PROXY_WIRES = (Wire.OPENAI, Wire.ANTHROPIC)
+"""Wires a box reaches with its trial key as the credential, through the meter's own upstream keys."""
+
+
+class RelayHost(Model):
+    wire: Wire
+    prefix: str  # the host's API root, before the path the wire's allowlist names
+
+
+# Hosts a product that keeps its own provider keys and routing is relayed to through
+# `/{trial_key}/relay/{host}/...`. The caller's credentials are forwarded, so the meter holds no key
+# for them; it applies the same endpoint allowlist and provider-tool refusal, and meters every
+# response. Prices are keyed by the host, except the AI Gateway (see `price`).
+RELAY_HOSTS: Mapping[str, RelayHost] = {
+    "openrouter.ai": RelayHost(wire=Wire.OPENAI, prefix="api/v1"),
+    "api.openai.com": RelayHost(wire=Wire.OPENAI, prefix="v1"),
+    "ai-gateway.vercel.sh": RelayHost(wire=Wire.OPENAI, prefix="v1"),
+    "api.anthropic.com": RelayHost(wire=Wire.ANTHROPIC, prefix="v1"),
+    "generativelanguage.googleapis.com": RelayHost(wire=Wire.GOOGLE, prefix="v1beta"),
+}
+VERCEL_GATEWAY_HOST = "ai-gateway.vercel.sh"
+# The AI Gateway charges each vendor's list price with no markup, and genai-prices has no gateway
+# provider, so a gateway response is priced at its model's vendor: the `vendor/` prefix of the id.
+VERCEL_VENDORS: Mapping[str, str] = {
+    "anthropic": "anthropic",
+    "deepseek": "deepseek",
+    "google": "google",
+    "mistral": "mistral",
+    "moonshotai": "moonshotai",
+    "openai": "openai",
+    "xai": "x-ai",
+    "zai": "zai",
+}
 
 
 class Endpoint(StrEnum):
@@ -77,13 +115,25 @@ ALLOWED_ENDPOINTS: Mapping[Wire, Mapping[tuple[str, str], Endpoint]] = {
         ("POST", "chat/completions"): Endpoint.GENERATION,
         ("POST", "responses"): Endpoint.GENERATION,
         ("POST", "responses/input_tokens"): Endpoint.FREE,
+        ("POST", "embeddings"): Endpoint.GENERATION,
         ("GET", "models"): Endpoint.FREE,
     },
     Wire.ANTHROPIC: {
         ("POST", "messages"): Endpoint.GENERATION,
         ("POST", "messages/count_tokens"): Endpoint.FREE,
     },
+    Wire.GOOGLE: {},  # its paths name the model, so `GOOGLE_METHODS` decides
 }
+# Gemini's `models/{model}:{method}`; embeddings carry no usage, so they are not metered and are refused.
+GOOGLE_PATH = re.compile(r"models/[^/:]+:(?P<method>[A-Za-z]+)")
+GOOGLE_METHODS: Mapping[str, Endpoint] = {
+    "generateContent": Endpoint.GENERATION,
+    "streamGenerateContent": Endpoint.GENERATION,
+    "countTokens": Endpoint.FREE,
+}
+# A Gemini tool entry is a function declaration list; every other key (googleSearch, codeExecution,
+# urlContext, fileSearch, googleMaps, computerUse) is a tool Google runs on its own servers.
+GOOGLE_CLIENT_TOOL_KEYS = frozenset({"functionDeclarations", "function_declarations"})
 
 
 # Tool types a harness executes itself, per wire. Every other tool type runs on the provider's
@@ -98,13 +148,22 @@ ALLOWED_ENDPOINTS: Mapping[Wire, Mapping[tuple[str, str], Endpoint]] = {
 CLIENT_TOOL_TYPES: Mapping[Wire, frozenset[str]] = {
     Wire.ANTHROPIC: frozenset({"custom", "bash", "text_editor"}),
     Wire.OPENAI: frozenset({"function", "custom", "local_shell", "namespace"}),
+    Wire.GOOGLE: frozenset(),  # tools are keyed, not typed: see `GOOGLE_CLIENT_TOOL_KEYS`
 }
 # Top-level request fields that turn on provider-side tools without a `tools` entry.
 SERVER_TOOL_FIELDS: Mapping[Wire, frozenset[str]] = {
     Wire.ANTHROPIC: frozenset({"mcp_servers", "container"}),
     Wire.OPENAI: frozenset({"plugins", "web_search_options"}),  # OpenRouter plugins; Chat Completions search
+    Wire.GOOGLE: frozenset({"cachedContent"}),  # a server-side cache made outside the trial
 }
 ONLINE_MODEL_SUFFIX = ":online"  # OpenRouter's web-search variant of any model
+# Models whose provider searches the web on every call, with no request field to say so. Checked against
+# OpenAI's and OpenRouter's model lists on 2026-11-17; a vendor listed here has no model that does not search.
+SEARCHING_VENDORS = frozenset({"perplexity"})
+SEARCHING_MODELS = frozenset({
+    "gpt-5-search-api", "gpt-5-search-api-2025-10-14", "openai/gpt-5-search-api",
+    "openrouter/fusion", "x-ai/grok-4.20-multi-agent",
+})  # fmt: skip
 TOOL_TYPE_VERSION = re.compile(r"_\d{8}$")
 # How long a report waits for streams whose client hung up to finish (see `pump`).
 STREAM_DRAIN_WAIT_S = 120.0
@@ -237,15 +296,19 @@ class UsageAccumulator:
         self.fields: dict[str, int] = {}
 
     def feed(self, event: JsonValue) -> None:
+        if isinstance(event, list):  # Gemini's streamGenerateContent without `alt=sse` is one JSON array
+            for item in event:
+                self.feed(item)
+            return
         if not isinstance(event, dict):
             return
         for holder in (event, event.get("response"), event.get("message")):
             if not isinstance(holder, dict):
                 continue
-            model = holder.get("model")
+            model = holder.get("model", holder.get("modelVersion"))
             if isinstance(model, str) and model:
                 self.model = self.served = model
-            usage = holder.get("usage")
+            usage = holder.get("usage", holder.get("usageMetadata"))
             if isinstance(usage, dict):
                 self.fields.update(flatten_ints(usage))
 
@@ -282,6 +345,17 @@ class UsageAccumulator:
                     cache_read=cache_read,
                     cache_write=cache_write,
                     reasoning=0,
+                )
+            case Wire.GOOGLE:
+                # Google bills thinking as output; `promptTokenCount` already includes cached tokens.
+                thoughts = f("thoughtsTokenCount", 0)
+                return Observed(
+                    model=self.model,
+                    input=f("promptTokenCount", 0),
+                    output=f("candidatesTokenCount", 0) + thoughts,
+                    cache_read=f("cachedContentTokenCount", 0),
+                    cache_write=0,
+                    reasoning=thoughts,
                 )
             case _:
                 assert_never(self.wire)
@@ -326,6 +400,11 @@ def price(observed: Observed, upstream_url: str) -> float | None:
         cache_write_tokens=observed.cache_write,
     )
     try:
+        if urlsplit(upstream_url).hostname == VERCEL_GATEWAY_HOST:
+            vendor, _, bare = observed.model.partition("/")
+            if vendor not in VERCEL_VENDORS or not bare:
+                raise LookupError(f"no vendor for gateway model {observed.model!r}")
+            return float(genai_prices.calc_price(usage, bare, provider_id=VERCEL_VENDORS[vendor]).total_price)
         return float(genai_prices.calc_price(usage, observed.model, provider_api_url=upstream_url).total_price)
     except LookupError:
         logger.warning("meter: no price for model %r at %s; cost recorded as unknown", observed.model, upstream_url)
@@ -378,6 +457,8 @@ def wire_error(wire: Wire, status: int, kind: MeterError, message: str) -> JSONR
             body: JsonValue = {"error": {"message": message, "type": kind.value, "param": None, "code": kind.value}}
         case Wire.ANTHROPIC:
             body = {"type": "error", "error": {"type": kind.anthropic_type, "message": message}}
+        case Wire.GOOGLE:
+            body = {"error": {"code": status, "message": message, "status": kind.value.upper()}}
         case _:
             assert_never(wire)
     return JSONResponse(body, status_code=status)
@@ -433,7 +514,38 @@ def app(
         trial = trials.get(str(request.path_params["trial_key"]))
         if trial is None:
             return wire_error(wire, 401, MeterError.INVALID_TRIAL_KEY, "parallax meter: unknown trial key")
+        upstream = upstreams[wire]
+        if upstream.api_key is None:
+            return wire_error(
+                wire, 503, MeterError.UPSTREAM_DISABLED, f"parallax meter: no upstream key configured for {wire}"
+            )
         path = str(request.path_params["path"]).strip("/")
+        return await forward(trial, wire, request, path, upstream.base_url, auth_headers(wire, upstream.api_key))
+
+    async def relay_proxy(request: Request) -> Response:
+        """Forwards to a known provider host with the caller's own credentials, metering what it serves."""
+        host = str(request.path_params["host"])
+        known = RELAY_HOSTS.get(host)
+        wire = known.wire if known is not None else Wire.OPENAI
+        trial = trials.get(str(request.path_params["trial_key"]))
+        if trial is None:
+            return wire_error(wire, 401, MeterError.INVALID_TRIAL_KEY, "parallax meter: unknown trial key")
+        full = str(request.path_params["path"]).strip("/")
+        if known is None or not full.startswith(f"{known.prefix}/"):
+            logger.warning("meter: refused a relay to %s/%s: not a known provider API", host, full)
+            return wire_error(
+                wire,
+                403,
+                MeterError.ENDPOINT_NOT_ALLOWED,
+                f"parallax meter: {host}/{full} is not a relayed provider API",
+            )
+        path = full.removeprefix(f"{known.prefix}/")
+        return await forward(trial, wire, request, path, f"https://{host}/{known.prefix}", None)
+
+    async def forward(
+        trial: TrialMeter, wire: Wire, request: Request, path: str, base_url: str, auth: Mapping[str, str] | None
+    ) -> Response:
+        """`auth` replaces the caller's credentials; None forwards them (the relay)."""
         endpoint = allowed_endpoint(wire, request.method, path)
         if endpoint is None:
             logger.warning(
@@ -478,16 +590,12 @@ def app(
                 MeterError.ENDPOINT_NOT_ALLOWED,
                 "parallax meter: background responses cannot be metered; send the request without background",
             )
-        upstream = upstreams[wire]
-        if upstream.api_key is None:
-            return wire_error(
-                wire, 503, MeterError.UPSTREAM_DISABLED, f"parallax meter: no upstream key configured for {wire}"
-            )
-        url = f"{upstream.base_url.rstrip('/')}/{path}"
+        url = f"{base_url.rstrip('/')}/{path}"
         if request.url.query:
             url = f"{url}?{request.url.query}"
-        headers = {k: v for k, v in request.headers.items() if k.lower() not in DROP_REQUEST_HEADERS}
-        headers.update(auth_headers(wire, upstream.api_key))
+        drop = DROP_REQUEST_HEADERS if auth is not None else DROP_REQUEST_HEADERS - CALLER_AUTH_HEADERS
+        headers = {k: v for k, v in request.headers.items() if k.lower() not in drop}
+        headers.update(auth or {})
         # Streams are relayed byte for byte and parsed for usage on the way; httpx would otherwise
         # ask for gzip, and a compressed SSE body is neither parseable here nor labelled for the client.
         headers["accept-encoding"] = "identity"
@@ -496,7 +604,7 @@ def app(
             response = await client().send(upstream_request, stream=True)
         except httpx.HTTPError as exc:
             trial.upstream_errors += 1
-            logger.warning("meter: upstream %s unreachable: %s", upstream.base_url, exc)
+            logger.warning("meter: upstream %s unreachable: %s", base_url, exc)
             return wire_error(
                 wire, 502, MeterError.UPSTREAM_UNREACHABLE, f"parallax meter: upstream unreachable ({exc})"
             )
@@ -509,7 +617,7 @@ def app(
         if response.headers.get("content-type", "").startswith("text/event-stream"):
             chunks: asyncio.Queue[bytes | None] = asyncio.Queue()
             events = SseStream(acc)
-            task = asyncio.create_task(pump(response, events, chunks, trial if metered else None, upstream.base_url))
+            task = asyncio.create_task(pump(response, events, chunks, trial if metered else None, base_url))
             trial.open_streams[task] = acc if metered else None
             task.add_done_callback(lambda t: trial.open_streams.pop(t, None))
             return StreamingResponse(relay(chunks), status_code=response.status_code, headers=out_headers)
@@ -519,7 +627,7 @@ def app(
             await response.aclose()
         if metered:
             acc.feed(parse_json(content))
-            record(trial, acc, upstream.base_url)
+            record(trial, acc, base_url)
         return Response(content, status_code=response.status_code, headers=out_headers)
 
     @asynccontextmanager
@@ -537,13 +645,14 @@ def app(
         routes=[
             Route("/_health", health, methods=["GET"]),
             Route("/_meter/{admin}/{trial_key}", control, methods=["GET", "PUT"]),
+            Route("/{trial_key}/relay/{host}/{path:path}", relay_proxy, methods=["GET", "POST"]),
             *(
                 Route(
                     f"/{{trial_key}}/{wire.value}/v1/{{path:path}}",
                     functools.partial(proxy, wire),
                     methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
                 )
-                for wire in Wire
+                for wire in PROXY_WIRES
             ),
         ],
         lifespan=lifespan,
@@ -629,7 +738,10 @@ async def settle(trial: TrialMeter) -> None:
 
 
 def allowed_endpoint(wire: Wire, method: str, path: str) -> Endpoint | None:
-    """The allowlisted endpoint for a request, or None to refuse it (`path` is relative to /v1)."""
+    """The allowlisted endpoint for a request, or None to refuse it (`path` is relative to the API root)."""
+    if wire is Wire.GOOGLE:
+        match = GOOGLE_PATH.fullmatch(path)
+        return GOOGLE_METHODS.get(match["method"]) if match and method.upper() == "POST" else None
     return ALLOWED_ENDPOINTS[wire].get((method.upper(), path))
 
 
@@ -647,8 +759,14 @@ def server_tools(wire: Wire, body: Mapping[str, JsonValue]) -> list[str]:
     ]
     fallbacks = body.get("models")  # OpenRouter's fallback list
     models = [body.get("model"), *(fallbacks if isinstance(fallbacks, list) else [])]
-    offending += [f"model {m}" for m in models if isinstance(m, str) and m.endswith(ONLINE_MODEL_SUFFIX)]
+    offending += [f"model {m}" for m in models if isinstance(m, str) and searches(m)]
     return offending + server_tool_types(wire, body.get("tools"))
+
+
+def searches(model: str) -> bool:
+    """Whether the model searches the web on the provider's side whatever the request asks."""
+    vendor, _, _ = model.partition("/")
+    return model.endswith(ONLINE_MODEL_SUFFIX) or model in SEARCHING_MODELS or vendor in SEARCHING_VENDORS
 
 
 def server_tool_types(wire: Wire, tools: JsonValue) -> list[str]:
@@ -656,6 +774,13 @@ def server_tool_types(wire: Wire, tools: JsonValue) -> list[str]:
         return []
     if not isinstance(tools, list):
         return ["tools (not a list)"]
+    if wire is Wire.GOOGLE:
+        return [
+            f"tool {key}"
+            for tool in tools
+            for key in (tool if isinstance(tool, dict) else {"(not an object)": None})
+            if key not in GOOGLE_CLIENT_TOOL_KEYS
+        ]
     offending: list[str] = []
     for tool in tools:
         if not isinstance(tool, dict):
@@ -706,6 +831,8 @@ def auth_headers(wire: Wire, key: SecretStr) -> dict[str, str]:
             return {"authorization": f"Bearer {key.get_secret_value()}"}
         case Wire.ANTHROPIC:
             return {"x-api-key": key.get_secret_value()}
+        case Wire.GOOGLE:
+            raise ValueError("the meter holds no Gemini key: Gemini is reached only through the relay")
         case _:
             assert_never(wire)
 
@@ -722,7 +849,7 @@ def upstreams_from_env(env: Mapping[str, str]) -> dict[Wire, Upstream]:
     only uses one wire needs only that key; the omission is logged.
     """
     upstreams: dict[Wire, Upstream] = {}
-    for wire in Wire:
+    for wire in PROXY_WIRES:
         prefix = f"PARALLAX_UPSTREAM_{wire.value.upper()}"
         base_url = env.get(prefix) or DEFAULT_UPSTREAM[wire.value]
         key = env.get(f"{prefix}_KEY")
@@ -768,6 +895,11 @@ def llm_endpoint(meter_url: str, trial_key: str) -> LlmEndpoint:
         anthropic_base_url=f"{base}/{trial_key}/anthropic",
         api_key=trial_key,
     )
+
+
+def relay_url(meter_url: str, trial_key: str) -> str:
+    """What a product that keeps its own keys prefixes to a provider URL's host and path to be metered."""
+    return f"{meter_url.rstrip('/')}/{trial_key}/relay"
 
 
 class MeterClient:

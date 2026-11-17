@@ -164,7 +164,8 @@ The meter closes the path out of the box through the provider's tools: a
 generation request that asks the provider to run a tool. Provider-side tools (Anthropic web search, web
 fetch, code execution and `mcp_servers`; OpenAI hosted web search, file search,
 code interpreter, MCP and image generation; OpenRouter `plugins`,
-`web_search_options` and `:online` models) are refused with a 403 in the
+`web_search_options` and `:online` models; models that search on every call, such as
+`perplexity/*` and `gpt-5-search-api`; Gemini tools other than function declarations) are refused with a 403 in the
 provider's error shape that names the tool. Only tools the harness executes
 itself pass: untyped or `custom` tools, `bash` and `text_editor` on Anthropic,
 and `function`, `custom`, `local_shell` and `namespace` groups of those on
