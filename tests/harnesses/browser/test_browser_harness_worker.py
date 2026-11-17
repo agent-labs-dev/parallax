@@ -127,3 +127,13 @@ def test_codex_runs_in_its_own_home_and_passes_its_environment_to_the_shell(tmp_
     )
     assert env["CODEX_HOME"] == str(tmp_path) and env["AGENT_BROWSER_CDP"] == "ws://x"
     assert 'shell_environment_policy.inherit="all"' in argv(Agent.CODEX, "codex", "m", "goal", "http://relay")
+
+
+async def test_the_cli_is_detached_once_even_when_the_trial_is_interrupted(tmp_path: Path) -> None:
+    from parallax.harnesses.browser.browser_harness_worker import Detach
+
+    marks = tmp_path / "marks"
+    detach = Detach(["sh", "-c", f"echo x >> {marks}"], {}, tmp_path)
+    await detach()
+    await detach()
+    assert marks.read_text() == "x\n"

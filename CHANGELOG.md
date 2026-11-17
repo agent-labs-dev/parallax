@@ -12,6 +12,7 @@ All notable changes to Parallax are recorded here. The format follows
 
 ### Fixed
 
+- The browser-harness worker stops the CLI's background process (agent-browser's daemon) when the host ends an interrupted trial with SIGTERM, not only after a completed one.
 - A Codex browser-harness trial runs in a home of its own and passes its environment to the agent's shell. It used the host user's `~/.codex/config.toml`, whose `shell_environment_policy` (for example `inherit = "core"`) stripped the browser's CDP URL from every command the agent ran, along with the user's MCP servers and hooks.
 
 ## [2.0.0.dev46] - 2026-11-17

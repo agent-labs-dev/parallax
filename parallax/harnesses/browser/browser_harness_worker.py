@@ -13,6 +13,7 @@ import contextlib
 import json
 import os
 import shutil
+import signal
 import sys
 from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import asynccontextmanager
@@ -335,11 +336,38 @@ def install_skill(agent: Agent, cwd: Path, skill: Path, name: str) -> None:
 
 
 async def run(request: dict[str, Any]) -> None:
-    agent, model, goal = Agent(request["agent"]), str(request["model"]), str(request["goal"])
-    cwd, relay = Path.cwd(), Relay()
+    # The host ends an interrupted trial with SIGTERM, which must still stop the CLI's background process.
+    task = asyncio.current_task()
+    if task is not None:
+        asyncio.get_running_loop().add_signal_handler(signal.SIGTERM, task.cancel)
     # The pinned CLI comes first on the agent's PATH.
     environ = os.environ | {"PATH": os.pathsep.join((str(request["bin_dir"]), os.environ.get("PATH", "")))}
-    detach = _argv(request.get("detach"))
+    detach = Detach(_argv(request.get("detach")), environ, Path.cwd())
+    try:
+        await _run(request, environ, detach)
+    finally:
+        await asyncio.shield(detach())
+
+
+@dataclass
+class Detach:
+    """The command that ends the CLI's own background process, run once."""
+
+    command: list[str]
+    env: dict[str, str]
+    cwd: Path
+    done: bool = False
+
+    async def __call__(self) -> None:
+        if self.command and not self.done:
+            self.done = True
+            with contextlib.suppress(OSError, RuntimeError):
+                await _cli(self.command, self.env, self.cwd)
+
+
+async def _run(request: dict[str, Any], environ: dict[str, str], detach: Detach) -> None:
+    agent, model, goal = Agent(request["agent"]), str(request["model"]), str(request["goal"])
+    cwd, relay = Path.cwd(), Relay()
     try:
         install_skill(agent, cwd, Path(request["skill"]), str(request.get("skill_name", "browser-harness")))
         (cwd / ".codex-home").mkdir(exist_ok=True)
@@ -379,9 +407,7 @@ async def run(request: dict[str, Any]) -> None:
         )
     await asyncio.to_thread(sys.stdin.readline)
     # After the harness has read the final page: this ends the CLI's own background process.
-    if detach:
-        with contextlib.suppress(OSError, RuntimeError):
-            await _cli(detach, environ, cwd)
+    await detach()
     emit({"event": "stopped", "stopped": True})
 
 
