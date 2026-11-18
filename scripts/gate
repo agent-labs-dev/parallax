@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# The fast local gate: format, lint, type check, repository rules and unit tests, offline.
+#   scripts/gate            lint and format the whole tree, ty on files changed from origin/main, all unit tests
+#   scripts/gate --changed  only what this branch's changed files reach (changed tests, plus test_<module>.py; all unit tests for shared fixtures or a module with no matching test)
+# Whole-repo ty, the task-structure lint, the docs link check and the public scan run in CI.
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+changed_only=0
+case "${1:-}" in
+  "") ;;
+  --changed) changed_only=1 ;;
+  *) echo "usage: scripts/gate [--changed]" >&2; exit 2 ;;
+esac
+
+paths=(parallax tests/core tests/world tests/harnesses scripts/scan_public.py ci/rules/run.py ci/rules/checks)
+base=$(git merge-base HEAD origin/main)
+mapfile -t changed < <({ git diff --name-only "$base"; git ls-files --others --exclude-standard; } | sort -u)
+
+py=()
+src=()
+tests=()
+shared=0
+unmapped=0
+for f in "${changed[@]}"; do
+  [[ $f == *.py ]] || continue
+  [[ $f == tests/conftest.py || $f == tests/core/conftest.py ]] && shared=1
+  [[ -f $f ]] || { [[ $f == parallax/* ]] && unmapped=1; continue; }
+  for p in "${paths[@]}"; do
+    if [[ $f == "$p" || $f == "$p"/* ]]; then py+=("$f"); break; fi
+  done
+  [[ $f == parallax/* ]] && src+=("$f")
+  if [[ $f == tests/core/test_*.py || $f == tests/world/test_*.py || $f == tests/harnesses/test_*.py ]]; then
+    tests+=("$f")
+  elif [[ $f == parallax/* ]]; then
+    stem=$(basename "$f" .py)
+    found=0
+    for t in tests/core/test_"$stem".py tests/world/test_"$stem".py tests/harnesses/test_"$stem".py; do
+      [[ -f $t ]] && { tests+=("$t"); found=1; }
+    done
+    ((found)) || unmapped=1
+  fi
+done
+
+uv sync --locked -q
+if ((changed_only)); then
+  targets=("${py[@]}")
+else
+  targets=("${paths[@]}")
+fi
+if ((${#targets[@]})); then
+  uv run ruff format --check "${targets[@]}"
+  uv run ruff check "${targets[@]}"
+fi
+((${#src[@]})) && uv run ty check --error-on-warning "${src[@]}"
+uv run --no-project python ci/rules/run.py
+
+if ((changed_only)); then
+  if ((shared || unmapped)); then
+    uv run pytest -q tests/core tests/world tests/harnesses
+  else
+    mapfile -t tests < <(printf '%s\n' "${tests[@]}" | awk 'NF' | sort -u)
+    ((${#tests[@]})) && uv run pytest -q "${tests[@]}"
+  fi
+else
+  uv run pytest -q tests/core tests/world tests/harnesses
+fi
+exit 0

@@ -23,17 +23,18 @@ interrupted upload and reads every field back.
 ## The gate
 
 CI is the merge gate, and it runs offline - no secrets, no API keys. Run the
-same steps locally before opening a pull request:
+fast local gate before opening a pull request:
 
 ```sh
 uv sync --locked
-uv run ruff format --check parallax tests/core tests/world tests/harnesses scripts/scan_public.py ci/rules/run.py ci/rules/checks
-uv run ruff check parallax tests/core tests/world tests/harnesses scripts/scan_public.py ci/rules/run.py ci/rules/checks
-uv run ty check --error-on-warning parallax
-uv run pytest -q
-uv run parallax check core conformance --lint-only    # task structure, offline; no quality grading
-uv run --no-project python ci/rules/run.py
+scripts/gate --changed    # or scripts/gate for the whole tree and every unit test
 ```
+
+CI runs the full steps: ruff format and check over `parallax tests/core tests/world
+tests/harnesses scripts/scan_public.py ci/rules/run.py ci/rules/checks`, `ty check
+--error-on-warning parallax` over the whole package, the full `pytest -q`,
+`parallax check core conformance --lint-only` (task structure, offline; no quality
+grading) and `ci/rules/run.py`.
 
 CI additionally checks that every relative link in the docs resolves and runs
 the public scan (`scripts/scan_public.py`, the same check as the pre-commit
