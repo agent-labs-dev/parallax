@@ -11,7 +11,7 @@ from typing import Any
 
 import pytest
 from parallax import runner
-from parallax.models import Isolation, Verdict
+from parallax.models import Isolation, RunManifest, Verdict
 from parallax.runner import RunOptions, read_results, run_async
 from parallax.task import discover
 from parallax.track import live
@@ -394,3 +394,46 @@ def test_a_rerun_trial_keeps_the_cost_of_its_attempts_before_the_resume() -> Non
     ]
     p = progress(events, now=T0 + timedelta(minutes=12))
     assert (p["done"], p["cost_usd"]) == (1, pytest.approx(0.21))
+
+
+async def test_runs_sharing_a_directory_name_get_their_own_live_session(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    sessions: list[str] = []
+
+    def opened(cls: type[LiveFeed], session: str) -> LiveFeed:
+        sessions.append(session)
+        return cls(FakeClient(), session)
+
+    monkeypatch.setattr(runner.LiveFeed, "open", classmethod(opened))
+    for parent in ("a", "b"):
+        await run_async(discover([TASKS]), ["null-claim"], [None],
+                        RunOptions(out=tmp_path / parent / "r", isolation=Isolation.HOST, quiet=True))  # fmt: skip
+
+    assert len(set(sessions)) == 2
+    assert all(s.startswith("r-") for s in sessions)
+    for parent, session in zip(("a", "b"), sessions, strict=True):
+        manifest = RunManifest.model_validate_json((tmp_path / parent / "r" / "manifest.json").read_text())
+        assert (manifest.run_id, manifest.live_session) == ("r", session)
+
+
+async def test_a_resumed_run_keeps_its_live_session(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    sessions: list[str] = []
+
+    def opened(cls: type[LiveFeed], session: str) -> LiveFeed:
+        sessions.append(session)
+        return cls(FakeClient(), session)
+
+    monkeypatch.setattr(runner.LiveFeed, "open", classmethod(opened))
+    opts = RunOptions(out=tmp_path / "r", isolation=Isolation.HOST, quiet=True)
+    await run_async(discover([TASKS]), ["null-claim"], [None], opts)
+    await run_async(discover([TASKS]), ["null-claim"], [None], opts)
+
+    assert len(sessions) == 2 and sessions[0] == sessions[1]
+
+
+def test_a_manifest_written_before_live_sessions_still_loads(tmp_path: Path) -> None:
+    manifest = RunManifest(run_id="r", created_at=T0, parallax_version="0", harnesses=(), models=(), tasks=(),
+                           repeats=1, judge=(), isolation=Isolation.HOST, selection="", grading_policy="")  # fmt: skip
+    old = manifest.model_dump(mode="json", exclude={"live_session"})
+    assert RunManifest.model_validate(old).live_session is None

@@ -673,6 +673,39 @@ def test_a_second_sigint_does_not_cut_teardown_short() -> None:
     assert (proc.returncode, out.strip()) == (130, "cleanup finished")
 
 
+_SIGTERM_PROBE = """
+import asyncio, sys
+from parallax import interrupts
+from parallax.runner import finish_uncancelled, run_to_teardown
+async def stop_browsers():
+    print("browsers stopped", flush=True)
+interrupts.on_interrupt(stop_browsers)
+async def cleanup():
+    await asyncio.sleep(1)
+    print("cleanup finished", flush=True)
+async def main():
+    try:
+        print("running", flush=True)
+        await asyncio.sleep(30)
+    finally:
+        await finish_uncancelled(cleanup())
+try:
+    run_to_teardown(main())
+except KeyboardInterrupt:
+    sys.exit(130)
+"""
+
+
+def test_sigterm_runs_the_interrupt_hooks_first_and_then_the_teardown() -> None:
+    # A cancelled GitHub Actions job gets SIGINT, then SIGTERM, then SIGKILL within seconds.
+    proc = subprocess.Popen([sys.executable, "-c", _SIGTERM_PROBE], stdout=subprocess.PIPE, text=True)
+    assert proc.stdout is not None
+    assert proc.stdout.readline().strip() == "running"
+    proc.send_signal(signal.SIGTERM)
+    out, _ = proc.communicate(timeout=30)
+    assert (proc.returncode, out.split()) == (130, ["browsers", "stopped", "cleanup", "finished"])
+
+
 @pytest.mark.parametrize("remove_retained", [False, True])
 async def test_harness_assets_outlive_cleanup_and_export(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, remove_retained: bool

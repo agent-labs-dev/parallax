@@ -32,7 +32,7 @@ import uvicorn
 from pydantic import JsonValue
 from starlette.types import ASGIApp
 
-from parallax import __version__, extensions, provenance
+from parallax import __version__, extensions, interrupts, provenance
 from parallax.assets import TrialAssets
 from parallax.box import (
     Box,
@@ -287,13 +287,31 @@ async def finish_uncancelled(cleanup: Awaitable[None]) -> None:
 
 
 def run_to_teardown[T](main: Coroutine[None, None, T]) -> T:
-    """`asyncio.run`, but every SIGINT only cancels `main`. A second one (a repeated Ctrl-C, or `uv run`
-    forwarding its copy of the terminal's) would raise KeyboardInterrupt mid-teardown and strand boxes."""
+    """`asyncio.run`, but every SIGINT or SIGTERM only cancels `main`. A second one (a repeated Ctrl-C, `uv run`
+    forwarding its copy of the terminal's, or a CI runner's SIGTERM after its SIGINT) would otherwise raise
+    KeyboardInterrupt or end the process mid-teardown and strand boxes and paid browsers. The first also starts the
+    `interrupts` hooks, ahead of the unwinding, and the run ends only once they have finished."""
 
     async def guarded() -> T:
-        if (task := asyncio.current_task()) is not None:
-            asyncio.get_running_loop().add_signal_handler(signal.SIGINT, task.cancel)
-        return await main
+        hooks: asyncio.Task[None] | None = None
+        task = asyncio.current_task()
+
+        def interrupt() -> None:
+            nonlocal hooks
+            if hooks is None:  # created before the cancel, so the hooks see the run as it was
+                hooks = asyncio.ensure_future(interrupts.interrupted())
+            if task is not None:
+                task.cancel()
+
+        loop = asyncio.get_running_loop()
+        for signum in (signal.SIGINT, signal.SIGTERM):
+            loop.add_signal_handler(signum, interrupt)
+        try:
+            return await main
+        finally:
+            while hooks is not None and not hooks.done():
+                with contextlib.suppress(asyncio.CancelledError):  # a repeated signal must not cut the hooks short
+                    await asyncio.shield(hooks)
 
     try:
         return asyncio.run(guarded())
@@ -1584,10 +1602,21 @@ def judge_setup(models: Sequence[str]) -> tuple[JudgePanel | None, JudgeConfig |
     return panel, config_from_env()
 
 
-def manifest_for(opts: RunOptions, plans: Sequence[TrialPlan], harnesses: Sequence[HarnessPlan]) -> RunManifest:
+def live_session(out: Path) -> str:
+    """The run directory's live feed session: the one its manifest already holds on a resume, else a new one. The
+    directory name stays readable in it; the suffix keeps runs whose directories share a name apart."""
+    manifest = out / "manifest.json"
+    if manifest.is_file() and (kept := RunManifest.model_validate_json(manifest.read_text()).live_session):
+        return kept
+    return f"{out.name}-{secrets.token_hex(4)}"
+
+
+def manifest_for(
+    opts: RunOptions, plans: Sequence[TrialPlan], harnesses: Sequence[HarnessPlan], session: str
+) -> RunManifest:
     tasks = {p.task.id: p.task.hash for p in plans}
     return RunManifest(
-        run_id=opts.out.name, created_at=datetime.now(UTC), parallax_version=__version__,
+        run_id=opts.out.name, live_session=session, created_at=datetime.now(UTC), parallax_version=__version__,
         harnesses=tuple(h.info for h in harnesses),
         models=tuple(dict.fromkeys(p.model for p in plans)), tasks=tuple(sorted(tasks.items())),
         repeats=opts.repeats, judge=opts.judge, isolation=opts.isolation, selection=opts.selection,
@@ -1617,7 +1646,10 @@ async def run_async(
         plans_h = [await plan_harness(h, chosen, opts.isolation, svc.network) for h in harnesses]
         plans = only_pairs(plan_trials(chosen, plans_h, models, opts), opts.pairs)
         opts.out.mkdir(parents=True, exist_ok=True)  # only now: a run interrupted in setup leaves no husk
-        (opts.out / "manifest.json").write_text(manifest_for(opts, plans, plans_h).model_dump_json(indent=2))
+        feed_session = live_session(opts.out)
+        (opts.out / "manifest.json").write_text(
+            manifest_for(opts, plans, plans_h, feed_session).model_dump_json(indent=2)
+        )
         prov = provenance.collect(opts.out, opts.provenance_extra)
         provenance.write(opts.out, prov)
         done = completed_keys(opts.out, plans)
@@ -1630,7 +1662,7 @@ async def run_async(
         elif journal.is_file():
             budget = CampaignBudget.from_journal(journal)
         session = Session(svc, opts.out, panel, judge_config, opts.turn_timeout_s, budget)
-        session.live = LiveFeed.open(opts.out.name)
+        session.live = LiveFeed.open(feed_session)
         if session.live is not None:
             session.live.run_started(
                 total=len(plans), already_done=len(plans) - len(todo), concurrency=max(1, opts.concurrency),

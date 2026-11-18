@@ -489,6 +489,7 @@ async def test_v3_session_resolves_its_browser_for_evidence_and_costs() -> None:
     result = await _run_v3(client, "find it", "provider/model")
     assert client.browsers.agent_session_ids == [str(SESSION_ID)]
     assert result["browser_id"] == str(BROWSER_ID)
+    assert result["live_url"] == "https://live.test/session"
     # The live view URL is the provider's viewer, not the page the agent finished on.
     assert result["url"] is None
     assert result["cost_lines"] == [
@@ -892,10 +893,12 @@ async def test_a_worker_that_fails_after_its_browser_opened_keeps_the_browser_co
     from parallax.harnesses.browser.clock import AttemptClock
     from parallax.models import Trial
 
-    browser = SimpleNamespace(cdp_url="wss://cdp.test", open_seconds=1.0, cost=())
+    browser = SimpleNamespace(
+        cdp_url="wss://cdp.test", open_seconds=1.0, cost=(), browser_id="browser-1", live_url="https://live.test/1"
+    )
 
     @contextlib.asynccontextmanager
-    async def paid_browser(http: object, *, screen: object):  # noqa: ANN202
+    async def paid_browser(http: object, *, screen: object, minutes: int):  # noqa: ANN202
         try:
             yield browser
         finally:
@@ -924,10 +927,12 @@ async def test_a_browser_harness_trial_costs_its_agent_model_as_well_as_its_brow
     from parallax.harnesses.browser.toolchain import Toolchain
     from parallax.models import Trial
 
-    browser = SimpleNamespace(cdp_url="wss://cdp.test", open_seconds=1.0, cost=())
+    browser = SimpleNamespace(
+        cdp_url="wss://cdp.test", open_seconds=1.0, cost=(), browser_id="browser-1", live_url="https://live.test/1"
+    )
 
     @contextlib.asynccontextmanager
-    async def paid_browser(http: object, *, screen: object):  # noqa: ANN202
+    async def paid_browser(http: object, *, screen: object, minutes: int):  # noqa: ANN202
         try:
             yield browser
         finally:
@@ -1105,3 +1110,131 @@ def test_agent_browser_reaches_the_trials_browser_from_every_session_and_browser
     assert Cli.AGENT_BROWSER.detach() == ["agent-browser", "close", "--all"]
     assert Cli.BROWSER_HARNESS.environment("wss://cdp.test", "t1") == {"BU_CDP_WS": "wss://cdp.test"}
     assert Cli.BROWSER_HARNESS.detach() == []
+
+
+async def test_every_cloud_arm_records_its_browser_and_live_view(monkeypatch, tmp_path) -> None:
+    """A Browser Use cloud browser's live view link is gone once it stops, so each arm keeps it beside the id."""
+    import contextlib
+    from pathlib import Path
+
+    from parallax.harnesses.browser import harnesses
+    from parallax.harnesses.browser.clock import AttemptClock
+    from parallax.models import Trial
+
+    async def no_cost(browser_id: str, *, client: object = None) -> tuple[()]:
+        return ()
+
+    monkeypatch.setattr(harnesses, "stopped_browser_cost", no_cost)
+
+    # The V4 cloud arm: read when the run is over, while its browser is still open.
+    view = SimpleNamespace(live_url="https://live.test/v4", cdp_url=None)
+    client = SimpleNamespace(browsers=SimpleNamespace(get=lambda _: _ready(view)))
+    cloud_arm = BrowserHarnessCloud()
+    await cloud_arm._observe_cloud_browser(client, "browser-v4", {"url": "https://site.test"})
+    # A V3 run gives its link when the session is created, and that one is kept.
+    await cloud_arm._observe_cloud_browser(client, "browser-v3", {"live_url": "https://live.test/v3"})
+    assert cloud_arm.trial_details()["browsers"] == [
+        {"browser_id": "browser-v4", "live_url": "https://live.test/v4"},
+        {"browser_id": "browser-v3", "live_url": "https://live.test/v3"},
+    ]
+
+    # The open-source arm: its worker opens the browser and reports the link when it is ready.
+    requests: list[dict[str, object]] = []
+
+    class Worker:
+        def __init__(self, command: object, *, env: object, cwd: Path) -> None:
+            self.events = {
+                "ready": {"cdp_url": None, "browser_id": "browser-oss", "live_url": "https://live.test/oss"},
+                "result": {"status": "done", "answer": "ok"},
+                "stopped": {"stopped": True},
+            }
+
+        async def __aenter__(self) -> Worker:
+            return self
+
+        async def __aexit__(self, *_: object) -> None:
+            return None
+
+        async def send(self, message: dict[str, object]) -> None:
+            requests.append(message)
+
+        async def receive(self, event: str) -> dict[str, object]:
+            return dict(self.events[event])
+
+    monkeypatch.setattr(harnesses, "JsonWorker", Worker)
+    oss = BrowserHarnessOSS()
+    oss._trial = Trial.model_construct(model="bu-fast", home=Path("/home/agent"), env={})
+    oss._clock = AttemptClock(bounded=False)
+    await oss.turn(TurnInput(index=1, text="find it", new_session=True, deadline_s=600))
+    assert oss.trial_details()["browsers"] == [{"browser_id": "browser-oss", "live_url": "https://live.test/oss"}]
+    assert requests[0]["browser_minutes"] == 10
+    await oss.stop()
+
+    # browser-harness, agent-browser and browser-harness-claude-code: the browser Parallax opens for the worker.
+    asked: list[int] = []
+    browser = SimpleNamespace(
+        cdp_url="wss://cdp.test", open_seconds=1.0, cost=(), browser_id="browser-bh", live_url="https://live.test/bh"
+    )
+
+    @contextlib.asynccontextmanager
+    async def paid_browser(http: object, *, screen: object, minutes: int):  # noqa: ANN202
+        asked.append(minutes)
+        yield browser
+
+    class Failing:
+        def __init__(self, command: object, *, env: object, cwd: Path) -> None:
+            raise FileNotFoundError(2, "No such file or directory", "missing-worker")
+
+    monkeypatch.setattr(harnesses, "cloud_browser", paid_browser)
+    monkeypatch.setattr(harnesses, "JsonWorker", Failing)
+    runner_arm = BrowserHarnessRunner()
+    runner_arm._toolchain = SimpleNamespace(request=dict)  # type: ignore[assignment]
+    runner_arm._trial = Trial.model_construct(model="m", home=tmp_path, env={})
+    runner_arm._clock = AttemptClock(bounded=False)
+    await runner_arm.turn(TurnInput(index=1, text="find it", new_session=True, deadline_s=90))
+    assert runner_arm.trial_details()["browsers"] == [{"browser_id": "browser-bh", "live_url": "https://live.test/bh"}]
+    assert asked == [2]
+    await runner_arm.stop()
+
+
+async def _ready(value: object) -> object:
+    return value
+
+
+async def test_a_v4_run_cancelled_while_its_page_is_read_still_stops_its_browser(monkeypatch) -> None:
+    """The run is over but its browser is open: a turn cancelled while reading the final page must still stop it."""
+    import asyncio
+
+    import browser_use_sdk.v4
+    from parallax.harnesses.browser import harnesses
+    from parallax.models import Trial
+
+    stopped: list[str] = []
+
+    class Browsers:
+        async def get(self, _: str) -> object:
+            raise asyncio.CancelledError
+
+    class Client:
+        def __init__(self, **_: object) -> None:
+            self.browsers = Browsers()
+
+        async def close(self) -> None:
+            return None
+
+    async def run(*_: object, **__: object) -> dict[str, object]:
+        return {"status": "done", "answer": "ok", "browser_id": "browser-1", "actual_model": None}
+
+    async def stop(browser_id: str, *, client: object = None) -> tuple[()]:
+        stopped.append(browser_id)
+        return ()
+
+    monkeypatch.setattr(browser_use_sdk.v4, "AsyncBrowserUse", Client)
+    monkeypatch.setattr(harnesses, "_run_v4", run)
+    monkeypatch.setattr(harnesses, "stopped_browser_cost", stop)
+    harness = BrowserHarnessCloud()
+    harness._trial = Trial.model_construct(model=None, task_id="t", env={})
+    with pytest.raises(asyncio.CancelledError):
+        await harness.execute(TurnInput(index=1, text="find it", new_session=True))
+    assert stopped == ["browser-1"]
+    assert harness.trial_details()["browsers"] == [{"browser_id": "browser-1", "live_url": None}]
