@@ -6,6 +6,8 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev49] - 2026-11-18
+
 ### Fixed
 
 - The judge reads every browser arm's tool calls. Steps a coding agent names under `name` (browser-harness) reached the trajectory but not the judge's evidence, which read only `action`, `operation` or `tool`; each step now gives the judge what it ran and what it returned.
