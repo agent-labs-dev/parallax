@@ -106,6 +106,42 @@ def _info(
     )
 
 
+def _step_name(raw: Mapping[str, Any]) -> str | None:
+    """What a step did. Workers name it under different keys: `name` (agent tool calls), `action` (fastbrowse and
+    the evidence timeline), `operation` or `tool` (Browser Use)."""
+    return next((raw[key] for key in ("name", "action", "operation", "tool") if isinstance(raw.get(key), str)), None)
+
+
+def _step_value(raw: Mapping[str, Any]) -> str | None:
+    """What the step was given, as the judge reads it: a `value`, else the code or command it ran, else its
+    arguments whole."""
+    if isinstance(raw.get("value"), str):
+        return raw["value"]
+    args = raw.get("args", raw.get("arguments"))
+    if isinstance(args, Mapping):
+        ran = next((args[key] for key in ("code", "command") if isinstance(args.get(key), str)), None)
+        return ran if ran is not None else json.dumps(args, ensure_ascii=False, default=str)
+    if isinstance(args, list):
+        return " ".join(str(part) for part in args)
+    return args if isinstance(args, str) else None
+
+
+def _step_quote(raw: Mapping[str, Any]) -> str | None:
+    """What the step returned: a `quote`, else its output or observation; a tool result given as content blocks keeps
+    its text."""
+    for key in ("quote", "output", "observation"):
+        value = raw.get(key)
+        if isinstance(value, str):
+            return value
+        if isinstance(value, list):
+            texts = [
+                block["text"] for block in value if isinstance(block, Mapping) and isinstance(block.get("text"), str)
+            ]
+            if texts:
+                return "\n".join(texts)
+    return None
+
+
 def _step(turn: int, raw: Mapping[str, Any]) -> Step:
     kind = raw.get("kind", "tool_call")
     try:
@@ -115,7 +151,7 @@ def _step(turn: int, raw: Mapping[str, Any]) -> Step:
     return Step(
         turn=turn,
         kind=parsed_kind,
-        name=raw.get("name") or raw.get("operation") or raw.get("tool"),
+        name=_step_name(raw),
         args=raw.get("args", raw.get("target", raw.get("arguments"))),
         output=raw.get("output", raw.get("observation")),
         ok=raw.get("ok"),
@@ -212,13 +248,13 @@ def _evidence_payload(
         for item in steps:
             if not isinstance(item, Mapping):
                 continue
-            action = item.get("action") or item.get("operation") or item.get("tool")
-            if not isinstance(action, str):
+            action = _step_name(item)
+            if action is None:
                 continue
             step = {"url": str(item.get("url") or final_url), "action": action}
-            for key in ("value", "quote"):
-                if isinstance(item.get(key), str):
-                    step[key] = item[key]
+            for key, read in (("value", _step_value), ("quote", _step_quote)):
+                if (text := read(item)) is not None:
+                    step[key] = text
             if isinstance(item.get("page"), int):
                 step["page"] = item["page"]
             timeline.append(step)

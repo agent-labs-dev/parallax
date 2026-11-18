@@ -104,8 +104,30 @@ def test_evidence_is_normalised_to_the_shared_browser_shape() -> None:
         citations=[{"id": 1, "url": "https://site.test/", "quote": "Complete", "deep_link": "https://site.test/#q"}],
     )
     assert evidence["final_page"] == {"url": "https://site.test/", "title": "Done", "text": "Complete"}
-    assert evidence["steps"] == [{"url": "https://site.test/", "action": "click"}]
+    assert evidence["steps"] == [{"url": "https://site.test/", "action": "click", "quote": "Complete"}]
     assert evidence["citations"] == [{"url": "https://site.test/", "quote": "Complete"}]
+
+
+def test_a_coding_agents_tool_calls_reach_the_judge_with_what_they_ran_and_returned() -> None:
+    evidence = _evidence_payload(
+        page=None,
+        answer="done",
+        steps=[
+            {"kind": "tool_call", "name": "shell", "args": "browser-harness click 3", "output": "clicked", "ok": True},
+            {
+                "kind": "tool_call",
+                "name": "Bash",
+                "args": {"command": "echo x"},
+                "output": [{"type": "text", "text": "x"}],
+            },
+            {"tool": "python", "args": {"code": "await bu.state()"}, "output": "[state] Home", "ok": True},
+        ],
+    )
+    assert [(step["action"], step["value"], step["quote"]) for step in evidence["steps"]] == [
+        ("shell", "browser-harness click 3", "clicked"),
+        ("Bash", "echo x", "x"),
+        ("python", "await bu.state()", "[state] Home"),
+    ]
 
 
 def test_evidence_keeps_a_null_answer_for_navigation_only_runs() -> None:
