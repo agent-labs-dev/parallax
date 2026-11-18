@@ -33,13 +33,12 @@ from parallax.harnesses.browser import oss_worker
 from parallax.harnesses.browser.browser_harness_worker import Agent
 from parallax.harnesses.browser.clock import SESSION_INCLUDED, AttemptClock
 from parallax.harnesses.browser.cloud import (
-    Browser,
     _failure,
-    _settled,
     _stop,
+    browser_minutes,
     cloud_browser,
-    cost_lines,
     devtools_websocket,
+    opened,
     stopped_browser_cost,
     with_stopped_browser_cost,
 )
@@ -300,7 +299,6 @@ class BrowserHarness(ABC):
         )
         self._trial: Trial | None = None
         self._clock: AttemptClock | None = None
-        self._browser: Browser | None = None
         self._answer: str | None = None
         self._page: dict[str, Any] | None = None
         self._steps: list[dict[str, Any]] = []
@@ -571,6 +569,13 @@ class BrowserHarness(ABC):
             self.trial_notes.append(f"final page not singled out: {len(error.tabs)} tabs open, each kept as a page")
             return None
 
+    def _browser_opened(self, browser_id: object, live_url: object = None) -> None:
+        """Record a Browser Use cloud browser the trial ran on, with its live view link. Browser Use clears the link
+        once the browser stops, so it is read while the browser is open; a trial with several turns has one each."""
+        if isinstance(browser_id, str):
+            browser = {"browser_id": browser_id, "live_url": live_url if isinstance(live_url, str) else None}
+            self._details.setdefault("browsers", []).append(browser)
+
     def _agent_started(self, open_seconds: object = None) -> None:
         """The agent is running and may spend: a worker reported ready, or a cloud task exists."""
         self._spending()
@@ -674,23 +679,34 @@ class BrowserHarnessCloud(BrowserHarness):
             browser_id = result.get("browser_id")
             if isinstance(browser_id, str):
                 try:
-                    result["final_page"] = await self._observe_cloud_browser(client, browser_id, result.get("url"))
-                except Exception as error:
-                    result["observe_error"] = f"{type(error).__name__}: {error}"
-                stopped = await asyncio.shield(_stop(client, browser_id))
-                settled = await asyncio.shield(_settled(client, browser_id)) if stopped is not None else None
+                    try:
+                        result["final_page"] = await self._observe_cloud_browser(client, browser_id, result)
+                    except Exception as error:
+                        result["observe_error"] = f"{type(error).__name__}: {error}"
+                finally:
+                    # Also when the turn is cancelled while the page is read: the run is over, its browser is not.
+                    stopped = await stopped_browser_cost(browser_id, client=client)
                 existing = result.get("cost_lines")
                 result["cost_lines"] = with_stopped_browser_cost(
-                    existing if isinstance(existing, list) else [],
-                    cost_lines(settled or stopped, settled=settled is not None),
+                    existing if isinstance(existing, list) else [], stopped
                 )
             return result
         finally:
             with contextlib.suppress(Exception):
                 await client.close()
 
-    async def _observe_cloud_browser(self, client: Any, browser_id: str, url: str | None) -> dict[str, Any] | None:
-        view = await client.browsers.get(browser_id)
+    async def _observe_cloud_browser(
+        self, client: Any, browser_id: str, result: Mapping[str, Any]
+    ) -> dict[str, Any] | None:
+        """The page the run's browser ended on. The run is over but its browser is still open, so its live view link
+        is read here too; a V3 run gives the link when its session is created, and that one is kept."""
+        url = result.get("url")
+        try:
+            view = await client.browsers.get(browser_id)
+        except BaseException:
+            self._browser_opened(browser_id, result.get("live_url"))
+            raise
+        self._browser_opened(browser_id, result.get("live_url") or getattr(view, "live_url", None))
         cdp = getattr(view, "cdp_url", None)
         if not isinstance(cdp, str):
             return {"url": url or "", "title": "", "text": "", "controls": []}
@@ -763,6 +779,7 @@ async def _run_v4(
                             candidate = data.get("browser_session_id") or data.get("browser_id")
                             if isinstance(candidate, str):
                                 browser_id = candidate
+                                opened(browser_id, client)
                                 if agent_started is not None:
                                     agent_started()
                 next_after = getattr(page, "next_after", None)
@@ -820,6 +837,7 @@ async def _run_v3(
         except Exception as error:
             raise _failure("session create", error, starting=True) from None
         session_id = str(created.id)
+        live_url = getattr(created, "live_url", None)  # only while the session runs: Browser Use clears it after
         if agent_started is not None:
             agent_started()
         while True:
@@ -832,6 +850,7 @@ async def _run_v3(
                 if finished is not None:
                     finished()
                 result = _run_result(view, [])
+                result["live_url"] = live_url
                 try:
                     browsers = await client.browsers.list(agent_session_id=session_id)
                 except Exception as error:
@@ -977,7 +996,13 @@ class BrowserHarnessOSS(BrowserHarness):
         return f"browser-use {out.decode().strip()}"
 
     async def execute(self, turn: TurnInput) -> dict[str, Any]:
-        request = {"goal": turn.text, "model": self.trial.model, "max_steps": None, "timeout": None}
+        request = {
+            "goal": turn.text,
+            "model": self.trial.model,
+            "max_steps": None,
+            "timeout": None,
+            "browser_minutes": browser_minutes(self.seconds_left()),
+        }
         worker = JsonWorker(
             # -I: run by path, the script's own directory would lead sys.path, and its sibling subprocess.py would
             # shadow the standard library's.
@@ -988,6 +1013,9 @@ class BrowserHarnessOSS(BrowserHarness):
         async with worker:
             await worker.send(request)
             ready = await worker.receive("ready")
+            if isinstance(ready.get("browser_id"), str):
+                opened(ready["browser_id"])
+            self._browser_opened(ready.get("browser_id"), ready.get("live_url"))
             self._agent_started(ready.get("open_seconds"))
             result = await worker.receive("result")
             self._agent_finished()
@@ -1031,10 +1059,11 @@ class BrowserHarnessRunner(BrowserHarness):
         toolchain = self._toolchain or await provision(self.agent, self.cli)
         browser = None
         try:
-            async with httpx.AsyncClient() as http, cloud_browser(http, screen=(1120, 780)) as browser:
+            minutes = browser_minutes(self.seconds_left())
+            async with httpx.AsyncClient() as http, cloud_browser(http, screen=(1120, 780), minutes=minutes) as browser:
                 # The paid browser exists, so the attempt spends from here even if the worker never starts.
+                self._browser_opened(browser.browser_id, browser.live_url)
                 self._agent_started(browser.open_seconds)
-                self._browser = browser
                 request = {
                     "goal": turn.text,
                     "model": self.trial.model,

@@ -19,7 +19,8 @@ async def run(request: dict[str, object]) -> None:
         browser_name = "Browser"
         agent_type = getattr(browser_use, agent_name)
         browser_type = getattr(browser_use, browser_name)
-        browser = browser_type(keep_alive=True, cloud_timeout=240)
+        # The host's limit for this turn, so a browser whose stop is missed stops itself (cloud.browser_minutes).
+        browser = browser_type(keep_alive=True, cloud_timeout=request["browser_minutes"])
         started = time.monotonic()
         await browser.start()
         emit(
@@ -27,6 +28,7 @@ async def run(request: dict[str, object]) -> None:
                 "event": "ready",
                 "cdp_url": browser.cloud_cdp_url,
                 "browser_id": browser.id,
+                "live_url": browser.live_url,
                 "open_seconds": time.monotonic() - started,
             }
         )

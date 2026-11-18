@@ -13,6 +13,9 @@ All notable changes to Parallax are recorded here. The format follows
 ### Fixed
 
 - The browser-harness worker stops the CLI's background process (agent-browser's daemon) when the host ends an interrupted trial with SIGTERM, not only after a completed one.
+- An interrupted run stops its Browser Use cloud browsers first. SIGTERM now cancels a run as SIGINT does, so a cancelled CI job tears down instead of dying mid-cleanup, and the first SIGINT or SIGTERM stops every open browser at once, ahead of the trials' own cleanup, which waits behind each worker's exit. A V4 Browser Use Cloud run cancelled while its final page is read still stops its browser. A turn's browser stops itself once the turn's time is up, instead of after four hours, when its stop is missed.
+- A trial on a Browser Use cloud browser records the browser's id and live view link in its details (`browsers`), one entry per browser, for every arm. Browser Use clears the link once the browser stops, so it is read while the browser is open.
+- Each run sends its live feed to its own session, kept in its manifest (`live_session`) and reused on resume. Runs whose directories shared a name shared one session, so `parallax watch` merged their progress and one run's end ended the other's.
 - A Codex browser-harness trial runs in a home of its own and passes its environment to the agent's shell. It used the host user's `~/.codex/config.toml`, whose `shell_environment_policy` (for example `inherit = "core"`) stripped the browser's CDP URL from every command the agent ran, along with the user's MCP servers and hooks.
 
 ## [2.0.0.dev49] - 2026-11-18
