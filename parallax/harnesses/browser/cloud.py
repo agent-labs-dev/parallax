@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import importlib
+import math
 import time
 from collections.abc import AsyncGenerator, Callable, Mapping
 from dataclasses import dataclass, field
@@ -16,6 +17,7 @@ from typing import Any
 
 import httpx
 
+from parallax import interrupts
 from parallax.harnesses.browser.site import (
     RETRYABLE_STATUS,
     TRANSIENT_TRANSPORT,
@@ -24,7 +26,7 @@ from parallax.harnesses.browser.site import (
     refusal,
 )
 
-CLOUD_BROWSER_MINUTES = 240
+CLOUD_BROWSER_MINUTES = 240  # the longest Browser Use lets a browser live
 PROXY_SETTLE_SECONDS = 45.0
 STOP_ATTEMPTS = 4
 
@@ -100,10 +102,57 @@ async def devtools_websocket(http: httpx.AsyncClient, cdp_url: str) -> str:
     return address
 
 
+_open: dict[str, Any] = {}
+"""Every cloud browser this process opened and has not yet seen stop, with the client that opened it (None: a worker
+process opened it, so a client is made from the environment to stop it)."""
+
+
+def opened(browser_id: str, client: Any | None = None) -> None:
+    """Track a browser until it is seen stopped, so an interrupted run stops it first (`stop_open_browsers`)."""
+    interrupts.on_interrupt(stop_open_browsers)
+    _open[browser_id] = client
+
+
+async def stop_open_browsers() -> None:
+    """The run was interrupted: stop every open browser now, all at once and one attempt each. A trial's own stop
+    runs only as its task unwinds, behind its worker's exit, and a cancelled CI job kills the process within seconds.
+    A browser stopped here is forgotten, so its trial's own stop settles its cost instead of stopping it again."""
+    browsers = dict(_open)
+    fallback: Any | None = None
+    if None in browsers.values():
+        with contextlib.suppress(Exception):
+            fallback = _client()
+
+    async def stop(browser_id: str, client: Any | None) -> None:
+        if client is None:
+            return
+        with contextlib.suppress(Exception):
+            await client.browsers.stop(browser_id)
+            _open.pop(browser_id, None)
+
+    try:
+        await asyncio.gather(*(stop(browser_id, client or fallback) for browser_id, client in browsers.items()))
+    finally:
+        if fallback is not None:
+            with contextlib.suppress(Exception):
+                await fallback.close()
+
+
+def browser_minutes(seconds_left: float | None) -> int:
+    """How long a cloud browser for a turn may live: the turn's remaining time in whole minutes, rounded up, as Browser
+    Use takes it; the longest it allows when the turn has no limit. A browser whose stop is missed (the process was
+    killed) then stops itself once its turn could no longer use it, instead of billing for hours."""
+    if seconds_left is None:
+        return CLOUD_BROWSER_MINUTES
+    return max(1, min(CLOUD_BROWSER_MINUTES, math.ceil(seconds_left / 60)))
+
+
 async def _stop(client: Any, browser_id: str) -> object | None:
     for attempt in range(STOP_ATTEMPTS):
         try:
-            return await client.browsers.stop(browser_id)
+            stopped = await client.browsers.stop(browser_id)
+            _open.pop(browser_id, None)
+            return stopped
         except Exception as error:
             status = getattr(error, "status_code", None)
             retryable = isinstance(error, TRANSIENT_TRANSPORT) or status in RETRYABLE_STATUS
@@ -122,7 +171,10 @@ async def _settled(client: Any, browser_id: str) -> object | None:
         view = await client.browsers.get(browser_id)
     except Exception:
         return None
-    return view if view.status.value == "stopped" else None
+    if view.status.value != "stopped":
+        return None
+    _open.pop(browser_id, None)
+    return view
 
 
 @contextlib.asynccontextmanager
@@ -132,8 +184,9 @@ async def cloud_browser(
     client: Any | None = None,
     client_factory: Callable[[], Any] | None = None,
     screen: tuple[int, int] | None = None,
+    minutes: int = CLOUD_BROWSER_MINUTES,
 ) -> AsyncGenerator[Browser]:
-    """Create a hosted browser, yield its CDP URL, and always stop and settle it."""
+    """Create a hosted browser that stops itself after `minutes`, yield its CDP URL, and always stop and settle it."""
     owned_client = client is None
     if client is None:
         client = _client() if client_factory is None else client_factory()
@@ -143,7 +196,7 @@ async def cloud_browser(
     browser: Browser | None = None
     creation = asyncio.create_task(
         client.browsers.create(
-            timeout=CLOUD_BROWSER_MINUTES,
+            timeout=minutes,
             browser_screen_width=width,
             browser_screen_height=height,
         )
@@ -154,6 +207,7 @@ async def cloud_browser(
         except Exception as error:
             raise _failure("browser create", error, starting=True) from None
         browser_id = str(created.id)
+        opened(browser_id, client)
         cdp = getattr(created, "cdp_url", None)
         if not isinstance(cdp, str) or not cdp:
             raise RuntimeError("cloud browser started without a CDP URL")
@@ -172,9 +226,10 @@ async def cloud_browser(
             yield browser
         finally:
             closing = time.monotonic()
-            stopped = await asyncio.shield(_stop(client, browser_id))
+            # An interrupt may have stopped it already; its cost settles all the same.
+            stopped = await asyncio.shield(_stop(client, browser_id)) if browser_id in _open else None
             browser.close_seconds = round(time.monotonic() - closing, 2)
-            settled = await asyncio.shield(_settled(client, browser_id)) if stopped is not None else None
+            settled = await asyncio.shield(_settled(client, browser_id)) if browser_id not in _open else None
             browser.cost = cost_lines(settled or stopped, settled=settled is not None)
     finally:
         await asyncio.gather(creation, return_exceptions=True)

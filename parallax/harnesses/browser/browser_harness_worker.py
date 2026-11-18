@@ -1,7 +1,7 @@
-"""JSON-line bridge that runs Browser Use's browser-harness skill under a coding agent CLI.
+"""JSON-line bridge that runs a browser CLI and its skill (browser-harness, agent-browser) under a coding agent.
 
-The agent (Codex or Claude Code) gets the skill where it natively looks for skills, the `browser-harness` CLI on
-PATH and the cloud browser's CDP URL in `BU_CDP_WS`. Its model is the trial's OpenRouter model id. The agent reaches
+The agent (Codex or Claude Code) gets the skill where it natively looks for skills, the CLI on PATH and the cloud
+browser's CDP URL in the environment (`BU_CDP_WS` for browser-harness, `AGENT_BROWSER_CDP` for agent-browser). Its model is the trial's OpenRouter model id. The agent reaches
 OpenRouter through a relay in this worker, which adds up the cost OpenRouter reports on every response: OpenRouter
 bills long prompts and cache writes at their own rates, and neither CLI reports tokens per request.
 """
@@ -9,9 +9,11 @@ bills long prompts and cache writes at their own rates, and neither CLI reports 
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import os
 import shutil
+import signal
 import sys
 from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import asynccontextmanager
@@ -44,13 +46,13 @@ class Agent(StrEnum):
     CODEX = "codex"
     CLAUDE_CODE = "claude-code"
 
-    def skill_dir(self) -> Path:
-        """Where the agent reads a skill relative to its working directory, per its own docs."""
+    def skill_dir(self, name: str) -> Path:
+        """Where the agent reads the skill called `name` relative to its working directory, per its own docs."""
         match self:
             case Agent.CODEX:
-                return Path(".agents/skills/browser-harness")
+                return Path(".agents/skills") / name
             case Agent.CLAUDE_CODE:
-                return Path(".claude/skills/browser-harness")
+                return Path(".claude/skills") / name
             case _:
                 assert_never(self)
 
@@ -219,6 +221,8 @@ def argv(agent: Agent, agent_bin: str, model: str, goal: str, relay: str) -> lis
                 "-c", f'{provider}.env_key="OPENROUTER_API_KEY"',
                 # The browser is the instrument measured: no search tool to answer around it.
                 "-c", 'web_search="disabled"',
+                # The CLI reaches its browser through environment variables, which the shell tool must pass on.
+                "-c", 'shell_environment_policy.inherit="all"',
                 "--model", model, "--", goal,
             ]  # fmt: skip
         case Agent.CLAUDE_CODE:
@@ -232,13 +236,15 @@ def argv(agent: Agent, agent_bin: str, model: str, goal: str, relay: str) -> lis
             assert_never(agent)
 
 
-def agent_env(agent: Agent, model: str, relay: str, base: dict[str, str]) -> dict[str, str]:
+def agent_env(agent: Agent, model: str, relay: str, base: dict[str, str], home: Path) -> dict[str, str]:
     key = base.get("OPENROUTER_API_KEY")
     if not key:
-        raise RuntimeError("browser-harness needs OPENROUTER_API_KEY for its agent's model")
+        raise RuntimeError("a browser CLI harness needs OPENROUTER_API_KEY for its agent's model")
     match agent:
         case Agent.CODEX:
-            return base
+            # Its own home, not the host user's: their config.toml would set the shell's environment, MCP servers
+            # and hooks, so a trial would measure the machine it happens to run on.
+            return base | {"CODEX_HOME": str(home)}
         case Agent.CLAUDE_CODE:
             # OpenRouter's documented Claude Code setup; every model alias, background work included, is the trial's.
             return base | {
@@ -335,26 +341,55 @@ def parse(agent: Agent, stdout: str) -> Run:
             assert_never(agent)
 
 
-def install_skill(agent: Agent, cwd: Path, skill: Path) -> None:
-    target = cwd / agent.skill_dir()
+def install_skill(agent: Agent, cwd: Path, skill: Path, name: str) -> None:
+    target = cwd / agent.skill_dir(name)
     target.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(skill, target / "SKILL.md")
 
 
 async def run(request: dict[str, Any]) -> None:
+    # The host ends an interrupted trial with SIGTERM, which must still stop the CLI's background process.
+    task = asyncio.current_task()
+    if task is not None:
+        asyncio.get_running_loop().add_signal_handler(signal.SIGTERM, task.cancel)
+    # The pinned CLI comes first on the agent's PATH.
+    environ = os.environ | {"PATH": os.pathsep.join((str(request["bin_dir"]), os.environ.get("PATH", "")))}
+    detach = Detach(_argv(request.get("detach")), environ, Path.cwd())
+    try:
+        await _run(request, environ, detach)
+    finally:
+        await asyncio.shield(detach())
+
+
+@dataclass
+class Detach:
+    """The command that ends the CLI's own background process, run once."""
+
+    command: list[str]
+    env: dict[str, str]
+    cwd: Path
+    done: bool = False
+
+    async def __call__(self) -> None:
+        if self.command and not self.done:
+            self.done = True
+            with contextlib.suppress(OSError, RuntimeError):
+                await _cli(self.command, self.env, self.cwd)
+
+
+async def _run(request: dict[str, Any], environ: dict[str, str], detach: Detach) -> None:
     agent, model, goal = Agent(request["agent"]), str(request["model"]), str(request["goal"])
     cwd, relay = Path.cwd(), Relay()
-    # The pinned browser-harness CLI comes first on the agent's PATH.
-    environ = os.environ | {"PATH": os.pathsep.join((str(request["bin_dir"]), os.environ.get("PATH", "")))}
     try:
-        install_skill(agent, cwd, Path(request["skill"]))
+        install_skill(agent, cwd, Path(request["skill"]), str(request.get("skill_name", "browser-harness")))
+        (cwd / ".codex-home").mkdir(exist_ok=True)
         async with relay.serving() as relay_url:
             process = await asyncio.create_subprocess_exec(
                 *argv(agent, str(request["agent_bin"]), model, goal, relay_url),
                 stdin=asyncio.subprocess.DEVNULL,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
-                env=agent_env(agent, model, relay_url, environ),
+                env=agent_env(agent, model, relay_url, environ, cwd / ".codex-home"),
                 cwd=cwd,
             )
             stdout, stderr = await process.communicate()
@@ -384,7 +419,23 @@ async def run(request: dict[str, Any]) -> None:
             }
         )
     await asyncio.to_thread(sys.stdin.readline)
+    # After the harness has read the final page: this ends the CLI's own background process.
+    await detach()
     emit({"event": "stopped", "stopped": True})
+
+
+def _argv(value: object) -> list[str]:
+    return [str(part) for part in _items(value)]
+
+
+async def _cli(command: list[str], env: dict[str, str], cwd: Path) -> None:
+    process = await asyncio.create_subprocess_exec(
+        *command, stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+        env=env, cwd=cwd,
+    )  # fmt: skip
+    _, err = await process.communicate()
+    if process.returncode != 0:
+        raise RuntimeError(f"{command[0]} {command[1]} failed: {err.decode(errors='replace').strip()[-500:]}")
 
 
 def emit(message: dict[str, object]) -> None:

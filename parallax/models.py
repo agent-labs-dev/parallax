@@ -1065,6 +1065,9 @@ class RunManifest(Model):
     selection: str
     bootstrap_seed: int = 0
     grading_policy: str  # `semantic.policy_identity()`: which judge configuration graded the run
+    # The live feed's session for this run directory, kept across resumes. Runs in different directories can share
+    # a name, so the name alone would merge their feeds. None, and left out, on a run written before the field existed.
+    live_session: str | None = Field(default=None, exclude_if=lambda v: v is None)
 
     @model_validator(mode="before")
     @classmethod
