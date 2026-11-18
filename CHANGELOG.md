@@ -6,13 +6,25 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- A browser trial is no longer graded INVALID because its start site refused a plain HTTP request from the host. Sites behind bot protection refuse such a request and load in the trial's browser, so an Online-Mind2Web task on one was an environment interruption after 20 s on every run. An outage is now judged by the browser the trial browses with: where Parallax opens that browser, it loads the start page there first and reads the browser's own navigation error or the document's HTTP status, and a product that brings its own browser reports `unavailable` itself.
+
+## [2.0.0.dev51] - 2026-11-18
+
+### Fixed
+
+- A Claude Code browser-harness trial that reads a screenshot completes. The tool result is a list of blocks, which failed the step's text field and discarded the run as `harness_error` (#108).
+
+## [2.0.0.dev50] - 2026-11-18
+
 ### Added
 
 - `agent-browser` runs Vercel's agent-browser CLI and its skill under Codex on a Cloud browser, as `browser-harness` does: the same pinned agent, OpenRouter model routing, browser and cost accounting. agent-browser reaches the trial's browser through `AGENT_BROWSER_CDP`, whichever session its skill has the agent name, its daemons are closed after the browser is observed, and its skill is the `SKILL.md` of the pinned npm package.
 
 ### Fixed
 
-- A browser trial is no longer graded INVALID because its start site refused a plain HTTP request from the host. Sites behind bot protection refuse such a request and load in the trial's browser, so an Online-Mind2Web task on one was an environment interruption after 20 s on every run. An outage is now judged by the browser the trial browses with: where Parallax opens that browser, it loads the start page there first and reads the browser's own navigation error or the document's HTTP status, and a product that brings its own browser reports `unavailable` itself.
+- Concurrent browser-harness trials on one runner each start their own daemon, so a trial no longer drives another trial's browser (#101).
 - The browser-harness worker stops the CLI's background process (agent-browser's daemon) when the host ends an interrupted trial with SIGTERM, not only after a completed one.
 - An interrupted run stops its Browser Use cloud browsers first. SIGTERM now cancels a run as SIGINT does, so a cancelled CI job tears down instead of dying mid-cleanup, and the first SIGINT or SIGTERM stops every open browser at once, ahead of the trials' own cleanup, which waits behind each worker's exit. A V4 Browser Use Cloud run cancelled while its final page is read still stops its browser. A turn's browser stops itself once the turn's time is up, instead of after four hours, when its stop is missed.
 - A trial on a Browser Use cloud browser records the browser's id and live view link in its details (`browsers`), one entry per browser, for every arm. Browser Use clears the link once the browser stops, so it is read while the browser is open.
