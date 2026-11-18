@@ -686,3 +686,46 @@ def test_reading_authorization_from_authorizes_is_part_of_the_judge_identity() -
     # Before `authorizes`, a task authorized its actions by requiring `authorization`; a verdict judged under that
     # rule must not be reused as one judged under this one.
     assert "`authorizes`" in browser_evidence.JUDGE.evidence_form
+
+
+# ---------------------------------------------------------------------------
+# regrading a finished run
+# ---------------------------------------------------------------------------
+
+
+async def test_a_run_regraded_under_a_judge_takes_its_verdicts_and_leaves_the_source_as_it_was(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from parallax.regrade import regrade
+
+    source = await run_browsing(tmp_path, monkeypatch, Browsing())
+    (before,) = read_results(source / "results.jsonl")
+    assert before.verdict is Verdict.INVALID  # offline, no judge decided it
+    monkeypatch.setenv("PARALLAX_JUDGE_API_KEY", "t")
+    monkeypatch.setenv("PARALLAX_JUDGE_BASE_URL", "https://fake/v1")
+    seen: list[JsonObject] = []
+    transport = panel_answering({"evidence_available": True, "task_satisfied": True}, seen)
+    async with httpx.AsyncClient(transport=transport) as client:
+        done = await regrade(source, tmp_path / "regraded", [source_task()], ["m/judge"], client=client)
+
+    (row,) = read_results(done.out / "results.jsonl")
+    assert (done.regraded, done.kept) == (1, 0)
+    assert row.verdict is Verdict.PASS and row.judge == ("m/judge",)
+    assert row.key == before.key and row.details == before.details and row.cost_usd == before.cost_usd
+    assert seen[0]["evidence"]["answer"] == "$24.00"
+    assert len((done.out / row.dir / "judgments.jsonl").read_text().splitlines()) == 1  # type: ignore[operator]
+    assert json.loads((done.out / "manifest.json").read_text())["judge"] == ["m/judge"]
+    assert read_results(source / "results.jsonl") == [before]
+
+
+async def test_a_task_that_changed_since_the_run_is_not_regraded(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from parallax.regrade import RegradeError, regrade
+
+    source = await run_browsing(tmp_path, monkeypatch, Browsing())
+    changed = task_from_record("shop", RECORD.model_copy(update={"prompt": "Find the price of the red kettle."}))
+    monkeypatch.setenv("PARALLAX_JUDGE_API_KEY", "t")
+    with pytest.raises(RegradeError, match="changed since the run"):
+        await regrade(source, tmp_path / "regraded", [changed], ["m/judge"])
+    assert not (tmp_path / "regraded").exists()
