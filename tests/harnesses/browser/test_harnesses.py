@@ -1108,7 +1108,8 @@ def test_agent_browser_reaches_the_trials_browser_from_every_session_and_browser
         "AGENT_BROWSER_NAMESPACE": "t1",
     }
     assert Cli.AGENT_BROWSER.detach() == ["agent-browser", "close", "--all"]
-    assert Cli.BROWSER_HARNESS.environment("wss://cdp.test", "t1") == {"BU_CDP_WS": "wss://cdp.test"}
+    # Its daemon is per BU_NAME, so trials side by side on one runner never share one.
+    assert Cli.BROWSER_HARNESS.environment("wss://cdp.test", "t1") == {"BU_CDP_WS": "wss://cdp.test", "BU_NAME": "t1"}
     assert Cli.BROWSER_HARNESS.detach() == []
 
 

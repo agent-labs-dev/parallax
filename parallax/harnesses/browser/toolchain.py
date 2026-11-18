@@ -28,14 +28,16 @@ class Cli(StrEnum):
     AGENT_BROWSER = "agent-browser"
 
     def environment(self, cdp_url: str, trial: str) -> dict[str, str]:
-        """What attaches the CLI to the trial's browser. browser-harness reads its URL from `BU_CDP_WS`.
+        """What attaches the CLI to the trial's browser. browser-harness reads its URL from `BU_CDP_WS`, and keeps one
+        daemon per `BU_NAME`, reusing any that answers, so each trial names its own: under the shared default name,
+        concurrent trials on one runner drove the first trial's browser.
         agent-browser reads `AGENT_BROWSER_CDP` for any session, which matters because its skill has the agent name
         its own `--session` on every command, so a connection made beforehand on another session would be ignored
         and the CLI would launch a local Chrome. Its daemon sockets are namespaced to the trial, so that trials
         running side by side never share a daemon."""
         match self:
             case Cli.BROWSER_HARNESS:
-                return {"BU_CDP_WS": cdp_url}
+                return {"BU_CDP_WS": cdp_url, "BU_NAME": trial}
             case Cli.AGENT_BROWSER:
                 return {"AGENT_BROWSER_CDP": cdp_url, "AGENT_BROWSER_NAMESPACE": trial}
             case _:
