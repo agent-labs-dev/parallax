@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The fast local gate: format, lint, type check, repository rules and unit tests, offline.
 #   scripts/gate            lint and format the whole tree, ty on files changed from origin/main, all unit tests
-#   scripts/gate --changed  only what this branch's changed files reach (changed tests, plus test_<module>.py; all unit tests for shared fixtures, non-Python inputs or a module with no matching test)
+#   scripts/gate --changed  only what this branch's changed files reach (changed tests, plus test_<module>.py; all unit tests for any non-test file under tests/, non-Python inputs or a module with no matching test; the full gate for pyproject.toml or uv.lock)
 # Whole-repo ty, the task-structure lint, the docs link check and the public scan run in CI.
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
@@ -22,9 +22,13 @@ src=()
 tests=()
 shared=0
 unmapped=0
+full=0
 for f in "${changed[@]}"; do
+  # Project config changes lint, type and test settings for everything.
+  [[ $f == pyproject.toml || $f == uv.lock ]] && full=1
   if [[ $f != *.py ]]; then [[ $f == parallax/* || $f == tests/* ]] && shared=1; continue; fi
-  [[ $f == tests/conftest.py || $f == tests/core/conftest.py ]] && shared=1
+  # Any conftest or helper under tests/ can feed every suite.
+  [[ $f == tests/* && $f != tests/*test_*.py ]] && shared=1
   [[ -f $f ]] || { [[ $f == parallax/* ]] && unmapped=1; continue; }
   for p in "${paths[@]}"; do
     if [[ $f == "$p" || $f == "$p"/* ]]; then py+=("$f"); break; fi
@@ -43,7 +47,11 @@ for f in "${changed[@]}"; do
 done
 
 uv sync --locked -q
-if ((changed_only)); then
+if ((full)); then
+  shared=1
+  src=(parallax)
+fi
+if ((changed_only && !full)); then
   targets=("${py[@]}")
 else
   targets=("${paths[@]}")
