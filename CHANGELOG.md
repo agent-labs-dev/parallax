@@ -6,6 +6,12 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev53] - 2026-11-18
+
+### Added
+
+- `parallax regrade` grades a finished run again under another judge panel from its recorded trials, without running any agent again. It writes a new run directory and refuses a run whose tasks changed since it ran.
+
 ## [2.0.0.dev52] - 2026-11-18
 
 ### Fixed
