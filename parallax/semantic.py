@@ -57,10 +57,10 @@ The evidence is the trial's complete record: `evidence.world.calls` lists every 
 one went unrecorded. Abstain only if the evidence is insufficient or the intended requirement is ambiguous."""
 
 
-def policy_identity(tasks: Sequence[Task] = ()) -> str:
+def policy_identity(tasks: Sequence[Task] = (), panel: JudgePanel | None = None) -> str:
     """Non-secret judge configuration is part of resume identity. A task source's tasks add the policies they name,
-    each with its judge's identity under this run's route; a run of task directories alone gets the string it always
-    did."""
+    each with its judge's identity under this run's route and `panel` (default: the environment's); a run of task
+    directories alone gets the string it always did."""
     named = sorted({t.grading for t in tasks if t.grading is not None})
     policies = extensions.grading_policies() if named else {}
     sourced: list[str] = []
@@ -71,7 +71,7 @@ def policy_identity(tasks: Sequence[Task] = ()) -> str:
             if policy.identity is not None
             else name
             if policy.judge is None
-            else identity(policy.judge, panel_from_env(), _route_config())
+            else identity(policy.judge, panel if panel is not None else panel_from_env(), _route_config())
         )
     return ":".join(
         (

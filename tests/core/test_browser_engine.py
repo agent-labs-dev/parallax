@@ -729,3 +729,34 @@ async def test_a_task_that_changed_since_the_run_is_not_regraded(
     with pytest.raises(RegradeError, match="changed since the run"):
         await regrade(source, tmp_path / "regraded", [changed], ["m/judge"])
     assert not (tmp_path / "regraded").exists()
+
+
+async def test_a_regraded_runs_identity_names_the_requested_panel_not_the_environments(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from parallax.regrade import regrade
+
+    source = await run_browsing(tmp_path, monkeypatch, Browsing())
+    monkeypatch.setenv("PARALLAX_JUDGE_API_KEY", "t")
+    monkeypatch.setenv("PARALLAX_JUDGE_MODELS", "m/other")
+    transport = panel_answering({"evidence_available": True, "task_satisfied": True}, [])
+    async with httpx.AsyncClient(transport=transport) as client:
+        done = await regrade(source, tmp_path / "regraded", [source_task()], ["m/judge"], client=client)
+    (row,) = read_results(done.out / "results.jsonl")
+    manifest = json.loads((done.out / "manifest.json").read_text())
+    assert manifest["grading_policy"].endswith(row.judge_identity)
+
+
+@pytest.mark.parametrize(
+    ("out", "concurrency", "match"), [("run/regraded", 8, "inside the source"), ("x", 0, "at least 1")]
+)
+async def test_a_regrade_into_its_source_or_without_concurrency_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, out: str, concurrency: int, match: str
+) -> None:
+    from parallax.regrade import RegradeError, regrade
+
+    source = await run_browsing(tmp_path, monkeypatch, Browsing())
+    monkeypatch.setenv("PARALLAX_JUDGE_API_KEY", "t")
+    with pytest.raises(RegradeError, match=match):
+        await regrade(source, tmp_path / out, [source_task()], ["m/judge"], concurrency)
+    assert not (tmp_path / out).exists()

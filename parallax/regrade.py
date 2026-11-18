@@ -94,6 +94,10 @@ async def regrade(
         raise RegradeError(f"{source}: not a run directory (no manifest.json)")
     if out.exists():
         raise RegradeError(f"{out} already exists")
+    if out.resolve().is_relative_to(source.resolve()):
+        raise RegradeError(f"{out} is inside the source run, which a regrade never changes")
+    if concurrency < 1:
+        raise RegradeError(f"concurrency must be at least 1, got {concurrency}")
     panel, config = judge_setup(judge)
     if panel is None:
         raise RegradeError("regrading needs a judge panel (--judge or PARALLAX_JUDGE_MODELS)")
@@ -105,6 +109,10 @@ async def regrade(
             raise RegradeError(f"task {task_id} is not in the selection; select the run's tasks")
         if by_id[task_id].hash != task_hash:
             raise RegradeError(f"task {task_id} changed since the run (hash {task_hash[:12]})")
+        # A seeded task is graded from its world's evidence, which the trial directory does not hold in a form the
+        # grader reads back; regrading it from nothing would turn every verdict INVALID.
+        if by_id[task_id].seed is not None:
+            raise RegradeError(f"task {task_id} has a world; regrade grades world-less (browser) tasks only")
     # Without the source's upload seal: the copy is a new run that has not been uploaded.
     shutil.copytree(source, out, ignore=shutil.ignore_patterns(SEAL))
     gate = asyncio.Semaphore(concurrency)
@@ -121,7 +129,7 @@ async def regrade(
         http = client if client is not None else await stack.enter_async_context(httpx.AsyncClient(timeout=120))
         done = await asyncio.gather(*(one(r, http) for r in read_results(out / RESULTS)))
     (out / RESULTS).write_text("".join(r.model_dump_json() + "\n" for r, _, _ in done), encoding="utf-8")
-    identity = policy_identity([by_id[task_id] for task_id, _ in manifest.tasks])
+    identity = policy_identity([by_id[task_id] for task_id, _ in manifest.tasks], panel)
     regraded = manifest.model_copy(update={"run_id": out.name, "judge": panel.models, "grading_policy": identity})
     (out / "manifest.json").write_text(regraded.model_dump_json(indent=2), encoding="utf-8")
     if (out / provenance.PROVENANCE).is_file():
