@@ -874,6 +874,52 @@ async def test_a_worker_that_fails_after_its_browser_opened_keeps_the_browser_co
     await harness.stop()
 
 
+async def test_a_site_down_in_the_runners_own_browser_is_an_interruption_before_the_agent(monkeypatch) -> None:
+    import contextlib
+    from pathlib import Path
+
+    from parallax.harnesses.browser import harnesses
+    from parallax.harnesses.browser.clock import AttemptClock
+    from parallax.models import Trial
+
+    browser = SimpleNamespace(
+        cdp_url="wss://cdp.test", open_seconds=1.0, cost=(), browser_id="browser-1", live_url="https://live.test/1"
+    )
+
+    @contextlib.asynccontextmanager
+    async def paid_browser(http: object, *, screen: object, minutes: int):  # noqa: ANN202
+        try:
+            yield browser
+        finally:
+            browser.cost = ({"component": "browser", "dollars": 0.02},)
+
+    asked: list[tuple[str, str]] = []
+
+    async def down(cdp_url: str, url: str) -> str:
+        asked.append((cdp_url, url))
+        return f"site unavailable: {url} unreachable in the trial's browser (net::ERR_CONNECTION_REFUSED)"
+
+    class Worker:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            raise AssertionError("the agent started on a site that is down")
+
+    monkeypatch.setattr(harnesses, "cloud_browser", paid_browser)
+    monkeypatch.setattr(harnesses, "browser_site_down", down)
+    monkeypatch.setattr(harnesses, "JsonWorker", Worker)
+    harness = BrowserHarnessRunner()
+    harness._start_url = "https://site.test/start"
+    harness._trial = Trial.model_construct(model="m", home=Path("/home/agent"), env={})
+    harness._clock = AttemptClock(bounded=False)
+    output = await harness.turn(TurnInput(index=1, text="find it", new_session=True))
+    assert asked == [("wss://cdp.test", "https://site.test/start")]
+    assert output.error == (
+        "environment interruption: site unavailable: https://site.test/start unreachable in the trial's browser "
+        "(net::ERR_CONNECTION_REFUSED)"
+    )
+    assert harness.trial_costs() == {"browser": 0.02}
+    await harness.stop()
+
+
 async def test_a_browser_harness_trial_costs_its_agent_model_as_well_as_its_browser(monkeypatch, tmp_path) -> None:
     import contextlib
     import sys
