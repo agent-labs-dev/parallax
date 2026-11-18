@@ -23,6 +23,7 @@ from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
+from uuid import uuid4
 
 import httpx
 from pydantic import BaseModel, ConfigDict
@@ -45,7 +46,7 @@ from parallax.harnesses.browser.cloud import (
 from parallax.harnesses.browser.observer import AmbiguousFinalPage, load_observer
 from parallax.harnesses.browser.site import Unavailable, site_down
 from parallax.harnesses.browser.subprocess import JsonWorker
-from parallax.harnesses.browser.toolchain import Toolchain, provision
+from parallax.harnesses.browser.toolchain import Cli, Toolchain, provision
 from parallax.models import (
     Area,
     Capability,
@@ -1010,6 +1011,7 @@ class BrowserHarnessRunner(BrowserHarness):
 
     command_env = "PARALLAX_BROWSER_HARNESS_COMMAND"
     agent = Agent.CODEX
+    cli = Cli.BROWSER_HARNESS
     info = _info(
         "browser-harness",
         source_url="https://github.com/browser-use/browser-harness",
@@ -1021,12 +1023,12 @@ class BrowserHarnessRunner(BrowserHarness):
 
     async def version(self, box: Any) -> str:
         """Installs the pinned browser-harness and agent, before any trial reserves budget, and reports both."""
-        self._toolchain = await provision(self.agent)
+        self._toolchain = await provision(self.agent, self.cli)
         return self._toolchain.version
 
     async def execute(self, turn: TurnInput) -> dict[str, Any]:
         # Before the browser opens, so a missing tool costs nothing.
-        toolchain = self._toolchain or await provision(self.agent)
+        toolchain = self._toolchain or await provision(self.agent, self.cli)
         browser = None
         try:
             async with httpx.AsyncClient() as http, cloud_browser(http, screen=(1120, 780)) as browser:
@@ -1046,10 +1048,11 @@ class BrowserHarnessRunner(BrowserHarness):
                     if configured
                     else (sys.executable, "-m", "parallax.harnesses.browser.browser_harness_worker")
                 )
-                worker_env = self._agent_env() | {
-                    "BU_CDP_WS": browser.cdp_url,
-                    "PARALLAX_BROWSER_CDP_URL": browser.cdp_url,
-                }
+                worker_env = (
+                    self._agent_env()
+                    | self.cli.environment(browser.cdp_url, f"parallax-{uuid4().hex[:12]}")
+                    | {"PARALLAX_BROWSER_CDP_URL": browser.cdp_url}
+                )
                 worker = JsonWorker(command, env=worker_env, cwd=self.worker_dir)
                 async with worker:
                     await worker.send(request)
@@ -1070,6 +1073,19 @@ class BrowserHarnessRunner(BrowserHarness):
         # lines price the agent's model, which the trial's cost would otherwise leave out.
         result["cost_lines"] = [*_mapping_list(result.get("cost_lines")), *browser.cost]
         return result
+
+
+class AgentBrowserRunner(BrowserHarnessRunner):
+    """Vercel's agent-browser CLI and its skill run by Codex on a cloud browser, as browser-harness is: the same
+    agent, model routing, browser and cost accounting, a different CLI."""
+
+    cli = Cli.AGENT_BROWSER
+    info = _info(
+        "agent-browser",
+        source_url="https://github.com/vercel-labs/agent-browser",
+        pins_model=True,
+        credential_env=("BROWSER_USE_API_KEY",),
+    )
 
 
 class BrowserHarnessClaudeCode(BrowserHarnessRunner):

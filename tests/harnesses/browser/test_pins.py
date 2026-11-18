@@ -5,7 +5,14 @@ from parallax.harnesses.browser import pins
 
 def test_pins_are_complete_and_have_registry_versions() -> None:
     entries = pins.load()
-    assert {"browser-use-sdk", "browser-use", "browser-harness", "cua-driver", "@openai/codex"} <= entries.keys()
+    assert {
+        "browser-use-sdk",
+        "browser-use",
+        "browser-harness",
+        "agent-browser",
+        "cua-driver",
+        "@openai/codex",
+    } <= entries.keys()
     assert all(entry["registry"] in {"pypi", "npm"} and entry["version"] for entry in entries.values())
 
 

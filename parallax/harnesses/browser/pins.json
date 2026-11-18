@@ -11,6 +11,10 @@
     "registry": "pypi",
     "version": "0.1.13"
   },
+  "agent-browser": {
+    "registry": "npm",
+    "version": "0.43.0"
+  },
   "cua-driver": {
     "registry": "pypi",
     "version": "0.47.19"

@@ -473,6 +473,7 @@ The built-in browser harness entry points are:
 | `browser-use-oss` | Optional Python browser worker | Browser and model costs from the worker; `browser` |
 | `browser-harness` | Browser Use's browser-harness skill run by Codex on a Cloud browser | Browser cost plus the model cost OpenRouter reports; `browser` |
 | `browser-harness-claude-code` | The same skill and browser, run by Claude Code | Browser cost plus the model cost OpenRouter reports; `browser` |
+| `agent-browser` | Vercel's agent-browser skill run by Codex on a Cloud browser | Browser cost plus the model cost OpenRouter reports; `browser` |
 | `cua-codex` | Optional desktop command worker | Worker-reported cost when available; `browser` |
 
 The caller selects the hosted model with the normal `--model` value, which
@@ -487,13 +488,15 @@ models are sent without provider parameters because the API rejects
 `modelParams`, `mode`, and `harness` for presets. The adapter never writes a
 preset identifier into source code.
 
-The two `browser-harness` harnesses compare coding agents on one skill. Before
-any trial, Parallax installs the pinned browser-harness (with `uv`) and agent CLI
-(with `npm`) into `~/.cache/parallax/browser-harness`, so the host needs only
+The two `browser-harness` harnesses compare coding agents on one skill, and
+`agent-browser` runs a different CLI and skill the same way. Before
+any trial, Parallax installs the pinned browser CLI (browser-harness with `uv`,
+agent-browser with `npm`) and agent CLI (with `npm`) into `~/.cache/parallax/browser-harness`, so the host needs only
 `uv` and `npm`. Each trial copies the installed package's `SKILL.md` to where
 its agent reads skills (`.agents/skills` for Codex, `.claude/skills` for Claude
-Code), puts the pinned `browser-harness` CLI first on `PATH` with the browser in
-`BU_CDP_WS`, and turns web search off so the browser answers. `--model` is an
+Code), puts the pinned CLI first on `PATH` with the browser in `BU_CDP_WS`
+(`agent-browser` gets it in `AGENT_BROWSER_CDP`, with its daemons namespaced to
+the trial and closed afterwards), and turns web search off so the browser answers. `--model` is an
 OpenRouter id, reached with `OPENROUTER_API_KEY` through a relay in the worker
 that records the cost OpenRouter reports on each response; Claude Code's model
 aliases and background work all resolve to that model. The version recorded is
