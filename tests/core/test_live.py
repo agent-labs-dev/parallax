@@ -435,5 +435,5 @@ async def test_a_resumed_run_keeps_its_live_session(tmp_path: Path, monkeypatch:
 def test_a_manifest_written_before_live_sessions_still_loads(tmp_path: Path) -> None:
     manifest = RunManifest(run_id="r", created_at=T0, parallax_version="0", harnesses=(), models=(), tasks=(),
                            repeats=1, judge=(), isolation=Isolation.HOST, selection="", grading_policy="")  # fmt: skip
-    old = manifest.model_dump(mode="json", exclude={"live_session"})
-    assert RunManifest.model_validate(old).live_session is None
+    old = manifest.model_dump(mode="json")
+    assert "live_session" not in old and RunManifest.model_validate(old).live_session is None
