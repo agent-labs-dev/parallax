@@ -6,6 +6,10 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- A browser trial is no longer graded INVALID because its start site refused a plain HTTP request from the host. Sites behind bot protection refuse such a request and load in the trial's browser, so an Online-Mind2Web task on one was an environment interruption after 20 s on every run. An outage is now judged by the browser the trial browses with: where Parallax opens that browser, it loads the start page there first and reads the browser's own navigation error or the document's HTTP status, and counts the site down only when every one of `NAVIGATE_ATTEMPTS` loads fails, since a fresh browser's first connection can fail on its own, and a product that brings its own browser reports `unavailable` itself.
+
 ## [2.0.0.dev51] - 2026-11-18
 
 ### Fixed
