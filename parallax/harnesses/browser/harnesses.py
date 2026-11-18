@@ -107,7 +107,7 @@ def _info(
 
 
 def _step_name(raw: Mapping[str, Any]) -> str | None:
-    """What a step did. Workers name it under different keys: `name` (agent tool calls), `action` (fastbrowse and
+    """What a step did. Workers name it under different keys: `name` (agent tool calls), `action` (product arms and
     the evidence timeline), `operation` or `tool` (Browser Use)."""
     return next((raw[key] for key in ("name", "action", "operation", "tool") if isinstance(raw.get(key), str)), None)
 
