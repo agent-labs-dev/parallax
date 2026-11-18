@@ -38,4 +38,4 @@ against the answer. `tests/core/test_judge_only.py` fails if answer-side code re
 
 ## Standards
 
-- `repo-standards`: the RS-* requirements every cjber and agent-labs-dev repo meets; its `audit.py` checks this repo.
+- `repo-standards`: the RS-* requirements every agent-labs-dev repo meets; its `audit.py` checks this repo.
