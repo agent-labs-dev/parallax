@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 from uuid import UUID
 
+import httpx
 import pytest
 from browser_use_sdk.v3 import (
     BrowserSessionItemView,
@@ -326,9 +327,6 @@ async def test_a_structured_answer_keeps_every_field() -> None:
     class Harness(BrowserHarness):
         info = BrowserHarnessCloud.info
 
-        async def _site_preflight(self) -> str | None:
-            return None
-
         async def execute(self, _: object) -> dict[str, object]:
             return {"status": "done", "answer": _run_result(view, [])["answer"]}
 
@@ -374,9 +372,6 @@ async def test_browser_evidence_replaces_secret_values_with_named_tags(monkeypat
 
     class Harness(BrowserHarness):
         info = BrowserHarnessCloud.info
-
-        async def _site_preflight(self) -> str | None:
-            return None
 
         async def execute(self, _: object) -> dict[str, object]:
             secret = "correct-horse-battery-staple"
@@ -434,9 +429,6 @@ async def test_pages_a_run_read_without_navigating_reach_the_evidence_with_their
 
     class Harness(BrowserHarness):
         info = BrowserHarnessCloud.info
-
-        async def _site_preflight(self) -> str | None:
-            return None
 
         async def execute(self, turn: SimpleNamespace) -> dict[str, object]:
             url = f"https://site.test/{turn.index}"
@@ -627,7 +619,8 @@ async def test_agent_time_ends_when_the_agent_answers_not_after_cleanup() -> Non
     assert out.latency_ms is not None and 5 <= out.latency_ms < 150
 
 
-async def test_browser_site_preflight_is_an_environment_interruption(monkeypatch) -> None:
+def _browser_task_harness(execute):
+    from parallax.harnesses.browser.clock import AttemptClock
     from parallax.harnesses.browser.harnesses import BrowserHarness
     from parallax.models import Area, Capability, Maturity, Provenance, TaskRecord
     from parallax.task import task_from_record
@@ -638,13 +631,13 @@ async def test_browser_site_preflight_is_an_environment_interruption(monkeypatch
 
         async def execute(self, _: object) -> dict[str, object]:
             self.executed = True
-            return {"status": "done", "answer": "ok"}
+            return execute()
 
     record = TaskRecord(
-        id="browser-preflight",
+        id="browser-site",
         version=1,
         area=Area.BROWSER,
-        summary="preflight",
+        summary="a site",
         prompt="visit the site",
         grading="browser-evidence-v2",
         requires=frozenset({Capability.BROWSER}),
@@ -652,67 +645,33 @@ async def test_browser_site_preflight_is_an_environment_interruption(monkeypatch
         provenance=Provenance.CONVERTED,
         data={"website": "https://site.test/start"},
     )
-    task_from_record("fixture-source", record)
     harness = Harness()
     harness.bind_task(task_from_record("fixture-source", record))
-    monkeypatch.setattr(
-        "parallax.harnesses.browser.harnesses.site_down",
-        lambda *_args, **_kwargs: _unavailable(),
-    )
     harness._trial = SimpleNamespace(model=None)
-    from parallax.harnesses.browser.clock import AttemptClock
-
     harness._clock = AttemptClock(bounded=False)
-    output = await harness.turn(TurnInput(index=1, text="visit", new_session=True))
-    assert output.error == "environment interruption: site unavailable"
-    assert not harness.executed
-    assert harness.trial_costs() == {"model": 0.0}
+    return harness
 
 
-async def test_browser_access_refusal_still_starts_the_browser(monkeypatch) -> None:
-    from parallax.harnesses.browser.harnesses import BrowserHarness
-    from parallax.models import Area, Capability, Maturity, Provenance, TaskRecord
-    from parallax.task import task_from_record
+async def test_a_site_that_refuses_plain_http_clients_still_gets_its_browser(monkeypatch) -> None:
+    # Sites behind bot protection refuse a plain HTTP request from the host and load in the trial's browser, so the
+    # host is never asked whether the site is up.
+    async def refused(*_args, **_kwargs):
+        raise httpx.ReadTimeout("refused")
 
-    class Harness(BrowserHarness):
-        info = BrowserHarnessOSS.info
-        executed = False
-
-        async def execute(self, _: object) -> dict[str, object]:
-            self.executed = True
-            return {"status": "done", "answer": "ok"}
-
-    record = TaskRecord(
-        id="browser-access-refusal",
-        version=1,
-        area=Area.BROWSER,
-        summary="access refusal",
-        prompt="visit the site",
-        grading="browser-evidence-v2",
-        requires=frozenset({Capability.BROWSER}),
-        maturity=Maturity.REGRESSION,
-        provenance=Provenance.CONVERTED,
-        data={"website": "https://site.test/start"},
-    )
-    task = task_from_record("fixture-source", record)
-    harness = Harness()
-    harness.bind_task(task)
-
-    async def allow(*_args, **_kwargs):
-        return None
-
-    monkeypatch.setattr("parallax.harnesses.browser.harnesses.site_down", allow)
-    harness._trial = SimpleNamespace(model=None)
-    from parallax.harnesses.browser.clock import AttemptClock
-
-    harness._clock = AttemptClock(bounded=False)
+    monkeypatch.setattr(httpx.AsyncClient, "get", refused)
+    harness = _browser_task_harness(lambda: {"status": "done", "answer": "ok"})
     output = await harness.turn(TurnInput(index=1, text="visit", new_session=True))
     assert harness.executed
     assert output.error is None
 
 
-async def _unavailable() -> str:
-    return "site unavailable"
+async def test_an_outage_the_browser_reports_is_an_environment_interruption() -> None:
+    harness = _browser_task_harness(
+        lambda: {"status": "unavailable", "answer": None, "error": "site unavailable: https://site.test/start"}
+    )
+    output = await harness.turn(TurnInput(index=1, text="visit", new_session=True))
+    assert output.error == "environment interruption: site unavailable: https://site.test/start"
+    assert harness.trial_costs() == {"model": 0.0}
 
 
 def test_v4_steps_are_the_finished_tool_calls_of_the_event_stream() -> None:
@@ -761,9 +720,6 @@ async def test_every_open_tab_is_evidence_when_no_final_page_is_singled_out(monk
 
     class Harness(BrowserHarness):
         info = BrowserHarnessCloud.info
-
-        async def _site_preflight(self) -> str | None:
-            return None
 
         async def execute(self, turn: SimpleNamespace) -> dict[str, object]:
             if turn.index == 1:

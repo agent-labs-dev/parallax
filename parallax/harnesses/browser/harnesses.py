@@ -43,7 +43,7 @@ from parallax.harnesses.browser.cloud import (
     with_stopped_browser_cost,
 )
 from parallax.harnesses.browser.observer import AmbiguousFinalPage, load_observer
-from parallax.harnesses.browser.site import Unavailable, site_down
+from parallax.harnesses.browser.site import Unavailable
 from parallax.harnesses.browser.subprocess import JsonWorker
 from parallax.harnesses.browser.toolchain import Cli, Toolchain, provision
 from parallax.models import (
@@ -307,13 +307,11 @@ class BrowserHarness(ABC):
         self._open_tabs: list[dict[str, Any]] = []
         self._cost: dict[str, float | None] = {}
         self._details: dict[str, Any] = {"observer": self.config.observer}
-        self._start_url: str | None = None
         self._start_host: str | None = None
         self._task_secrets: dict[str, str] = {}
         self._secret_values: dict[str, str] = {}
         self._secret_bindings: list[dict[str, Any]] = []
         self._answer_schema: dict[str, Any] | None = None
-        self._site_preflight_done = False
         self._agent_has_started = False
         self._finished_at: float | None = None  # this turn's agent returned its answer
         self._turn_agent_at: float | None = None  # this turn's agent started: its first ready, else the turn's start
@@ -347,20 +345,12 @@ class BrowserHarness(ABC):
         return self._worker_dir
 
     def bind_task(self, task: Task) -> None:
-        """Remember a source task's start URL so a site outage never becomes an agent failure."""
+        """Remember a source task's secrets, answer schema and start host, which a secret is bound to."""
         self._task_secrets = dict(task.secrets)
         self._answer_schema = task.answer_schema
         if task.meta.area is Area.BROWSER:
             value = task.data.get("website", task.data.get("start_url"))
-            self._start_url = value if isinstance(value, str) else None
-            self._start_host = urlsplit(self._start_url).hostname if self._start_url is not None else None
-
-    async def _site_preflight(self) -> str | None:
-        if self._site_preflight_done or self._start_url is None:
-            return None
-        self._site_preflight_done = True
-        async with httpx.AsyncClient() as client:
-            return await site_down(client, self._start_url)
+            self._start_host = urlsplit(value).hostname if isinstance(value, str) else None
 
     async def start(self, trial: Trial, box: Any) -> None:
         self._trial = trial
@@ -407,16 +397,15 @@ class BrowserHarness(ABC):
         began = time.monotonic()
         self._turn_ends_at = None if turn.deadline_s is None else began + turn.deadline_s
         try:
-            reason = await self._site_preflight()
-            if reason is not None:
-                result = {"status": "unavailable", "answer": None, "error": reason}
-            else:
-                # The clock starts now; spending starts only when `execute` reports its agent started.
-                self._clock_started()
-                self._turn_spending = self._turn_priced = False
-                self._finished_at = None
-                self._turn_agent_at, self._turn_ready = time.monotonic(), False
-                result = await self.execute(turn)
+            # A site's outage is judged by the browser the trial browses with, which reports it as `unavailable`. A
+            # plain HTTP request from the host is refused by sites behind bot protection that the browser loads, so it
+            # is not asked first.
+            # The clock starts now; spending starts only when `execute` reports its agent started.
+            self._clock_started()
+            self._turn_spending = self._turn_priced = False
+            self._finished_at = None
+            self._turn_agent_at, self._turn_ready = time.monotonic(), False
+            result = await self.execute(turn)
         except asyncio.CancelledError:
             # The runner's turn limit cancelled the agent. Keep the pages and steps it reached, so the judge can see
             # where it stopped and attribute the timeout, instead of grading a run that left no record.
