@@ -23,7 +23,8 @@ from parallax.judge import JudgeConfig, JudgePanel
 from parallax.models import RunManifest, Task, Trajectory, TrialResult
 from parallax.runner import RESULTS, decide, judge_setup, read_results, score, tool_diagnostics
 from parallax.semantic import grade_checks, policy_identity, record_grade
-from parallax.track.upload import SEAL
+from parallax.track.projection import DEFAULT_DATASET
+from parallax.track.upload import SEAL, Seal, seal
 
 JUDGMENTS = "judgments.jsonl"
 
@@ -113,29 +114,67 @@ async def regrade(
         # grader reads back; regrading it from nothing would turn every verdict INVALID.
         if by_id[task_id].seed is not None:
             raise RegradeError(f"task {task_id} has a world; regrade grades world-less (browser) tasks only")
-    # Without the source's upload seal: the copy is a new run that has not been uploaded.
-    shutil.copytree(source, out, ignore=shutil.ignore_patterns(SEAL))
+    # Built beside `out` and renamed into place only when complete, so a failed regrade leaves no half-written run.
+    work = out.with_name(f".{out.name}.partial")
+    if work.exists():
+        raise RegradeError(f"{work} is left from an interrupted regrade; remove it and run again")
+    # Without the source's upload seal: the copy is a new run, sealed below once its grades are written.
+    shutil.copytree(source, work, ignore=shutil.ignore_patterns(SEAL))
+    try:
+        done = await regrade_rows(work, by_id, panel, config, concurrency, client)
+        write_run(
+            work, out.name, manifest, [by_id[task_id] for task_id, _ in manifest.tasks], panel, [r for r, _, _ in done]
+        )
+        sealed = Seal.model_validate_json((source / SEAL).read_text()) if (source / SEAL).is_file() else None
+        seal(
+            work,
+            dataset=sealed.dataset if sealed is not None else DEFAULT_DATASET,
+            note=f"{manifest.run_id} regraded by {','.join(panel.models)}",
+            meta=sealed.meta if sealed is not None else {},
+        )
+    except BaseException:
+        shutil.rmtree(work)
+        raise
+    work.rename(out)
+    costs = [c for _, c, judged in done if judged]
+    total = None if None in costs else sum(c for c in costs if c is not None)
+    return Regraded(out=out, regraded=len(costs), kept=len(done) - len(costs), judge_cost_usd=total)
+
+
+async def regrade_rows(
+    run: Path,
+    by_id: dict[str, Task],
+    panel: JudgePanel,
+    config: JudgeConfig | None,
+    concurrency: int,
+    client: httpx.AsyncClient | None,
+) -> list[tuple[TrialResult, float | None, bool]]:
+    """Every row of `run` with its judge cost and whether it was graded again."""
     gate = asyncio.Semaphore(concurrency)
 
-    async def one(row: TrialResult, client: httpx.AsyncClient) -> tuple[TrialResult, float | None, bool]:
-        # Only a row a judge decided is decided again; its judgments journal is the record that one did.
-        if row.dir is None or not (out / row.dir / JUDGMENTS).is_file():
-            return row, 0.0, False
+    async def one(row: TrialResult, http: httpx.AsyncClient) -> tuple[TrialResult, float | None, bool]:
+        # Only a row a judge decided is decided again; its judgments journal is the record that one did. A kept row
+        # names no panel, since none decided it and the source's panel is not this run's.
+        if row.dir is None or not (run / row.dir / JUDGMENTS).is_file():
+            return row.model_copy(update={"judge": ()}), 0.0, False
         async with gate:
-            new, cost = await regrade_trial(row, by_id[row.task_id], out / row.dir, panel, config, client)
+            new, cost = await regrade_trial(row, by_id[row.task_id], run / row.dir, panel, config, http)
         return new, cost, True
 
     async with contextlib.AsyncExitStack() as stack:
         http = client if client is not None else await stack.enter_async_context(httpx.AsyncClient(timeout=120))
-        done = await asyncio.gather(*(one(r, http) for r in read_results(out / RESULTS)))
-    (out / RESULTS).write_text("".join(r.model_dump_json() + "\n" for r, _, _ in done), encoding="utf-8")
-    identity = policy_identity([by_id[task_id] for task_id, _ in manifest.tasks], panel)
-    regraded = manifest.model_copy(update={"run_id": out.name, "judge": panel.models, "grading_policy": identity})
-    (out / "manifest.json").write_text(regraded.model_dump_json(indent=2), encoding="utf-8")
-    if (out / provenance.PROVENANCE).is_file():
-        prov = provenance.read(out)
+        return list(await asyncio.gather(*(one(r, http) for r in read_results(run / RESULTS))))
+
+
+def write_run(
+    run: Path, run_id: str, manifest: RunManifest, tasks: Sequence[Task], panel: JudgePanel, rows: Sequence[TrialResult]
+) -> None:
+    """The regraded run's results, manifest and provenance, naming `panel` and the identity it grades under."""
+    (run / RESULTS).write_text("".join(r.model_dump_json() + "\n" for r in rows), encoding="utf-8")
+    identity = policy_identity(tasks, panel)
+    regraded = manifest.model_copy(update={"run_id": run_id, "judge": panel.models, "grading_policy": identity})
+    (run / "manifest.json").write_text(regraded.model_dump_json(indent=2), encoding="utf-8")
+    if (run / provenance.PROVENANCE).is_file():
+        prov = provenance.read(run)
         extra = {**prov.extra, "parallax.regraded_from": manifest.run_id}
-        provenance.write(out, prov.model_copy(update={"judge_policy": identity, "extra": extra}))
-    costs = [c for _, c, judged in done if judged]
-    total = None if None in costs else sum(c for c in costs if c is not None)
-    return Regraded(out=out, regraded=len(costs), kept=len(done) - len(costs), judge_cost_usd=total)
+        provenance.write(run, prov.model_copy(update={"judge_policy": identity, "extra": extra}))

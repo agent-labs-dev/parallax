@@ -117,7 +117,9 @@ any agent again. It copies the run to `--out` and grades each judged trial from
 what its directory recorded: the browser evidence, answers, status and steps,
 and the date the trial ran on. Trials no judge decided, such as boot errors,
 keep their rows. It refuses when a task's content changed since the run, since
-the new verdict would grade checks the agent never saw. Rows graded under
+the new verdict would grade checks the agent never saw, and it regrades browser
+(world-less) tasks only. The new run is sealed, so `parallax upload --resume
+--root <dir>` uploads it. Rows graded under
 different judges never pool, so compare a regraded run only with runs graded
 by the same panel.
 

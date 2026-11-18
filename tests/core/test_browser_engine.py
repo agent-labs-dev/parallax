@@ -715,6 +715,7 @@ async def test_a_run_regraded_under_a_judge_takes_its_verdicts_and_leaves_the_so
     assert seen[0]["evidence"]["answer"] == "$24.00"
     assert len((done.out / row.dir / "judgments.jsonl").read_text().splitlines()) == 1  # type: ignore[operator]
     assert json.loads((done.out / "manifest.json").read_text())["judge"] == ["m/judge"]
+    assert (done.out / "upload.json").is_file()  # sealed, so `parallax upload --resume` finds it
     assert read_results(source / "results.jsonl") == [before]
 
 
@@ -760,3 +761,35 @@ async def test_a_regrade_into_its_source_or_without_concurrency_is_refused(
     with pytest.raises(RegradeError, match=match):
         await regrade(source, tmp_path / out, [source_task()], ["m/judge"], concurrency)
     assert not (tmp_path / out).exists()
+
+
+async def test_a_row_no_judge_decided_is_kept_without_the_source_panel(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from parallax.regrade import regrade
+
+    monkeypatch.setenv("PARALLAX_JUDGE_API_KEY", "t")
+    monkeypatch.setenv("PARALLAX_JUDGE_BASE_URL", "http://127.0.0.1:9/v1")  # refuses at once: nothing leaves the host
+    source = await run_browsing(tmp_path, monkeypatch, Browsing(), judge=("m/old",))
+    (before,) = read_results(source / "results.jsonl")
+    assert before.judge == ("m/old",)
+    (source / before.dir / "judgments.jsonl").unlink()  # type: ignore[operator]  # as a boot error leaves it
+    done = await regrade(source, tmp_path / "regraded", [source_task()], ["m/judge"])
+    (row,) = read_results(done.out / "results.jsonl")
+    assert (done.regraded, done.kept) == (0, 1)
+    assert row.judge == () and row.verdict is before.verdict
+
+
+async def test_a_regrade_that_fails_leaves_no_output(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from parallax import regrade as regrading
+
+    source = await run_browsing(tmp_path, monkeypatch, Browsing())
+    monkeypatch.setenv("PARALLAX_JUDGE_API_KEY", "t")
+
+    async def boom(*args: object, **kwargs: object) -> object:
+        raise RuntimeError("judge down")
+
+    monkeypatch.setattr(regrading, "regrade_trial", boom)
+    with pytest.raises(RuntimeError, match="judge down"):
+        await regrading.regrade(source, tmp_path / "regraded", [source_task()], ["m/judge"])
+    assert sorted(p.name for p in tmp_path.iterdir() if "regraded" in p.name) == []

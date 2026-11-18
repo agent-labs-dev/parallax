@@ -300,6 +300,7 @@ def cmd_regrade(a: argparse.Namespace) -> int:
     cost = "unpriced" if done.judge_cost_usd is None else f"${done.judge_cost_usd:.4f}"
     print(f"{done.out}: regraded={done.regraded} kept={done.kept} judge_cost={cost}")
     print(summary(read_results(done.out / RESULTS)))
+    print(f"sealed; upload it with: parallax upload --resume --root {done.out.parent}")
     return OK
 
 
