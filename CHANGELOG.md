@@ -6,6 +6,10 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- A Claude Code browser-harness trial that reads a screenshot completes. The tool result is a list of blocks, which failed the step's text field and discarded the run as `harness_error` (#108).
+
 ## [2.0.0.dev50] - 2026-11-18
 
 ### Added

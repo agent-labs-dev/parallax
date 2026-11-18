@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import gzip
+import json
 from pathlib import Path
 
 import httpx
@@ -19,6 +20,7 @@ from parallax.harnesses.browser.browser_harness_worker import (
     parse_claude,
     parse_codex,
 )
+from parallax.models import Step, StepKind
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import Response
@@ -137,3 +139,24 @@ async def test_the_cli_is_detached_once_even_when_the_trial_is_interrupted(tmp_p
     await detach()
     await detach()
     assert marks.read_text() == "x\n"
+
+
+def test_a_screenshot_tool_result_becomes_its_text() -> None:
+    """Claude Code returns a screenshot as a list of blocks; a step's output is text, so the run still parses."""
+    call = {"type": "tool_use", "id": "t1", "name": "Read", "input": {"file_path": "shot.png"}}
+    result = {
+        "type": "tool_result",
+        "tool_use_id": "t1",
+        "content": [{"type": "image", "source": {"type": "base64", "data": "iVBO", "media_type": "image/png"}}],
+    }
+    stdout = "\n".join(
+        json.dumps(event)
+        for event in (
+            {"type": "assistant", "message": {"content": [call]}},
+            {"type": "user", "message": {"content": [result]}},
+            {"type": "result", "subtype": "success", "result": "done"},
+        )
+    )
+    run = parse_claude(stdout)
+    assert run.finished and [step["output"] for step in run.steps] == [""]
+    Step(turn=1, kind=StepKind.TOOL_CALL, name="Read", output=run.steps[0]["output"], t_ms=0)
