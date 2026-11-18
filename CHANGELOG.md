@@ -6,6 +6,12 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The judge reads every browser arm's tool calls. Steps a coding agent names under `name` (browser-harness) reached the trajectory but not the judge's evidence, which read only `action`, `operation` or `tool`; each step now gives the judge what it ran and what it returned.
+- The open-source Browser Use arm reports its tool calls, the models its responses name and its token usage. browser-use 1.x keeps no per-step history, so the worker sent no steps and the judge graded its runs on the final page alone. A model browser-use cannot price is recorded as unpriced rather than left out of the cost.
+- browser-harness trials record the model each OpenRouter response names, so `actual_models` is no longer empty.
+
 ## [2.0.0.dev48] - 2026-11-17
 
 ### Fixed

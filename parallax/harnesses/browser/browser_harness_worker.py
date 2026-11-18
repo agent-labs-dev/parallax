@@ -65,9 +65,11 @@ def _items(value: object) -> list[Any]:
 
 @dataclass(frozen=True)
 class Billed:
-    """One generation as OpenRouter billed it. `input` counts every input token, cached ones included."""
+    """One generation as OpenRouter billed it. `input` counts every input token, cached ones included. `served` is
+    the model the response names, None when it names none."""
 
     model: str
+    served: str | None
     cost_usd: float | None
     input: int
     output: int
@@ -77,7 +79,7 @@ class Billed:
 
     def row(self) -> dict[str, Any]:
         return {
-            "model": self.model, "input": self.input, "output": self.output, "cache_read": self.cache_read,
+            "model": self.served or self.model, "input": self.input, "output": self.output, "cache_read": self.cache_read,
             "cache_write": self.cache_write, "reasoning": self.reasoning, "requests": 1, "cost_usd": self.cost_usd,
         }  # fmt: skip
 
@@ -88,6 +90,7 @@ def billed(body: bytes, model: str, wire: Wire) -> Billed:
     text = body.decode(errors="replace")
     payloads = [line[len("data:") :].strip() for line in text.splitlines() if line.startswith("data:")] or [text]
     usage: dict[str, Any] = {}
+    served: str | None = None
     for payload in payloads:
         try:
             event = _object(json.loads(payload))
@@ -96,6 +99,10 @@ def billed(body: bytes, model: str, wire: Wire) -> Billed:
         found = _object(event.get("usage")) or _object(_object(event.get("response")).get("usage"))
         if found:
             usage = found
+        # A JSON body names it at the top, a Responses stream in `response`, a Messages stream in `message_start`.
+        for holder in (event, _object(event.get("response")), _object(event.get("message"))):
+            if isinstance(holder.get("model"), str) and holder["model"]:
+                served = holder["model"]
     cost = usage.get("cost")
     match wire:
         case Wire.RESPONSES:
@@ -113,6 +120,7 @@ def billed(body: bytes, model: str, wire: Wire) -> Billed:
             assert_never(wire)
     return Billed(
         model=model,
+        served=served,
         # A generation with no reported cost is unpriced, never free.
         cost_usd=float(cost) if isinstance(cost, int | float) else None,
         input=total_input,
@@ -183,6 +191,10 @@ class Relay:
         for bill in self.bills:
             total = None if bill.cost_usd is None or total is None else total + bill.cost_usd
         return [bill.row() for bill in self.bills], [{"component": AGENT_COMPONENT, "dollars": total}]
+
+    def served(self) -> list[str]:
+        """The models OpenRouter's responses named, in first-served order."""
+        return list(dict.fromkeys(bill.served for bill in self.bills if bill.served))
 
 
 @dataclass
@@ -351,7 +363,7 @@ async def run(request: dict[str, Any]) -> None:
         emit(
             {
                 "event": "result", "status": "error", "answer": None, "error": f"{type(error).__name__}: {error}",
-                "usage": usage, "cost_lines": cost_lines if relay.bills else [],  # nothing spent before the agent ran
+                "usage": usage, "actual_models": relay.served(), "cost_lines": cost_lines if relay.bills else [],  # nothing spent before the agent ran
             }
         )  # fmt: skip
     else:
@@ -366,6 +378,7 @@ async def run(request: dict[str, Any]) -> None:
                 "answer": parsed.answer,
                 "error": error,
                 "step_log": parsed.steps,
+                "actual_models": relay.served(),
                 "usage": usage,
                 "cost_lines": cost_lines,
             }

@@ -25,13 +25,13 @@ FIXTURES = Path(__file__).with_name("fixtures")
 
 def test_a_responses_stream_is_billed_what_openrouter_reports() -> None:
     bill = billed((FIXTURES / "openrouter-responses.sse").read_bytes(), "openai/gpt-6-luna", Wire.RESPONSES)
-    assert (bill.cost_usd, bill.input, bill.output) == (3.8e-06, 8, 6)
+    assert (bill.cost_usd, bill.input, bill.output, bill.served) == (3.8e-06, 8, 6, "openai/gpt-6-luna")
 
 
 def test_a_messages_stream_counts_cached_input_and_is_billed_what_openrouter_reports() -> None:
     bill = billed((FIXTURES / "openrouter-messages.sse").read_bytes(), "anthropic/claude-haiku-5.5", Wire.MESSAGES)
     assert bill.cost_usd is not None and bill.cost_usd > 0
-    assert (bill.input, bill.output) == (11, 14)
+    assert (bill.input, bill.output, bill.served) == (11, 14, "anthropic/claude-haiku-5.5")
 
 
 def test_a_generation_without_a_reported_cost_is_unpriced() -> None:
