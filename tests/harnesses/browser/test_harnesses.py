@@ -1093,16 +1093,20 @@ async def test_a_turn_tells_the_harness_how_long_it_has_left() -> None:
 
 
 def test_concurrent_browser_harness_trials_get_their_own_daemon() -> None:
+    import tempfile
+
     from parallax.harnesses.browser.harnesses import BrowserHarnessClaudeCode
     from parallax.models import Trial
 
-    homes = []
+    runtimes = []
     for cdp in ("wss://browser-a", "wss://browser-b"):
         harness = BrowserHarnessClaudeCode()
         harness._trial = Trial.model_construct(env={})
         env = harness._worker_env(cdp)
         assert env["BU_CDP_WS"] == cdp
-        homes.append(env["BH_HOME"])
-    assert homes[0] != homes[1]
-    # browser-harness binds its daemon at <BH_HOME>/runtime/bu-<name>.sock; AF_UNIX paths end at 104 bytes on macOS.
-    assert all(len(f"{home}/runtime/bu-default.sock") < 104 for home in homes)
+        runtimes.append(env["BH_RUNTIME_DIR"])
+    assert runtimes[0] != runtimes[1]
+    # browser-harness binds <BH_RUNTIME_DIR>/bu.sock; AF_UNIX paths end at 104 bytes on macOS, whose TMPDIR
+    # (/private/var/folders/xx/<28 chars>/T) is 60 bytes.
+    base = len(tempfile.gettempdir())
+    assert all(60 + len(f"{runtime}/bu.sock") - base < 104 for runtime in runtimes)

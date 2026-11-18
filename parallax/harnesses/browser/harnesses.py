@@ -344,7 +344,8 @@ class BrowserHarness(ABC):
 
         Not `trial.home`: in a Docker box that is the container's path, which does not exist on the host."""
         if self._worker_dir is None:
-            self._worker_dir = Path(tempfile.mkdtemp(prefix=f"parallax-{self.info.name}-"))
+            # Short: browser-harness binds a Unix socket below it, and macOS's TMPDIR is already about 60 bytes of the 104.
+            self._worker_dir = Path(tempfile.mkdtemp(prefix="px-"))
         return self._worker_dir
 
     def bind_task(self, task: Task) -> None:
@@ -1029,9 +1030,11 @@ class BrowserHarnessRunner(BrowserHarness):
 
         browser-harness keeps one daemon per home and name, attached to the browser of the call that started it, and
         reuses any daemon already answering there. Under the shared default home, concurrent trials on one runner
-        drove the first trial's browser instead of their own."""
+        drove the first trial's browser instead of their own. The runtime dir, which holds the daemon's socket, is the
+        shortest path in the trial's dir, so it stays below the 104-byte AF_UNIX limit."""
         return self._agent_env() | {
             "BH_HOME": str(self.worker_dir / "bh"),
+            "BH_RUNTIME_DIR": str(self.worker_dir / "r"),
             "BU_CDP_WS": cdp_url,
             "PARALLAX_BROWSER_CDP_URL": cdp_url,
         }
