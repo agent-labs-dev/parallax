@@ -1024,6 +1024,18 @@ class BrowserHarnessRunner(BrowserHarness):
         self._toolchain = await provision(self.agent)
         return self._toolchain.version
 
+    def _worker_env(self, cdp_url: str) -> dict[str, str]:
+        """The worker's environment, with a browser-harness home of this trial's own.
+
+        browser-harness keeps one daemon per home and name, attached to the browser of the call that started it, and
+        reuses any daemon already answering there. Under the shared default home, concurrent trials on one runner
+        drove the first trial's browser instead of their own."""
+        return self._agent_env() | {
+            "BH_HOME": str(self.worker_dir / "bh"),
+            "BU_CDP_WS": cdp_url,
+            "PARALLAX_BROWSER_CDP_URL": cdp_url,
+        }
+
     async def execute(self, turn: TurnInput) -> dict[str, Any]:
         # Before the browser opens, so a missing tool costs nothing.
         toolchain = self._toolchain or await provision(self.agent)
@@ -1046,11 +1058,7 @@ class BrowserHarnessRunner(BrowserHarness):
                     if configured
                     else (sys.executable, "-m", "parallax.harnesses.browser.browser_harness_worker")
                 )
-                worker_env = self._agent_env() | {
-                    "BU_CDP_WS": browser.cdp_url,
-                    "PARALLAX_BROWSER_CDP_URL": browser.cdp_url,
-                }
-                worker = JsonWorker(command, env=worker_env, cwd=self.worker_dir)
+                worker = JsonWorker(command, env=self._worker_env(browser.cdp_url), cwd=self.worker_dir)
                 async with worker:
                     await worker.send(request)
                     result = await worker.receive("result")

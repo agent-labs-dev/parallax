@@ -6,6 +6,10 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Concurrent browser-harness trials on one runner each start their own daemon, so a trial no longer drives another trial's browser (#101).
+
 ## [2.0.0.dev49] - 2026-11-18
 
 ### Fixed

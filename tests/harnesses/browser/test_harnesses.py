@@ -1090,3 +1090,19 @@ async def test_a_turn_tells_the_harness_how_long_it_has_left() -> None:
     await harness.turn(TurnInput(index=2, text="and this", new_session=False))
     assert left[0] is not None and 1790 < left[0] <= 1800
     assert left[1] is None
+
+
+def test_concurrent_browser_harness_trials_get_their_own_daemon() -> None:
+    from parallax.harnesses.browser.harnesses import BrowserHarnessClaudeCode
+    from parallax.models import Trial
+
+    homes = []
+    for cdp in ("wss://browser-a", "wss://browser-b"):
+        harness = BrowserHarnessClaudeCode()
+        harness._trial = Trial.model_construct(env={})
+        env = harness._worker_env(cdp)
+        assert env["BU_CDP_WS"] == cdp
+        homes.append(env["BH_HOME"])
+    assert homes[0] != homes[1]
+    # browser-harness binds its daemon at <BH_HOME>/runtime/bu-<name>.sock; AF_UNIX paths end at 104 bytes on macOS.
+    assert all(len(f"{home}/runtime/bu-default.sock") < 104 for home in homes)
