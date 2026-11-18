@@ -40,6 +40,8 @@ from parallax.harnesses.browser.cloud import (
     cloud_browser,
     cost_lines,
     devtools_websocket,
+    stopped_browser_cost,
+    with_stopped_browser_cost,
 )
 from parallax.harnesses.browser.observer import AmbiguousFinalPage, load_observer
 from parallax.harnesses.browser.site import Unavailable, site_down
@@ -105,6 +107,42 @@ def _info(
     )
 
 
+def _step_name(raw: Mapping[str, Any]) -> str | None:
+    """What a step did. Workers name it under different keys: `name` (agent tool calls), `action` (product arms and
+    the evidence timeline), `operation` or `tool` (Browser Use)."""
+    return next((raw[key] for key in ("name", "action", "operation", "tool") if isinstance(raw.get(key), str)), None)
+
+
+def _step_value(raw: Mapping[str, Any]) -> str | None:
+    """What the step was given, as the judge reads it: a `value`, else the code or command it ran, else its
+    arguments whole."""
+    if isinstance(raw.get("value"), str):
+        return raw["value"]
+    args = raw.get("args", raw.get("arguments"))
+    if isinstance(args, Mapping):
+        ran = next((args[key] for key in ("code", "command") if isinstance(args.get(key), str)), None)
+        return ran if ran is not None else json.dumps(args, ensure_ascii=False, default=str)
+    if isinstance(args, list):
+        return " ".join(str(part) for part in args)
+    return args if isinstance(args, str) else None
+
+
+def _step_quote(raw: Mapping[str, Any]) -> str | None:
+    """What the step returned: a `quote`, else its output or observation; a tool result given as content blocks keeps
+    its text."""
+    for key in ("quote", "output", "observation"):
+        value = raw.get(key)
+        if isinstance(value, str):
+            return value
+        if isinstance(value, list):
+            texts = [
+                block["text"] for block in value if isinstance(block, Mapping) and isinstance(block.get("text"), str)
+            ]
+            if texts:
+                return "\n".join(texts)
+    return None
+
+
 def _step(turn: int, raw: Mapping[str, Any]) -> Step:
     kind = raw.get("kind", "tool_call")
     try:
@@ -114,7 +152,7 @@ def _step(turn: int, raw: Mapping[str, Any]) -> Step:
     return Step(
         turn=turn,
         kind=parsed_kind,
-        name=raw.get("name") or raw.get("operation") or raw.get("tool"),
+        name=_step_name(raw),
         args=raw.get("args", raw.get("target", raw.get("arguments"))),
         output=raw.get("output", raw.get("observation")),
         ok=raw.get("ok"),
@@ -211,13 +249,13 @@ def _evidence_payload(
         for item in steps:
             if not isinstance(item, Mapping):
                 continue
-            action = item.get("action") or item.get("operation") or item.get("tool")
-            if not isinstance(action, str):
+            action = _step_name(item)
+            if action is None:
                 continue
             step = {"url": str(item.get("url") or final_url), "action": action}
-            for key in ("value", "quote"):
-                if isinstance(item.get(key), str):
-                    step[key] = item[key]
+            for key, read in (("value", _step_value), ("quote", _step_quote)):
+                if (text := read(item)) is not None:
+                    step[key] = text
             if isinstance(item.get("page"), int):
                 step["page"] = item["page"]
             timeline.append(step)
@@ -429,6 +467,8 @@ class BrowserHarness(ABC):
             steps=_steps(turn.index, self._scrub(result.get("step_log"))),
             usage=_usage(result.get("usage"), self.trial.model),
             actual_model=result.get("actual_model") if isinstance(result.get("actual_model"), str) else None,
+            # A harness that runs several models (a writer and a classifier) names each one it ran.
+            actual_models=tuple(m for m in result.get("actual_models") or () if isinstance(m, str)),
             latency_ms=latency_ms,
             error=error,
         )
@@ -640,14 +680,10 @@ class BrowserHarnessCloud(BrowserHarness):
                 stopped = await asyncio.shield(_stop(client, browser_id))
                 settled = await asyncio.shield(_settled(client, browser_id)) if stopped is not None else None
                 existing = result.get("cost_lines")
-                lines = list(existing) if isinstance(existing, list) else []
-                known = {item.get("component") for item in lines if isinstance(item, Mapping)}
-                lines.extend(
-                    line
-                    for line in cost_lines(settled or stopped, settled=settled is not None)
-                    if line["component"] not in known
+                result["cost_lines"] = with_stopped_browser_cost(
+                    existing if isinstance(existing, list) else [],
+                    cost_lines(settled or stopped, settled=settled is not None),
                 )
-                result["cost_lines"] = lines
             return result
         finally:
             with contextlib.suppress(Exception):
@@ -962,7 +998,12 @@ class BrowserHarnessOSS(BrowserHarness):
             await worker.send({})
             stopped = await worker.receive("stopped")
             result["stopped"] = stopped.get("stopped", False)
-            return result
+        # The agent ran on a Browser Use cloud browser with a US proxy, as every other arm does; it reports only its
+        # model's cost, so the browser and proxy are read from the API once that browser has stopped.
+        if isinstance(ready.get("browser_id"), str):
+            browser_cost = await stopped_browser_cost(ready["browser_id"])
+            result["cost_lines"] = [*_mapping_list(result.get("cost_lines")), *browser_cost]
+        return result
 
 
 class BrowserHarnessRunner(BrowserHarness):
