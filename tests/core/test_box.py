@@ -6,6 +6,7 @@ locally, named by PARALLAX_TEST_SH_IMAGE (an image with sh, cp and util-linux se
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import os
 import secrets
@@ -457,3 +458,18 @@ async def test_a_desktop_box_keeps_its_display_recording_and_a_lost_one_never_fa
     assert (got == dest) is kept
     # ffmpeg is stopped before the copy, so the file it finishes is the one kept.
     assert calls == (["exec"] if fails else ["exec", "cp"] if desktop else [])
+
+
+async def test_hyprland_boxes_take_the_one_display_in_turn(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def rm(*_args: object, **_kwargs: object) -> str:
+        return ""
+
+    monkeypatch.setattr("parallax.box.docker", rm)
+    first, second = DockerBox("a", session="hyprland"), DockerBox("b", session="hyprland")
+    await first.take_seat()
+    waiting = asyncio.create_task(second.take_seat())
+    await asyncio.sleep(0.05)
+    assert not waiting.done()
+    await first.close()
+    await asyncio.wait_for(waiting, 1)
+    await second.close()

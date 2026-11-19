@@ -64,6 +64,8 @@ PACKAGE_DIR = Path(__file__).resolve().parent
 VERIFY_IMAGE = "parallax-verify:py3.13"
 WORLD_PORT = 7801
 METER_PORT = 7802
+# Hyprland takes DRM master of the host's one vkms card, so a host runs one hyprland box at a time.
+VKMS_SEAT = asyncio.Lock()
 EGRESS_PORT = 7803  # the sidecar's allowlisting proxy to the model endpoints (parallax.egress)
 WORLD_ADMIN_ENV = "PARALLAX_WORLD_ADMIN_TOKEN"
 BOX_WORKSPACE = Path("/workspace")
@@ -457,6 +459,7 @@ class DockerBox:
         self.web_isolation = web_isolation
         self.desktop = desktop
         self.session = session  # the desktop session kind the box runs: "x11" or "hyprland"
+        self.seat = False  # holds VKMS_SEAT
         self.workspace = BOX_WORKSPACE
         self.home = BOX_HOME
 
@@ -466,6 +469,7 @@ class DockerBox:
         run_args = ("--label", f"parallax.net={net}", "--network", net, *desktop_run_args(task))
         box = cls(name, clock=True, desktop=task.meta.desktop is not None, session=desktop_session(task))
         try:
+            await box.take_seat()
             await cls.boot(task, image, box, run_args, ("sleep", "infinity"))
             if task.meta.desktop is not None:
                 await box.start_desktop(task)
@@ -516,6 +520,7 @@ class DockerBox:
             session=desktop_session(task),
         )
         try:
+            await box.take_seat()
             await cls.boot(task, image, box, run_args, ("sleep", "infinity"))
             if task.meta.desktop is not None:
                 await box.start_desktop(task)
@@ -523,6 +528,11 @@ class DockerBox:
         except BaseException:
             await box.close()
             raise
+
+    async def take_seat(self) -> None:
+        if self.session == "hyprland":
+            await VKMS_SEAT.acquire()
+            self.seat = True
 
     async def start_desktop(self, task: Task) -> None:
         if task.meta.desktop is None:
@@ -677,8 +687,13 @@ class DockerBox:
         await docker("exec", "-i", "-u", self.user, self.container, "sh", "-c", script, "sh", str(path), stdin=data)
 
     async def close(self) -> None:
-        with contextlib.suppress(BoxError):
-            await docker("rm", "-f", self.container, timeout_s=60)
+        try:
+            with contextlib.suppress(BoxError):
+                await docker("rm", "-f", self.container, timeout_s=60)
+        finally:
+            if self.seat:
+                self.seat = False
+                VKMS_SEAT.release()
 
 
 Box = HostBox | DockerBox
@@ -1010,8 +1025,9 @@ class Sidecar:
         self.container = name
         world_port = await self.host_port(WORLD_PORT)
         meter_port = await self.host_port(METER_PORT)
+        egress_port = await self.host_port(EGRESS_PORT)
         deadline = time.monotonic() + READY_TIMEOUT_S
-        for port in (world_port, meter_port):
+        for port in (world_port, meter_port, egress_port):
             if not await asyncio.to_thread(wait_for_port, port, deadline):
                 logs = await run(("docker", "logs", "--tail", "50", name), timeout_s=30)
                 raise BoxError(f"sidecar port {port} not ready after {READY_TIMEOUT_S:.0f}s: {logs.err[-2000:]}")
@@ -1039,6 +1055,8 @@ class Sidecar:
             f"127.0.0.1::{WORLD_PORT}",
             "-p",
             f"127.0.0.1::{METER_PORT}",
+            "-p",
+            f"127.0.0.1::{EGRESS_PORT}",
             *(a for k in (WORLD_ADMIN_ENV, METER_ADMIN_ENV, *env_names) for a in ("-e", k)),
             image,
             "sh",
