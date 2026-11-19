@@ -1,7 +1,7 @@
 # Written by `parallax ci init`. Settings: repository variables LANGFUSE_BASE_URL,
 # PARALLAX_LANGFUSE_PROJECT and optionally PARALLAX_JUDGE_MODELS (the fallback panel) and
 # PARALLAX_JUDGE_PROVIDERS (the hosts it may be served by); secrets
-# LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY and OPENROUTER_API_KEY (Jev and the fallback panel), and
+# LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY and OPENROUTER_API_KEY (the judge panel), and
 # PARALLAX_UPSTREAM_OPENAI_KEY or PARALLAX_UPSTREAM_ANTHROPIC_KEY for the wire the models use.
 # Each run's report goes to the step summary, a pull request's comment and, for main, the
 # "Parallax eval results" issue. PARALLAX_REPORT_REASONS=true (a variable) quotes invalid trials'
@@ -79,13 +79,15 @@ jobs:
       LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
       PARALLAX_LANGFUSE_PROJECT: ${{ vars.PARALLAX_LANGFUSE_PROJECT }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-      # Without a fallback panel, a question Jev leaves uncertain makes the trial INVALID.
       PARALLAX_JUDGE_BASE_URL: https://openrouter.ai/api/v1
       PARALLAX_JUDGE_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       PARALLAX_JUDGE_MODELS: ${{ vars.PARALLAX_JUDGE_MODELS || 'deepseek/deepseek-v4.1-flash-1017' }}
       PARALLAX_JUDGE_PROVIDERS: ${{ vars.PARALLAX_JUDGE_PROVIDERS }}
-      # The metering proxy's provider keys; a wire without one answers 503.
+      # The metering proxy's provider keys; a wire without one answers 503. A variable of the
+      # wire's name overrides its upstream base URL, e.g. OpenRouter for the Anthropic wire.
+      PARALLAX_UPSTREAM_OPENAI: ${{ vars.PARALLAX_UPSTREAM_OPENAI }}
       PARALLAX_UPSTREAM_OPENAI_KEY: ${{ secrets.PARALLAX_UPSTREAM_OPENAI_KEY }}
+      PARALLAX_UPSTREAM_ANTHROPIC: ${{ vars.PARALLAX_UPSTREAM_ANTHROPIC }}
       PARALLAX_UPSTREAM_ANTHROPIC_KEY: ${{ secrets.PARALLAX_UPSTREAM_ANTHROPIC_KEY }}
       BRANCH: ${{ github.head_ref || github.ref_name }}
       RUN_ID: gh-${{ github.run_id }}-${{ github.run_attempt }}

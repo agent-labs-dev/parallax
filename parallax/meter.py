@@ -26,13 +26,16 @@ import sys
 from collections.abc import AsyncGenerator, AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
+from decimal import Decimal
 from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, Literal, assert_never
+from urllib.parse import urlsplit
 
 import genai_prices
 import httpx
 import uvicorn
+from genai_prices.types import ClauseEquals, ModelInfo, ModelPrice, Provider
 from pydantic import Field, JsonValue, SecretStr, TypeAdapter
 from starlette.applications import Starlette
 from starlette.requests import Request
@@ -51,12 +54,54 @@ DEFAULT_UPSTREAM = {"openai": "https://openrouter.ai/api/v1", "anthropic": "http
 DROP_REQUEST_HEADERS = frozenset(
     {"host", "content-length", "authorization", "x-api-key", "accept-encoding", "connection", "transfer-encoding"}
 )
+CALLER_AUTH_HEADERS = frozenset({"authorization", "x-api-key"})  # forwarded by the relay only
 KEEP_RESPONSE_HEADERS = frozenset({"content-type", "retry-after", "request-id", "x-request-id", "openai-processing-ms"})
 
 
 class Wire(StrEnum):
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
+    GOOGLE = "google"  # Gemini's native API; reached only through the relay (see `RELAY_HOSTS`)
+
+
+PROXY_WIRES = (Wire.OPENAI, Wire.ANTHROPIC)
+"""Wires a box reaches with its trial key as the credential, through the meter's own upstream keys."""
+
+
+class RelayHost(Model):
+    wire: Wire
+    prefix: str  # the host's API root, before the path the wire's allowlist names
+    # genai-prices does not know the host, so its responses are priced at the rates its own public
+    # `{prefix}/models` catalog publishes (see `catalog_provider`).
+    catalog: bool = False
+
+
+# Hosts a product that keeps its own provider keys and routing is relayed to through
+# `/{trial_key}/relay/{host}/...`. The caller's credentials are forwarded, so the meter holds no key
+# for them; it applies the same endpoint allowlist and provider-tool refusal, and meters every
+# response. Prices are keyed by the host, except the AI Gateway (see `price`).
+RELAY_HOSTS: Mapping[str, RelayHost] = {
+    "openrouter.ai": RelayHost(wire=Wire.OPENAI, prefix="api/v1"),
+    "api.openai.com": RelayHost(wire=Wire.OPENAI, prefix="v1"),
+    "ai-gateway.vercel.sh": RelayHost(wire=Wire.OPENAI, prefix="v1"),
+    "api.anthropic.com": RelayHost(wire=Wire.ANTHROPIC, prefix="v1"),
+    "generativelanguage.googleapis.com": RelayHost(wire=Wire.GOOGLE, prefix="v1beta"),
+    "api.inference.net": RelayHost(wire=Wire.OPENAI, prefix="v1", catalog=True),
+}
+CATALOG_TIMEOUT_S = 10.0  # a catalog read holds up the first call to its host
+VERCEL_GATEWAY_HOST = "ai-gateway.vercel.sh"
+# The AI Gateway charges each vendor's list price with no markup, and genai-prices has no gateway
+# provider, so a gateway response is priced at its model's vendor: the `vendor/` prefix of the id.
+VERCEL_VENDORS: Mapping[str, str] = {
+    "anthropic": "anthropic",
+    "deepseek": "deepseek",
+    "google": "google",
+    "mistral": "mistral",
+    "moonshotai": "moonshotai",
+    "openai": "openai",
+    "xai": "x-ai",
+    "zai": "zai",
+}
 
 
 class Endpoint(StrEnum):
@@ -64,6 +109,9 @@ class Endpoint(StrEnum):
 
     GENERATION = "generation"  # returns usage; priced and recorded
     FREE = "free"  # token counting and model listing: no generation, so nothing to record
+    # A decision model's typed answers. genai-prices prices no decision model, so the call is priced at the
+    # charge the provider reports with it; a reply without one is recorded as unpriced.
+    DECISION = "decision"
 
 
 # The only (method, path) pairs the meter forwards, relative to the wire's /v1. The upstream key
@@ -77,13 +125,27 @@ ALLOWED_ENDPOINTS: Mapping[Wire, Mapping[tuple[str, str], Endpoint]] = {
         ("POST", "chat/completions"): Endpoint.GENERATION,
         ("POST", "responses"): Endpoint.GENERATION,
         ("POST", "responses/input_tokens"): Endpoint.FREE,
+        ("POST", "embeddings"): Endpoint.GENERATION,
         ("GET", "models"): Endpoint.FREE,
+        ("POST", "evaluate"): Endpoint.DECISION,  # the AI Gateway's evaluation (decision) API
+        ("POST", "systemone"): Endpoint.DECISION,  # OpenRouter's System One decision API
     },
     Wire.ANTHROPIC: {
         ("POST", "messages"): Endpoint.GENERATION,
         ("POST", "messages/count_tokens"): Endpoint.FREE,
     },
+    Wire.GOOGLE: {},  # its paths name the model, so `GOOGLE_METHODS` decides
 }
+# Gemini's `models/{model}:{method}`; embeddings carry no usage, so they are not metered and are refused.
+GOOGLE_PATH = re.compile(r"models/[^/:]+:(?P<method>[A-Za-z]+)")
+GOOGLE_METHODS: Mapping[str, Endpoint] = {
+    "generateContent": Endpoint.GENERATION,
+    "streamGenerateContent": Endpoint.GENERATION,
+    "countTokens": Endpoint.FREE,
+}
+# A Gemini tool entry is a function declaration list; every other key (googleSearch, codeExecution,
+# urlContext, fileSearch, googleMaps, computerUse) is a tool Google runs on its own servers.
+GOOGLE_CLIENT_TOOL_KEYS = frozenset({"functionDeclarations", "function_declarations"})
 
 
 # Tool types a harness executes itself, per wire. Every other tool type runs on the provider's
@@ -98,13 +160,22 @@ ALLOWED_ENDPOINTS: Mapping[Wire, Mapping[tuple[str, str], Endpoint]] = {
 CLIENT_TOOL_TYPES: Mapping[Wire, frozenset[str]] = {
     Wire.ANTHROPIC: frozenset({"custom", "bash", "text_editor"}),
     Wire.OPENAI: frozenset({"function", "custom", "local_shell", "namespace"}),
+    Wire.GOOGLE: frozenset(),  # tools are keyed, not typed: see `GOOGLE_CLIENT_TOOL_KEYS`
 }
 # Top-level request fields that turn on provider-side tools without a `tools` entry.
 SERVER_TOOL_FIELDS: Mapping[Wire, frozenset[str]] = {
     Wire.ANTHROPIC: frozenset({"mcp_servers", "container"}),
     Wire.OPENAI: frozenset({"plugins", "web_search_options"}),  # OpenRouter plugins; Chat Completions search
+    Wire.GOOGLE: frozenset({"cachedContent"}),  # a server-side cache made outside the trial
 }
 ONLINE_MODEL_SUFFIX = ":online"  # OpenRouter's web-search variant of any model
+# Models whose provider searches the web on every call, with no request field to say so. Checked against
+# OpenAI's and OpenRouter's model lists on 2026-11-17; a vendor listed here has no model that does not search.
+SEARCHING_VENDORS = frozenset({"perplexity"})
+SEARCHING_MODELS = frozenset({
+    "gpt-5-search-api", "gpt-5-search-api-2025-10-14", "openai/gpt-5-search-api",
+    "openrouter/fusion", "x-ai/grok-4.20-multi-agent",
+})  # fmt: skip
 TOOL_TYPE_VERSION = re.compile(r"_\d{8}$")
 # How long a report waits for streams whose client hung up to finish (see `pump`).
 STREAM_DRAIN_WAIT_S = 120.0
@@ -230,24 +301,45 @@ class UsageAccumulator:
     final chunk, Responses' `response.completed`), so the latest value of each field wins.
     """
 
-    def __init__(self, wire: Wire, request_model: str | None) -> None:
+    def __init__(self, wire: Wire, request_model: str | None, endpoint: Endpoint = Endpoint.GENERATION) -> None:
         self.wire = wire
+        self.endpoint = endpoint
+        self.reported_cost: float | None = None  # the charge the provider reported, in dollars (`Endpoint.DECISION`)
         self.model = request_model  # labels usage and prices it; the request's model until a response names one
         self.served: str | None = None  # only what a response named: the evidence for board placement
         self.fields: dict[str, int] = {}
 
     def feed(self, event: JsonValue) -> None:
+        if isinstance(event, list):  # Gemini's streamGenerateContent without `alt=sse` is one JSON array
+            for item in event:
+                self.feed(item)
+            return
         if not isinstance(event, dict):
             return
         for holder in (event, event.get("response"), event.get("message")):
             if not isinstance(holder, dict):
                 continue
-            model = holder.get("model")
+            model = holder.get("model", holder.get("modelVersion"))
             if isinstance(model, str) and model:
                 self.model = self.served = model
-            usage = holder.get("usage")
+            usage = holder.get("usage", holder.get("usageMetadata"))
             if isinstance(usage, dict):
                 self.fields.update(flatten_ints(usage))
+                self.report_cost(usage.get("cost"))  # OpenRouter: a number of dollars
+            metadata = holder.get("providerMetadata", holder.get("provider_metadata"))
+            gateway = metadata.get("gateway") if isinstance(metadata, dict) else None
+            if isinstance(gateway, dict):
+                self.report_cost(gateway.get("cost"))  # the AI Gateway: a decimal string of dollars
+
+    def report_cost(self, value: JsonValue) -> None:
+        if isinstance(value, bool) or not isinstance(value, int | float | str):
+            return
+        try:
+            cost = float(value)
+        except ValueError:
+            return
+        if math.isfinite(cost) and cost >= 0:
+            self.reported_cost = cost
 
     def observed(self) -> Observed | None:
         if not self.fields or self.model is None:
@@ -255,6 +347,15 @@ class UsageAccumulator:
         f = self.fields.get
         match self.wire:
             case Wire.OPENAI:
+                if "inputTokens" in self.fields:  # the AI Gateway's evaluation API
+                    return Observed(
+                        model=self.model,
+                        input=f("inputTokens", 0),
+                        output=f("outputTokens", 0),
+                        cache_read=0,
+                        cache_write=0,
+                        reasoning=0,
+                    )
                 if "input_tokens" in self.fields:  # Responses API (OpenRouter adds cache_write_tokens)
                     return Observed(
                         model=self.model,
@@ -282,6 +383,17 @@ class UsageAccumulator:
                     cache_read=cache_read,
                     cache_write=cache_write,
                     reasoning=0,
+                )
+            case Wire.GOOGLE:
+                # Google bills thinking as output; `promptTokenCount` already includes cached tokens.
+                thoughts = f("thoughtsTokenCount", 0)
+                return Observed(
+                    model=self.model,
+                    input=f("promptTokenCount", 0),
+                    output=f("candidatesTokenCount", 0) + thoughts,
+                    cache_read=f("cachedContentTokenCount", 0),
+                    cache_write=0,
+                    reasoning=thoughts,
                 )
             case _:
                 assert_never(self.wire)
@@ -317,8 +429,46 @@ def parse_sse_line(line: bytes) -> JsonValue:
         return None
 
 
-def price(observed: Observed, upstream_url: str) -> float | None:
-    """genai-prices keyed by the upstream URL; unknown provider or model => None, never 0."""
+def catalog_provider(host: str, catalog: JsonValue) -> Provider:
+    """A genai-prices provider holding the rates a host's OpenAI-style `/models` catalog publishes.
+
+    Each entry's `pricing` is USD per token as decimal strings (`prompt`, `completion`,
+    `input_cache_read`). An entry missing either token rate, or quoting one at zero, is left out:
+    its calls are then priced as unknown, never as free.
+    """
+    entries = catalog.get("data") if isinstance(catalog, dict) else None
+    models: list[ModelInfo] = []
+    for entry in entries if isinstance(entries, list) else []:
+        if not isinstance(entry, dict) or not isinstance(model_id := entry.get("id"), str):
+            continue
+        pricing = entry.get("pricing")
+        rates = (
+            {k: per_mtok(pricing.get(k)) for k in ("prompt", "completion", "input_cache_read")}
+            if isinstance(pricing, dict)
+            else {}
+        )
+        if not rates.get("prompt") or not rates.get("completion"):
+            continue
+        prices = ModelPrice(
+            input_mtok=rates["prompt"], output_mtok=rates["completion"], cache_read_mtok=rates["input_cache_read"]
+        )
+        models.append(ModelInfo(id=model_id, match=ClauseEquals(equals=model_id), name=model_id, prices=prices))
+    return Provider(id=host, name=host, api_pattern=re.escape(f"https://{host}"), models=models)
+
+
+def per_mtok(value: JsonValue) -> Decimal | None:
+    """A catalog's USD-per-token string as USD per million tokens; anything else (or below zero) is None."""
+    if not isinstance(value, str):
+        return None
+    try:
+        rate = Decimal(value)
+    except ArithmeticError:
+        return None
+    return rate * 1_000_000 if rate.is_finite() and rate >= 0 else None
+
+
+def price(observed: Observed, upstream_url: str, catalog: Provider | None = None) -> float | None:
+    """genai-prices keyed by the upstream URL, or the host's own `catalog`; unknown => None, never 0."""
     usage = genai_prices.Usage(
         input_tokens=observed.input,
         output_tokens=observed.output,
@@ -326,6 +476,15 @@ def price(observed: Observed, upstream_url: str) -> float | None:
         cache_write_tokens=observed.cache_write,
     )
     try:
+        if catalog is not None:
+            if (model := catalog.find_model(observed.model)) is None:
+                raise LookupError(f"{catalog.id} publishes no price for {observed.model!r}")
+            return float(model.calc_price(usage, catalog).total_price)
+        if urlsplit(upstream_url).hostname == VERCEL_GATEWAY_HOST:
+            vendor, _, bare = observed.model.partition("/")
+            if vendor not in VERCEL_VENDORS or not bare:
+                raise LookupError(f"no vendor for gateway model {observed.model!r}")
+            return float(genai_prices.calc_price(usage, bare, provider_id=VERCEL_VENDORS[vendor]).total_price)
         return float(genai_prices.calc_price(usage, observed.model, provider_api_url=upstream_url).total_price)
     except LookupError:
         logger.warning("meter: no price for model %r at %s; cost recorded as unknown", observed.model, upstream_url)
@@ -341,7 +500,7 @@ def record_unpriced(trial: TrialMeter, acc: UsageAccumulator) -> str:
     return model
 
 
-def record(trial: TrialMeter, acc: UsageAccumulator, upstream_url: str) -> None:
+def record(trial: TrialMeter, acc: UsageAccumulator, upstream_url: str, catalog: Provider | None = None) -> None:
     if acc.served is None:
         trial.unobserved_requests += 1
     else:
@@ -358,7 +517,7 @@ def record(trial: TrialMeter, acc: UsageAccumulator, upstream_url: str) -> None:
     tally.cache_read += observed.cache_read
     tally.cache_write += observed.cache_write
     tally.reasoning += observed.reasoning
-    cost = price(observed, upstream_url)
+    cost = acc.reported_cost if acc.endpoint is Endpoint.DECISION else price(observed, upstream_url, catalog)
     if cost is None:
         trial.unpriced_requests += 1
         tally.unpriced = True
@@ -378,6 +537,8 @@ def wire_error(wire: Wire, status: int, kind: MeterError, message: str) -> JSONR
             body: JsonValue = {"error": {"message": message, "type": kind.value, "param": None, "code": kind.value}}
         case Wire.ANTHROPIC:
             body = {"type": "error", "error": {"type": kind.anthropic_type, "message": message}}
+        case Wire.GOOGLE:
+            body = {"error": {"code": status, "message": message, "status": kind.value.upper()}}
         case _:
             assert_never(wire)
     return JSONResponse(body, status_code=status)
@@ -397,6 +558,8 @@ def app(
     """The meter ASGI app. `transport` exists so tests can mount an httpx MockTransport upstream."""
     trials: dict[str, TrialMeter] = {}
     clients: list[httpx.AsyncClient] = []
+    catalogs: dict[str, Provider | None] = {}  # None: the read failed, and is not retried
+    catalog_lock = asyncio.Lock()
 
     def client() -> httpx.AsyncClient:
         if not clients:
@@ -433,7 +596,65 @@ def app(
         trial = trials.get(str(request.path_params["trial_key"]))
         if trial is None:
             return wire_error(wire, 401, MeterError.INVALID_TRIAL_KEY, "parallax meter: unknown trial key")
+        upstream = upstreams[wire]
+        if upstream.api_key is None:
+            return wire_error(
+                wire, 503, MeterError.UPSTREAM_DISABLED, f"parallax meter: no upstream key configured for {wire}"
+            )
         path = str(request.path_params["path"]).strip("/")
+        return await forward(trial, wire, request, path, upstream.base_url, auth_headers(wire, upstream.api_key))
+
+    async def relay_proxy(request: Request) -> Response:
+        """Forwards to a known provider host with the caller's own credentials, metering what it serves."""
+        host = str(request.path_params["host"])
+        known = RELAY_HOSTS.get(host)
+        wire = known.wire if known is not None else Wire.OPENAI
+        trial = trials.get(str(request.path_params["trial_key"]))
+        if trial is None:
+            return wire_error(wire, 401, MeterError.INVALID_TRIAL_KEY, "parallax meter: unknown trial key")
+        full = str(request.path_params["path"]).strip("/")
+        if known is None or not full.startswith(f"{known.prefix}/"):
+            logger.warning("meter: refused a relay to %s/%s: not a known provider API", host, full)
+            return wire_error(
+                wire,
+                403,
+                MeterError.ENDPOINT_NOT_ALLOWED,
+                f"parallax meter: {host}/{full} is not a relayed provider API",
+            )
+        path = full.removeprefix(f"{known.prefix}/")
+        base_url = f"https://{host}/{known.prefix}"
+        catalog = await host_catalog(host, base_url) if known.catalog else None
+        return await forward(trial, wire, request, path, base_url, None, catalog)
+
+    async def host_catalog(host: str, base_url: str) -> Provider | None:
+        """The host's published rates, read once per meter; None (calls priced unknown) if that read failed.
+
+        A failed read is not retried: each retry would hold up the call that made it.
+        """
+        async with catalog_lock:
+            if host not in catalogs:
+                try:
+                    response = await client().get(f"{base_url}/models", timeout=CATALOG_TIMEOUT_S)
+                    response.raise_for_status()
+                except httpx.HTTPError as exc:
+                    logger.warning(
+                        "meter: %s's price catalog is unreadable (%s); its calls are priced unknown", host, exc
+                    )
+                    catalogs[host] = None
+                else:
+                    catalogs[host] = catalog_provider(host, parse_json(response.content))
+            return catalogs[host]
+
+    async def forward(
+        trial: TrialMeter,
+        wire: Wire,
+        request: Request,
+        path: str,
+        base_url: str,
+        auth: Mapping[str, str] | None,
+        catalog: Provider | None = None,
+    ) -> Response:
+        """`auth` replaces the caller's credentials; None forwards them (the relay)."""
         endpoint = allowed_endpoint(wire, request.method, path)
         if endpoint is None:
             logger.warning(
@@ -447,7 +668,7 @@ def app(
             )
         raw = await request.body()
         parsed = parse_json(raw) if raw else None
-        if endpoint is Endpoint.GENERATION:
+        if endpoint is not Endpoint.FREE:
             if not isinstance(parsed, dict):
                 # A body the meter cannot read (compressed, not JSON) could carry server tools unseen.
                 logger.warning("meter: refused a %s request on the %s wire: body is not a JSON object", path, wire)
@@ -478,16 +699,12 @@ def app(
                 MeterError.ENDPOINT_NOT_ALLOWED,
                 "parallax meter: background responses cannot be metered; send the request without background",
             )
-        upstream = upstreams[wire]
-        if upstream.api_key is None:
-            return wire_error(
-                wire, 503, MeterError.UPSTREAM_DISABLED, f"parallax meter: no upstream key configured for {wire}"
-            )
-        url = f"{upstream.base_url.rstrip('/')}/{path}"
+        url = f"{base_url.rstrip('/')}/{path}"
         if request.url.query:
             url = f"{url}?{request.url.query}"
-        headers = {k: v for k, v in request.headers.items() if k.lower() not in DROP_REQUEST_HEADERS}
-        headers.update(auth_headers(wire, upstream.api_key))
+        drop = DROP_REQUEST_HEADERS if auth is not None else DROP_REQUEST_HEADERS - CALLER_AUTH_HEADERS
+        headers = {k: v for k, v in request.headers.items() if k.lower() not in drop}
+        headers.update(auth or {})
         # Streams are relayed byte for byte and parsed for usage on the way; httpx would otherwise
         # ask for gzip, and a compressed SSE body is neither parseable here nor labelled for the client.
         headers["accept-encoding"] = "identity"
@@ -496,20 +713,20 @@ def app(
             response = await client().send(upstream_request, stream=True)
         except httpx.HTTPError as exc:
             trial.upstream_errors += 1
-            logger.warning("meter: upstream %s unreachable: %s", upstream.base_url, exc)
+            logger.warning("meter: upstream %s unreachable: %s", base_url, exc)
             return wire_error(
                 wire, 502, MeterError.UPSTREAM_UNREACHABLE, f"parallax meter: upstream unreachable ({exc})"
             )
         out_headers = {k: v for k, v in response.headers.items() if k.lower() in KEEP_RESPONSE_HEADERS}
-        acc = UsageAccumulator(wire, request_model)
+        acc = UsageAccumulator(wire, request_model, endpoint)
         ok = response.is_success
-        metered = ok and endpoint is Endpoint.GENERATION
+        metered = ok and endpoint is not Endpoint.FREE
         if not ok:
             trial.upstream_errors += 1
         if response.headers.get("content-type", "").startswith("text/event-stream"):
             chunks: asyncio.Queue[bytes | None] = asyncio.Queue()
             events = SseStream(acc)
-            task = asyncio.create_task(pump(response, events, chunks, trial if metered else None, upstream.base_url))
+            task = asyncio.create_task(pump(response, events, chunks, trial if metered else None, base_url, catalog))
             trial.open_streams[task] = acc if metered else None
             task.add_done_callback(lambda t: trial.open_streams.pop(t, None))
             return StreamingResponse(relay(chunks), status_code=response.status_code, headers=out_headers)
@@ -519,7 +736,7 @@ def app(
             await response.aclose()
         if metered:
             acc.feed(parse_json(content))
-            record(trial, acc, upstream.base_url)
+            record(trial, acc, base_url, catalog)
         return Response(content, status_code=response.status_code, headers=out_headers)
 
     @asynccontextmanager
@@ -537,13 +754,14 @@ def app(
         routes=[
             Route("/_health", health, methods=["GET"]),
             Route("/_meter/{admin}/{trial_key}", control, methods=["GET", "PUT"]),
+            Route("/{trial_key}/relay/{host}/{path:path}", relay_proxy, methods=["GET", "POST"]),
             *(
                 Route(
                     f"/{{trial_key}}/{wire.value}/v1/{{path:path}}",
                     functools.partial(proxy, wire),
                     methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
                 )
-                for wire in Wire
+                for wire in PROXY_WIRES
             ),
         ],
         lifespan=lifespan,
@@ -574,6 +792,7 @@ async def pump(
     chunks: asyncio.Queue[bytes | None],
     trial: TrialMeter | None,
     upstream_url: str,
+    catalog: Provider | None = None,
 ) -> None:
     """Reads an upstream stream to its end in its own task, queueing what the client is sent.
 
@@ -598,7 +817,7 @@ async def pump(
                 # `settle` already counted it as unpriced in a report that has been served.
                 logger.warning("meter: stream ended after its trial was reported; usage not recorded")
             else:
-                record(trial, events.acc, upstream_url)
+                record(trial, events.acc, upstream_url, catalog)
 
 
 async def relay(chunks: asyncio.Queue[bytes | None]) -> AsyncIterator[bytes]:
@@ -629,7 +848,10 @@ async def settle(trial: TrialMeter) -> None:
 
 
 def allowed_endpoint(wire: Wire, method: str, path: str) -> Endpoint | None:
-    """The allowlisted endpoint for a request, or None to refuse it (`path` is relative to /v1)."""
+    """The allowlisted endpoint for a request, or None to refuse it (`path` is relative to the API root)."""
+    if wire is Wire.GOOGLE:
+        match = GOOGLE_PATH.fullmatch(path)
+        return GOOGLE_METHODS.get(match["method"]) if match and method.upper() == "POST" else None
     return ALLOWED_ENDPOINTS[wire].get((method.upper(), path))
 
 
@@ -647,8 +869,14 @@ def server_tools(wire: Wire, body: Mapping[str, JsonValue]) -> list[str]:
     ]
     fallbacks = body.get("models")  # OpenRouter's fallback list
     models = [body.get("model"), *(fallbacks if isinstance(fallbacks, list) else [])]
-    offending += [f"model {m}" for m in models if isinstance(m, str) and m.endswith(ONLINE_MODEL_SUFFIX)]
+    offending += [f"model {m}" for m in models if isinstance(m, str) and searches(m)]
     return offending + server_tool_types(wire, body.get("tools"))
+
+
+def searches(model: str) -> bool:
+    """Whether the model searches the web on the provider's side whatever the request asks."""
+    vendor, _, _ = model.partition("/")
+    return model.endswith(ONLINE_MODEL_SUFFIX) or model in SEARCHING_MODELS or vendor in SEARCHING_VENDORS
 
 
 def server_tool_types(wire: Wire, tools: JsonValue) -> list[str]:
@@ -656,6 +884,13 @@ def server_tool_types(wire: Wire, tools: JsonValue) -> list[str]:
         return []
     if not isinstance(tools, list):
         return ["tools (not a list)"]
+    if wire is Wire.GOOGLE:
+        return [
+            f"tool {key}"
+            for tool in tools
+            for key in (tool if isinstance(tool, dict) else {"(not an object)": None})
+            if key not in GOOGLE_CLIENT_TOOL_KEYS
+        ]
     offending: list[str] = []
     for tool in tools:
         if not isinstance(tool, dict):
@@ -706,6 +941,8 @@ def auth_headers(wire: Wire, key: SecretStr) -> dict[str, str]:
             return {"authorization": f"Bearer {key.get_secret_value()}"}
         case Wire.ANTHROPIC:
             return {"x-api-key": key.get_secret_value()}
+        case Wire.GOOGLE:
+            raise ValueError("the meter holds no Gemini key: Gemini is reached only through the relay")
         case _:
             assert_never(wire)
 
@@ -722,7 +959,7 @@ def upstreams_from_env(env: Mapping[str, str]) -> dict[Wire, Upstream]:
     only uses one wire needs only that key; the omission is logged.
     """
     upstreams: dict[Wire, Upstream] = {}
-    for wire in Wire:
+    for wire in PROXY_WIRES:
         prefix = f"PARALLAX_UPSTREAM_{wire.value.upper()}"
         base_url = env.get(prefix) or DEFAULT_UPSTREAM[wire.value]
         key = env.get(f"{prefix}_KEY")
@@ -756,8 +993,9 @@ def new_trial_key() -> str:
     return secrets.token_urlsafe(32)
 
 
-def llm_endpoint(meter_url: str, trial_key: str) -> LlmEndpoint:
-    """The URLs a harness sees; `meter_url` is the meter as reachable from the box.
+def llm_endpoint(meter_url: str, trial_key: str, host_meter_url: str) -> LlmEndpoint:
+    """The URLs a harness sees; `meter_url` is the meter as reachable from the box, `host_meter_url` from the
+    run's host. The relay is called by a product's own backend, not the box, so it is built from the host's view.
 
     Each follows its vendor SDK's base-URL convention: OpenAI clients take the `/v1` base, while
     Anthropic clients (Claude Code included) append `/v1/messages` to a base without it.
@@ -766,8 +1004,14 @@ def llm_endpoint(meter_url: str, trial_key: str) -> LlmEndpoint:
     return LlmEndpoint(
         openai_base_url=f"{base}/{trial_key}/openai/v1",
         anthropic_base_url=f"{base}/{trial_key}/anthropic",
+        relay_url=relay_url(host_meter_url, trial_key),
         api_key=trial_key,
     )
+
+
+def relay_url(meter_url: str, trial_key: str) -> str:
+    """What a product that keeps its own keys prefixes to a provider URL's host and path to be metered."""
+    return f"{meter_url.rstrip('/')}/{trial_key}/relay"
 
 
 class MeterClient:

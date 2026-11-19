@@ -19,7 +19,8 @@ async def run(request: dict[str, object]) -> None:
         browser_name = "Browser"
         agent_type = getattr(browser_use, agent_name)
         browser_type = getattr(browser_use, browser_name)
-        browser = browser_type(keep_alive=True, cloud_timeout=240)
+        # The host's limit for this turn, so a browser whose stop is missed stops itself (cloud.browser_minutes).
+        browser = browser_type(keep_alive=True, cloud_timeout=request["browser_minutes"])
         started = time.monotonic()
         await browser.start()
         emit(
@@ -27,6 +28,7 @@ async def run(request: dict[str, object]) -> None:
                 "event": "ready",
                 "cdp_url": browser.cloud_cdp_url,
                 "browser_id": browser.id,
+                "live_url": browser.live_url,
                 "open_seconds": time.monotonic() - started,
             }
         )
@@ -40,15 +42,18 @@ async def run(request: dict[str, object]) -> None:
             except ImportError:
                 pass
         result = await agent_type(**kwargs).run(max_steps=1_000_000, timeout=86_400)
+        served = models(result.messages)
         emit(
             {
                 "event": "result",
-                "status": "done" if getattr(result, "is_done", lambda: True)() else "error",
+                "status": "done" if result.is_done() else "error",
                 "answer": result.final_result(),
-                "step_log": [],
-                "cost_lines": (
-                    [{"component": "model", "dollars": result.cost_usd}] if result.cost_usd is not None else []
-                ),
+                "error": result.error,
+                "step_log": steps(result.messages),
+                "actual_models": served,
+                "usage": [{**result.usage, "model": served[0]}] if len(served) == 1 else [],
+                # None when browser-use has no price for the model: unpriced, never free.
+                "cost_lines": [{"component": "model", "dollars": result.cost_usd}],
             }
         )
         await asyncio.to_thread(sys.stdin.readline)
@@ -59,6 +64,34 @@ async def run(request: dict[str, object]) -> None:
             with contextlib.suppress(Exception):
                 await browser.stop()
         emit({"event": "stopped", "stopped": True})
+
+
+def steps(messages: list[Any]) -> list[dict[str, object]]:
+    """Each tool call the agent made, with what it returned. browser-use 1.x keeps no per-step history: its agent
+    runs Python cells, and the run's transcript (Pydantic AI messages) is the record of them."""
+    calls: dict[str, dict[str, object]] = {}
+    log: list[dict[str, object]] = []
+    for message in messages:
+        for part in message.parts:
+            match part.part_kind:
+                case "tool-call":
+                    step: dict[str, object] = {"tool": part.tool_name, "args": part.args_as_dict()}
+                    calls[part.tool_call_id] = step
+                    log.append(step)
+                case "tool-return" | "retry-prompt" if part.tool_call_id in calls:
+                    step = calls[part.tool_call_id]
+                    if part.part_kind == "tool-return":
+                        step["output"], step["ok"] = part.model_response_str(), part.outcome == "success"
+                    else:
+                        step["output"], step["ok"] = part.model_response(), False
+                case _:
+                    pass
+    return log
+
+
+def models(messages: list[Any]) -> list[str]:
+    """The models that answered, as their responses name them."""
+    return list(dict.fromkeys(m.model_name for m in messages if m.kind == "response" and m.model_name))
 
 
 def emit(message: dict[str, object]) -> None:

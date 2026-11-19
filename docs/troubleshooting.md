@@ -37,8 +37,8 @@ directory is deleted only after Langfuse provably holds all of it.
 `INVALID` is an evidence or execution fault, never a quality verdict. Common
 causes, with the reason in the row or on stderr:
 
-- **Missing judges.** No `OPENROUTER_API_KEY` for Jev leaves checks ungraded.
-  See [judging](jev-judge.md).
+- **Missing judges.** No `OPENROUTER_API_KEY` for the judge panel leaves checks ungraded.
+  See [judging](judging.md).
 - **`boot_error` / `box:` / `start:`.** The harness could not boot. The reason
   names the missing binary, image or configuration.
 - **`meter unreachable:`.** A metered harness needs the meter, which needs the
@@ -54,7 +54,7 @@ reading the numbers.
 
 The trial executed, but a judge could not settle a check: the fallback judges
 disagreed or returned nothing. The known decisions and judge charges are kept.
-See [judging](jev-judge.md).
+See [judging](judging.md).
 
 ## Docker errors, or no Docker
 

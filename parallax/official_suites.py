@@ -23,10 +23,10 @@ from urllib.parse import urlparse
 import httpx
 from pydantic import BaseModel, JsonValue
 
-from parallax.browser_evidence import reported
+from parallax.browser_evidence import BrowserEvidence, reported
 from parallax.extensions import GradeRequest, GradingPolicy, TaskExtension
 from parallax.judge import MissingEvidence
-from parallax.judging import JudgePolicy
+from parallax.judging import Decision, FallbackCall, JudgePolicy, Judgment
 from parallax.models import (
     Area,
     Capability,
@@ -292,7 +292,9 @@ def _config(req: GradeRequest, spec: SuiteSpec) -> _Config:
     api_key = config.api_key if config is not None else os.environ.get("PARALLAX_JUDGE_API_KEY", "")
     if not root.is_dir() or not python.is_file() or not base_url or not api_key:
         raise OfficialSuiteError("official judge checkout, interpreter, endpoint and key must be configured")
-    return _Config(root=root, python=python.resolve(), base_url=base_url, api_key=api_key)
+    # Absolute but not resolved: a virtual environment's `python` is a symlink to its base interpreter, and only
+    # launched through the link does it find the environment's `pyvenv.cfg` and the judge's installed packages.
+    return _Config(root=root, python=python.expanduser().absolute(), base_url=base_url, api_key=api_key)
 
 
 def _model(req: GradeRequest, spec: SuiteSpec) -> str:
@@ -422,7 +424,6 @@ async def _bridge(spec: SuiteSpec, req: GradeRequest, payload: dict[str, JsonVal
 
 
 async def _grade(spec: SuiteSpec, req: GradeRequest) -> Graded:
-    checks = _checks(req.task)
     interruption = req.execution.get("error")
     if isinstance(interruption, str) and interruption.startswith("environment interruption: "):
         return _unjudged(req.task, interruption)
@@ -433,31 +434,78 @@ async def _grade(spec: SuiteSpec, req: GradeRequest) -> Graded:
     if not evidence.observed():
         return _unjudged(req.task, "missing evidence: browser harness reported no observations")
     try:
-        _model(req, spec)
-        with tempfile.TemporaryDirectory(prefix="parallax-official-") as directory:
-            result = await _bridge(spec, req, _request(spec, req, evidence, Path(directory)))
+        model = _model(req, spec)
+        _config(req, spec)
     except (OfficialSuiteError, OSError, ValueError) as exc:
         return _unjudged(req.task, f"missing evidence: official judge unavailable: {exc}")
+    return await _upstream(spec, req, evidence, model)
+
+
+UPSTREAM_QUESTIONS = {"upstream": "The published upstream judge decides the task."}
+
+
+def _judgment(
+    spec: SuiteSpec, model: str, payload: Mapping[str, JsonValue], result: Mapping[str, Any]
+) -> Judgment | None:
+    """The bridge's measured calls as a judgment the runner prices, with the upstream judge's verdict and its
+    reasoning so an audit can read why a trial passed or failed; None when it reported no calls."""
+    calls = result.get("calls")
+    if not isinstance(calls, list) or not calls:
+        return None
+    passed, reason = result.get("passed"), result.get("reason")
+    decisions = (
+        {"upstream": Decision(passed=passed, source="llm", reason=reason)}
+        if isinstance(passed, bool) and isinstance(reason, str)
+        else {}
+    )
+    return Judgment(
+        policy=spec.policy,
+        identity=_identity(spec, model),
+        state_sha256=hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest(),
+        questions=UPSTREAM_QUESTIONS,
+        decisions=decisions,
+        fallback_calls=tuple(
+            FallbackCall.model_validate({**call, "model": model, "attempt": index}) for index, call in enumerate(calls)
+        ),
+    )
+
+
+async def _upstream(spec: SuiteSpec, req: GradeRequest, evidence: BrowserEvidence, model: str) -> Graded:
+    checks = _checks(req.task)
+    try:
+        with tempfile.TemporaryDirectory(prefix="parallax-official-") as directory:
+            payload = _request(spec, req, evidence, Path(directory))
+            result = await _bridge(spec, req, payload)
+    except (OfficialSuiteError, OSError, ValueError) as exc:
+        # The bridge may have reached the judge before failing, and a failed bridge reports no calls, so the
+        # judge cost is unknown.
+        unjudged = _unjudged(req.task, f"missing evidence: official judge unavailable: {exc}")
+        return unjudged.model_copy(update={"unpriced_calls": 1})
+    judgment = _judgment(spec, model, payload, result)
+    # A bridge that reported no calls leaves the judge cost unknown.
+    judgments, unpriced = ((judgment,), 0) if judgment is not None else ((), 1)
+    spend = {"judgments": judgments, "unpriced_calls": unpriced}
     if not isinstance(result.get("score"), (int, float)) or not isinstance(result.get("passed"), bool):
-        return _unjudged(req.task, "missing evidence: upstream judge returned no valid score")
+        return _unjudged(req.task, "missing evidence: upstream judge returned no valid score").model_copy(update=spend)
     score = float(result["score"])
     if not 0 <= score <= 1:
-        return _unjudged(req.task, "missing evidence: upstream judge returned an out-of-range score")
-    model = _model(req, spec)
+        unjudged = _unjudged(req.task, "missing evidence: upstream judge returned an out-of-range score")
+        return unjudged.model_copy(update=spend)
     detail = f"upstream judge score={score:.6g}; model={model}; revision={spec.upstream_commit}"
     return Graded(
         checks=tuple(_result(checks[0], bool(result["passed"]), detail) for _ in checks),
         judge_identity=_identity(spec, model),
         score=score,
+        judgments=judgments,
+        unpriced_calls=unpriced,
     )
 
 
 def _policy(spec: SuiteSpec) -> GradingPolicy:
     judge = JudgePolicy(
         name=f"{spec.policy}:{spec.upstream_commit}",
-        questions={"upstream": "The published upstream judge decides the task."},
+        questions=UPSTREAM_QUESTIONS,
         evidence_form=f"{spec.source} BrowserEvidence adapter, pinned judge revision {spec.upstream_commit}",
-        use_jev=False,
     )
     return GradingPolicy(
         id=spec.policy,

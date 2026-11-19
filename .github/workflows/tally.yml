@@ -17,6 +17,8 @@ concurrency:
 jobs:
   tally:
     name: Tally keys
+    # The tally action is private to agent-labs-dev, so a fork cannot run it.
+    if: github.repository == 'agent-labs-dev/parallax'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:

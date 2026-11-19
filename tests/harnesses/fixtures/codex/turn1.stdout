@@ -1,0 +1,7 @@
+{"type":"thread.started","thread_id":"01a0d006-b106-7860-91f7-e1472db2f71f"}
+{"type":"item.completed","item":{"id":"item_0","type":"error","message":"Model metadata for `gpt-5.1` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."}}
+{"type":"turn.started"}
+{"type":"item.started","item":{"id":"item_1","type":"mcp_tool_call","server":"world","tool":"chat_post_message","arguments":{"channel":"#conf","text":"nonce-4471"},"result":null,"error":null,"status":"in_progress"}}
+{"type":"item.completed","item":{"id":"item_1","type":"mcp_tool_call","server":"world","tool":"chat_post_message","arguments":{"channel":"#conf","text":"nonce-4471"},"result":{"content":[{"type":"text","text":"{\n  \"id\": \"msg_1\",\n  \"channel\": \"#conf\",\n  \"text\": \"nonce-4471\"\n}"}],"structured_content":null},"error":null,"status":"completed"}}
+{"type":"item.completed","item":{"id":"item_2","type":"agent_message","text":"Posted nonce-4471 to #conf."}}
+{"type":"turn.completed","usage":{"input_tokens":400,"cached_input_tokens":100,"cache_write_input_tokens":0,"output_tokens":24,"reasoning_output_tokens":6}}

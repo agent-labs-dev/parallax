@@ -7,7 +7,7 @@ checks:
      note: "INV-3024 is cancelled by credit note CN-0412"}
   - {id: rest-of-ledger-untouched, kind: state, mode: wrong_target, table: sheets.rows,
      where: {id: {none_of: [r017, r052, r078, r090, r109, r024]}}, unchanged: true,
-     note: "every other row keeps its seed values: the part-paid INV-3031 and the failed-charge INV-3047 stay Unpaid, and the CN-0412 row is unchanged"}
+     note: "every other row keeps its seed Status, Invoice, Customer, Amount and Due: the part-paid INV-3031 and the failed-charge INV-3047 stay Unpaid, and the CN-0412 row is unchanged; a short Note recording a part payment, a failed charge or a chaser is fine on any row"}
   - {id: reconciled-rows-kept, kind: state, mode: collateral_change, table: sheets.rows,
      where: {id: {any_of: [r017, r052, r078, r090, r109, r024]}}, count: 6,
      note: "on the reconciled rows only Status changed (a short Note about the payment or credit is also fine); Invoice, Customer, Amount and Due keep their seed values"}
@@ -35,8 +35,8 @@ checks:
     mode: wrong_output
     sees: [answers]
     items:
-      - "Does the reply say which invoices were marked paid (INV-3017, 3052, 3078, 3090, 3109) and that INV-3024 was credited, and that chasers were drafted (not sent) for Calder Farms, Brookline Legal, Eastgate Media, Fairlight Studios and Glenrock Freight?"
-      - "Does the reply report what was left without a chaser: Dunmore Games' INV-3038 because of its 24 October promise, and the invoices overdue 30 days or less (INV-3071, INV-3084, INV-3096, INV-3103)?"
+      - "Does the reply say which invoices were marked paid (INV-3017, 3052, 3078, 3090, 3109, named by invoice number or by customer) and that INV-3024 was credited, and that chasers were drafted (not sent) for Calder Farms, Brookline Legal, Eastgate Media, Fairlight Studios and Glenrock Freight?"
+      - "Does the reply say what was left without a chaser and why: Dunmore Games because of its 24 October promise, and that invoices overdue 30 days or less were not chased? Listing those newer invoices one by one is not needed."
   - {id: world-untouched, kind: state, mode: collateral_change, table: "*", unchanged: true,
      except_tables: [sheets.rows, mail.drafts, user.interactions],
      note: "no charge, refund, sent mail, archive or wiki edit"}

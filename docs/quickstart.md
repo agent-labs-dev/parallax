@@ -42,14 +42,14 @@ Parallax reads its configuration from the environment.
 | `LANGFUSE_BASE_URL` (or `LANGFUSE_HOST`) | The Langfuse server |
 | `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | API keys for the project results go in |
 | `PARALLAX_LANGFUSE_PROJECT` | The id or name of that project. Writes are refused when the keys belong to any other project, so eval data never lands in a production tracing project |
-| `OPENROUTER_API_KEY` | The Jev judge, through OpenRouter |
+| `OPENROUTER_API_KEY` | The LLM judge panel, through OpenRouter |
 | `PARALLAX_JUDGE_MODELS`, `PARALLAX_JUDGE_BASE_URL`, `PARALLAX_JUDGE_API_KEY`, `PARALLAX_JUDGE_PROVIDERS` | Optional: the LLM judge fallback. Unset, it is DeepSeek V4.1 Flash 1017 on OpenRouter with `OPENROUTER_API_KEY` |
 | `PARALLAX_UPSTREAM_OPENAI_KEY`, `PARALLAX_UPSTREAM_ANTHROPIC_KEY` | The metering proxy's provider keys, one per wire your models use |
 
 The OpenAI wire defaults to OpenRouter; see
 [running real harnesses](adapters.md#running-real-harnesses) to call a provider
 directly. Provider keys never enter the harness's box: the meter swaps them in.
-[Judging](jev-judge.md) covers the judge settings.
+[Judging](judging.md) covers the judge settings.
 
 ## Check the tasks
 
@@ -105,6 +105,23 @@ parallax show <run-id>     # one run, task by task
 In Langfuse, each task version is a dataset item and each harness/model row of
 a run is an experiment. [Tracking](tracking.md) lists the scores and what each
 item carries.
+
+## Regrade a run
+
+```sh
+parallax regrade runs/<run-id> --out runs/<run-id>-regraded --judge deepseek/deepseek-v4.1-flash-1017
+```
+
+`regrade` grades a finished run again under another judge panel without running
+any agent again. It copies the run to `--out` and grades each judged trial from
+what its directory recorded: the browser evidence, answers, status and steps,
+and the date the trial ran on. Trials no judge decided, such as boot errors,
+keep their rows. It refuses when a task's content changed since the run, since
+the new verdict would grade checks the agent never saw, and it regrades browser
+(world-less) tasks only. The new run is sealed, so `parallax upload --resume
+--root <dir>` uploads it. Rows graded under
+different judges never pool, so compare a regraded run only with runs graded
+by the same panel.
 
 ## Compare runs
 

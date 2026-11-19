@@ -2,10 +2,14 @@
 
 import dataclasses
 import hashlib
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+import httpx
 import pytest
+from parallax.judge import JudgeConfig, JudgePanel
+from parallax.judging import judge_questions
 from parallax.models import (
     AnswerCheck,
     CheckSet,
@@ -39,6 +43,25 @@ EV = Evidence(
 )
 
 
+CONFIG = JudgeConfig(base_url="https://fake/v1", api_key="test")
+PANEL = JudgePanel(models=("judge",))
+
+
+def _sent(request: httpx.Request) -> dict[str, object]:
+    """The evidence and questions a panel request carried."""
+    content = json.loads(request.content)["messages"][1]["content"]
+    return json.loads(content if isinstance(content, str) else content[0]["text"])
+
+
+def _votes(votes: dict[str, bool | None], usage: dict[str, object] | None = None) -> dict[str, object]:
+    items = [{"q": q, "yes": vote, "why": "canned protocol reply"} for q, vote in votes.items()]
+    return {"choices": [{"message": {"content": json.dumps({"items": items})}}], "usage": usage or {}}
+
+
+def _fallback_reply(vote: bool | None) -> dict[str, object]:
+    return _votes({"q": vote}, {"cost": 0.01})
+
+
 async def test_missing_judges_never_pass_a_keyword_gate(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     task = TASK.model_copy(update={"checks": CheckSet(checks=(CHECK,))})
@@ -59,70 +82,36 @@ def test_process_status_alone_cannot_assign_agent_failure(status: TrajectoryStat
     assert decide(None, [], status, [])[0] is Verdict.INVALID
 
 
-@pytest.mark.parametrize(
-    ("probability", "fallback", "expected"),
-    [(0.99, None, True), (0.01, None, False), (0.5, False, False), (0.5, None, None)],
-)
-async def test_jev_first_and_llm_fallback_protocol(
-    probability: float, fallback: bool | None, expected: bool | None
-) -> None:
-    import json
-
-    import httpx
-    from parallax import jev
-    from parallax.judge import JudgeConfig, JudgePanel
-    from parallax.semantic import grade_checks
-
+@pytest.mark.parametrize("vote", [True, False, None])
+async def test_the_panel_decides_each_check_from_the_evidence(vote: bool | None) -> None:
     seen = []
 
     def handler(request: httpx.Request) -> httpx.Response:
         seen.append(request.url.path)
-        if request.url.path.endswith("/systemone"):
-            body = json.loads(request.content)
-            assert body["state"]["evidence"]["answers"] == list(EV.answers)
-            return httpx.Response(
-                200,
-                json={
-                    "answers": {"honest": {"type": "noul", "noul": probability}},
-                    "usage": {"input_tokens": 1, "output_tokens": 0},
-                },
-            )
-        return httpx.Response(
-            200,
-            json={
-                "choices": [
-                    {
-                        "message": {
-                            "content": json.dumps(
-                                {
-                                    "items": [
-                                        {"q": CHECK.id, "yes": fallback, "why": "canned protocol reply"},
-                                    ]
-                                }
-                            )
-                        }
-                    }
-                ]
-            },
-        )
+        assert _sent(request)["evidence"]["evidence"]["answers"] == list(EV.answers)
+        return httpx.Response(200, json=_votes({CHECK.id: vote}))
 
     task = TASK.model_copy(update={"checks": CheckSet(checks=(CHECK,))})
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
-        graded = await grade_checks(
-            task,
-            EV,
-            JudgePanel(models=("judge",)),
-            JudgeConfig(base_url="https://fake/v1", api_key="test"),
-            None,
-            client=client,
-            jev_config=jev.JevConfig(base_url="https://fake/v1", model="jev", api_key="test"),
-        )
-    assert graded.checks[0].passed is expected
-    assert seen == (["/v1/systemone", "/v1/chat/completions"] if probability == 0.5 else ["/v1/systemone"])
+        graded = await grade_checks(task, EV, PANEL, CONFIG, None, client=client)
+    assert graded.checks[0].passed is vote
+    assert seen == ["/v1/chat/completions"]
+
+
+async def test_without_a_panel_every_question_is_undecided_and_nothing_is_sent() -> None:
+    def unexpected(request: httpx.Request) -> httpx.Response:
+        pytest.fail("no panel is configured, so nothing may be sent")
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(unexpected)) as client:
+        judgment = await judge_questions({}, client, None, None, {"a": "A?", "b": "B?"}, policy="test")
+    assert {k: (d.passed, d.reason) for k, d in judgment.decisions.items()} == {
+        "a": (None, "no judge panel configured"),
+        "b": (None, "no judge panel configured"),
+    }
+    assert judgment.fallback_calls == () and judgment.cost() == (0.0, 0)
 
 
 async def test_oversize_evidence_abstains_before_any_request() -> None:
-    import httpx
     from parallax.semantic import PACK_LIMIT, grade_checks
 
     def unexpected(request: httpx.Request) -> httpx.Response:
@@ -140,8 +129,21 @@ async def test_oversize_evidence_abstains_before_any_request() -> None:
 def test_judge_configuration_changes_resume_identity(monkeypatch: pytest.MonkeyPatch) -> None:
     from parallax.semantic import policy_identity
 
+    monkeypatch.delenv("PARALLAX_JUDGE_BASE_URL", raising=False)
     before = policy_identity()
-    monkeypatch.setenv("PARALLAX_JEV_MODEL", "different-model")
+    monkeypatch.setenv("PARALLAX_JUDGE_BASE_URL", "https://other/v1")
+    assert policy_identity() != before
+
+
+def test_a_provider_pin_changes_resume_identity(monkeypatch: pytest.MonkeyPatch) -> None:
+    from parallax.judge import PROVIDERS_ENV
+    from parallax.semantic import policy_identity
+
+    monkeypatch.setenv("PARALLAX_JUDGE_API_KEY", "k")
+    monkeypatch.setenv("PARALLAX_JUDGE_BASE_URL", "https://openrouter.ai/api/v1")
+    monkeypatch.delenv(PROVIDERS_ENV, raising=False)
+    before = policy_identity()
+    monkeypatch.setenv(PROVIDERS_ENV, "deepinfra")
     assert policy_identity() != before
 
 
@@ -160,44 +162,31 @@ async def test_world_failure_is_execution_invalid_before_judging() -> None:
     [(False, True, Verdict.INVALID), (True, False, Verdict.FAIL), (True, True, Verdict.PASS)],
 )
 async def test_ambiguous_execution_is_judged_before_quality(valid, quality, verdict, tmp_path):
-    import json
-
-    import httpx
-    from parallax.jev import JevConfig
-    from parallax.semantic import grade_checks, record_grade
+    from parallax.semantic import record_grade
 
     seen = []
     steps = [{"kind": "tool_call", "name": "list_jobs", "output": "Found 0 job(s)", "ok": True}]
 
     def handle(request):
-        body = json.loads(request.content)
+        body = _sent(request)
         validity = "valid_execution" in body["questions"]
         seen.append(validity)
-        assert ("execution" in body["state"]) == validity
+        assert ("execution" in body["evidence"]) == validity
         if not validity:
             # Product-side tool steps reach the quality judge too; the world log never holds them.
-            assert body["state"]["tool_diagnostics"] == steps
-        return httpx.Response(
-            200,
-            json={
-                "answers": {
-                    key: {"type": "noul", "noul": 0.99 if (valid if validity else quality) else 0.01}
-                    for key in body["questions"]
-                },
-                "usage": {"input_tokens": 10, "output_tokens": 0},
-            },
-        )
+            assert body["evidence"]["tool_diagnostics"] == steps
+        vote = valid if validity else quality
+        return httpx.Response(200, json=_votes(dict.fromkeys(body["questions"], vote), {"prompt_tokens": 10}))
 
     task = TASK.model_copy(update={"checks": CheckSet(checks=(CHECK,))})
     async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
         graded = await grade_checks(
             task,
             EV,
-            None,
-            None,
+            PANEL,
+            CONFIG,
             None,
             client=client,
-            jev_config=JevConfig(base_url="https://fake/v1", model="jev", api_key="test"),
             execution={"status": "harness_error", "error": "ambiguous fixture", "tool_diagnostics": steps},
         )
     assert (
@@ -210,107 +199,38 @@ async def test_ambiguous_execution_is_judged_before_quality(valid, quality, verd
     record_grade(journal, task, graded)
     rows = [json.loads(line) for line in journal.read_text().splitlines()]
     assert len(rows) == 2
-    assert rows[0]["grade"]["judgments"][0]["jev_call"]["input_tokens"] == 10
+    assert rows[0]["grade"]["judgments"][0]["fallback_calls"][0]["input_tokens"] == 10
 
 
 async def test_panel_disagreement_and_unavailable_member_cannot_pass():
-    import json
-
-    import httpx
-    from parallax.judge import JudgeConfig, JudgePanel
-    from parallax.judging import judge_questions
-
     def handle(request):
         body = json.loads(request.content)
         if body["model"] == "missing":
             return httpx.Response(503)
-        vote = body["model"] == "yes"
-        return httpx.Response(
-            200,
-            json={
-                "choices": [
-                    {
-                        "message": {
-                            "content": json.dumps({"items": [{"q": "q", "yes": vote, "why": "canned protocol reply"}]})
-                        }
-                    }
-                ]
-            },
-        )
+        return httpx.Response(200, json=_votes({"q": body["model"] == "yes"}))
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
         for models in [("yes", "no"), ("missing", "yes")]:
             judgment = await judge_questions(
-                {},
-                client,
-                None,
-                JudgeConfig(base_url="https://fake/v1", api_key="test"),
-                JudgePanel(models=models),
-                {"q": "Requirement"},
-                policy="test",
+                {}, client, CONFIG, JudgePanel(models=models), {"q": "Requirement"}, policy="test"
             )
             assert judgment.decisions["q"].passed is None
             assert {call.model for call in judgment.fallback_calls} == set(models)
 
 
-async def test_structured_question_reaches_jev_fallback_and_journal_unchanged():
-    import json
+async def test_a_question_reaches_the_panel_and_the_journal_unchanged():
+    from parallax.judging import Judgment
 
-    import httpx
-    from parallax import jev
-    from parallax.judge import JudgeConfig, JudgePanel
-    from parallax.judging import Judgment, judge_questions
-
-    question = jev.BoolQuestion(
-        instructions=jev.Instructions(question="Is the claimed action evidenced?", inspect=("calls", "answer")),
-        criteria=jev.BoolCriteria(
-            true=jev.Option(what="The result confirms the action."),
-            false=jev.Option(what="The action was rejected or not attempted."),
-        ),
-    )
-    wire = question.model_dump(mode="json", exclude_none=True)
+    question = "Is the claimed action evidenced by a confirming result in the call log?"
 
     def handle(request):
-        body = json.loads(request.content)
-        if request.url.path.endswith("/systemone"):
-            assert body["questions"] == {"action": wire}
-            return httpx.Response(
-                200,
-                json={
-                    "answers": {"action": {"type": "noul", "noul": 0.5}},
-                    "usage": {"input_tokens": 10, "output_tokens": 0},
-                },
-            )
-        assert json.loads(body["messages"][1]["content"])["questions"] == {"action": wire}
-        return httpx.Response(
-            200,
-            json={
-                "choices": [
-                    {
-                        "message": {
-                            "content": json.dumps(
-                                {
-                                    "items": [{"q": "action", "yes": None, "why": "canned protocol abstention"}],
-                                }
-                            )
-                        }
-                    }
-                ]
-            },
-        )
+        assert _sent(request)["questions"] == {"action": question}
+        return httpx.Response(200, json=_votes({"action": None}))
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
-        result = await judge_questions(
-            {},
-            client,
-            jev.JevConfig(base_url="https://fake/v1", model="jev", api_key="test"),
-            JudgeConfig(base_url="https://fake/v1", api_key="test"),
-            JudgePanel(models=("fallback",)),
-            {"action": question},
-            policy="test",
-        )
+        result = await judge_questions({}, client, CONFIG, PANEL, {"action": question}, policy="test")
     restored = Judgment.model_validate_json(result.model_dump_json())
-    assert restored.questions == {"action": question}
+    assert restored == result
     assert restored.decisions["action"].passed is None
 
 
@@ -348,91 +268,22 @@ def test_file_evidence_skips_bytecode_and_a_git_store(tmp_path: Path) -> None:
 
 
 async def test_missing_verifier_does_not_erase_other_check_outcomes():
-    import json
-
-    import httpx
-    from parallax.jev import JevConfig
     from parallax.models import CommandCheck
-    from parallax.semantic import grade_checks
 
     command = CommandCheck(id="verify", kind="command", mode="wrong_output", run=("true",))
     task = TASK.model_copy(update={"checks": CheckSet(checks=(CHECK, command))})
 
     def handle(request):
-        body = json.loads(request.content)
-        assert set(body["questions"]) == {CHECK.id}
-        return httpx.Response(
-            200,
-            json={
-                "answers": {CHECK.id: {"type": "noul", "noul": 0.99}},
-                "usage": {"input_tokens": 1, "output_tokens": 0},
-            },
-        )
+        assert set(_sent(request)["questions"]) == {CHECK.id}
+        return httpx.Response(200, json=_votes({CHECK.id: True}))
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
-        graded = await grade_checks(
-            task,
-            EV,
-            None,
-            None,
-            None,
-            client=client,
-            jev_config=JevConfig(base_url="https://fake/v1", model="jev", api_key="test"),
-        )
+        graded = await grade_checks(task, EV, PANEL, CONFIG, None, client=client)
     assert [c.passed for c in graded.checks] == [True, None]
-
-
-def _jev_reply(probability: float) -> dict[str, object]:
-    return {
-        "answers": {"q": {"type": "noul", "noul": probability}},
-        "usage": {"input_tokens": 10, "output_tokens": 0, "cost": 0.0000004},
-        "id": "g",
-    }
-
-
-def _fallback_reply(vote: bool | None) -> dict[str, object]:
-    import json
-
-    items = [{"q": "q", "yes": vote, "why": "canned protocol reply"}]
-    return {"choices": [{"message": {"content": json.dumps({"items": items})}}], "usage": {"cost": 0.01}}
-
-
-@pytest.mark.parametrize(
-    ("probability", "settled_by"),
-    [(0.91, "jev"), (0.9, "llm"), (0.5, "llm"), (0.1, "llm"), (0.09, "jev")],
-)
-async def test_jev_settles_only_strictly_beyond_its_thresholds(probability: float, settled_by: str) -> None:
-    """2026-10-16: Jev returned exactly 0.10, a FAIL, on six correct saucedemo-pause runs; a boundary is uncertain."""
-    import httpx
-    from parallax import jev
-    from parallax.judge import JudgeConfig, JudgePanel
-    from parallax.judging import judge_questions, settled
-
-    def handle(request: httpx.Request) -> httpx.Response:
-        if request.url.path.endswith("/systemone"):
-            return httpx.Response(200, json=_jev_reply(probability))
-        return httpx.Response(200, json=_fallback_reply(True))
-
-    async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
-        result = await judge_questions(
-            {},
-            client,
-            jev.JevConfig(base_url="https://fake/v1", model="jev", api_key="test"),
-            JudgeConfig(base_url="https://fake/v1", api_key="test"),
-            JudgePanel(models=("fallback",)),
-            {"q": "Requirement"},
-            policy="test",
-        )
-    assert result.decisions["q"].source == settled_by
-    assert result.decisions["q"].probability == probability
-    assert bool(result.fallback_calls) is (settled_by == "llm")
-    assert settled(probability) is {"jev": probability > 0.5, "llm": None}[settled_by]
 
 
 async def test_a_fallback_refusal_says_why_it_failed() -> None:
     """A refusal carries no text: the error names it instead of a schema error about `content`."""
-    import httpx
-    from parallax.judge import JudgeConfig
     from parallax.judging import FallbackError, fallback
 
     refused = {
@@ -444,17 +295,12 @@ async def test_a_fallback_refusal_says_why_it_failed() -> None:
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
         with pytest.raises(FallbackError, match="refusal I can't help with that"):
-            await fallback(
-                client, JudgeConfig(base_url="https://fake/v1", api_key="test"), "fallback", {}, {"q": "Q"}, None
-            )
+            await fallback(client, CONFIG, "fallback", {}, {"q": "Q"})
 
 
 async def test_a_malformed_fallback_reply_is_sent_back_with_why() -> None:
     """2026-11-16: hosts that ignore `response_format` answered `{"answers": [...]}` and `items[].answer`; the retry
     shows the model its reply and the validation error instead of asking the same question blind."""
-    import json
-
-    import httpx
     from parallax.judging import REPLY_CORRECTION
 
     invented = json.dumps({"answers": [{"q": "q", "answer": "yes", "reason": "the agent did it"}]})
@@ -474,112 +320,6 @@ async def test_a_malformed_fallback_reply_is_sent_back_with_why() -> None:
     assert retry[3]["content"].startswith(REPLY_CORRECTION.split("{error}")[0])
 
 
-async def test_a_corrected_fallback_reply_keeps_the_jev_probability() -> None:
-    import json
-
-    import httpx
-    from parallax import jev
-    from parallax.judge import JudgeConfig, JudgePanel
-    from parallax.judging import judge_questions
-
-    fallback_requests: list[int] = []
-
-    def handle(request: httpx.Request) -> httpx.Response:
-        if request.url.path.endswith("/systemone"):
-            return httpx.Response(200, json=_jev_reply(0.5))
-        fallback_requests.append(1)
-        if len(fallback_requests) == 1:
-            invented = json.dumps({"answers": [{"q": "q", "answer": "yes"}]})
-            return httpx.Response(200, json={"choices": [{"message": {"content": invented}, "finish_reason": "stop"}]})
-        return httpx.Response(200, json=_fallback_reply(True))
-
-    async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
-        result = await judge_questions(
-            {},
-            client,
-            jev.JevConfig(base_url="https://fake/v1", model="jev", api_key="test"),
-            JudgeConfig(base_url="https://fake/v1", api_key="test"),
-            JudgePanel(models=("fallback",)),
-            {"q": "Requirement"},
-            policy="test",
-        )
-    decision = result.decisions["q"]
-    assert (decision.passed, decision.source, decision.probability) == (True, "llm", 0.5)
-    assert len(result.fallback_calls) == 2
-
-
-async def test_a_run_without_jev_grades_with_the_panel_alone_under_its_own_identity() -> None:
-    import httpx
-    from parallax import jev
-    from parallax.judge import JudgeConfig, JudgePanel
-    from parallax.judging import JudgePolicy, identity, judge_parts
-
-    seen: list[str] = []
-
-    def handle(request: httpx.Request) -> httpx.Response:
-        seen.append(request.url.path)
-        if request.url.path.endswith("/systemone"):
-            return httpx.Response(200, json=_jev_reply(0.99))
-        return httpx.Response(200, json=_fallback_reply(True))
-
-    policy = JudgePolicy(name="test", questions={"q": "Requirement"}, evidence_form="test")
-    jev_config = jev.JevConfig(base_url="https://fake/v1", model="jev", api_key="test")
-    llm = JudgeConfig(base_url="https://fake/v1", api_key="test")
-    with_jev, alone = JudgePanel(models=("fallback",)), JudgePanel(models=("fallback",), jev=False)
-    async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
-        decisions, judgments = await judge_parts([{}], client, jev_config, llm, alone, policy)
-    assert seen == ["/v1/chat/completions"]
-    assert decisions["q"].source == "llm" and judgments[0].jev_call is None
-    # Rows graded with and without Jev never pool.
-    assert identity(policy, alone, llm, jev_config) != identity(policy, with_jev, llm, jev_config)
-
-
-def test_no_jev_needs_a_panel_to_grade_with(monkeypatch: pytest.MonkeyPatch) -> None:
-    from parallax.runner import judge_setup
-
-    monkeypatch.delenv("PARALLAX_JUDGE_MODELS", raising=False)
-    monkeypatch.delenv("PARALLAX_JUDGE_API_KEY", raising=False)
-    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
-    with pytest.raises(ValueError, match="--no-jev needs a judge panel"):
-        judge_setup((), jev=False)
-
-
-async def test_a_fallback_only_question_never_reaches_jev() -> None:
-    import httpx
-    from parallax import jev
-    from parallax.judge import JudgeConfig, JudgePanel
-    from parallax.judging import judge_questions
-
-    seen: list[str] = []
-
-    def handle(request: httpx.Request) -> httpx.Response:
-        seen.append(request.url.path)
-        if request.url.path.endswith("/systemone"):
-            return httpx.Response(200, json=_jev_reply(0.01))
-        return httpx.Response(200, json=_fallback_reply(True))
-
-    jev_config = jev.JevConfig(base_url="https://fake/v1", model="jev", api_key="test")
-    async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
-        routed = await judge_questions(
-            {},
-            client,
-            jev_config,
-            JudgeConfig(base_url="https://fake/v1", api_key="test"),
-            JudgePanel(models=("fallback",)),
-            {"q": "Requirement"},
-            policy="test",
-            fallback_only="safety task",
-        )
-        # With no fallback configured, the routed question abstains rather than falling back to Jev.
-        unjudged = await judge_questions(
-            {}, client, jev_config, None, None, {"q": "Requirement"}, policy="test", fallback_only="safety task"
-        )
-    assert seen == ["/v1/chat/completions"]
-    assert routed.jev_call is None and routed.fallback_reason == "safety task"
-    assert routed.decisions["q"].passed is True and routed.decisions["q"].source == "llm"
-    assert unjudged.decisions["q"].passed is None and "safety task" in unjudged.decisions["q"].reason
-
-
 # Recorded 2026-10-16 from OpenRouter for an over-window browser state; request, user and generation ids replaced.
 PROMPT_TOO_LONG = (
     b'{"error":{"message":"Provider returned error","code":400,"metadata":{"raw":"{\\"type\\":\\"error\\",'
@@ -589,26 +329,23 @@ PROMPT_TOO_LONG = (
 )
 
 
-async def _fallback(handle, state, model="anthropic/claude-opus-5.5"):
-    import httpx
-    from parallax.judge import JudgeConfig, JudgePanel
-    from parallax.judging import judge_questions
+# Recorded 2026-11-17 from OpenRouter for GPT-6.1 Terra sent `temperature` with `require_parameters`.
+NO_ENDPOINTS = (
+    b'{"error": {"message": "No endpoints found that can handle the requested parameters. To learn more about provider'
+    b' routing, visit: https://openrouter.ai/docs/guides/routing/provider-selection", "code": 404, "metadata":'
+    b' {"routing_funnel": [{"step": "Initial Endpoints", "endpoint_count": 7}], "failed_routing_step":'
+    b' "Filter by Parameters"}}}'
+)
 
+
+async def _fallback(handle, state, model="anthropic/claude-opus-5.5"):
     async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
         return await judge_questions(
-            state,
-            client,
-            None,
-            JudgeConfig(base_url="https://fake/v1", api_key="test"),
-            JudgePanel(models=(model,)),
-            {"q": "Requirement"},
-            policy="test",
-            fallback_only="routed",
+            state, client, CONFIG, JudgePanel(models=(model,)), {"q": "Requirement"}, policy="test"
         )
 
 
 async def test_a_prompt_too_long_refusal_is_a_known_zero_and_not_retried() -> None:
-    import httpx
 
     sent: list[int] = []
 
@@ -647,7 +384,6 @@ def _png(width: int, height: int, salt: bytes = b"") -> str:
 
 
 async def test_a_state_over_the_fallback_window_is_never_sent() -> None:
-    import httpx
     from parallax import judging
 
     def refuse(request: httpx.Request) -> httpx.Response:
@@ -666,21 +402,15 @@ async def test_a_state_over_the_fallback_window_is_never_sent() -> None:
     assert result.fallback_calls == () and "2000 px a side" in result.decisions["q"].reason
 
 
-async def test_screenshots_reach_the_fallback_as_images_once_each_and_never_jev() -> None:
+async def test_screenshots_reach_the_panel_as_images_once_each() -> None:
     """2026-10-16: a hosted session's nine 1920x824 screenshots were ~1.9M tokens as JSON text, ~19k as images."""
-    import json
-
-    import httpx
-    from parallax import images, jev
-    from parallax.judge import JudgeConfig, JudgePanel
-    from parallax.judging import judge_questions
+    from parallax import images
 
     shot, other = _png(1920, 824, b"a"), _png(1920, 824, b"b")
     state = {"steps": [{"observation": [{"type": "image_url", "image_url": {"url": shot}}]}, {"seen": shot}, other]}
     bodies: list[dict[str, object]] = []
 
     def handle(request: httpx.Request) -> httpx.Response:
-        assert request.url.path.endswith("/chat/completions"), "Jev cannot read images"
         bodies.append(json.loads(request.content))
         return httpx.Response(200, json=_fallback_reply(True))
 
@@ -688,13 +418,11 @@ async def test_screenshots_reach_the_fallback_as_images_once_each_and_never_jev(
         result = await judge_questions(
             state,
             client,
-            jev.JevConfig(base_url="https://fake/v1", model="jev", api_key="test"),
-            JudgeConfig(base_url="https://fake/v1", api_key="test"),
+            CONFIG,
             JudgePanel(models=("anthropic/claude-opus-5.5",)),
             {"q": "Requirement"},
             policy="test",
         )
-    assert result.jev_call is None and "Jev reads text only" in (result.fallback_reason or "")
     assert result.decisions["q"].passed is True
     [body] = bodies
     parts = body["messages"][1]["content"]  # type: ignore[index]
@@ -727,10 +455,7 @@ async def test_screenshots_reach_the_fallback_as_images_once_each_and_never_jev(
 
 
 async def test_a_grading_policy_grades_its_checks_from_product_state(monkeypatch: pytest.MonkeyPatch) -> None:
-    import json
-
-    import httpx
-    from parallax import extensions, jev
+    from parallax import extensions
     from parallax.semantic import grade_checks, policy_identity
     from pydantic import BaseModel
 
@@ -745,26 +470,24 @@ async def test_a_grading_policy_grades_its_checks_from_product_state(monkeypatch
     sent = []
 
     def handler(request: httpx.Request) -> httpx.Response:
-        body = json.loads(request.content)
+        body = _sent(request)
         sent.append(body)
-        answers = {q: {"type": "noul", "noul": 0.99} for q in body["questions"]}
-        return httpx.Response(200, json={"answers": answers, "usage": {"input_tokens": 1, "output_tokens": 0}})
+        return httpx.Response(200, json=_votes(dict.fromkeys(body["questions"], True)))
 
     task = TASK.model_copy(update={"checks": CheckSet(checks=(CHECK,)), "extensions": {"fake": {}}})
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         graded = await grade_checks(
             task,
             EV,
-            None,
-            None,
+            PANEL,
+            CONFIG,
             None,
             client=client,
-            jev_config=jev.JevConfig(base_url="https://fake/v1", model="jev", api_key="test"),
             product={"channel": "renamed"},
         )
     assert [c.id for c in graded.checks] == ["renamed"]
     assert graded.checks[0].passed is True
-    assert sent[0]["state"]["product"] == {"channel": "renamed"}
+    assert sent[0]["evidence"]["product"] == {"channel": "renamed"}
     assert "product-v1" in policy_identity()
 
 
@@ -794,46 +517,23 @@ def test_a_venv_the_agent_made_is_tooling_and_a_link_is_judged_by_its_target(tmp
     assert state["files"] == {"latest.md": {"symlink": "notes.md"}, "notes.md": "budget\n"}
 
 
-@pytest.mark.parametrize(
-    ("probability", "stdout", "vote", "passed", "asked_panel"),
-    [
-        (0.09, "3 passed in 0.01s", True, True, True),  # #18: Jev failed a suite the verifier saw pass
-        (0.95, "1 failed, 2 passed", False, False, True),
-        (0.09, "1 failed, 2 passed", True, False, False),  # agrees with the verifier, so Jev settles it
-        (0.95, "3 passed in 0.01s", False, True, False),
-    ],
-)
-async def test_jev_cannot_settle_a_command_check_against_the_verifier(
-    probability: float, stdout: str, vote: bool, passed: bool, asked_panel: bool
-) -> None:
-    import json
-
-    import httpx
-    from parallax import jev
-    from parallax.judge import JudgeConfig, JudgePanel
-    from parallax.models import CommandCheck, CommandOutcome
-    from parallax.semantic import grade_checks
-
-    command = CommandCheck(id="q", kind="command", mode="broke_build", run=("pytest",), stdout=("3 passed",))
-    task = TASK.model_copy(update={"checks": CheckSet(checks=(command,))})
-    ev = EV.model_copy(update={"verify": {"q": CommandOutcome(exit=0, stdout=stdout, stderr="", error=None)}})
-    panel_asked: list[object] = []
+async def test_a_judge_model_is_sent_only_the_sampling_fields_its_hosts_accept() -> None:
+    """2026-11-17: every GPT-6.1 Terra judge call failed, because `temperature` reached a model no host serves it
+    for; the gateway's message is what named the cause, and the row had kept only "404 Not Found"."""
+    bodies: list[dict[str, object]] = []
 
     def handle(request: httpx.Request) -> httpx.Response:
-        if request.url.path.endswith("/systemone"):
-            return httpx.Response(200, json=_jev_reply(probability))
-        panel_asked.append(json.loads(request.content))
-        return httpx.Response(200, json=_fallback_reply(vote))
+        body = json.loads(request.content)
+        bodies.append(body)
+        if "temperature" in body:
+            return httpx.Response(404, content=NO_ENDPOINTS)
+        return httpx.Response(200, json=_fallback_reply(True))
 
-    async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
-        graded = await grade_checks(
-            task,
-            ev,
-            JudgePanel(models=("fallback",)),
-            JudgeConfig(base_url="https://fake/v1", api_key="test"),
-            None,
-            client=client,
-            jev_config=jev.JevConfig(base_url="https://fake/v1", model="jev", api_key="test"),
-        )
-    assert graded.checks[0].passed is passed
-    assert bool(panel_asked) is asked_panel
+    result = await _fallback(handle, {"text": "x"}, model="openai/gpt-6.1-terra")
+    assert result.decisions["q"].passed is True
+    assert bodies[0]["reasoning"] == {"effort": "medium"}
+
+    bodies.clear()
+    result = await _fallback(handle, {"text": "x"}, model="deepseek/deepseek-v4.1-flash-1017")
+    assert bodies[0]["temperature"] == 0 and result.fallback_calls[0].error is not None
+    assert result.fallback_calls[0].error.startswith("HTTP 404: No endpoints found that can handle")

@@ -23,25 +23,29 @@ from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
+from uuid import uuid4
 
 import httpx
 from pydantic import BaseModel, ConfigDict
 
 from parallax.harnesses.base import HarnessError, config_hash
 from parallax.harnesses.browser import oss_worker
+from parallax.harnesses.browser.browser_harness_worker import Agent
 from parallax.harnesses.browser.clock import SESSION_INCLUDED, AttemptClock
 from parallax.harnesses.browser.cloud import (
-    Browser,
     _failure,
-    _settled,
     _stop,
+    browser_minutes,
     cloud_browser,
-    cost_lines,
     devtools_websocket,
+    opened,
+    stopped_browser_cost,
+    with_stopped_browser_cost,
 )
 from parallax.harnesses.browser.observer import AmbiguousFinalPage, load_observer
-from parallax.harnesses.browser.site import Unavailable, site_down
+from parallax.harnesses.browser.site import Unavailable, browser_site_down
 from parallax.harnesses.browser.subprocess import JsonWorker
+from parallax.harnesses.browser.toolchain import Cli, Toolchain, provision
 from parallax.models import (
     Area,
     Capability,
@@ -79,6 +83,7 @@ class BrowserConfig(BaseModel):
 def _info(
     name: str,
     *,
+    source_url: str,
     pins_model: bool,
     credentials: bool = False,
     credential_env: tuple[str, ...] = (),
@@ -97,8 +102,44 @@ def _info(
         isolation=isolation,
         install=install,
         credential_env=credential_env,
-        source_url="https://parallax.invalid/browser-harness",
+        source_url=source_url,
     )
+
+
+def _step_name(raw: Mapping[str, Any]) -> str | None:
+    """What a step did. Workers name it under different keys: `name` (agent tool calls), `action` (product arms and
+    the evidence timeline), `operation` or `tool` (Browser Use)."""
+    return next((raw[key] for key in ("name", "action", "operation", "tool") if isinstance(raw.get(key), str)), None)
+
+
+def _step_value(raw: Mapping[str, Any]) -> str | None:
+    """What the step was given, as the judge reads it: a `value`, else the code or command it ran, else its
+    arguments whole."""
+    if isinstance(raw.get("value"), str):
+        return raw["value"]
+    args = raw.get("args", raw.get("arguments"))
+    if isinstance(args, Mapping):
+        ran = next((args[key] for key in ("code", "command") if isinstance(args.get(key), str)), None)
+        return ran if ran is not None else json.dumps(args, ensure_ascii=False, default=str)
+    if isinstance(args, list):
+        return " ".join(str(part) for part in args)
+    return args if isinstance(args, str) else None
+
+
+def _step_quote(raw: Mapping[str, Any]) -> str | None:
+    """What the step returned: a `quote`, else its output or observation; a tool result given as content blocks keeps
+    its text."""
+    for key in ("quote", "output", "observation"):
+        value = raw.get(key)
+        if isinstance(value, str):
+            return value
+        if isinstance(value, list):
+            texts = [
+                block["text"] for block in value if isinstance(block, Mapping) and isinstance(block.get("text"), str)
+            ]
+            if texts:
+                return "\n".join(texts)
+    return None
 
 
 def _step(turn: int, raw: Mapping[str, Any]) -> Step:
@@ -110,7 +151,7 @@ def _step(turn: int, raw: Mapping[str, Any]) -> Step:
     return Step(
         turn=turn,
         kind=parsed_kind,
-        name=raw.get("name") or raw.get("operation") or raw.get("tool"),
+        name=_step_name(raw),
         args=raw.get("args", raw.get("target", raw.get("arguments"))),
         output=raw.get("output", raw.get("observation")),
         ok=raw.get("ok"),
@@ -158,6 +199,7 @@ def _usage(raw: object, model: str | None) -> tuple[Usage, ...]:
                     input=int(item.get("input", item.get("input_tokens", 0))),
                     output=int(item.get("output", item.get("output_tokens", 0))),
                     cache_read=int(item.get("cache_read", item.get("cached_input_tokens", 0))),
+                    cache_write=int(item.get("cache_write", 0)),
                     reasoning=int(item.get("reasoning", 0)),
                     requests=int(item.get("requests", 1)),
                     images=int(item.get("images", 0)),
@@ -208,13 +250,13 @@ def _evidence_payload(
         for item in steps:
             if not isinstance(item, Mapping):
                 continue
-            action = item.get("action") or item.get("operation") or item.get("tool")
-            if not isinstance(action, str):
+            action = _step_name(item)
+            if action is None:
                 continue
             step = {"url": str(item.get("url") or final_url), "action": action}
-            for key in ("value", "quote"):
-                if isinstance(item.get(key), str):
-                    step[key] = item[key]
+            for key, read in (("value", _step_value), ("quote", _step_quote)):
+                if (text := read(item)) is not None:
+                    step[key] = text
             if isinstance(item.get("page"), int):
                 step["page"] = item["page"]
             timeline.append(step)
@@ -259,7 +301,6 @@ class BrowserHarness(ABC):
         )
         self._trial: Trial | None = None
         self._clock: AttemptClock | None = None
-        self._browser: Browser | None = None
         self._answer: str | None = None
         self._page: dict[str, Any] | None = None
         self._steps: list[dict[str, Any]] = []
@@ -274,11 +315,11 @@ class BrowserHarness(ABC):
         self._secret_values: dict[str, str] = {}
         self._secret_bindings: list[dict[str, Any]] = []
         self._answer_schema: dict[str, Any] | None = None
-        self._site_preflight_done = False
         self._agent_has_started = False
         self._finished_at: float | None = None  # this turn's agent returned its answer
         self._turn_agent_at: float | None = None  # this turn's agent started: its first ready, else the turn's start
         self._turn_ready = False
+        self._turn_ends_at: float | None = None  # when the runner cancels this turn; None: no limit
         # Per turn: something billable was created, and whether that turn reported its charges.
         self._turn_spending = False
         self._turn_priced = False
@@ -307,20 +348,13 @@ class BrowserHarness(ABC):
         return self._worker_dir
 
     def bind_task(self, task: Task) -> None:
-        """Remember a source task's start URL so a site outage never becomes an agent failure."""
+        """Remember a source task's secrets, answer schema and start page, where a secret is bound and an outage judged."""
         self._task_secrets = dict(task.secrets)
         self._answer_schema = task.answer_schema
         if task.meta.area is Area.BROWSER:
             value = task.data.get("website", task.data.get("start_url"))
             self._start_url = value if isinstance(value, str) else None
             self._start_host = urlsplit(self._start_url).hostname if self._start_url is not None else None
-
-    async def _site_preflight(self) -> str | None:
-        if self._site_preflight_done or self._start_url is None:
-            return None
-        self._site_preflight_done = True
-        async with httpx.AsyncClient() as client:
-            return await site_down(client, self._start_url)
 
     async def start(self, trial: Trial, box: Any) -> None:
         self._trial = trial
@@ -365,17 +399,25 @@ class BrowserHarness(ABC):
 
     async def turn(self, turn: TurnInput) -> TurnOutput:
         began = time.monotonic()
+        self._turn_ends_at = None if turn.deadline_s is None else began + turn.deadline_s
         try:
-            reason = await self._site_preflight()
-            if reason is not None:
-                result = {"status": "unavailable", "answer": None, "error": reason}
-            else:
-                # The clock starts now; spending starts only when `execute` reports its agent started.
-                self._clock_started()
-                self._turn_spending = self._turn_priced = False
-                self._finished_at = None
-                self._turn_agent_at, self._turn_ready = time.monotonic(), False
-                result = await self.execute(turn)
+            # A site's outage is judged by the browser the trial browses with, never a plain HTTP request from the
+            # host, which a site behind bot protection refuses although the browser loads it. Where Parallax opens that
+            # browser, `browser_site_down` asks it; a product that brings its own reports `unavailable` itself.
+            # The clock starts now; spending starts only when `execute` reports its agent started.
+            self._clock_started()
+            self._turn_spending = self._turn_priced = False
+            self._finished_at = None
+            self._turn_agent_at, self._turn_ready = time.monotonic(), False
+            result = await self.execute(turn)
+        except asyncio.CancelledError:
+            # The runner's turn limit cancelled the agent. Keep the pages and steps it reached, so the judge can see
+            # where it stopped and attribute the timeout, instead of grading a run that left no record.
+            try:
+                self._keep_evidence(self.cancelled())
+            except Exception as error:  # the cancellation, not this, is what the runner must see
+                self.trial_notes.append(f"cancelled turn's evidence not kept: {type(error).__name__}: {error}")
+            raise
         except Unavailable as error:
             result = {"status": "unavailable", "answer": None, "error": str(error)}
         except Exception as error:
@@ -383,38 +425,12 @@ class BrowserHarness(ABC):
         status = _normalise_status(result.get("status"))
         answer = self._scrub(result.get("answer"))
         self._answer = _answer_text(answer, structured=self._answer_schema is not None)
-        # A turn's steps point into that turn's `pages`; across turns the pages accumulate, so the indices shift.
-        offset = len(self._pages)
-        self._pages.extend(
-            # As on the final page: text replacement cannot reach pixels.
-            {key: value for key, value in read.items() if key != "screenshot_png_b64"} if self._secret_values else read
-            for read in self._scrub(_mapping_list(result.get("pages")))
-        )
-        self._steps.extend(
-            {**step, "page": step["page"] + offset} if isinstance(step.get("page"), int) else step
-            for step in self._scrub(_mapping_list(result.get("step_log")))
-        )
-        self._citations.extend(self._scrub(_mapping_list(result.get("citations"))))
-        if self._open_tabs:
-            self._page = None  # this turn ended on one of the tabs, not on an earlier turn's final page
-            self._pages.extend(
-                {key: value for key, value in tab.items() if key != "screenshot_png_b64"}
-                if self._secret_values
-                else tab
-                for tab in self._scrub(self._open_tabs)
-            )
-            self._open_tabs = []
+        self._keep_evidence(result)
         if isinstance(result.get("observe_error"), str):
             self.trial_notes.append(f"final page not observed: {self._scrub(result['observe_error'])}")
         if self._clock is not None and (status is TurnStatus.COMPLETED or self._finished_at is not None):
             # Agent time ends when the agent answered; reading the final page and closing the browser are ours.
             self._clock.answered(self._finished_at)
-        page = result.get("final_page")
-        if isinstance(page, Mapping):
-            self._page = self._scrub(dict(page))
-            if self._secret_values and self._page.pop("screenshot_png_b64", None) is not None:
-                # Text replacement cannot reach pixels, and a page can show a bound login; the judge reads its text.
-                self.trial_notes.append("final-page screenshot omitted: the task binds secrets")
         if isinstance(lines := result.get("cost_lines"), list):
             self._record_costs(lines)
         if self._turn_spending and not self._turn_priced:
@@ -442,9 +458,53 @@ class BrowserHarness(ABC):
             steps=_steps(turn.index, self._scrub(result.get("step_log"))),
             usage=_usage(result.get("usage"), self.trial.model),
             actual_model=result.get("actual_model") if isinstance(result.get("actual_model"), str) else None,
+            # A harness that runs several models (a writer and a classifier) names each one it ran.
+            actual_models=tuple(m for m in result.get("actual_models") or () if isinstance(m, str)),
             latency_ms=latency_ms,
             error=error,
         )
+
+    def _keep_evidence(self, result: Mapping[str, Any]) -> None:
+        """Record a turn's pages, steps, citations and final page from `execute`'s result."""
+        # A turn's steps point into that turn's `pages`; across turns the pages accumulate, so the indices shift.
+        offset = len(self._pages)
+        self._pages.extend(
+            # As on the final page: text replacement cannot reach pixels.
+            {key: value for key, value in read.items() if key != "screenshot_png_b64"} if self._secret_values else read
+            for read in self._scrub(_mapping_list(result.get("pages")))
+        )
+        self._steps.extend(
+            {**step, "page": step["page"] + offset} if isinstance(step.get("page"), int) else step
+            for step in self._scrub(_mapping_list(result.get("step_log")))
+        )
+        self._citations.extend(self._scrub(_mapping_list(result.get("citations"))))
+        if self._open_tabs:
+            self._page = None  # this turn ended on one of the tabs, not on an earlier turn's final page
+            self._pages.extend(
+                {key: value for key, value in tab.items() if key != "screenshot_png_b64"}
+                if self._secret_values
+                else tab
+                for tab in self._scrub(self._open_tabs)
+            )
+            self._open_tabs = []
+        page = result.get("final_page")
+        if isinstance(page, Mapping):
+            self._page = self._scrub(dict(page))
+            if self._secret_values and self._page.pop("screenshot_png_b64", None) is not None:
+                # Text replacement cannot reach pixels, and a page can show a bound login; the judge reads its text.
+                self.trial_notes.append("final-page screenshot omitted: the task binds secrets")
+
+    def seconds_left(self) -> float | None:
+        """What is left of this turn's `deadline_s`, for `execute` to give a product that can stop itself; None when
+        the turn has no limit. Reading the final page and closing the browser come after, so a product that uses all
+        of it can still be cancelled: `cancelled()` keeps its evidence then."""
+        return None if self._turn_ends_at is None else max(0.0, self._turn_ends_at - time.monotonic())
+
+    def cancelled(self) -> Mapping[str, Any]:
+        """What the agent reached before the runner cancelled its turn, in the keys `execute` returns (`pages`,
+        `step_log`, `citations`, `final_page`). Called during the cancellation, so it must not await. Empty for a
+        harness that keeps no running record."""
+        return {}
 
     async def stop(self) -> None:
         if self._clock is not None:
@@ -502,6 +562,13 @@ class BrowserHarness(ABC):
             self.trial_notes.append(f"final page not singled out: {len(error.tabs)} tabs open, each kept as a page")
             return None
 
+    def _browser_opened(self, browser_id: object, live_url: object = None) -> None:
+        """Record a Browser Use cloud browser the trial ran on, with its live view link. Browser Use clears the link
+        once the browser stops, so it is read while the browser is open; a trial with several turns has one each."""
+        if isinstance(browser_id, str):
+            browser = {"browser_id": browser_id, "live_url": live_url if isinstance(live_url, str) else None}
+            self._details.setdefault("browsers", []).append(browser)
+
     def _agent_started(self, open_seconds: object = None) -> None:
         """The agent is running and may spend: a worker reported ready, or a cloud task exists."""
         self._spending()
@@ -550,7 +617,13 @@ def _known_costs(raw: object) -> dict[str, float | None]:
 
 class BrowserHarnessCloud(BrowserHarness):
     # A pinned model: omitted, the server picks the project's default, which depends on when the project was made.
-    info = _info("browser-use-cloud", pins_model=True, credentials=True, credential_env=("BROWSER_USE_API_KEY",))
+    info = _info(
+        "browser-use-cloud",
+        source_url="https://docs.browser-use.com",
+        pins_model=True,
+        credentials=True,
+        credential_env=("BROWSER_USE_API_KEY",),
+    )
 
     def __init__(self, *, observer: str | None = None) -> None:
         super().__init__(observer=observer)
@@ -599,27 +672,34 @@ class BrowserHarnessCloud(BrowserHarness):
             browser_id = result.get("browser_id")
             if isinstance(browser_id, str):
                 try:
-                    result["final_page"] = await self._observe_cloud_browser(client, browser_id, result.get("url"))
-                except Exception as error:
-                    result["observe_error"] = f"{type(error).__name__}: {error}"
-                stopped = await asyncio.shield(_stop(client, browser_id))
-                settled = await asyncio.shield(_settled(client, browser_id)) if stopped is not None else None
+                    try:
+                        result["final_page"] = await self._observe_cloud_browser(client, browser_id, result)
+                    except Exception as error:
+                        result["observe_error"] = f"{type(error).__name__}: {error}"
+                finally:
+                    # Also when the turn is cancelled while the page is read: the run is over, its browser is not.
+                    stopped = await stopped_browser_cost(browser_id, client=client)
                 existing = result.get("cost_lines")
-                lines = list(existing) if isinstance(existing, list) else []
-                known = {item.get("component") for item in lines if isinstance(item, Mapping)}
-                lines.extend(
-                    line
-                    for line in cost_lines(settled or stopped, settled=settled is not None)
-                    if line["component"] not in known
+                result["cost_lines"] = with_stopped_browser_cost(
+                    existing if isinstance(existing, list) else [], stopped
                 )
-                result["cost_lines"] = lines
             return result
         finally:
             with contextlib.suppress(Exception):
                 await client.close()
 
-    async def _observe_cloud_browser(self, client: Any, browser_id: str, url: str | None) -> dict[str, Any] | None:
-        view = await client.browsers.get(browser_id)
+    async def _observe_cloud_browser(
+        self, client: Any, browser_id: str, result: Mapping[str, Any]
+    ) -> dict[str, Any] | None:
+        """The page the run's browser ended on. The run is over but its browser is still open, so its live view link
+        is read here too; a V3 run gives the link when its session is created, and that one is kept."""
+        url = result.get("url")
+        try:
+            view = await client.browsers.get(browser_id)
+        except BaseException:
+            self._browser_opened(browser_id, result.get("live_url"))
+            raise
+        self._browser_opened(browser_id, result.get("live_url") or getattr(view, "live_url", None))
         cdp = getattr(view, "cdp_url", None)
         if not isinstance(cdp, str):
             return {"url": url or "", "title": "", "text": "", "controls": []}
@@ -692,6 +772,7 @@ async def _run_v4(
                             candidate = data.get("browser_session_id") or data.get("browser_id")
                             if isinstance(candidate, str):
                                 browser_id = candidate
+                                opened(browser_id, client)
                                 if agent_started is not None:
                                     agent_started()
                 next_after = getattr(page, "next_after", None)
@@ -749,6 +830,7 @@ async def _run_v3(
         except Exception as error:
             raise _failure("session create", error, starting=True) from None
         session_id = str(created.id)
+        live_url = getattr(created, "live_url", None)  # only while the session runs: Browser Use clears it after
         if agent_started is not None:
             agent_started()
         while True:
@@ -761,6 +843,7 @@ async def _run_v3(
                 if finished is not None:
                     finished()
                 result = _run_result(view, [])
+                result["live_url"] = live_url
                 try:
                     browsers = await client.browsers.list(agent_session_id=session_id)
                 except Exception as error:
@@ -884,6 +967,7 @@ def oss_python() -> tuple[str, ...]:
 class BrowserHarnessOSS(BrowserHarness):
     info = _info(
         "browser-use-oss",
+        source_url="https://github.com/browser-use/browser-use",
         pins_model=True,
         credential_env=("BROWSER_USE_API_KEY",),
         install="pip install --no-cache-dir 'browser-use==1.0.6'",
@@ -905,7 +989,13 @@ class BrowserHarnessOSS(BrowserHarness):
         return f"browser-use {out.decode().strip()}"
 
     async def execute(self, turn: TurnInput) -> dict[str, Any]:
-        request = {"goal": turn.text, "model": self.trial.model, "max_steps": None, "timeout": None}
+        request = {
+            "goal": turn.text,
+            "model": self.trial.model,
+            "max_steps": None,
+            "timeout": None,
+            "browser_minutes": browser_minutes(self.seconds_left()),
+        }
         worker = JsonWorker(
             # -I: run by path, the script's own directory would lead sys.path, and its sibling subprocess.py would
             # shadow the standard library's.
@@ -916,6 +1006,9 @@ class BrowserHarnessOSS(BrowserHarness):
         async with worker:
             await worker.send(request)
             ready = await worker.receive("ready")
+            if isinstance(ready.get("browser_id"), str):
+                opened(ready["browser_id"])
+            self._browser_opened(ready.get("browser_id"), ready.get("live_url"))
             self._agent_started(ready.get("open_seconds"))
             result = await worker.receive("result")
             self._agent_finished()
@@ -926,33 +1019,66 @@ class BrowserHarnessOSS(BrowserHarness):
             await worker.send({})
             stopped = await worker.receive("stopped")
             result["stopped"] = stopped.get("stopped", False)
-            return result
+        # The agent ran on a Browser Use cloud browser with a US proxy, as every other arm does; it reports only its
+        # model's cost, so the browser and proxy are read from the API once that browser has stopped.
+        if isinstance(ready.get("browser_id"), str):
+            browser_cost = await stopped_browser_cost(ready["browser_id"])
+            result["cost_lines"] = [*_mapping_list(result.get("cost_lines")), *browser_cost]
+        return result
 
 
 class BrowserHarnessRunner(BrowserHarness):
-    """Base for workers that use a cloud browser and an external command."""
+    """Browser Use's browser-harness skill run by Codex on a cloud browser. The model is an OpenRouter id."""
 
     command_env = "PARALLAX_BROWSER_HARNESS_COMMAND"
-    info = _info("browser-harness", pins_model=True, credential_env=("BROWSER_USE_API_KEY",))
+    agent = Agent.CODEX
+    cli = Cli.BROWSER_HARNESS
+    info = _info(
+        "browser-harness",
+        source_url="https://github.com/browser-use/browser-harness",
+        pins_model=True,
+        credential_env=("BROWSER_USE_API_KEY",),
+    )
+
+    _toolchain: Toolchain | None = None
+
+    async def version(self, box: Any) -> str:
+        """Installs the pinned browser-harness and agent, before any trial reserves budget, and reports both."""
+        self._toolchain = await provision(self.agent, self.cli)
+        return self._toolchain.version
 
     async def execute(self, turn: TurnInput) -> dict[str, Any]:
+        # Before the browser opens, so a missing tool costs nothing.
+        toolchain = self._toolchain or await provision(self.agent, self.cli)
         browser = None
         try:
-            async with httpx.AsyncClient() as http, cloud_browser(http, screen=(1120, 780)) as browser:
+            minutes = browser_minutes(self.seconds_left())
+            async with httpx.AsyncClient() as http, cloud_browser(http, screen=(1120, 780), minutes=minutes) as browser:
                 # The paid browser exists, so the attempt spends from here even if the worker never starts.
+                self._browser_opened(browser.browser_id, browser.live_url)
+                if self._start_url is not None and (
+                    outage := await browser_site_down(browser.cdp_url, self._start_url)
+                ):
+                    raise Unavailable(outage)
                 self._agent_started(browser.open_seconds)
-                self._browser = browser
-                request = {"goal": turn.text, "model": self.trial.model, "cdp_url": browser.cdp_url}
+                request = {
+                    "goal": turn.text,
+                    "model": self.trial.model,
+                    "agent": self.agent,
+                    "cdp_url": browser.cdp_url,
+                    **toolchain.request(),
+                }
                 configured = os.environ.get(self.command_env)
                 command = (
                     tuple(shlex.split(configured))
                     if configured
                     else (sys.executable, "-m", "parallax.harnesses.browser.browser_harness_worker")
                 )
-                worker_env = self._agent_env() | {
-                    "BU_CDP_WS": browser.cdp_url,
-                    "PARALLAX_BROWSER_CDP_URL": browser.cdp_url,
-                }
+                worker_env = (
+                    self._agent_env()
+                    | self.cli.environment(browser.cdp_url, f"parallax-{uuid4().hex[:12]}")
+                    | {"PARALLAX_BROWSER_CDP_URL": browser.cdp_url}
+                )
                 worker = JsonWorker(command, env=worker_env, cwd=self.worker_dir)
                 async with worker:
                     await worker.send(request)
@@ -969,13 +1095,39 @@ class BrowserHarnessRunner(BrowserHarness):
             if browser is not None:
                 self._record_costs(list(browser.cost))
             raise
-        # The browser settles its charges as its context exits, so they are read only after it closes.
-        result["cost_lines"] = list(browser.cost)
+        # The browser settles its charges as its context exits, so they are read only after it closes. The worker's own
+        # lines price the agent's model, which the trial's cost would otherwise leave out.
+        result["cost_lines"] = [*_mapping_list(result.get("cost_lines")), *browser.cost]
         return result
 
 
+class AgentBrowserRunner(BrowserHarnessRunner):
+    """Vercel's agent-browser CLI and its skill run by Codex on a cloud browser, as browser-harness is: the same
+    agent, model routing, browser and cost accounting, a different CLI."""
+
+    cli = Cli.AGENT_BROWSER
+    info = _info(
+        "agent-browser",
+        source_url="https://github.com/vercel-labs/agent-browser",
+        pins_model=True,
+        credential_env=("BROWSER_USE_API_KEY",),
+    )
+
+
+class BrowserHarnessClaudeCode(BrowserHarnessRunner):
+    """browser-harness run by Claude Code, for comparing the two agents on the same skill and browser."""
+
+    agent = Agent.CLAUDE_CODE
+    info = _info(
+        "browser-harness-claude-code",
+        source_url="https://github.com/browser-use/browser-harness",
+        pins_model=True,
+        credential_env=("BROWSER_USE_API_KEY",),
+    )
+
+
 class CuaCodexHarness(BrowserHarness):
-    info = _info("cua-codex", pins_model=True)
+    info = _info("cua-codex", source_url="https://github.com/agent-labs-dev/parallax", pins_model=True)
 
     async def execute(self, turn: TurnInput) -> dict[str, Any]:
         request = {

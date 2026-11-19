@@ -165,6 +165,8 @@ into a turn result. They are tested against recorded fixtures:
 
 - `openclaw_json`
 - `hermes_quiet`
+- `claude_stream_json`
+- `codex_jsonl`
 - `plain_text`
 
 A parser should report the turn's tool calls as well as its answer: a judge reads an answer like
@@ -237,6 +239,8 @@ The world reaches each harness through that harness's own config:
 
 - **hermes** gets an `mcp_servers` entry in its own config.
 - **openclaw** gets an `openclaw.json` under `OPENCLAW_STATE_DIR`.
+- **claude-code** gets an `mcp.json` passed with `--strict-mcp-config`.
+- **codex** gets `[mcp_servers.world]` in its `config.toml`.
 - **Remote product harnesses** from plugins register the world through the
   product's own API. They run outside a box, so each adapter reports every
   isolation gap it cannot close as a trial note; the plugin documents them.
@@ -265,6 +269,42 @@ Each trial gets a key to the metering proxy:
 A manifest points the harness at the meter through `[env]`, for example
 `ANTHROPIC_BASE_URL = "{meter_anthropic}"`.
 
+### The relay, for products that keep their own keys
+
+A product that is compared as shipped, with its own provider keys and model
+routing, sends its calls through the relay instead:
+`{meter}/{trial_key}/relay/{host}/{path}`. A metered harness reads the trial's
+relay as `trial.llm.relay_url` and prefixes it to the provider's host and path.
+The URL is the meter as the run's host reaches it, so the product's backend
+must run on that host, as a local stack does; Parallax does not expose the
+meter to a backend elsewhere.
+The caller's own credentials are forwarded, so the meter holds no key for
+these hosts. The relay knows these hosts, and refuses any other with HTTP 403:
+
+| Host | Wire | API root |
+|---|---|---|
+| `openrouter.ai` | OpenAI | `api/v1` |
+| `api.openai.com` | OpenAI | `v1` |
+| `ai-gateway.vercel.sh` | OpenAI | `v1` |
+| `api.anthropic.com` | Anthropic | `v1` |
+| `generativelanguage.googleapis.com` | Gemini | `v1beta` |
+| `api.inference.net` | OpenAI | `v1` |
+
+The same endpoint allowlist and provider-tool refusal apply. The OpenAI wire
+also allows `POST embeddings`. Gemini allows `generateContent`,
+`streamGenerateContent` and `countTokens`, and refuses any tool other than
+function declarations. The AI Gateway charges each vendor's list price, so its
+responses are priced at the vendor named in the model id. genai-prices has no
+entry for inference.net, so the meter reads the rates its public `v1/models`
+catalog publishes, once per run. A model the catalog does not price, or a run
+where the catalog cannot be read, is metered with its cost unknown.
+
+Decision models answer typed questions instead of generating text: the AI
+Gateway's `POST evaluate` and OpenRouter's `POST systemone`. No price table
+covers them, so each call is priced at the charge the provider reports in its
+reply (`providerMetadata.gateway.cost`, or `usage.cost` on OpenRouter). A reply
+without one leaves the trial's cost unknown.
+
 | `cost_source` | Meaning | Rendered |
 |---|---|---|
 | `metered` | Priced by the meter from observed usage. The observed model is recorded | `M` |
@@ -280,9 +320,9 @@ the host, or in the docker sidecar, and reads these variables:
 
 | Variable | Purpose |
 |---|---|
-| `PARALLAX_UPSTREAM_ANTHROPIC_KEY` | Real key for the Anthropic wire (Hermes and OpenClaw with `anthropic/...`) |
-| `PARALLAX_UPSTREAM_ANTHROPIC` | Anthropic base URL, including `/v1`. Defaults to `https://api.anthropic.com/v1` |
-| `PARALLAX_UPSTREAM_OPENAI_KEY` | Real key for the OpenAI wire (Hermes and OpenClaw with `openai/...`) |
+| `PARALLAX_UPSTREAM_ANTHROPIC_KEY` | Real key for the Anthropic wire (Claude Code, and Hermes and OpenClaw with `anthropic/...`) |
+| `PARALLAX_UPSTREAM_ANTHROPIC` | Anthropic base URL, including `/v1`. Defaults to `https://api.anthropic.com/v1`; OpenRouter serves the same wire at `https://openrouter.ai/api/v1` |
+| `PARALLAX_UPSTREAM_OPENAI_KEY` | Real key for the OpenAI wire (Codex, and Hermes and OpenClaw with `openai/...`) |
 | `PARALLAX_UPSTREAM_OPENAI` | OpenAI-compatible base URL, including `/v1`. Defaults to OpenRouter (`https://openrouter.ai/api/v1`) |
 
 A wire without a key answers 503, so a run that uses only one wire needs only
@@ -341,9 +381,8 @@ Support has three distinct levels:
   routing and tool transport, not model quality.
 
 A status applies only to the version and configuration named in its evidence.
-Historical captures do not verify a newer installation. The matrix retains
-existing adapters, including coding products; launch integration work focuses
-on general-purpose harnesses.
+Historical captures do not verify a newer installation. Claude Code and Codex
+are coding agents, kept as reference rows for comparing general-purpose products.
 
 **Pins** means the adapter requests a particular model. Served-model evidence
 comes from the meter, and an unobserved model remains unobserved. **Cost** names
@@ -353,6 +392,8 @@ its provenance; unknown or unpriced usage is never silently treated as free.
 |---|---|---|---|---|---|
 | hermes | open | CLI `hermes chat -Q -q` | yes | metered | 0.22.6 runtime protocol probes against a scripted upstream; see evidence below |
 | openclaw | open | CLI `openclaw agent --local --json` | yes | metered | 2026.10.10 runtime protocol probes; clean Docker install verified; see evidence below |
+| claude-code | open | CLI `claude -p --output-format stream-json` | yes | metered | 2.1.325: `conf-mcp-echo` and `conf-two-turn-carry` pass in Docker through the meter to OpenRouter (`anthropic/claude-sonnet-5.5`, `anthropic/claude-haiku-5.5`) |
+| codex | open | CLI `codex exec --json` | yes | metered | 0.169.0: `conf-mcp-echo` and `conf-two-turn-carry` pass in Docker through the meter to OpenRouter (`openai/gpt-6-luna`) |
 | oracle | control | Replays `solution/` | n/a | none | Control |
 | null-claim / null-refuse | control | Fixed answer, no calls | n/a | none | Control |
 
@@ -430,7 +471,9 @@ The built-in browser harness entry points are:
 |---|---|---|
 | `browser-use-cloud` | Hosted Cloud API, V3 or V4 | Provider-reported costs; `browser`, `credentials` |
 | `browser-use-oss` | Optional Python browser worker | Browser and model costs from the worker; `browser` |
-| `browser-harness` | Optional command worker attached to a Cloud browser | Browser cost plus worker-reported cost; `browser` |
+| `browser-harness` | Browser Use's browser-harness skill run by Codex on a Cloud browser | Browser cost plus the model cost OpenRouter reports; `browser` |
+| `browser-harness-claude-code` | The same skill and browser, run by Claude Code | Browser cost plus the model cost OpenRouter reports; `browser` |
+| `agent-browser` | Vercel's agent-browser skill run by Codex on a Cloud browser | Browser cost plus the model cost OpenRouter reports; `browser` |
 | `cua-codex` | Optional desktop command worker | Worker-reported cost when available; `browser` |
 
 The caller selects the hosted model with the normal `--model` value, which
@@ -445,10 +488,24 @@ models are sent without provider parameters because the API rejects
 `modelParams`, `mode`, and `harness` for presets. The adapter never writes a
 preset identifier into source code.
 
+The two `browser-harness` harnesses compare coding agents on one skill, and
+`agent-browser` runs a different CLI and skill the same way. Before
+any trial, Parallax installs the pinned browser CLI (browser-harness with `uv`,
+agent-browser with `npm`) and agent CLI (with `npm`) into `~/.cache/parallax/browser-harness`, so the host needs only
+`uv` and `npm`. Each trial copies the installed package's `SKILL.md` to where
+its agent reads skills (`.agents/skills` for Codex, `.claude/skills` for Claude
+Code), puts the pinned CLI first on `PATH` with the browser in `BU_CDP_WS`
+(`agent-browser` gets it in `AGENT_BROWSER_CDP`, with its daemons namespaced to
+the trial and closed afterwards), and turns web search off so the browser answers. `--model` is an
+OpenRouter id, reached with `OPENROUTER_API_KEY` through a relay in the worker
+that records the cost OpenRouter reports on each response; Claude Code's model
+aliases and background work all resolve to that model. The version recorded is
+both CLIs' own.
+
 Useful configuration keys are `PARALLAX_BROWSER_OBSERVER`,
 `PARALLAX_BROWSER_CLOUD_API`, `PARALLAX_BROWSER_POLL_SECONDS`,
 `PARALLAX_BROWSER_MODEL_PARAMS`, `PARALLAX_BROWSER_HARNESS_COMMAND`,
-`PARALLAX_BROWSER_AGENT_COMMAND`, `PARALLAX_CUA_DRIVER`,
+`PARALLAX_CUA_DRIVER`,
 `PARALLAX_CUA_CODEX`, and `PARALLAX_CUA_COMMAND`. The optional dependencies
 are installed with `parallax-evals[browser]`; competitor versions are recorded
 in `parallax/harnesses/browser/pins.json` and checked with:

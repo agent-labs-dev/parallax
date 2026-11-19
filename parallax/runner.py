@@ -32,7 +32,7 @@ import uvicorn
 from pydantic import JsonValue
 from starlette.types import ASGIApp
 
-from parallax import __version__, extensions, provenance
+from parallax import __version__, extensions, interrupts, provenance
 from parallax.assets import TrialAssets
 from parallax.box import (
     Box,
@@ -123,6 +123,7 @@ from parallax.task import (
 )
 from parallax.track.live import LiveFeed
 from parallax.track.live import label as live_label
+from parallax.track.rows import is_validity_control
 from parallax.world.client import ControlClient, ControlError, admin_register
 from parallax.world.core import World, WorldError
 from parallax.world.server import WorldServer
@@ -180,7 +181,6 @@ class RunOptions(Model):
     world_public_url: str | None = None
     world_port: int | None = None  # remote isolation: the fixed port a tunnel points at (None: any free port)
     judge: tuple[str, ...] = ()
-    jev: bool = True  # False (`--no-jev`): the judge panel grades alone, never asking Jev first
     include_xfail: bool = False
     # Further attempts for a trial that ended INVALID for a transient execution fault (RETRYABLE_INVALID).
     retry_invalid: int = 1
@@ -287,13 +287,31 @@ async def finish_uncancelled(cleanup: Awaitable[None]) -> None:
 
 
 def run_to_teardown[T](main: Coroutine[None, None, T]) -> T:
-    """`asyncio.run`, but every SIGINT only cancels `main`. A second one (a repeated Ctrl-C, or `uv run`
-    forwarding its copy of the terminal's) would raise KeyboardInterrupt mid-teardown and strand boxes."""
+    """`asyncio.run`, but every SIGINT or SIGTERM only cancels `main`. A second one (a repeated Ctrl-C, `uv run`
+    forwarding its copy of the terminal's, or a CI runner's SIGTERM after its SIGINT) would otherwise raise
+    KeyboardInterrupt or end the process mid-teardown and strand boxes and paid browsers. The first also starts the
+    `interrupts` hooks, ahead of the unwinding, and the run ends only once they have finished."""
 
     async def guarded() -> T:
-        if (task := asyncio.current_task()) is not None:
-            asyncio.get_running_loop().add_signal_handler(signal.SIGINT, task.cancel)
-        return await main
+        hooks: asyncio.Task[None] | None = None
+        task = asyncio.current_task()
+
+        def interrupt() -> None:
+            nonlocal hooks
+            if hooks is None:  # created before the cancel, so the hooks see the run as it was
+                hooks = asyncio.ensure_future(interrupts.interrupted())
+            if task is not None:
+                task.cancel()
+
+        loop = asyncio.get_running_loop()
+        for signum in (signal.SIGINT, signal.SIGTERM):
+            loop.add_signal_handler(signum, interrupt)
+        try:
+            return await main
+        finally:
+            while hooks is not None and not hooks.done():
+                with contextlib.suppress(asyncio.CancelledError):  # a repeated signal must not cut the hooks short
+                    await asyncio.shield(hooks)
 
     try:
         return asyncio.run(guarded())
@@ -498,6 +516,8 @@ class Services:
             meter = await serve_embedded(meter_app(self.meter_admin, upstreams_from_env(os.environ)), "127.0.0.1")
             self._embedded.append(meter)
             self.meter_local = self.meter_internal = f"http://127.0.0.1:{meter.port}"
+        if self.public_url is not None:
+            await check_public_world(self.public_url, self.world_local)
 
     async def stop(self) -> None:
         for embedded in reversed(self._embedded):
@@ -541,6 +561,29 @@ class Services:
         if self.meter_local is None:
             raise BoxError("a metered harness needs the meter, which this run did not start")
         return MeterClient(self.meter_local, self.meter_admin)
+
+
+PUBLIC_WORLD_WAIT_S = 60.0  # a fresh quick tunnel's hostname can take some seconds to resolve
+
+
+async def check_public_world(public_url: str, world_local: str) -> None:
+    """The public URL must reach this run's world server: its `/mcp` answers exactly as the local one.
+    A tunnel routed elsewhere would otherwise hand every remote trial an empty world."""
+    public = f"{public_url.rstrip('/')}/mcp"
+    async with httpx.AsyncClient(timeout=10.0) as http:
+        local = await http.get(f"{world_local}/mcp")
+        deadline = time.monotonic() + PUBLIC_WORLD_WAIT_S
+        while True:
+            try:
+                seen = await http.get(public)
+                if (seen.status_code, seen.content) == (local.status_code, local.content):
+                    return
+                answer = f"HTTP {seen.status_code}"
+            except httpx.TransportError as exc:
+                answer = f"{type(exc).__name__}"
+            if time.monotonic() > deadline:
+                raise BoxError(f"--world-public-url {public} does not reach this run's world server ({answer})")
+            await asyncio.sleep(1.0)
 
 
 @contextlib.asynccontextmanager
@@ -596,6 +639,17 @@ class TrialPlan:
 class TrialRun:
     result: TrialResult
     evidence: Evidence | None
+    # What grading the trial cost in USD; None when a judge call had no price.
+    judge_cost_usd: float | None = 0.0
+
+    def spent(self) -> float | None:
+        """The trial's whole spend, the harness's and its judges'; None when either is unknown. A validity control
+        runs no model, so it spends nothing, though its row shows its cost as unreported rather than $0."""
+        r = self.result
+        harness = 0.0 if is_validity_control(r.harness_kind, r.model) else r.cost_usd
+        if harness is None or self.judge_cost_usd is None:
+            return None
+        return harness + self.judge_cost_usd
 
 
 @dataclass
@@ -667,13 +721,18 @@ def harness_isolation(info: HarnessInfo, run_isolation: Isolation) -> Isolation:
 
 
 def trial_capabilities(info: HarnessInfo, run_isolation: Isolation) -> frozenset[Capability]:
-    """What a trial can rely on: the harness's capabilities, plus the world's clock wherever the
-    runner owns the harness's process. A docker box runs it under px-clock; host isolation is for
-    controls, which read no clock, and dev. A remote product keeps its own clock unless it declares
-    `world_clock`."""
+    """What a trial can rely on: the harness's capabilities, plus the world's clock where it holds.
+    A docker box runs the harness under px-clock, and a control (always on the host) reads no clock.
+    An agent run with `--isolation host` reads the machine's real date, and a remote product keeps
+    its own clock, so neither has it unless the harness declares `world_clock`."""
     caps = info.capabilities
-    if harness_isolation(info, run_isolation) is not Isolation.REMOTE:
-        caps |= {Capability.WORLD_CLOCK}
+    match harness_isolation(info, run_isolation):
+        case Isolation.DOCKER:
+            caps |= {Capability.WORLD_CLOCK}
+        case Isolation.HOST if info.isolation is Isolation.HOST:
+            caps |= {Capability.WORLD_CLOCK}
+        case _:
+            pass
     return caps
 
 
@@ -779,7 +838,7 @@ class Session:
         spent: float | None = None
         try:
             run = await self.execute(plan)
-            spent = run.result.cost_usd
+            spent = run.spent()
             return run
         finally:
             await finish_uncancelled(self.budget.settle(hold, spent))
@@ -1058,7 +1117,8 @@ class TrialExecution:
             self.meter_key = new_trial_key()
             self.secrets.append(self.meter_key)
             await self.s.svc.meter_client().register(self.meter_key)
-            llm = llm_endpoint(self.s.svc.meter_for_box(box_isolation(box)), self.meter_key)
+            svc = self.s.svc
+            llm = llm_endpoint(svc.meter_for_box(box_isolation(box)), self.meter_key, svc.meter_for_box(Isolation.HOST))
             env[METER_KEY_ENV] = self.meter_key
         mcp = None
         if token is not None:
@@ -1154,7 +1214,13 @@ class TrialExecution:
         """One turn, waited on until the harness returns or `--turn-timeout` passes (none by default:
         the product under test owns its limits). False ends the trial (a non-completed turn)."""
         t_in = TurnInput(
-            index=index, text=text, new_session=new_session, attachments=attached, origin=origin, approval=approval
+            index=index,
+            text=text,
+            new_session=new_session,
+            attachments=attached,
+            origin=origin,
+            approval=approval,
+            deadline_s=self.s.turn_timeout_s,
         )
         self.t.delivered_turns.append(t_in)
         submitted = time.monotonic()
@@ -1256,6 +1322,7 @@ class TrialExecution:
         execution_valid = None
         judged_under: str | None = None
         judged_score: float | None = None
+        judge_cost: float | None = 0.0
         # A world-less task has no world evidence; its policy grades what the harness reported. An interrupted
         # trial measured no agent, so nothing is judged.
         gradable = ev is not None or self.task.seed is None
@@ -1279,9 +1346,12 @@ class TrialExecution:
             record_grade(self.dir / "judgments.jsonl", self.task, g)
             execution_valid = g.execution_valid
             checks, same_family, judged_under, judged_score = g.checks, g.same_family, g.judge_identity, g.score
+            costs = [j.cost() for j in g.judgments]
+            unpriced = g.unpriced_calls + sum(n for _, n in costs)
+            judge_cost = None if unpriced else sum(known for known, _ in costs)
         self.write_evidence(ev)
         finished = self.finish(started, meter, checks, same_family, execution_valid, judged_under, judged_score)
-        return TrialRun(finished, ev)
+        return TrialRun(finished, ev, judge_cost)
 
     def finish(
         self,
@@ -1437,7 +1507,6 @@ def plan_trials(
                     key = fingerprint(
                         task.hash, hp.name, hp.version or "unavailable", hp.config_hash, model, repeat, opts.judge,
                         f"{__version__}:{policy}", isolation=opts.isolation, capabilities=hp.info.capabilities,
-                        jev=opts.jev,
                     )  # fmt: skip
                     plans.append(TrialPlan(task=task, harness=hp, model=model, repeat=repeat, key=key))
     return plans
@@ -1526,22 +1595,31 @@ def default_out() -> Path:
     return Path("runs") / datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
 
 
-def judge_setup(models: Sequence[str], *, jev: bool = True) -> tuple[JudgePanel | None, JudgeConfig | None]:
+def judge_setup(models: Sequence[str]) -> tuple[JudgePanel | None, JudgeConfig | None]:
     panel = JudgePanel(models=tuple(models)) if models else panel_from_env()
     if panel is None:
-        if not jev:
-            raise ValueError("--no-jev needs a judge panel: pass --judge or set PARALLAX_JUDGE_MODELS")
         return None, None
-    return panel.model_copy(update={"jev": jev}), config_from_env()
+    return panel, config_from_env()
 
 
-def manifest_for(opts: RunOptions, plans: Sequence[TrialPlan], harnesses: Sequence[HarnessPlan]) -> RunManifest:
+def live_session(out: Path) -> str:
+    """The run directory's live feed session: the one its manifest already holds on a resume, else a new one. The
+    directory name stays readable in it; the suffix keeps runs whose directories share a name apart."""
+    manifest = out / "manifest.json"
+    if manifest.is_file() and (kept := RunManifest.model_validate_json(manifest.read_text()).live_session):
+        return kept
+    return f"{out.name}-{secrets.token_hex(4)}"
+
+
+def manifest_for(
+    opts: RunOptions, plans: Sequence[TrialPlan], harnesses: Sequence[HarnessPlan], session: str
+) -> RunManifest:
     tasks = {p.task.id: p.task.hash for p in plans}
     return RunManifest(
-        run_id=opts.out.name, created_at=datetime.now(UTC), parallax_version=__version__,
+        run_id=opts.out.name, live_session=session, created_at=datetime.now(UTC), parallax_version=__version__,
         harnesses=tuple(h.info for h in harnesses),
         models=tuple(dict.fromkeys(p.model for p in plans)), tasks=tuple(sorted(tasks.items())),
-        repeats=opts.repeats, judge=opts.judge, jev=opts.jev, isolation=opts.isolation, selection=opts.selection,
+        repeats=opts.repeats, judge=opts.judge, isolation=opts.isolation, selection=opts.selection,
         grading_policy=policy_identity(list({p.task.id: p.task for p in plans}.values())),
     )  # fmt: skip
 
@@ -1560,7 +1638,7 @@ async def run_async(
         raise ValueError(
             f"no campaign budget journal at {opts.budget_journal}; pass --budget and --reserve to start one"
         )
-    panel, judge_config = judge_setup(opts.judge, jev=opts.jev)
+    panel, judge_config = judge_setup(opts.judge)
     opts = opts.model_copy(update={"judge": panel.models if panel else ()})
     infos = [load_harness(h).info for h in harnesses]
     need_meter = any(i.cost_source is CostSource.METERED for i in infos)
@@ -1568,7 +1646,10 @@ async def run_async(
         plans_h = [await plan_harness(h, chosen, opts.isolation, svc.network) for h in harnesses]
         plans = only_pairs(plan_trials(chosen, plans_h, models, opts), opts.pairs)
         opts.out.mkdir(parents=True, exist_ok=True)  # only now: a run interrupted in setup leaves no husk
-        (opts.out / "manifest.json").write_text(manifest_for(opts, plans, plans_h).model_dump_json(indent=2))
+        feed_session = live_session(opts.out)
+        (opts.out / "manifest.json").write_text(
+            manifest_for(opts, plans, plans_h, feed_session).model_dump_json(indent=2)
+        )
         prov = provenance.collect(opts.out, opts.provenance_extra)
         provenance.write(opts.out, prov)
         done = completed_keys(opts.out, plans)
@@ -1581,7 +1662,7 @@ async def run_async(
         elif journal.is_file():
             budget = CampaignBudget.from_journal(journal)
         session = Session(svc, opts.out, panel, judge_config, opts.turn_timeout_s, budget)
-        session.live = LiveFeed.open(opts.out.name)
+        session.live = LiveFeed.open(feed_session)
         if session.live is not None:
             session.live.run_started(
                 total=len(plans), already_done=len(plans) - len(todo), concurrency=max(1, opts.concurrency),

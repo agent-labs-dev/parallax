@@ -90,7 +90,7 @@ async def register(meter: httpx.AsyncBaseTransport) -> MeterClient:
 
 async def test_openai_json_is_metered_and_priced(meter: httpx.AsyncBaseTransport, seen: list[httpx.Request]) -> None:
     control = await register(meter)
-    ep = llm_endpoint("http://meter", KEY)
+    ep = llm_endpoint("http://meter", KEY, "http://meter")
     async with httpx.AsyncClient(transport=meter) as c:
         r = await c.post(
             f"{ep.openai_base_url}/chat/completions",
@@ -112,7 +112,7 @@ async def test_anthropic_sse_passes_through_and_is_metered(
     meter: httpx.AsyncBaseTransport, seen: list[httpx.Request]
 ) -> None:
     control = await register(meter)
-    ep = llm_endpoint("http://meter", KEY)
+    ep = llm_endpoint("http://meter", KEY, "http://meter")
     async with httpx.AsyncClient(transport=meter) as c:
         r = await c.post(
             f"{ep.anthropic_base_url}/v1/messages",
@@ -135,7 +135,7 @@ async def test_anthropic_sse_passes_through_and_is_metered(
 
 async def test_unknown_price_is_none_not_zero(meter: httpx.AsyncBaseTransport) -> None:
     control = await register(meter)
-    ep = llm_endpoint("http://meter", KEY)
+    ep = llm_endpoint("http://meter", KEY, "http://meter")
     async with httpx.AsyncClient(transport=meter) as c:
         await c.post(f"{ep.openai_base_url}/chat/completions", json={"model": "nobody/unreal-model-9", "messages": []})
     report = await control.report(KEY)
@@ -172,7 +172,7 @@ async def test_streaming_chat_completions_request_usage(
 async def test_free_endpoints_are_relayed_but_not_metered(meter: httpx.AsyncBaseTransport) -> None:
     # Claude Code calls count_tokens every turn; recording it made a fully priced trial's cost unknown.
     control = await register(meter)
-    ep = llm_endpoint("http://meter", KEY)
+    ep = llm_endpoint("http://meter", KEY, "http://meter")
     async with httpx.AsyncClient(transport=meter) as c:
         counted = await c.post(f"{ep.anthropic_base_url}/v1/messages/count_tokens", json={"model": "claude-sonnet-4-5"})
     assert counted.status_code == 200
@@ -185,7 +185,7 @@ async def test_non_inference_endpoints_never_reach_upstream(
 ) -> None:
     # The upstream key can read, write and delete account files; only inference may borrow it.
     control = await register(meter)
-    ep = llm_endpoint("http://meter", KEY)
+    ep = llm_endpoint("http://meter", KEY, "http://meter")
     async with httpx.AsyncClient(transport=meter) as c:
         refused = [
             await c.get(f"{ep.openai_base_url}/files"),
@@ -211,7 +211,7 @@ async def test_server_side_tools_are_refused_before_upstream(
 ) -> None:
     # A provider-run web search or fetch would read the live web from outside the box's isolation.
     await register(meter)
-    ep = llm_endpoint("http://meter", KEY)
+    ep = llm_endpoint("http://meter", KEY, "http://meter")
     fn = {"type": "function", "name": "f", "parameters": {}}
     async with httpx.AsyncClient(transport=meter) as c:
         anthropic = f"{ep.anthropic_base_url}/v1/messages"
@@ -228,6 +228,9 @@ async def test_server_side_tools_are_refused_before_upstream(
             await c.post(chat, json={"model": "m", "plugins": [{"id": "web"}]}),
             await c.post(chat, json={"model": "m", "web_search_options": {}}),
             await c.post(chat, json={"model": "openai/gpt-4o:online"}),
+            # Models that search on every call, with nothing in the request to say so.
+            await c.post(chat, json={"model": "perplexity/sonar"}),
+            await c.post(chat, json={"model": "gpt-5-search-api"}),
         ]
         unreadable = await c.post(anthropic, content=b"\x1f\x8b gzip", headers={"content-encoding": "gzip"})
         # The shapes harnesses send: untyped Anthropic tools, function + namespace.
@@ -373,3 +376,191 @@ def test_one_process_owns_a_budget_journal(tmp_path) -> None:
 
     with CampaignBudget(1.0, 0.5, tmp_path / "budget.jsonl"), pytest.raises(ValueError, match="another process"):
         CampaignBudget(1.0, 0.5, tmp_path / "budget.jsonl")
+
+
+# ---------------------------------------------------------------------------
+# relay: a product with its own keys is metered at the provider host it chose
+# ---------------------------------------------------------------------------
+
+GEMINI_SSE = [
+    {"candidates": [{"content": {"parts": [{"text": "h"}]}}], "modelVersion": "gemini-3.5-flash-lite"},
+    {
+        "candidates": [{"content": {"parts": [{"text": "i"}]}, "finishReason": "STOP"}],
+        "usageMetadata": {
+            "promptTokenCount": 1000,
+            "candidatesTokenCount": 60,
+            "thoughtsTokenCount": 40,
+            "cachedContentTokenCount": 300,
+        },
+        "modelVersion": "gemini-3.5-flash-lite",
+    },
+]
+
+
+def provider_handler(seen: list[httpx.Request]) -> httpx.MockTransport:
+    def handle(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if request.url.host == "generativelanguage.googleapis.com":
+            sse = "".join(f"data: {json.dumps(e)}\r\n\r\n" for e in GEMINI_SSE).encode()
+            return httpx.Response(200, headers={"content-type": "text/event-stream"}, stream=ChunkedStream([sse]))
+        if request.url.host == "api.inference.net" and request.method == "GET":  # its public price catalog
+            pricing = {"prompt": "0.000000300000", "completion": "0.000001000000", "input_cache_read": "0.000000007"}
+            return httpx.Response(200, json={"data": [{"id": "deepseek-v4.1-flash-1017", "pricing": pricing}]})
+        body = json.loads(request.content)
+        if request.url.path == "/v1/evaluate":  # the AI Gateway's evaluation reply
+            gateway = {} if body["model"] == "unbilled/jev" else {"cost": "0.00001155", "generationId": "gen_1"}
+            reply = {
+                "answers": {"refund": {"type": "boolean", "probability": 0.98}},
+                "model": body["model"],
+                "usage": {"inputTokens": 275, "outputTokens": 20},
+                "providerMetadata": {"gateway": gateway},
+            }
+            return httpx.Response(200, json=reply)
+        if request.url.path == "/api/v1/systemone":  # OpenRouter's System One reply
+            usage = {"input_tokens": 275, "output_tokens": 20, "cost": 0.0000116}
+            return httpx.Response(200, json={"model": body["model"], "answers": {}, "usage": usage})
+        usage = {"prompt_tokens": 1000, "completion_tokens": 100}
+        return httpx.Response(200, json={"model": body["model"], "usage": usage, "data": [], "choices": []})
+
+    return httpx.MockTransport(handle)
+
+
+@pytest.fixture
+def relay_meter(seen: list[httpx.Request]) -> httpx.AsyncBaseTransport:
+    no_keys = {w: Upstream(base_url="https://unused.example/v1", api_key=None) for w in meter_module.PROXY_WIRES}
+    return httpx.ASGITransport(app=app(ADMIN, no_keys, transport=provider_handler(seen)))
+
+
+async def test_relay_forwards_the_callers_own_key_and_meters_the_response(
+    relay_meter: httpx.AsyncBaseTransport, seen: list[httpx.Request]
+) -> None:
+    control = await register(relay_meter)
+    base = meter_module.relay_url("http://meter", KEY)
+    async with httpx.AsyncClient(transport=relay_meter) as c:
+        r = await c.post(
+            f"{base}/openrouter.ai/api/v1/chat/completions",
+            headers={"authorization": "Bearer sk-products-own"},
+            json={"model": "deepseek/deepseek-v4-flash-0731", "messages": []},
+        )
+    assert r.status_code == 200
+    assert str(seen[0].url) == "https://openrouter.ai/api/v1/chat/completions"
+    assert seen[0].headers["authorization"] == "Bearer sk-products-own"
+    (u,) = (await control.report(KEY)).usage
+    assert (u.model, u.input, u.output, u.requests) == ("deepseek/deepseek-v4-flash-0731", 1000, 100, 1)
+    assert u.cost_usd is not None and u.cost_usd > 0
+
+
+async def test_a_catalog_host_is_priced_at_its_published_rate_and_unlisted_models_stay_unknown(
+    relay_meter: httpx.AsyncBaseTransport, seen: list[httpx.Request]
+) -> None:
+    control = await register(relay_meter)
+    base = meter_module.relay_url("http://meter", KEY)
+    async with httpx.AsyncClient(transport=relay_meter) as c:
+        for model in ("deepseek-v4.1-flash-1017", "deepseek-v4.1-flash-1017", "unlisted-model"):
+            r = await c.post(f"{base}/api.inference.net/v1/chat/completions", json={"model": model, "messages": []})
+            assert r.status_code == 200
+    assert [str(r.url) for r in seen if r.method == "GET"] == ["https://api.inference.net/v1/models"]  # read once
+    usage = {u.model: u for u in (await control.report(KEY)).usage}
+    assert usage["deepseek-v4.1-flash-1017"].cost_usd == pytest.approx(2 * (1000 * 0.3e-6 + 100 * 1e-6))
+    assert usage["unlisted-model"].cost_usd is None
+
+
+async def test_an_unreadable_catalog_is_read_once_and_leaves_its_calls_unpriced(seen: list[httpx.Request]) -> None:
+    def handle(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if request.method == "GET":
+            return httpx.Response(503)
+        usage = {"prompt_tokens": 1000, "completion_tokens": 100}
+        return httpx.Response(200, json={"model": "deepseek-v4.1-flash-1017", "usage": usage, "choices": []})
+
+    no_keys = {w: Upstream(base_url="https://unused.example/v1", api_key=None) for w in meter_module.PROXY_WIRES}
+    meter = httpx.ASGITransport(app=app(ADMIN, no_keys, transport=httpx.MockTransport(handle)))
+    control = await register(meter)
+    base = meter_module.relay_url("http://meter", KEY)
+    async with httpx.AsyncClient(transport=meter) as c:
+        for _ in range(2):
+            await c.post(f"{base}/api.inference.net/v1/chat/completions", json={"model": "m", "messages": []})
+    assert [r.method for r in seen] == ["GET", "POST", "POST"]
+    (u,) = (await control.report(KEY)).usage
+    assert (u.requests, u.cost_usd) == (2, None)
+
+
+async def test_relayed_gemini_stream_is_metered_with_thinking_as_output(
+    relay_meter: httpx.AsyncBaseTransport, seen: list[httpx.Request]
+) -> None:
+    control = await register(relay_meter)
+    base = meter_module.relay_url("http://meter", KEY)
+    path = "generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:streamGenerateContent?alt=sse"
+    async with httpx.AsyncClient(transport=relay_meter) as c:
+        r = await c.post(f"{base}/{path}", headers={"x-goog-api-key": "g-own"}, json={"contents": []})
+    assert r.status_code == 200 and '"text": "i"' in r.text
+    assert seen[0].headers["x-goog-api-key"] == "g-own" and seen[0].url.params["alt"] == "sse"
+    report = await control.report(KEY)
+    assert report.actual_models == ("gemini-3.5-flash-lite",)
+    (u,) = report.usage
+    assert (u.input, u.output, u.cache_read, u.reasoning) == (1000, 100, 300, 40)
+    assert u.cost_usd is not None and u.cost_usd > 0
+
+
+async def test_the_ai_gateway_is_priced_at_its_models_vendor(relay_meter: httpx.AsyncBaseTransport) -> None:
+    control = await register(relay_meter)
+    base = meter_module.relay_url("http://meter", KEY)
+    async with httpx.AsyncClient(transport=relay_meter) as c:
+        for model in ("deepseek/deepseek-v4-flash-0731", "nobody/unreal-9"):
+            await c.post(f"{base}/ai-gateway.vercel.sh/v1/chat/completions", json={"model": model, "messages": []})
+    report = await control.report(KEY)
+    costs = {u.model: u.cost_usd for u in report.usage}
+    assert costs["deepseek/deepseek-v4-flash-0731"] is not None and costs["deepseek/deepseek-v4-flash-0731"] > 0
+    assert costs["nobody/unreal-9"] is None and report.unpriced_requests == 1
+
+
+async def test_a_decision_call_is_metered_at_the_charge_the_provider_reports(
+    relay_meter: httpx.AsyncBaseTransport,
+) -> None:
+    control = await register(relay_meter)
+    base = meter_module.relay_url("http://meter", KEY)
+    question = {"state": "s", "questions": {"refund": {"type": "noul", "instructions": "?"}}}
+    async with httpx.AsyncClient(transport=relay_meter) as c:
+        for url, model in (
+            ("ai-gateway.vercel.sh/v1/evaluate", "typesafe-ai/jev-1.14.0"),
+            ("openrouter.ai/api/v1/systemone", "typesafe/jev-1.14"),
+            ("ai-gateway.vercel.sh/v1/evaluate", "unbilled/jev"),
+        ):
+            r = await c.post(f"{base}/{url}", json={"model": model, **question})
+            assert r.status_code == 200
+    report = await control.report(KEY)
+    usage = {u.model: (u.input, u.output, u.requests, u.cost_usd) for u in report.usage}
+    assert usage["typesafe-ai/jev-1.14.0"] == (275, 20, 1, pytest.approx(0.00001155))
+    assert usage["typesafe/jev-1.14"] == (275, 20, 1, pytest.approx(0.0000116))
+    # A decision priced by nobody leaves the run's cost unknown rather than free.
+    assert usage["unbilled/jev"][3] is None and report.unpriced_requests == 1
+
+
+@pytest.mark.parametrize(
+    ("path", "body"),
+    [
+        pytest.param("evil.example/v1/chat/completions", {"model": "m"}, id="an unknown host"),
+        pytest.param("openrouter.ai/api/v1/files", {}, id="a non-inference endpoint"),
+        pytest.param(
+            "generativelanguage.googleapis.com/v1beta/models/g:generateContent",
+            {"contents": [], "tools": [{"googleSearch": {}}]},
+            id="a Google-run tool",
+        ),
+        pytest.param(
+            "generativelanguage.googleapis.com/v1beta/models/g:embedContent", {}, id="an unmetered Gemini method"
+        ),
+    ],
+)
+async def test_relay_refuses_what_it_cannot_meter_before_upstream(
+    relay_meter: httpx.AsyncBaseTransport, seen: list[httpx.Request], path: str, body: dict[str, object]
+) -> None:
+    await register(relay_meter)
+    async with httpx.AsyncClient(transport=relay_meter) as c:
+        r = await c.post(f"{meter_module.relay_url('http://meter', KEY)}/{path}", json=body)
+    assert r.status_code == 403 and not seen
+
+
+def test_the_relay_is_the_meter_as_the_host_reaches_it_while_the_box_keeps_its_own() -> None:
+    ep = llm_endpoint("http://meter-sidecar:9", KEY, "http://127.0.0.1:9")
+    assert ep.openai_base_url.startswith("http://meter-sidecar:9/")
+    assert ep.relay_url == f"http://127.0.0.1:9/{KEY}/relay"

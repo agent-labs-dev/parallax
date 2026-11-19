@@ -40,6 +40,8 @@ browser = [
 browser-use-cloud = "parallax.harnesses.browser:BrowserHarnessCloud"
 browser-use-oss = "parallax.harnesses.browser:BrowserHarnessOSS"
 browser-harness = "parallax.harnesses.browser:BrowserHarnessRunner"
+browser-harness-claude-code = "parallax.harnesses.browser:BrowserHarnessClaudeCode"
+agent-browser = "parallax.harnesses.browser:AgentBrowserRunner"
 cua-codex = "parallax.harnesses.browser:CuaCodexHarness"
 
 [project.entry-points."parallax.browser_observers"]
@@ -48,6 +50,7 @@ plain-cdp = "parallax.harnesses.browser.observer:PlainCDPObserver"
 [project.entry-points."parallax.task_sources"]
 bu-bench = "parallax.official_suites:bu_tasks"
 online-mind2web = "parallax.official_suites:mind2web_tasks"
+live-web = "parallax.live_web:task_records"
 
 [project.entry-points."parallax.task_extensions"]
 official-bu-bench = "parallax.official_suites:BU_POLICY_EXTENSION"
@@ -61,6 +64,8 @@ dev = [
     { include-group = "verify" },
     # The browser harness tests build the hosted SDK's own response models.
     "parallax-evals[browser]",
+    # The judge bridge meters this SDK; the version the pinned Online-Mind2Web judge installs.
+    "openai==1.68.2",
     "pytest-asyncio",
     "pytest-xdist>=3.8.0",
     "ruff",
@@ -96,6 +101,7 @@ artifacts = [
 [tool.pytest.ini_options]
 testpaths = ["tests/smoke", "tests/core", "tests/world", "tests/harnesses"]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 # importlib mode lets test dirs stay namespace dirs (no __init__.py) without basename clashes.
 addopts = "--import-mode=importlib -m 'not langfuse'"
 # Shared test helpers, such as `dir_store`, import by module name.

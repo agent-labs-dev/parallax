@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-import time
-from collections.abc import Iterable
-from urllib.parse import urlsplit
+import contextlib
+from typing import Any
 
 import httpx
 
@@ -31,86 +30,80 @@ def retryable_status(status: int | None) -> bool:
     return status in RETRYABLE_STATUS
 
 
-def transient_transport(error: BaseException) -> bool:
-    return isinstance(error, TRANSIENT_TRANSPORT)
-
-
 def refusal(status: int | None) -> bool:
     return status is not None and status >= 400 and status not in RETRYABLE_STATUS
 
 
-async def site_down(http: httpx.AsyncClient, url: str, *, timeout: float = 20.0) -> str | None:
-    """Return an outage reason for a start URL, or ``None`` when it answers normally."""
+NAVIGATE_SECONDS = 60.0
+"""How long the trial's browser has to commit the start page before the site counts as not answering. Chrome gives a
+navigation no deadline of its own; this is far past a slow site's first byte, and only bounds the check."""
+
+NAVIGATE_ATTEMPTS = 3
+"""How many times the start page is loaded before the site counts as down. One failed navigation is not an outage: a
+fresh cloud browser's first connection can fail on its own (a reset HTTP/2 stream, a proxy hop that drops) and the
+next one load the page, and a browser harness's own navigation retries such a failure rather than giving up. Each
+retry waits twice as long as the one before it, from `NAVIGATE_BACKOFF_SECONDS`, so a site that fails every attempt
+has failed over several seconds and several connections."""
+
+NAVIGATE_BACKOFF_SECONDS = 1.0
+
+_DOCUMENT_STATUS = "performance.getEntriesByType('navigation')[0]?.responseStatus ?? null"
+
+
+async def browser_site_down(
+    cdp_url: str,
+    url: str,
+    *,
+    seconds: float = NAVIGATE_SECONDS,
+    attempts: int = NAVIGATE_ATTEMPTS,
+    backoff: float = NAVIGATE_BACKOFF_SECONDS,
+) -> str | None:
+    """Open `url` in the trial's own browser and return an outage reason, or ``None`` when the site answers.
+
+    The browser judges the site, from the network and with the client the trial browses with: a site behind bot
+    protection refuses a plain HTTP request from the host and loads here. A navigation error is the browser's own
+    (`net::ERR_NAME_NOT_RESOLVED`, `net::ERR_CONNECTION_REFUSED`, ...), and a committed document with a retryable
+    status is an outage as `retryable_status` defines it. The site is down only when every one of `attempts` loads
+    fails, and the reason is the last attempt's. The page is left on `url`, where the trial starts."""
+    from parallax.harnesses.browser.observer import CDPConnection, _connect, page_targets
+
+    websocket = await _connect(cdp_url)
+    cdp = CDPConnection(websocket)
     try:
-        response = await http.get(url, follow_redirects=True, timeout=timeout)
-    except httpx.TransportError as error:
-        return f"site unavailable: {url} unreachable ({type(error).__name__})"
-    if retryable_status(response.status_code):
-        return f"site unavailable: {url} answered HTTP {response.status_code}"
+        targets = page_targets((await cdp.command("Target.getTargets")).get("targetInfos", []))
+        if targets:
+            target_id = targets[0]["targetId"]
+        else:
+            target_id = (await cdp.command("Target.createTarget", {"url": "about:blank"}))["targetId"]
+        attached = await cdp.command("Target.attachToTarget", {"targetId": target_id, "flatten": True})
+        session = attached["sessionId"]
+        reason: str | None = None
+        for attempt in range(attempts):
+            if attempt:
+                await asyncio.sleep(backoff * 2 ** (attempt - 1))
+            reason = await _load(cdp, session, url, seconds)
+            if reason is None:
+                return None
+        return reason
+    finally:
+        with contextlib.suppress(Exception):
+            await websocket.close()
+
+
+async def _load(cdp: Any, session: str, url: str, seconds: float) -> str | None:
+    """Load `url` once in the attached tab: why it failed, or ``None`` when it committed a document that answers."""
+    try:
+        async with asyncio.timeout(seconds):
+            navigated = await cdp.command("Page.navigate", {"url": url}, session=session)
+            error = navigated.get("errorText")
+            if isinstance(error, str) and error:
+                return f"site unavailable: {url} unreachable in the trial's browser ({error})"
+            evaluated = await cdp.command(
+                "Runtime.evaluate", {"expression": _DOCUMENT_STATUS, "returnByValue": True}, session=session
+            )
+    except TimeoutError:
+        return f"site unavailable: {url} did not answer in the trial's browser within {seconds:g} s"
+    status = evaluated.get("result", {}).get("value")
+    if isinstance(status, int) and retryable_status(status):
+        return f"site unavailable: {url} answered HTTP {status} in the trial's browser"
     return None
-
-
-def _origins(urls: Iterable[str]) -> dict[str, str]:
-    return {parts.scheme + "://" + parts.netloc: url for url in urls if (parts := urlsplit(url)).netloc}
-
-
-class SiteWatch:
-    """Probe each task origin during a run and expose overlapping stalls."""
-
-    def __init__(
-        self,
-        http: httpx.AsyncClient,
-        urls: Iterable[str],
-        *,
-        probe_seconds: float = 15.0,
-        stall_seconds: float = 10.0,
-        timeout: float | None = None,
-    ) -> None:
-        self.http = http
-        self.starts = _origins(urls)
-        self.probe_seconds = probe_seconds
-        self.stall_seconds = stall_seconds
-        self.timeout = timeout if timeout is not None else stall_seconds * 3
-        self._stalls: dict[str, list[tuple[float, float, str]]] = {origin: [] for origin in self.starts}
-        self._pending: dict[str, tuple[float, asyncio.Event]] = {}
-        self._stop = asyncio.Event()
-
-    async def run(self) -> None:
-        await asyncio.gather(*(self._probe(origin, url) for origin, url in self.starts.items()))
-
-    async def stop(self) -> None:
-        self._stop.set()
-
-    async def _probe(self, origin: str, url: str) -> None:
-        while not self._stop.is_set():
-            began = time.time()
-            settled = asyncio.Event()
-            self._pending[origin] = began, settled
-            try:
-                why: str | None = None
-                try:
-                    response = await self.http.get(url, follow_redirects=True, timeout=self.timeout)
-                    if response.status_code >= 500:
-                        why = f"answered HTTP {response.status_code}"
-                except httpx.TransportError as error:
-                    why = f"unreachable ({type(error).__name__})"
-                ended = time.time()
-                if why is None and ended - began > self.stall_seconds:
-                    why = f"took {ended - began:.0f}s to answer"
-                if why is not None:
-                    self._stalls[origin].append((began, ended, why))
-            finally:
-                self._pending.pop(origin, None)
-                settled.set()
-            await asyncio.sleep(max(0.0, self.probe_seconds - (ended - began)))
-
-    async def stalled(self, url: str, start: float, end: float) -> str | None:
-        origin = next((key for key in self.starts if url.startswith(key)), None)
-        if origin is None:
-            return None
-        if (pending := self._pending.get(origin)) is not None and pending[0] < end:
-            await pending[1].wait()
-        for began, ended, why in self._stalls.get(origin, ()):
-            if began < end and ended > start:
-                return f"site stalled: {url} {why}"
-        return None

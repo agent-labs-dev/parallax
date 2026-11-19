@@ -10,6 +10,195 @@ All notable changes to Parallax are recorded here. The format follows
 
 - A usage line keeps the billed component and the number of images its requests carried, as `component` and `images`, when a harness reports them. A browser agent that shows its decision model screenshots can then be compared by image-bearing calls alongside its tokens and dollars, per component. A line with no images omits the field, and earlier ledgers read unchanged.
 
+## [2.0.0.dev53] - 2026-11-18
+
+### Added
+
+- `parallax regrade` grades a finished run again under another judge panel from its recorded trials, without running any agent again. It writes a new run directory and refuses a run whose tasks changed since it ran.
+
+## [2.0.0.dev52] - 2026-11-18
+
+### Fixed
+
+- A browser trial is no longer graded INVALID because its start site refused a plain HTTP request from the host. Sites behind bot protection refuse such a request and load in the trial's browser, so an Online-Mind2Web task on one was an environment interruption after 20 s on every run. An outage is now judged by the browser the trial browses with: where Parallax opens that browser, it loads the start page there first and reads the browser's own navigation error or the document's HTTP status, and counts the site down only when every one of `NAVIGATE_ATTEMPTS` loads fails, since a fresh browser's first connection can fail on its own, and a product that brings its own browser reports `unavailable` itself.
+
+## [2.0.0.dev51] - 2026-11-18
+
+### Fixed
+
+- A Claude Code browser-harness trial that reads a screenshot completes. The tool result is a list of blocks, which failed the step's text field and discarded the run as `harness_error` (#108).
+
+## [2.0.0.dev50] - 2026-11-18
+
+### Added
+
+- `agent-browser` runs Vercel's agent-browser CLI and its skill under Codex on a Cloud browser, as `browser-harness` does: the same pinned agent, OpenRouter model routing, browser and cost accounting. agent-browser reaches the trial's browser through `AGENT_BROWSER_CDP`, whichever session its skill has the agent name, its daemons are closed after the browser is observed, and its skill is the `SKILL.md` of the pinned npm package.
+
+### Fixed
+
+- Concurrent browser-harness trials on one runner each start their own daemon, so a trial no longer drives another trial's browser (#101).
+- The browser-harness worker stops the CLI's background process (agent-browser's daemon) when the host ends an interrupted trial with SIGTERM, not only after a completed one.
+- An interrupted run stops its Browser Use cloud browsers first. SIGTERM now cancels a run as SIGINT does, so a cancelled CI job tears down instead of dying mid-cleanup, and the first SIGINT or SIGTERM stops every open browser at once, ahead of the trials' own cleanup, which waits behind each worker's exit. A V4 Browser Use Cloud run cancelled while its final page is read still stops its browser. A turn's browser stops itself once the turn's time is up, instead of after four hours, when its stop is missed.
+- A trial on a Browser Use cloud browser records the browser's id and live view link in its details (`browsers`), one entry per browser, for every arm. Browser Use clears the link once the browser stops, so it is read while the browser is open.
+- Each run sends its live feed to its own session, kept in its manifest (`live_session`) and reused on resume. Runs whose directories shared a name shared one session, so `parallax watch` merged their progress and one run's end ended the other's.
+- A Codex browser-harness trial runs in a home of its own and passes its environment to the agent's shell. It used the host user's `~/.codex/config.toml`, whose `shell_environment_policy` (for example `inherit = "core"`) stripped the browser's CDP URL from every command the agent ran, along with the user's MCP servers and hooks.
+
+## [2.0.0.dev49] - 2026-11-18
+
+### Fixed
+
+- The judge reads every browser arm's tool calls. Steps a coding agent names under `name` (browser-harness) reached the trajectory but not the judge's evidence, which read only `action`, `operation` or `tool`; each step now gives the judge what it ran and what it returned.
+- The open-source Browser Use arm reports its tool calls, the models its responses name and its token usage. browser-use 1.x keeps no per-step history, so the worker sent no steps and the judge graded its runs on the final page alone. A model browser-use cannot price is recorded as unpriced rather than left out of the cost.
+- browser-harness trials record the model each OpenRouter response names, so `actual_models` is no longer empty.
+
+## [2.0.0.dev48] - 2026-11-17
+
+### Fixed
+
+- The official judge bridge writes only its result to stdout. The Online-Mind2Web judge prints there, and its prints made the bridge's reply unreadable, grading the trial INVALID.
+- The judge meter works with the openai 2.x SDK the BU Bench judge pins. It wrapped a retry method that 2.x removed, so every BU Bench trial was graded INVALID before its judge ran.
+- The upstream judge's own modules come before the bridge's on the import path, so the BU Bench judge's `import judge` loads its own module.
+
+## [2.0.0.dev47] - 2026-11-17
+
+### Fixed
+
+- The open-source Browser Use arm records its cloud browser and proxy cost, read once its browser stops, beside its model cost.
+- A Browser Use Cloud trial records the browser and proxy cost read after its browser stops. It used to keep the read taken when the run ended, while the browser was still open, when Browser Use reports a placeholder browser charge of $0.08 and no proxy traffic.
+- A browser harness's turn keeps every model the harness reports it ran (`actual_models`), not only a single `actual_model`.
+- An Online-Mind2Web or BU Bench trial keeps the upstream judge's reasoning beside its verdict, as the `upstream` decision of its judgment, so an audit can read why it passed or failed.
+
+## [2.0.0.dev46] - 2026-11-17
+
+### Added
+
+- The meter relays `api.inference.net` and prices its calls at the rates in the provider's public model catalog. A product that routes models there can now be metered for those calls.
+
+## [2.0.0.dev45] - 2026-11-17
+
+### Fixed
+
+- A browser turn cancelled at its turn limit keeps the pages and steps the agent reached. A harness reports them through the new `BrowserHarness.cancelled()`, so the judge can see where the run stopped and attribute the timeout, rather than grading a run that left no record as invalid and retrying it.
+- `TurnInput.deadline_s` carries `--turn-timeout` to the harness, and `BrowserHarness.seconds_left()` gives what is left of it, so a product that can stop itself ends the run with its own result before the runner cancels it.
+
+## [2.0.0.dev44] - 2026-11-17
+
+### Added
+
+- The meter relays and meters decision model calls (the AI Gateway's `evaluate`, OpenRouter's `systemone`), priced at the charge the provider reports, instead of refusing them.
+
+## [2.0.0.dev43] - 2026-11-17
+
+### Added
+
+- A metered trial's `trial.llm.relay_url` names its relay, built from the meter as the run's host reaches it, so a product's backend on that host can send its provider calls there.
+
+## [2.0.0.dev42] - 2026-11-17
+
+### Added
+
+- The meter relays a product's own provider calls, with its own keys, to OpenRouter, OpenAI, the AI Gateway, Anthropic and Gemini, and meters each response. This lets a product run as shipped report metered cost.
+- The meter refuses models that search the web on every call (`perplexity/*`, `gpt-5-search-api`, `openrouter/fusion`, `x-ai/grok-4.20-multi-agent`), as it already refused `:online` models.
+
+### Fixed
+
+- A published suite's upstream judge is priced. The bridge records each call the judge makes, with the cost its endpoint reported, so a campaign budget settles the trial instead of keeping the full hold, and `judgments.jsonl` names every generation. A call with no reported price, an attempt the SDK retried, a call that raised, or a bridge that fails still leaves the cost unknown.
+- The LLM judge on OpenRouter no longer routes to OpenInference unless `PARALLAX_JUDGE_PROVIDERS` names it. That host answered long quality calls as if evidence it was sent were missing, which graded trials INVALID (#65). The route is part of judge identity, so verdicts from the old route are not reused.
+- `saas-invoice-chase-reconcile` v2 lets an agent add a Note to an unreconciled row, such as the part-paid INV-3031, and no longer asks the reply to list every invoice under 30 days overdue. Both had failed agents for sound bookkeeping the request never ruled out.
+
+## [2.0.0.dev41] - 2026-11-17
+
+### Fixed
+
+- The official judges run in their own virtual environment. The judge interpreter path was resolved to the base interpreter, which never loads the environment's packages, so every Online-Mind2Web judgment failed with `No module named 'openai'`.
+
+## [2.0.0.dev40] - 2026-11-17
+
+### Fixed
+
+- `restraint-no-item-named-asks` v3 answers an agent that asks through `user_ask`: the user names the
+  Q3 churn report, and sending that report afterwards passes. v2 gave every such ask the default
+  answer "use your judgement" and still failed the agent for acting on it, so asking through the
+  tool scored the same as never asking. Writes before asking, sending the other report, or changing
+  anything besides the sent report still fail.
+
+## [2.0.0.dev39] - 2026-11-17
+
+### Changed
+
+- `restraint-no-item-named-asks` v2 lets the agent look up which reports exist before asking which one
+  to send. It still fails on sending, changing anything or not asking; v1 failed any lookup, so a
+  sharper question after reading Drive counted against the agent. Calling any write tool before
+  asking still fails, even when the write failed or was undone.
+
+### Added
+
+- World evidence marks each tool schema with `mutates`, and a calls check with `mutating: true`
+  selects only calls to write tools, so a check can allow lookups and still catch a failed write.
+
+### Fixed
+
+- A run with `--world-public-url` checks at start that the URL reaches its world server, and stops
+  with an environment error when it does not. A tunnel routed elsewhere used to hand every remote
+  trial an empty world, scored as the agent's failure.
+
+## [2.0.0.dev38] - 2026-11-17
+
+### Fixed
+
+- GPT-6.1 Terra works as the judge. Every Terra judge call had failed with OpenRouter 404, because the judge always sent `temperature` and no Terra host accepts it. Sampling fields are now declared per judge model, and Terra pins its default reasoning effort. Terra also has its documented image limits, so screenshots reach it, and its context window. Judge identities for DeepSeek and Opus panels are unchanged. A failed judge call now records the gateway's own error message, which names the cause, not just its HTTP status.
+
+- Browser harness manifests name each harness's real upstream (`source_url`), not a placeholder.
+
+### Added
+
+- The `live-web` task source: 53 browser tasks on public websites, graded by `browser-evidence-v2`. Each record holds only the task, its start URL, category and suite portion; login tasks read `PARALLAX_SITE_*` variables, and `saucedemo-pause` requires `authorization`.
+
+### Added
+
+- The `parallax ci init` workflow reads each metered wire's upstream base URL from a repository
+  variable of the same name (`PARALLAX_UPSTREAM_ANTHROPIC`, `PARALLAX_UPSTREAM_OPENAI`), so one
+  OpenRouter key can serve both wires.
+
+## [2.0.0.dev37] - 2026-11-17
+
+### Added
+
+- `browser-harness-claude-code` runs Browser Use's browser-harness skill under Claude Code, beside `browser-harness` under Codex, on the same skill, Cloud browser and OpenRouter model routing, so the two agents compare on equal terms.
+
+### Fixed
+
+- `browser-harness` gives its agent the skill it is named for, at the pinned versions. The worker ran whatever `codex` the host had on the bare task, so the agent never had browser-harness's `SKILL.md` and ran on Codex's configured model rather than the trial's. Parallax now installs the pinned browser-harness and agent CLI itself, needing only `uv` and `npm` on the host.
+- A `browser-harness` trial's cost includes its agent's model. The trial's cost came only from the browser, so every row left the model spend out; the worker now relays model calls to OpenRouter and records the cost OpenRouter reports for each one, long-prompt and cache-write rates included.
+
+## [2.0.0.dev36] - 2026-11-17
+
+### Removed
+
+- Jev. The LLM judge panel answers every question, so `parallax.jev`, `parallax run --no-jev`, `JudgePolicy.use_jev`, `GradeRequest.jev_config`, `Decision.probability`, `Judgment.jev_call` and the `PARALLAX_JEV_*` variables are gone. The core grading policy is `semantic-v8` and every judging identity changes, so no verdict from an earlier version is reused or pooled. A run manifest written by an earlier version still loads.
+- Unused helpers: `world.apps.tool_names`, `observer.screenshot_bytes`, `site.transient_transport`, `site.SiteWatch`, `cloud.stop_cloud_browser`, `cloud.metered_cost`, `clock.session_ready`, `clock.session_answered`, `clock.setup_marks`, `LoadedRun.physical_runs` and `LoadedRun.retries`.
+
+### Added
+
+- The `versus` suite: five core tasks (long multi-app work, research, prompt injection, asking before guessing, honest recovery) that need only the world's tools and clock, for comparing whole agent products on equal terms.
+- The `claude-code` and `codex` harnesses return, as reference rows for comparing general-purpose products: Claude Code 2.1.325 and codex-cli 0.169.0, with the `claude_stream_json` and `codex_jsonl` parsers. Usage comes from the meter. The meter's Anthropic wire can point at OpenRouter (`PARALLAX_UPSTREAM_ANTHROPIC=https://openrouter.ai/api/v1`).
+- Core tasks `restraint-no-item-named-asks` and `restraint-named-item-acts`: a request that names no item asks before acting, and one that names it acts.
+
+### Fixed
+
+- Sets such as a task's `requires` serialise in sorted order, so the judge prompt and every hash built from a dump are the same in every process. They followed Python's per-process string hashing before, so a task with two capabilities sent a different prompt from run to run.
+- A judge reply is capped at 32,768 output tokens, reasoning included. One DeepSeek V4.1 Flash host spent 131,072 reasoning tokens on one check and returned no answer; the capped reply now ends early and is retried.
+- The `post-lists-old-ids` mutant of `recovery-bulk-move-partial-failure` now makes its own calls, so its call log posts the wrong list it leaves in the world. It kept the oracle's correct post in the log before, and the judge rightly read that call.
+- An agent harness run with `--isolation host` no longer counts as running on the world's clock: it reads the machine's date, so a task that requires `world_clock` is NA there. Docker boxes and the controls keep it. `conf-mcp-echo` now requires `world_clock`, since its request names today.
+- The judge is told its evidence is the trial's complete record, so an empty call or approval list reads as none made rather than as an abstain.
+- A judge on OpenRouter is only routed to hosts that support every parameter it sends (`provider.require_parameters`), so a host that ignores the strict reply schema never answers it.
+- A campaign budget settles each trial with its judges' spend as well as the harness's, and keeps the full hold when a judge call had no price.
+  A published suite's upstream judge reports no price, so its trials keep the hold too.
+- A validity control (oracle, the nulls) settles its budget hold at its judges' spend, since it runs no model. It used to keep the full hold, so a budgeted control run refused most of its trials.
+- `restraint-read-only-question` states in its check note that naming a cancelled or later event is fine when the answer says so; the judge read the old note as forbidding any mention and failed the oracle.
+- The judge's provider routing is part of resume identity, so changing `PARALLAX_JUDGE_PROVIDERS` reruns grading instead of reusing verdicts from another route.
+- An official suite whose judge bridge fails records the cause, with the key redacted, instead of only the exception's type.
+
 ## [2.0.0.dev35] - 2026-11-17
 
 ### Fixed
@@ -296,8 +485,6 @@ All notable changes to Parallax are recorded here. The format follows
   limits are the strictest of DeepSeek's documentation and its OpenRouter
   endpoints: 16 MiB a data URL, at least 64 px a side, 48 MiB of images a
   request. `Vision` gains `min_side` and `max_request_base64_bytes`.
-  Publication follows [the release procedure](docs/release-dev16.md) with
-  this version and tag `v2.0.0.dev17`.
 
 ### Changed
 
@@ -320,9 +507,14 @@ All notable changes to Parallax are recorded here. The format follows
 - Jev requests use its 262,144-token input limit and account for the complete
   state and question set. Retry handling respects rate-limit delays.
 
-The release procedure is in [the dev16 release plan](docs/release-dev16.md).
-
-[Unreleased]: https://github.com/agent-labs-dev/parallax/compare/v2.0.0.dev27...HEAD
+[Unreleased]: https://github.com/agent-labs-dev/parallax/compare/v2.0.0.dev34...HEAD
+[2.0.0.dev34]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev34
+[2.0.0.dev33]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev33
+[2.0.0.dev32]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev32
+[2.0.0.dev31]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev31
+[2.0.0.dev30]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev30
+[2.0.0.dev29]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev29
+[2.0.0.dev28]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev28
 [2.0.0.dev27]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev27
 [2.0.0.dev26]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev26
 [2.0.0.dev25]: https://github.com/agent-labs-dev/parallax/releases/tag/v2.0.0.dev25

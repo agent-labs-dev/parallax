@@ -151,7 +151,7 @@ def test_ci_init_writes_a_workflow_that_runs_compares_and_comments(tmp_path: Pat
     assert {"budget", "reserve"} <= {
         k for k, v in workflow[True]["workflow_dispatch"]["inputs"].items() if v.get("required")
     }
-    # Without a fallback panel every question Jev leaves uncertain makes the trial INVALID.
+    # Without a judge panel every question is undecided, which makes the trial INVALID.
     assert {
         "PARALLAX_JUDGE_MODELS",
         "PARALLAX_JUDGE_BASE_URL",
@@ -160,6 +160,7 @@ def test_ci_init_writes_a_workflow_that_runs_compares_and_comments(tmp_path: Pat
     } <= job["env"].keys()
     # Both metered wires and both extra report sinks are written unless the options narrow them.
     assert {"PARALLAX_UPSTREAM_OPENAI_KEY", "PARALLAX_UPSTREAM_ANTHROPIC_KEY"} <= job["env"].keys()
+    assert job["env"]["PARALLAX_UPSTREAM_ANTHROPIC"] == "${{ vars.PARALLAX_UPSTREAM_ANTHROPIC }}"
     steps = {step.get("name"): step for step in job["steps"]}
     assert {"Post to the results issue", "Send the report to a webhook"} <= steps.keys()
     assert "inputs.runner" in job["runs-on"] and "github.run_id" in workflow["concurrency"]["group"]

@@ -9,13 +9,15 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import importlib
+import math
 import time
-from collections.abc import AsyncGenerator, Callable
+from collections.abc import AsyncGenerator, Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
 
+from parallax import interrupts
 from parallax.harnesses.browser.site import (
     RETRYABLE_STATUS,
     TRANSIENT_TRANSPORT,
@@ -24,7 +26,7 @@ from parallax.harnesses.browser.site import (
     refusal,
 )
 
-CLOUD_BROWSER_MINUTES = 240
+CLOUD_BROWSER_MINUTES = 240  # the longest Browser Use lets a browser live
 PROXY_SETTLE_SECONDS = 45.0
 STOP_ATTEMPTS = 4
 
@@ -69,6 +71,21 @@ def cost_lines(view: object | None, *, settled: bool = True) -> tuple[dict[str, 
     )
 
 
+def with_stopped_browser_cost(
+    lines: list[Mapping[str, Any]], stopped: tuple[dict[str, Any], ...]
+) -> list[Mapping[str, Any]]:
+    """The run's cost lines with the browser and proxy read after the browser stopped in place of the read taken when
+    the run ended. While the browser is open Browser Use reports a placeholder browser charge and no proxy traffic,
+    so a settled stopped figure always wins. An unknown or unsettled one (the post-stop read failed, so the proxy may
+    still be counting) keeps the earlier read."""
+    known = {line["component"]: line for line in stopped if line["basis"] == "metered"}
+    present = {line.get("component") for line in lines}
+    return [
+        *(known.get(line.get("component"), line) for line in lines),
+        *(line for line in stopped if line["component"] not in present),
+    ]
+
+
 async def devtools_websocket(http: httpx.AsyncClient, cdp_url: str) -> str:
     if cdp_url.startswith(("ws://", "wss://")):
         return cdp_url
@@ -85,10 +102,57 @@ async def devtools_websocket(http: httpx.AsyncClient, cdp_url: str) -> str:
     return address
 
 
+_open: dict[str, Any] = {}
+"""Every cloud browser this process opened and has not yet seen stop, with the client that opened it (None: a worker
+process opened it, so a client is made from the environment to stop it)."""
+
+
+def opened(browser_id: str, client: Any | None = None) -> None:
+    """Track a browser until it is seen stopped, so an interrupted run stops it first (`stop_open_browsers`)."""
+    interrupts.on_interrupt(stop_open_browsers)
+    _open[browser_id] = client
+
+
+async def stop_open_browsers() -> None:
+    """The run was interrupted: stop every open browser now, all at once and one attempt each. A trial's own stop
+    runs only as its task unwinds, behind its worker's exit, and a cancelled CI job kills the process within seconds.
+    A browser stopped here is forgotten, so its trial's own stop settles its cost instead of stopping it again."""
+    browsers = dict(_open)
+    fallback: Any | None = None
+    if None in browsers.values():
+        with contextlib.suppress(Exception):
+            fallback = _client()
+
+    async def stop(browser_id: str, client: Any | None) -> None:
+        if client is None:
+            return
+        with contextlib.suppress(Exception):
+            await client.browsers.stop(browser_id)
+            _open.pop(browser_id, None)
+
+    try:
+        await asyncio.gather(*(stop(browser_id, client or fallback) for browser_id, client in browsers.items()))
+    finally:
+        if fallback is not None:
+            with contextlib.suppress(Exception):
+                await fallback.close()
+
+
+def browser_minutes(seconds_left: float | None) -> int:
+    """How long a cloud browser for a turn may live: the turn's remaining time in whole minutes, rounded up, as Browser
+    Use takes it; the longest it allows when the turn has no limit. A browser whose stop is missed (the process was
+    killed) then stops itself once its turn could no longer use it, instead of billing for hours."""
+    if seconds_left is None:
+        return CLOUD_BROWSER_MINUTES
+    return max(1, min(CLOUD_BROWSER_MINUTES, math.ceil(seconds_left / 60)))
+
+
 async def _stop(client: Any, browser_id: str) -> object | None:
     for attempt in range(STOP_ATTEMPTS):
         try:
-            return await client.browsers.stop(browser_id)
+            stopped = await client.browsers.stop(browser_id)
+            _open.pop(browser_id, None)
+            return stopped
         except Exception as error:
             status = getattr(error, "status_code", None)
             retryable = isinstance(error, TRANSIENT_TRANSPORT) or status in RETRYABLE_STATUS
@@ -100,10 +164,17 @@ async def _stop(client: Any, browser_id: str) -> object | None:
 
 
 async def _settled(client: Any, browser_id: str) -> object | None:
+    """The browser's cost read once it has stopped and its proxy figure settled; None when the read fails or the
+    browser is still running, as it is when every stop attempt failed, so a still-counting cost is never final."""
     await asyncio.sleep(PROXY_SETTLE_SECONDS)
-    with contextlib.suppress(Exception):
-        return await client.browsers.get(browser_id)
-    return None
+    try:
+        view = await client.browsers.get(browser_id)
+    except Exception:
+        return None
+    if view.status.value != "stopped":
+        return None
+    _open.pop(browser_id, None)
+    return view
 
 
 @contextlib.asynccontextmanager
@@ -113,24 +184,19 @@ async def cloud_browser(
     client: Any | None = None,
     client_factory: Callable[[], Any] | None = None,
     screen: tuple[int, int] | None = None,
+    minutes: int = CLOUD_BROWSER_MINUTES,
 ) -> AsyncGenerator[Browser]:
-    """Create a hosted browser, yield its CDP URL, and always stop and settle it."""
+    """Create a hosted browser that stops itself after `minutes`, yield its CDP URL, and always stop and settle it."""
     owned_client = client is None
     if client is None:
-        if client_factory is None:
-            module = importlib.import_module("browser_use_sdk.v4")
-            client_name = "AsyncBrowserUse"
-            client_type = getattr(module, client_name)
-            client = client_type(api_key=_api_key())
-        else:
-            client = client_factory()
+        client = _client() if client_factory is None else client_factory()
     width, height = screen or (None, None)
     began = time.monotonic()
     created: object | None = None
     browser: Browser | None = None
     creation = asyncio.create_task(
         client.browsers.create(
-            timeout=CLOUD_BROWSER_MINUTES,
+            timeout=minutes,
             browser_screen_width=width,
             browser_screen_height=height,
         )
@@ -141,6 +207,7 @@ async def cloud_browser(
         except Exception as error:
             raise _failure("browser create", error, starting=True) from None
         browser_id = str(created.id)
+        opened(browser_id, client)
         cdp = getattr(created, "cdp_url", None)
         if not isinstance(cdp, str) or not cdp:
             raise RuntimeError("cloud browser started without a CDP URL")
@@ -159,9 +226,10 @@ async def cloud_browser(
             yield browser
         finally:
             closing = time.monotonic()
-            stopped = await asyncio.shield(_stop(client, browser_id))
+            # An interrupt may have stopped it already; its cost settles all the same.
+            stopped = await asyncio.shield(_stop(client, browser_id)) if browser_id in _open else None
             browser.close_seconds = round(time.monotonic() - closing, 2)
-            settled = await asyncio.shield(_settled(client, browser_id)) if stopped is not None else None
+            settled = await asyncio.shield(_settled(client, browser_id)) if browser_id not in _open else None
             browser.cost = cost_lines(settled or stopped, settled=settled is not None)
     finally:
         await asyncio.gather(creation, return_exceptions=True)
@@ -175,34 +243,26 @@ async def cloud_browser(
                 await client.close()
 
 
-async def stop_cloud_browser(browser_id: str, *, client: Any | None = None) -> None:
+async def stopped_browser_cost(browser_id: str, *, client: Any | None = None) -> tuple[dict[str, Any], ...]:
+    """The settled cost of a cloud browser another process opened, read once it has stopped. Stopping again makes sure
+    it stops even if that process could not; Browser Use refuses a second stop, which leaves the settled read."""
     owned_client = client is None
     if client is None:
-        module = importlib.import_module("browser_use_sdk.v4")
-        client_name = "AsyncBrowserUse"
-        client_type = getattr(module, client_name)
-        client = client_type(api_key=_api_key())
+        client = _client()
     try:
-        await _stop(client, browser_id)
+        stopped = await asyncio.shield(_stop(client, browser_id))
+        settled = await asyncio.shield(_settled(client, browser_id))
+        return cost_lines(settled or stopped, settled=settled is not None)
     finally:
         if owned_client:
             with contextlib.suppress(Exception):
                 await client.close()
 
 
-async def metered_cost(browser_id: str, *, client: Any | None = None) -> tuple[dict[str, Any], ...]:
-    owned_client = client is None
-    if client is None:
-        module = importlib.import_module("browser_use_sdk.v4")
-        client_name = "AsyncBrowserUse"
-        client_type = getattr(module, client_name)
-        client = client_type(api_key=_api_key())
-    try:
-        return cost_lines(await _settled(client, browser_id))
-    finally:
-        if owned_client:
-            with contextlib.suppress(Exception):
-                await client.close()
+def _client() -> Any:
+    module = importlib.import_module("browser_use_sdk.v4")
+    client_name = "AsyncBrowserUse"
+    return getattr(module, client_name)(api_key=_api_key())
 
 
 def _api_key() -> str:

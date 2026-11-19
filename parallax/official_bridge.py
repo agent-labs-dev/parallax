@@ -9,12 +9,14 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import contextlib
 import hashlib
 import importlib
 import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -33,10 +35,86 @@ def _root(request: dict[str, Any]) -> Path:
     ).stdout.strip()
     if status:
         raise RuntimeError("upstream checkout has tracked changes")
-    for entry in (root, root / "src"):
-        if str(entry) not in sys.path:
-            sys.path.insert(0, str(entry))
+    sys.path[:] = _import_path(root, sys.path)
     return root
+
+
+def _import_path(root: Path, path: list[str]) -> list[str]:
+    """The checkout first, and never this file's own directory. Run as a script, the bridge has the `parallax`
+    package first on `sys.path`, where its `judge` and `models` shadow the upstream modules of those names: BU
+    Bench's `import judge` loaded Parallax's and failed with `No module named 'parallax'`. An editable install of
+    the upstream project already lists the root, but after that directory, so the root moves to the front."""
+    here = Path(__file__).resolve().parent
+    front = [str(root / "src"), str(root)]
+    return [*front, *(entry for entry in path if entry not in front and Path(entry or ".").resolve() != here)]
+
+
+def _call(response: Any, started: float) -> dict[str, Any]:
+    """One judge call's measured usage. The cost is the endpoint's own `usage.cost` (OpenRouter reports it on every
+    completion); an endpoint that reports none leaves it None, which Parallax counts as unpriced, never as zero."""
+    usage = getattr(response, "usage", None)
+    cost = (getattr(usage, "model_extra", None) or {}).get("cost")
+    return {
+        "generation_id": getattr(response, "id", None),
+        "input_tokens": getattr(usage, "prompt_tokens", None),
+        "output_tokens": getattr(usage, "completion_tokens", None),
+        "cost_usd": float(cost) if isinstance(cost, (int, float)) else None,
+        "latency_ms": int((time.monotonic() - started) * 1000),
+    }
+
+
+def _unpriced(error: str) -> dict[str, Any]:
+    """An attempt that may have been billed but returned no usage: Parallax counts it as unpriced, never as zero."""
+    return {"generation_id": None, "input_tokens": None, "output_tokens": None, "cost_usd": None, "latency_ms": 0,
+            "error": error}  # fmt: skip
+
+
+def _meter(calls: list[dict[str, Any]]) -> None:
+    """Record every chat completion the upstream judge makes, whichever client it builds, by wrapping the SDK's own
+    `create` in this process; the judge's prompts and parsing are untouched. The SDK retries inside `create`, and a
+    retried attempt may already have been billed, so each retry, and each `create` that raises, records an unpriced
+    attempt and the trial keeps its budget hold."""
+    completions = importlib.import_module("openai.resources.chat.completions")
+    client = importlib.import_module("openai._base_client")
+    sync_create, async_create = completions.Completions.create, completions.AsyncCompletions.create
+    # openai 1.x retries by calling `_retry_request`; 2.x retries in a loop that calls `_sleep_for_retry` once before
+    # each repeated attempt. The two upstream judges pin different majors (Online-Mind2Web 1.68.2, BU Bench 2.15.0),
+    # and each SDK has only one of the two, so the meter wraps whichever the judge's own SDK has.
+    hook = "_retry_request" if hasattr(client.SyncAPIClient, "_retry_request") else "_sleep_for_retry"
+    sync_retry, async_retry = getattr(client.SyncAPIClient, hook), getattr(client.AsyncAPIClient, hook)
+
+    def create(self: Any, *args: Any, **kwargs: Any) -> Any:
+        started = time.monotonic()
+        try:
+            response = sync_create(self, *args, **kwargs)
+        except BaseException as exc:
+            calls.append(_unpriced(type(exc).__name__))
+            raise
+        calls.append(_call(response, started))
+        return response
+
+    async def acreate(self: Any, *args: Any, **kwargs: Any) -> Any:
+        started = time.monotonic()
+        try:
+            response = await async_create(self, *args, **kwargs)
+        except BaseException as exc:
+            calls.append(_unpriced(type(exc).__name__))
+            raise
+        calls.append(_call(response, started))
+        return response
+
+    def retry(self: Any, *args: Any, **kwargs: Any) -> Any:
+        calls.append(_unpriced("retried"))
+        return sync_retry(self, *args, **kwargs)
+
+    async def aretry(self: Any, *args: Any, **kwargs: Any) -> Any:
+        calls.append(_unpriced("retried"))
+        return await async_retry(self, *args, **kwargs)
+
+    completions.Completions.create = create
+    completions.AsyncCompletions.create = acreate
+    setattr(client.SyncAPIClient, hook, retry)
+    setattr(client.AsyncAPIClient, hook, aretry)
 
 
 def _check_bu_dataset(root: Path, expected: str) -> None:
@@ -73,6 +151,8 @@ def _judge_bu(request: dict[str, Any]) -> dict[str, Any]:
         "passed": bool(result.get("verdict")),
         "score": float(result.get("score", result.get("raw_score"))),
         "judge_model": request["judge_model"],
+        # The rubric findings the score was computed from.
+        "reason": json.dumps(result.get("judgement"), ensure_ascii=False, sort_keys=True),
     }
 
 
@@ -126,7 +206,13 @@ def _judge_mind2web(request: dict[str, Any]) -> dict[str, Any]:
     label = extract_predication(response, "WebJudge_Online_Mind2Web_eval")
     if label not in (0, 1):
         raise RuntimeError("upstream judge did not return a binary result")
-    return {"passed": bool(label), "score": float(label), "judge_model": request["judge_model"]}
+    return {"passed": bool(label), "score": float(label), "judge_model": request["judge_model"], "reason": response}
+
+
+def failure(exc: BaseException, secret: str) -> str:
+    """One line naming why the bridge failed, for the trial's invalid reason; the judge's key never appears in it."""
+    line = " ".join(f"{type(exc).__name__}: {exc}".split())
+    return line.replace(secret, "[redacted]") if secret else line
 
 
 def main() -> None:
@@ -137,8 +223,14 @@ def main() -> None:
     suite = request.get("suite")
     if request.get("operation") != "judge":
         raise RuntimeError("unsupported bridge operation")
-    result = _judge_bu(request) if suite == "bu-bench" else _judge_mind2web(request)
-    json.dump(result, sys.stdout)
+    calls: list[dict[str, Any]] = []
+    _meter(calls)
+    # stdout carries only the bridge's JSON result. The upstream judges print their own diagnostics to stdout (the
+    # Online-Mind2Web WebJudge prints "Error processing response" when a snapshot reply holds no score), so they
+    # write to stderr while they run.
+    with contextlib.redirect_stdout(sys.stderr):
+        result = _judge_bu(request) if suite == "bu-bench" else _judge_mind2web(request)
+    json.dump({**result, "calls": calls}, sys.stdout)
     sys.stdout.write("\n")
 
 
@@ -146,8 +238,5 @@ if __name__ == "__main__":
     try:
         main()
     except BaseException as exc:
-        # The class alone, since an upstream message can quote page content into public rows; an import failure adds
-        # the module it could not find, which names only the checkout's own code or dependencies.
-        missing = f": {exc.name}" if isinstance(exc, ImportError) and exc.name else ""
-        print(f"{type(exc).__name__}{missing}", file=sys.stderr)
+        print(failure(exc, os.environ.get("OPENAI_API_KEY", "")), file=sys.stderr)
         raise SystemExit(1) from None

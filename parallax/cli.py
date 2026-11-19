@@ -125,7 +125,7 @@ def cmd_run(a: argparse.Namespace) -> int:
     connect(write=True)
     opts = RunOptions(
         out=out, repeats=a.repeats, isolation=a.isolation, concurrency=a.concurrency,
-        world_public_url=a.world_public_url, world_port=a.world_port, judge=csv(a.judge) if a.judge else (), jev=a.jev,
+        world_public_url=a.world_public_url, world_port=a.world_port, judge=csv(a.judge) if a.judge else (),
         include_xfail=a.include_xfail, selection=" ".join(a.select), provenance_extra=extra,
         pairs=pinned, retry_invalid=a.retry_invalid, turn_timeout_s=a.turn_timeout, retry_wait_s=a.retry_wait,
         budget_usd=a.budget, reserve_usd=a.reserve, budget_journal=a.budget_journal,
@@ -281,6 +281,29 @@ def cmd_compare(a: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 
 
+def cmd_regrade(a: argparse.Namespace) -> int:
+    import asyncio
+
+    from parallax.models import RunManifest
+    from parallax.regrade import RegradeError, regrade
+    from parallax.runner import RESULTS, read_results
+
+    source = a.run.resolve()
+    manifest = source / "manifest.json"
+    if not manifest.is_file():
+        raise UsageError(f"{a.run}: not a run directory (no manifest.json)")
+    selection = RunManifest.model_validate_json(manifest.read_text()).selection.split()
+    try:
+        done = asyncio.run(regrade(source, a.out.resolve(), tasks_for(selection, a.tasks), csv(a.judge), a.concurrency))
+    except RegradeError as exc:
+        raise UsageError(str(exc)) from exc
+    cost = "unpriced" if done.judge_cost_usd is None else f"${done.judge_cost_usd:.4f}"
+    print(f"{done.out}: regraded={done.regraded} kept={done.kept} judge_cost={cost}")
+    print(summary(read_results(done.out / RESULTS)))
+    print(f"sealed; upload it with: parallax upload --resume --root {done.out.parent}")
+    return OK
+
+
 def cmd_watch(a: argparse.Namespace) -> int:
     from parallax.track.live import LiveSource
     from parallax.track.watch import serve
@@ -373,10 +396,6 @@ def run_parser(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None
         "--world-port", type=int, metavar="PORT", help="remote isolation: serve the world on this port (for a tunnel)"
     )
     p.add_argument("--judge", help="M[,M]")
-    p.add_argument(
-        "--no-jev", dest="jev", action="store_false",
-        help="grade with the judge panel alone, never asking Jev first (for an agent that uses Jev itself)",
-    )  # fmt: skip
     p.add_argument("--include-xfail", action="store_true")
     p.add_argument(
         "--provenance", action="append", default=[], metavar="KEY=VALUE",
@@ -434,6 +453,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--resume", action="store_true", required=True)
     p.add_argument("--root", type=Path, default=RUNS, help="where runs wait (default: %(default)s)")
     p.set_defaults(func=cmd_upload)
+
+    p = sub.add_parser("regrade", help="grade a finished run again under another judge, without re-running agents")
+    p.add_argument("run", type=Path, help="the run directory to regrade")
+    p.add_argument("--out", type=Path, required=True, help="the new run directory (must not exist)")
+    p.add_argument("--judge", default="", help="J[,J] OpenRouter ids (default: PARALLAX_JUDGE_MODELS)")
+    p.add_argument("--concurrency", type=int, default=8, help="trials graded at once (default: %(default)s)")
+    p.add_argument("--tasks", type=Path, action="append", default=[], metavar="DIR", help="extra task root")
+    p.set_defaults(func=cmd_regrade)
 
     p = sub.add_parser("watch", help="a local page of live runs: progress, pass rates, cost and ETA")
     p.add_argument("--host", default="127.0.0.1")

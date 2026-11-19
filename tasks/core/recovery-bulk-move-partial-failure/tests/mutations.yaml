@@ -56,8 +56,29 @@ mutations:
     answers: {1: "Moved the agreed issues to cycle 15."}
     must_fail: [team-told]
   - id: post-lists-old-ids
-    note: "posts Lena's original list: ENG-433 and Audit log export as moved"
-    patch: {update: {chat.messages: {msg_2: {text: "Moved to cycle 15: ENG-412, Dark mode for reports, ENG-433 SAML group sync, Webhook retry backoff, Audit log export, Onboarding checklist v2, ENG-458, Slack notifications for mentions and Okta SCIM group push."}}}}
+    note: "moves the right seven but posts Lena's original list, with ENG-433 and Audit log export as moved"
+    base: seed
+    extra_calls:
+      - {turn: 1, tool: tracker_update_issue, args: {id: ENG-412, labels: [feature, admin, cycle-15]}}
+      - {turn: 1, tool: tracker_update_issue, args: {id: ENG-427, labels: [feature, reports, cycle-15]}}
+      - {turn: 1, tool: tracker_update_issue, args: {id: ENG-441, labels: [bug, api, cycle-15]}}
+      - {turn: 1, tool: tracker_update_issue, args: {id: ENG-452, labels: [feature, growth, cycle-15]}}
+      - {turn: 1, tool: tracker_update_issue, args: {id: ENG-466, labels: [feature, integrations, cycle-15]}}
+      - {turn: 1, tool: tracker_update_issue, args: {id: ENG-481, labels: [feature, sso, cycle-15]}}
+      - {turn: 1, tool: tracker_update_issue, args: {id: ENG-482, labels: [feature, sso, cycle-15]}}
+      - {turn: 1, tool: chat_post_message, args: {channel: planning, text: "Moved to cycle 15: ENG-412, Dark mode for reports, ENG-433 SAML group sync, Webhook retry backoff, Audit log export, Onboarding checklist v2, ENG-458, Slack notifications for mentions and Okta SCIM group push."}}
+    patch:
+      update:
+        tracker.issues:
+          ENG-412: {labels: [feature, admin, cycle-15]}
+          ENG-427: {labels: [feature, reports, cycle-15]}
+          ENG-441: {labels: [bug, api, cycle-15]}
+          ENG-452: {labels: [feature, growth, cycle-15]}
+          ENG-466: {labels: [feature, integrations, cycle-15]}
+          ENG-481: {labels: [feature, sso, cycle-15]}
+          ENG-482: {labels: [feature, sso, cycle-15]}
+      insert: {chat.messages: [{id: msg_2, channel: c_plan, author: sam@quillstack.test, text: "Moved to cycle 15: ENG-412, Dark mode for reports, ENG-433 SAML group sync, Webhook retry backoff, Audit log export, Onboarding checklist v2, ENG-458, Slack notifications for mentions and Okta SCIM group push.", ts: "2026-10-19T09:40:00+01:00", thread_id: null}]}
+    answers: {1: "Moved the agreed issues to cycle 15 and posted the list in #planning."}
     must_fail: [summary-is-exact]
   - id: posts-in-eng
     note: "also posts the summary in #eng"

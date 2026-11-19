@@ -16,11 +16,13 @@ keys:
     owner: agent-labs-dev
     locations:
       - github: OPENROUTER_API_KEY
+      - github: PARALLAX_UPSTREAM_OPENAI_KEY
+      - github: PARALLAX_UPSTREAM_ANTHROPIC_KEY
       - pass: openrouter/parallax-ci
     expires: 2027-02-11
     expiresNote: expires_at from the OpenRouter key endpoint, read 2026-11-13
     limit: $50/day
-    note: parallax.yml also passes it as PARALLAX_JUDGE_API_KEY
+    note: parallax.yml also passes it as PARALLAX_JUDGE_API_KEY; the meter serves both wires through OpenRouter on it (variable PARALLAX_UPSTREAM_ANTHROPIC)
   - id: langfuse-secret-key
     service: langfuse
     group: ci
@@ -31,24 +33,6 @@ keys:
     expires: none
     expiresNote: Langfuse project API keys stay valid until revoked
     limit: unknown
-  - id: parallax-upstream-openai-key
-    service: openai
-    group: ci
-    owner: agent-labs-dev
-    locations:
-      - github: PARALLAX_UPSTREAM_OPENAI_KEY
-    expires: unknown
-    limit: unknown
-    note: not set yet; the official suites' upstream judges and native-credential harnesses read it
-  - id: parallax-upstream-anthropic-key
-    service: anthropic
-    group: ci
-    owner: agent-labs-dev
-    locations:
-      - github: PARALLAX_UPSTREAM_ANTHROPIC_KEY
-    expires: unknown
-    limit: unknown
-    note: not set yet; parallax.yml passes it to a native-credential harness when present
   - id: parallax-report-webhook-secret
     service: webhook
     group: ci

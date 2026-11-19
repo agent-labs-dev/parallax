@@ -32,6 +32,11 @@ records every run in [Langfuse](https://langfuse.com):
 - **Scores, reliability and cost.** pass@1 comes with task-clustered confidence
   intervals, pass^k measures reliability, and cost comes from a metering proxy
   when available. Unknown cost stays unknown, never `$0`.
+- **Browser and desktop agents too.** A browser task needs no seeded world:
+  the agent drives a real browser, a CDP observer reads the final page, and an
+  LLM judge grades it against the task
+  ([browser harnesses](docs/adapters.md#browser-harnesses)). Desktop tasks run
+  seeded GTK apps and grade their saved files.
 - **Regressions, not just scores.** `parallax compare` pairs a run with an
   earlier one task by task and reports the pass@1 delta with a 95% confidence
   interval, so a pull request can be gated on it.
@@ -60,7 +65,7 @@ export LANGFUSE_BASE_URL=https://cloud.langfuse.com
 export LANGFUSE_PUBLIC_KEY=pk-lf-...
 export LANGFUSE_SECRET_KEY=sk-lf-...
 export PARALLAX_LANGFUSE_PROJECT=my-evals    # the project id or name results belong in
-export OPENROUTER_API_KEY=...                # the Jev judge
+export OPENROUTER_API_KEY=...                # the LLM judge panel
 export PARALLAX_UPSTREAM_OPENAI_KEY=...      # the meter's OpenAI-wire key (OpenRouter by default)
 ```
 
@@ -83,7 +88,7 @@ common setup failures.
 
 Parallax focuses on general-purpose agents: connected services, multi-step
 work, persistent memory and delegation. The in-tree harnesses are
-`hermes` and `openclaw`, plus the
+`hermes`, `openclaw`, `claude-code` and `codex`, plus the
 `oracle`, `null-claim` and `null-refuse` controls. The
 [harness matrix](docs/adapters.md#harness-matrix) records what has been verified
 for each. Docker is the default isolation boundary.
@@ -102,7 +107,11 @@ smoke tests, and task authoring.
 | `lite` | 20-task subset of core, weighted to work in connected apps | Smoke and iteration. It is not ranking-validated until Kendall τ ≥ 0.8 against core |
 | `hard` | 20-task subset of core: long, vague work across 3 or more connected apps, with more data and traps | Longer workflows after lite |
 | `flagship` | 10-task subset of core, one per kind of everyday assistant work | The headline cross-harness comparison |
+| `versus` | 5-task subset of core: long multi-app work, research, prompt injection, asking before guessing, honest recovery | Comparing whole agent products; every task needs only the world's tools and clock |
 | `conformance` | 5 capability canaries | Checking a new adapter before it is compared |
+
+Browser agents run on three world-less sources of live websites: `live-web` (below) and the
+[official suites](docs/official-suites.md) `online-mind2web` and `bu-bench`, selected as `source=<id>`.
 
 Each suite's `suite.toml` names its owner and purpose; a subset suite such as `lite` lists its task ids
 there, with `within` naming the suite they come from. `parallax check --lint-only` checks every listed id.
@@ -150,7 +159,7 @@ and how comparisons pair runs.
 
 ## Status
 
-`2.0.0.dev23`. The task format, world, checks, controls, statistics and Langfuse
+Pre-release. The task format, world, checks, controls, statistics and Langfuse
 recording are in place. No pilot has been run, so no cross-harness results are
 published yet.
 

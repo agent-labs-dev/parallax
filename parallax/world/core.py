@@ -203,7 +203,12 @@ class World:
             internal_error=self._internal_error,
             missed_fires=tuple(self._missed_fires),
             tool_schemas=tuple(
-                WorldToolSpec(name=spec.name, description=spec.description, input_schema=spec.input_schema)
+                WorldToolSpec(
+                    name=spec.name,
+                    description=spec.description,
+                    input_schema=spec.input_schema,
+                    mutates=spec.mutates,
+                )
                 for spec in self._specs
             ),
         )

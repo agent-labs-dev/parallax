@@ -63,10 +63,12 @@ from parallax.runner import (
     run_async,
     start_order,
     transient_invalid,
+    trial_capabilities,
     turn_finals,
 )
 from parallax.semantic import Graded
 from parallax.task import discover, load_task
+from starlette.applications import Starlette
 
 TASKS = Path(__file__).parent / "fixtures" / "tasks"
 
@@ -345,6 +347,22 @@ async def test_a_pinned_world_port_is_served_and_a_taken_one_is_an_environment_e
         with pytest.raises(BoxError, match=f"{port}.*taken"):
             async with runner.services(Isolation.REMOTE, None, False, "port-test-2", world_port=port):
                 pass
+
+
+async def test_a_world_public_url_must_reach_the_runs_world(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A tunnel routed elsewhere (here, a server that answers 404 to everything) fails the run at start."""
+    monkeypatch.setattr(runner, "PUBLIC_WORLD_WAIT_S", 0.0)
+    elsewhere = await runner.serve_embedded(Starlette(), "127.0.0.1")
+    try:
+        with pytest.raises(BoxError, match="does not reach this run's world server.*HTTP 404"):
+            async with runner.services(Isolation.REMOTE, f"http://127.0.0.1:{elsewhere.port}", False, "public-test"):
+                pass
+    finally:
+        await elsewhere.stop()
+    async with runner.services(Isolation.REMOTE, None, False, "public-probe", world_port=0) as probe:
+        port = int(probe.world_local.rsplit(":", 1)[1])
+    async with runner.services(Isolation.REMOTE, f"http://127.0.0.1:{port}/", False, "public-ok", world_port=port):
+        pass
 
 
 async def test_harness_cleanup_outlives_a_cancelled_trial() -> None:
@@ -655,6 +673,39 @@ def test_a_second_sigint_does_not_cut_teardown_short() -> None:
     assert (proc.returncode, out.strip()) == (130, "cleanup finished")
 
 
+_SIGTERM_PROBE = """
+import asyncio, sys
+from parallax import interrupts
+from parallax.runner import finish_uncancelled, run_to_teardown
+async def stop_browsers():
+    print("browsers stopped", flush=True)
+interrupts.on_interrupt(stop_browsers)
+async def cleanup():
+    await asyncio.sleep(1)
+    print("cleanup finished", flush=True)
+async def main():
+    try:
+        print("running", flush=True)
+        await asyncio.sleep(30)
+    finally:
+        await finish_uncancelled(cleanup())
+try:
+    run_to_teardown(main())
+except KeyboardInterrupt:
+    sys.exit(130)
+"""
+
+
+def test_sigterm_runs_the_interrupt_hooks_first_and_then_the_teardown() -> None:
+    # A cancelled GitHub Actions job gets SIGINT, then SIGTERM, then SIGKILL within seconds.
+    proc = subprocess.Popen([sys.executable, "-c", _SIGTERM_PROBE], stdout=subprocess.PIPE, text=True)
+    assert proc.stdout is not None
+    assert proc.stdout.readline().strip() == "running"
+    proc.send_signal(signal.SIGTERM)
+    out, _ = proc.communicate(timeout=30)
+    assert (proc.returncode, out.split()) == (130, ["browsers", "stopped", "cleanup", "finished"])
+
+
 @pytest.mark.parametrize("remove_retained", [False, True])
 async def test_harness_assets_outlive_cleanup_and_export(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, remove_retained: bool
@@ -718,3 +769,11 @@ async def test_harness_assets_outlive_cleanup_and_export(
         assert archive.read(held + ".mime") == b"image/png\n"
         assert hashlib.sha256(archive.read(held)).hexdigest() == receipt["sha256"]
         assert png not in archive.read(f"{row.dir}/trajectory.json")
+
+
+def test_world_clock_only_where_the_runner_sets_the_clock() -> None:
+    agent = INFO.model_copy(update={"capabilities": frozenset({Capability.MCP}), "isolation": Isolation.DOCKER})
+    control = agent.model_copy(update={"isolation": Isolation.HOST})
+    assert Capability.WORLD_CLOCK in trial_capabilities(agent, Isolation.DOCKER)  # px-clock
+    assert Capability.WORLD_CLOCK in trial_capabilities(control, Isolation.DOCKER)  # reads no clock
+    assert Capability.WORLD_CLOCK not in trial_capabilities(agent, Isolation.HOST)  # the machine's date

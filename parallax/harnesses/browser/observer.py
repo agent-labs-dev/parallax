@@ -7,7 +7,6 @@ JSON suitable for the browser evidence model.
 
 from __future__ import annotations
 
-import base64
 import contextlib
 import importlib
 import itertools
@@ -201,12 +200,3 @@ def load_observer(name: str = "plain-cdp") -> Observer:
     if not callable(getattr(observer, "observe", None)):
         raise TypeError(f"browser observer {name!r} has no observe method")
     return observer
-
-
-def screenshot_bytes(evidence: Mapping[str, Any]) -> bytes | None:
-    value = evidence.get("screenshot_png_b64")
-    if not isinstance(value, str):
-        return None
-    with contextlib.suppress(ValueError):
-        return base64.b64decode(value)
-    return None

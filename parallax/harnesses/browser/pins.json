@@ -11,9 +11,17 @@
     "registry": "pypi",
     "version": "0.1.13"
   },
+  "agent-browser": {
+    "registry": "npm",
+    "version": "0.43.0"
+  },
   "cua-driver": {
     "registry": "pypi",
     "version": "0.47.19"
+  },
+  "@anthropic-ai/claude-code": {
+    "registry": "npm",
+    "version": "2.1.326"
   },
   "@openai/codex": {
     "registry": "npm",
