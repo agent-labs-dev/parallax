@@ -6,6 +6,8 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev54] - 2026-11-19
+
 ### Added
 
 - `[metadata.parallax.desktop].session = "hyprland"`: the task's box runs deskpilot's standalone headless Hyprland session (Wayland, on the host's vkms display) from its own Arch Linux image, instead of Xvfb. The box is given the vkms node and nothing else, the Wayland variables reach every command, and `--videos` records the output with `wf-recorder`. The evals workflow loads vkms on a runner that can (not Blacksmith). `tasks/desktop-hyprland/files-desktop-hyprland-expense-form` is its canary.
