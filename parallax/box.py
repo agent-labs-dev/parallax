@@ -812,7 +812,7 @@ def hyprland_recipe() -> str:
 
 
 # The deskpilot the hyprland image installs: the commit whose standalone session the recipe below was built against.
-DESKPILOT_REF = "fb1e3cbbdfb23d9c933db6328379bd11c4099263"
+DESKPILOT_REF = "1aec972d0a5cce1f5b091da6047ae23618c1280b"
 
 # The desktop layer carries an x86_64 driver. On another host architecture it and the box image under it are
 # built for amd64 under their own tags, so the native images every other box uses are never replaced.
