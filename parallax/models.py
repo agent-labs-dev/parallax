@@ -98,9 +98,7 @@ class Capability(StrEnum):
     MCP = "mcp"  # mounts the world MCP server and calls its tools
     WORKSPACE = "workspace"  # reads/writes /workspace which the runner snapshots (attachments are delivered here)
     SHELL = "shell"  # runs commands in /workspace
-    # Operates seeded GUI apps in the device box's X11/AT-SPI session. A trial that requires it but not `shell` runs
-    # with no shell (`shell_withheld`), so the app is worked through its window rather than scripted.
-    DESKTOP = "desktop"
+    DESKTOP = "desktop"  # operates seeded GUI apps in the device box's X11/AT-SPI session
     MULTI_TURN = "multi_turn"  # continues one conversation across steps
     MEMORY = "memory"  # recalls across a fresh session using the harness's own persistent memory
     # Runs on the world's clock, so "today" and "next week" mean the scenario's dates. The runner
@@ -765,12 +763,6 @@ class TrialFlag(StrEnum):
     USAGE_PROVISIONAL = "usage_provisional"  # no server finality signal backs this snapshot
 
 
-def shell_withheld(requires: frozenset[Capability]) -> bool:
-    """A desktop trial that does not also require a shell runs without one: the agent works the app through its
-    window, and cannot script it from a shell instead."""
-    return Capability.DESKTOP in requires and Capability.SHELL not in requires
-
-
 class HarnessInfo(Model):
     name: str
     kind: HarnessKind
@@ -789,10 +781,6 @@ class HarnessInfo(Model):
     # Remote harnesses only. Left out of the serialized info at its default, so declaring the field
     # did not change the configuration identity (`config_hash`) of any harness that does not use it.
     remote_box: RemoteBox = Field(default=RemoteBox.HOST, exclude_if=lambda box: box is RemoteBox.HOST)
-    # How a harness that declares `shell` runs a trial without it (`shell_withheld`): "flag" for a manifest's
-    # `shell_off_argv`. A harness with a shell it cannot drop is not given the desktop. Left out of the serialized
-    # info at its default, so declaring it did not change the configuration identity of any harness without it.
-    shell_disabled_by: Literal["flag", "none"] = Field(default="none", exclude_if=lambda v: v == "none")
 
 
 class McpEndpoint(Model):
@@ -998,7 +986,6 @@ class ManifestSpec(Model):
     argv_first: tuple[str, ...]  # the first turn of a session
     argv_next: tuple[str, ...] = ()  # cli: continuation; empty => MULTI_TURN may not be declared
     mcp_argv: tuple[str, ...] = ()  # exact argv elements omitted when the trial has no MCP world
-    shell_off_argv: tuple[str, ...] = ()  # argv elements appended when the trial runs without a shell
     stdin: Literal["prompt", "none"] = "prompt"
     session: Literal["from_output", "preassigned"] = "from_output"  # preassigned: runner mints a uuid {session}
     parser: ParserId | None = None  # required for cli

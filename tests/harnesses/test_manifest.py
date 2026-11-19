@@ -246,45 +246,6 @@ async def test_desktop_content_reaches_every_desktop_trial_beside_the_world_it_u
     assert set(written["mcpServers"]) == servers
 
 
-@pytest.mark.parametrize(
-    ("requires", "withheld"),
-    [
-        (frozenset({Capability.DESKTOP, Capability.WORKSPACE}), True),  # the app is reached through its window alone
-        (frozenset({Capability.DESKTOP, Capability.SHELL}), False),  # the task asks for a shell as well
-        (frozenset({Capability.WORKSPACE}), False),
-    ],
-)
-async def test_a_desktop_trial_without_a_shell_runs_the_harness_without_one(
-    box: HostBox, fake_spec: ManifestSpec, requires: frozenset[Capability], withheld: bool
-) -> None:
-    spec = fake_spec.model_copy(update={"shell_off_argv": ("--deny", "shell")})
-    harness = ManifestHarness(spec)
-    await harness.start(make_trial(box).model_copy(update={"requires": requires}), box)
-    first = await harness.turn(TurnInput(index=1, text="one", new_session=False))
-    second = await harness.turn(TurnInput(index=2, text="two", new_session=False))
-    for out in (first, second):
-        assert (reply(out.answer)["argv"][-2:] == ["--deny", "shell"]) is withheld
-
-
-def test_a_desktop_harness_with_a_shell_must_say_how_to_drop_it(fake_spec: ManifestSpec) -> None:
-    caps = frozenset({Capability.DESKTOP, Capability.SHELL})
-    shell = fake_spec.model_copy(
-        update={"info": fake_spec.info.model_copy(update={"capabilities": caps}), "config": (DESKTOP_CONFIG,)}
-    )
-    assert any("shell_off_argv" in p for p in manifest_problems(shell, "fake"))
-    flagged = shell.info.model_copy(update={"shell_disabled_by": "flag"})
-    dropped = shell.model_copy(update={"info": flagged, "shell_off_argv": ("--deny", "shell")})
-    assert manifest_problems(dropped, "fake") == []
-    # The info says the shell can be dropped exactly when the manifest says how.
-    assert any(
-        "shell_off_argv" in p for p in manifest_problems(dropped.model_copy(update={"shell_off_argv": ()}), "fake")
-    )
-    assert any(
-        "shell_disabled_by" in p
-        for p in manifest_problems(shell.model_copy(update={"shell_off_argv": ("--deny",)}), "fake")
-    )
-
-
 def test_declaring_desktop_needs_a_config_that_gives_the_harness_the_desktop(fake_spec: ManifestSpec) -> None:
     desktop = fake_spec.info.model_copy(update={"capabilities": frozenset({Capability.DESKTOP})})
     bare = fake_spec.model_copy(update={"info": desktop})

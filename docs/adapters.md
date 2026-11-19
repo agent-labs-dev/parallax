@@ -157,13 +157,6 @@ the box's desktop session, usually cua-driver's MCP server
 (`{ mcpServers = { desktop = { type = "stdio", command = "cua-driver", args = ["mcp"] } } }`).
 A manifest that declares `desktop` must give one.
 
-A trial that requires `desktop` but not `shell` runs without a shell, so the agent works the app
-through its window instead of scripting it. A manifest that declares both `desktop` and `shell` sets
-`shell_off_argv`, argv appended to every turn of such a trial, and `shell_disabled_by = "flag"` in
-`[info]`. claude-code appends `--disallowedTools Bash,mcp__desktop__launch_app`, since cua-driver's
-`launch_app` runs commands through the system shell. Any other harness with a shell it cannot drop
-gets no desktop, so a desktop task is NA for it.
-
 **Placeholders** are substituted into argv and config strings as typed values,
 never through a shell. An unknown placeholder is an error. The full set is:
 
