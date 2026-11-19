@@ -77,11 +77,11 @@ def _meter(calls: list[dict[str, Any]]) -> None:
     completions = importlib.import_module("openai.resources.chat.completions")
     client = importlib.import_module("openai._base_client")
     sync_create, async_create = completions.Completions.create, completions.AsyncCompletions.create
-    # openai 1.x retries by calling `_retry_request`; 2.x retries in a loop that calls `_sleep_for_retry` once before
-    # each repeated attempt. The two upstream judges pin different majors (Online-Mind2Web 1.68.2, BU Bench 2.15.0),
-    # and each SDK has only one of the two, so the meter wraps whichever the judge's own SDK has.
-    hook = "_retry_request" if hasattr(client.SyncAPIClient, "_retry_request") else "_sleep_for_retry"
-    sync_retry, async_retry = getattr(client.SyncAPIClient, hook), getattr(client.AsyncAPIClient, hook)
+    # Every HTTP attempt, sync or async, is built by `BaseClient._build_request(options, retries_taken=n)`, which also
+    # sends `n` as the `x-stainless-retry-count` header; n > 0 is a retry. The upstream judges pin different majors
+    # (Online-Mind2Web 1.68.2, BU Bench 2.15.0), and the retry loop differs in each, but this call is the same in 1.x,
+    # 2.x and 3.x.
+    build_request = client.BaseClient._build_request
 
     def create(self: Any, *args: Any, **kwargs: Any) -> Any:
         started = time.monotonic()
@@ -103,18 +103,14 @@ def _meter(calls: list[dict[str, Any]]) -> None:
         calls.append(_call(response, started))
         return response
 
-    def retry(self: Any, *args: Any, **kwargs: Any) -> Any:
-        calls.append(_unpriced("retried"))
-        return sync_retry(self, *args, **kwargs)
-
-    async def aretry(self: Any, *args: Any, **kwargs: Any) -> Any:
-        calls.append(_unpriced("retried"))
-        return await async_retry(self, *args, **kwargs)
+    def build(self: Any, options: Any, *, retries_taken: int = 0) -> Any:
+        if retries_taken:
+            calls.append(_unpriced("retried"))
+        return build_request(self, options, retries_taken=retries_taken)
 
     completions.Completions.create = create
     completions.AsyncCompletions.create = acreate
-    setattr(client.SyncAPIClient, hook, retry)
-    setattr(client.AsyncAPIClient, hook, aretry)
+    client.BaseClient._build_request = build
 
 
 def _check_bu_dataset(root: Path, expected: str) -> None:

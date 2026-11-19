@@ -203,7 +203,7 @@ def test_a_retried_judge_call_leaves_the_judge_cost_unknown(monkeypatch, asynchr
     completions = importlib.import_module("openai.resources.chat.completions")
     base = importlib.import_module("openai._base_client")
     for cls, name in ((completions.Completions, "create"), (completions.AsyncCompletions, "create"),
-                      (base.SyncAPIClient, "_retry_request"), (base.AsyncAPIClient, "_retry_request")):  # fmt: skip
+                      (base.BaseClient, "_build_request")):  # fmt: skip
         monkeypatch.setattr(cls, name, getattr(cls, name))  # restored after the test
     calls: list[dict[str, object]] = []
     official_bridge._meter(calls)
@@ -223,35 +223,6 @@ def test_a_retried_judge_call_leaves_the_judge_cost_unknown(monkeypatch, asynchr
     assert [call["cost_usd"] for call in calls] == [None, RECORDED_CALL["cost_usd"]]
     judgment = official._judgment(official.MIND2WEB_SPEC, "openai/gpt-6.1-terra", {}, {"calls": calls})
     assert judgment is not None and judgment.cost()[1] == 1  # one unpriced attempt: the budget keeps the hold
-
-
-def test_a_retry_in_the_openai_2_sdk_leaves_the_judge_cost_unknown(monkeypatch):
-    """2026-11-17: the BU Bench judge pins openai 2.15.0, which has no `_retry_request`, so the meter raised before
-    the judge ran and every BU Bench trial was graded INVALID. openai 2.x calls `_sleep_for_retry`
-    once before each repeated attempt instead."""
-    completions = importlib.import_module("openai.resources.chat.completions")
-    base = importlib.import_module("openai._base_client")
-    for cls in (completions.Completions, completions.AsyncCompletions):
-        monkeypatch.setattr(cls, "create", cls.create)  # restored after the test
-    slept: list[int] = []
-    for cls in (base.SyncAPIClient, base.AsyncAPIClient):
-        monkeypatch.delattr(cls, "_retry_request")
-    monkeypatch.setattr(
-        base.SyncAPIClient, "_sleep_for_retry", lambda self, **kw: slept.append(kw["retries_taken"]), raising=False
-    )
-
-    async def asleep(self, **kw):
-        slept.append(kw["retries_taken"])
-
-    monkeypatch.setattr(base.AsyncAPIClient, "_sleep_for_retry", asleep, raising=False)
-    calls: list[dict[str, object]] = []
-    official_bridge._meter(calls)
-    client = openai.OpenAI(api_key="test", base_url="https://judge.invalid/v1")
-    client._sleep_for_retry(retries_taken=0, max_retries=1, options=None, response=None)
-    asyncio.run(openai.AsyncOpenAI(api_key="test", base_url="https://judge.invalid/v1")._sleep_for_retry(
-        retries_taken=0, max_retries=1, options=None, response=None))  # fmt: skip
-    assert slept == [0, 0]
-    assert [call["cost_usd"] for call in calls] == [None, None]
 
 
 @pytest.mark.asyncio
