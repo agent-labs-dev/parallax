@@ -188,9 +188,12 @@ def dump_config(fmt: Literal["json", "toml", "yaml"], content: JsonObject) -> by
 async def write_configs(files: tuple[ConfigFile, ...], trial: Trial, box: BoxHandle) -> None:
     values = trial_values(trial)
     for f in files:
-        if Capability.MCP not in trial.requires and f.requires_mcp:
+        world = Capability.MCP in trial.requires or not f.requires_mcp
+        desktop = Capability.DESKTOP in trial.requires and f.desktop_content is not None
+        if not (world or desktop):
             continue
-        content = render_json(f.content, values)
+        # A desktop trial without the world still gets the file, holding the desktop alone.
+        content = render_json(f.content, values) if world else {}
         if not isinstance(content, dict):
             raise ManifestError(f"{f.path}: content must render to an object")
         if Capability.MCP in trial.requires and f.mcp_content is not None:
@@ -198,7 +201,7 @@ async def write_configs(files: tuple[ConfigFile, ...], trial: Trial, box: BoxHan
             if not isinstance(mcp_content, dict):
                 raise ManifestError(f"{f.path}: mcp_content must render to an object")
             content = {**content, **mcp_content}
-        if Capability.DESKTOP in trial.requires and f.desktop_content is not None:
+        if desktop:
             desktop_content = render_json(f.desktop_content, values)
             if not isinstance(desktop_content, dict):
                 raise ManifestError(f"{f.path}: desktop_content must render to an object")

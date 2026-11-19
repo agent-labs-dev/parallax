@@ -837,6 +837,9 @@ def _lint_mutations(task: Task) -> Iterator[str]:
         for check_id in mut.must_fail:
             if check_id not in gradable:
                 yield f"mutation {mut.id}: must_fail names {check_id!r}, not a check"
+        for rel in (*mut.files, *mut.files_from):
+            if Path(rel).is_absolute() or ".." in Path(rel).parts:
+                yield f"mutation {mut.id}: workspace path must stay in the workspace: {rel}"
         tests = (task.path / "tests").resolve()
         for source in mut.files_from.values():
             target = (tests / source).resolve()  # an absolute source replaces the base, so it lands outside too

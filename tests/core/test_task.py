@@ -294,15 +294,21 @@ def test_desktop_packages_load_sorted_and_reject_non_debian_names(tmp_path: Path
 
 
 @pytest.mark.parametrize(
-    ("source", "problem"),
-    [("../task.toml", "must stay under tests"), ("mutants/missing.bin", "not found under tests")],
+    ("target", "source", "problem"),
+    [
+        ("shipped.bin", "../task.toml", "must stay under tests"),
+        ("shipped.bin", "mutants/missing.bin", "not found under tests"),
+        ("../shipped.bin", "mutants/missing.bin", "must stay in the workspace"),
+    ],
 )
-def test_lint_rejects_files_from_outside_tests_or_missing(tmp_path: Path, source: str, problem: str) -> None:
+def test_lint_rejects_files_from_outside_tests_workspace_or_missing(
+    tmp_path: Path, target: str, source: str, problem: str
+) -> None:
     problems = lint_after(
         tmp_path,
         "tests/mutations.yaml",
         "must_fail: [one-send-call]",
-        f"files_from: {{shipped.bin: {source}}}\n    must_fail: [one-send-call]",
+        f"files_from: {{{target}: {source}}}\n    must_fail: [one-send-call]",
     )
     assert any(problem in p for p in problems), problems
 

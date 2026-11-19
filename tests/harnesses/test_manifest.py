@@ -223,6 +223,7 @@ async def test_a_cancelled_turn_kills_its_process(box: HostBox, fake_spec: Manif
 DESKTOP_CONFIG = ConfigFile(
     path="home:mcp.json",
     format="json",
+    requires_mcp=True,
     content={"mcpServers": {"world": {"url": "{world_url}"}}},
     desktop_content={"mcpServers": {"desktop": {"command": "cua-driver", "args": ["mcp"]}}},
 )
@@ -230,16 +231,19 @@ DESKTOP_CONFIG = ConfigFile(
 
 @pytest.mark.parametrize(
     ("requires", "servers"),
-    [(frozenset({Capability.DESKTOP}), {"world", "desktop"}), (frozenset(), {"world"})],
+    [
+        (frozenset({Capability.MCP, Capability.DESKTOP}), {"world", "desktop"}),
+        (frozenset({Capability.DESKTOP}), {"desktop"}),
+        (frozenset({Capability.MCP}), {"world"}),
+    ],
 )
-async def test_desktop_content_joins_the_world_servers_only_for_a_desktop_trial(
+async def test_desktop_content_reaches_every_desktop_trial_beside_the_world_it_uses(
     box: HostBox, requires: frozenset[Capability], servers: set[str]
 ) -> None:
     trial = make_trial(box).model_copy(update={"requires": requires})
     await write_configs((DESKTOP_CONFIG,), trial, box)
     written = json.loads((box.home / "mcp.json").read_text())
     assert set(written["mcpServers"]) == servers
-    assert written["mcpServers"]["world"] == {"url": "http://world.test/mcp"}
 
 
 def test_declaring_desktop_needs_a_config_that_gives_the_harness_the_desktop(fake_spec: ManifestSpec) -> None:

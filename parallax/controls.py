@@ -133,10 +133,18 @@ def mutate_files(task: Task, oracle_ws: Path | None, m: Mutation, into: Path) ->
         ws.mkdir(parents=True)
     apply_files(ws, m.files)
     for rel, copied in m.files_from.items():
-        target = ws / rel
+        target = workspace_target(ws, rel)
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(task.path / "tests" / copied, target)
     return ws
+
+
+def workspace_target(ws: Path, rel: str) -> Path:
+    """Where a mutant's edit to `rel` lands, refused if it would leave the workspace (absolute, `..` or a symlink)."""
+    target = ws / rel
+    if not target.resolve().is_relative_to(ws.resolve()):
+        raise ValueError(f"mutant edit {rel!r} leaves the workspace")
+    return target
 
 
 def mutate_turn_files(oracle: Evidence, m: Mutation, into: Path) -> dict[int, Path]:
@@ -155,7 +163,7 @@ def mutate_turn_files(oracle: Evidence, m: Mutation, into: Path) -> dict[int, Pa
 
 def apply_files(ws: Path, edits: Mapping[str, str | None]) -> None:
     for rel, content in edits.items():
-        target = ws / rel
+        target = workspace_target(ws, rel)
         if content is None:
             target.unlink(missing_ok=True)
             continue

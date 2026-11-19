@@ -151,8 +151,9 @@ content = { model = { default = "{model_name}", provider = "meter-openai" }, pro
 ```
 
 A `[[config]]` file with `requires_mcp = true` is written only for trials that use the world.
-`desktop_content` is merged into `content`, objects key by key, for a trial that requires `desktop`:
-it is how the harness reaches the box's desktop session, usually cua-driver's MCP server
+`desktop_content` is merged into `content`, objects key by key, for a trial that requires `desktop`; a desktop
+trial without the world gets the file with `desktop_content` alone. It is how the harness reaches
+the box's desktop session, usually cua-driver's MCP server
 (`{ mcpServers = { desktop = { type = "stdio", command = "cua-driver", args = ["mcp"] } } }`).
 A manifest that declares `desktop` must give one.
 
