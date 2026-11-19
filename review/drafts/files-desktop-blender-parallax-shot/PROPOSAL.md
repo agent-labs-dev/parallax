@@ -68,8 +68,8 @@ authoring. Two things outside the task directory are still needed before a campa
    `parallax/desktop.Dockerfile` does it - add `blender libgl1-mesa-dri` to the existing `apt-get install` - but it
    grows an image every desktop task shares, so it is left out of this draft on purpose. A task-scoped package list
    on `[metadata.parallax.desktop]` would be the cheaper place for it.
-2. **A harness that declares `desktop`.** In-tree harnesses other than `cua-driver`-based ones do not drive the X11
-   device box, and fastbrowse's Parallax adapter (`fastbrowse_evals.backend.FastbrowseHarness`) declares only
-   `browser`, `credentials` and `authorization`, so this task is NA for it today. Measuring it with fastbrowse is a
-   change in the fastbrowse eval plugin: declare `Capability.DESKTOP` and run the turn with `--desktop` against the
-   box's Xvfb display instead of `--start`.
+2. **A harness that declares `desktop`.** The in-tree harnesses drive the X11 device box through cua-driver; a
+   product whose Parallax adapter declares only `browser`, `credentials` and `authorization` is NA on this task and
+   on every other desktop task. Measuring a browser-and-desktop product here is a change in that product's own eval
+   plugin: declare `Capability.DESKTOP` and drive its turns against the box's Xvfb display, through its desktop mode,
+   instead of a start URL.
