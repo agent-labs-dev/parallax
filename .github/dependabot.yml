@@ -6,6 +6,9 @@ updates:
       interval: daily
     cooldown:
       default-days: 1
+    ignore:
+      # The judge bridge tests meter the SDK version the pinned Online-Mind2Web judge installs (pyproject.toml).
+      - dependency-name: openai
     groups:
       dependencies:
         patterns: ["*"]
