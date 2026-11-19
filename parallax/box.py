@@ -521,7 +521,7 @@ class DockerBox:
         on one thread keeps it light beside the app; it is a record of the run, never evidence a check reads."""
         script = (
             'echo $$ > "$1.pid"; exec ffmpeg -nostdin -loglevel error -f x11grab -framerate 5 -video_size 1280x800'
-            ' -i :99 -c:v libx264 -preset ultrafast -crf 30 -pix_fmt yuv420p -threads 1 "$1" 2> /tmp/px-recording.log'
+            ' -i :99 -c:v libx264 -preset veryfast -crf 30 -pix_fmt yuv420p -threads 1 "$1" 2> /tmp/px-recording.log'
         )
         await docker("exec", "-d", "-u", self.user, self.container, "sh", "-c", script, "sh", DESKTOP_RECORDING)
 
