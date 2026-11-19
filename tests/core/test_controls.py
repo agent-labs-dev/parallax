@@ -70,3 +70,20 @@ def test_approval_mutants_replace_a_turns_cards_with_the_steps_decision(tmp_path
     assert mutate_approvals(task, oracle, never_asked) == ()
     with pytest.raises(ValueError, match="scripts no approval"):
         mutate_approvals(task, oracle, Mutation(id="bad", note="", must_fail=("c",), approvals={1: ("x",)}))
+
+
+def test_files_from_copies_a_tests_file_into_the_mutant_byte_for_byte(tmp_path: Path) -> None:
+    from parallax.controls import mutate_files
+
+    root = tmp_path / "mini-repo"
+    shutil.copytree(TASKS / "mini-repo", root)
+    scene = bytes(range(256)) * 4  # not text: no `files` entry could carry it
+    (root / "tests" / "mutants").mkdir(parents=True)
+    (root / "tests" / "mutants" / "scene.bin").write_bytes(scene)
+    oracle = tmp_path / "oracle"
+    oracle.mkdir()
+    (oracle / "kept.txt").write_text("kept")
+    m = Mutation(id="m", note="n", files_from={"out/scene.bin": "mutants/scene.bin"}, must_fail=("x",))
+    ws = mutate_files(load_task(root), oracle, m, tmp_path / "mutant")
+    assert (ws / "out" / "scene.bin").read_bytes() == scene
+    assert (ws / "kept.txt").read_text() == "kept"

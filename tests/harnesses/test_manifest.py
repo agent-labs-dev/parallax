@@ -24,6 +24,7 @@ from parallax.harnesses.manifest import (
     load_manifest,
     manifest_names,
     manifest_path,
+    manifest_problems,
     render,
     write_configs,
 )
@@ -217,3 +218,33 @@ async def test_a_cancelled_turn_kills_its_process(box: HostBox, fake_spec: Manif
         await asyncio.wait_for(harness.turn(TurnInput(index=1, text="hi", new_session=False)), 1.0)
     stat = Path(f"/proc/{pid_file.read_text()}/stat")
     assert not stat.exists() or stat.read_text().split(") ")[1].startswith("Z")
+
+
+DESKTOP_CONFIG = ConfigFile(
+    path="home:mcp.json",
+    format="json",
+    content={"mcpServers": {"world": {"url": "{world_url}"}}},
+    desktop_content={"mcpServers": {"desktop": {"command": "cua-driver", "args": ["mcp"]}}},
+)
+
+
+@pytest.mark.parametrize(
+    ("requires", "servers"),
+    [(frozenset({Capability.DESKTOP}), {"world", "desktop"}), (frozenset(), {"world"})],
+)
+async def test_desktop_content_joins_the_world_servers_only_for_a_desktop_trial(
+    box: HostBox, requires: frozenset[Capability], servers: set[str]
+) -> None:
+    trial = make_trial(box).model_copy(update={"requires": requires})
+    await write_configs((DESKTOP_CONFIG,), trial, box)
+    written = json.loads((box.home / "mcp.json").read_text())
+    assert set(written["mcpServers"]) == servers
+    assert written["mcpServers"]["world"] == {"url": "http://world.test/mcp"}
+
+
+def test_declaring_desktop_needs_a_config_that_gives_the_harness_the_desktop(fake_spec: ManifestSpec) -> None:
+    desktop = fake_spec.info.model_copy(update={"capabilities": frozenset({Capability.DESKTOP})})
+    bare = fake_spec.model_copy(update={"info": desktop})
+    assert any("desktop_content" in p for p in manifest_problems(bare, "fake"))
+    given = bare.model_copy(update={"config": (DESKTOP_CONFIG,)})
+    assert not any("desktop_content" in p for p in manifest_problems(given, "fake"))

@@ -837,6 +837,13 @@ def _lint_mutations(task: Task) -> Iterator[str]:
         for check_id in mut.must_fail:
             if check_id not in gradable:
                 yield f"mutation {mut.id}: must_fail names {check_id!r}, not a check"
+        tests = (task.path / "tests").resolve()
+        for source in mut.files_from.values():
+            target = (tests / source).resolve()  # an absolute source replaces the base, so it lands outside too
+            if not target.is_relative_to(tests):
+                yield f"mutation {mut.id}: files_from source must stay under tests: {source}"
+            elif not target.is_file():
+                yield f"mutation {mut.id}: files_from source {source!r} not found under tests"
 
 
 def _lint_files(task: Task) -> Iterator[str]:

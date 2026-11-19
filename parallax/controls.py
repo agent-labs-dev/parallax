@@ -132,6 +132,10 @@ def mutate_files(task: Task, oracle_ws: Path | None, m: Mutation, into: Path) ->
     else:
         ws.mkdir(parents=True)
     apply_files(ws, m.files)
+    for rel, copied in m.files_from.items():
+        target = ws / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(task.path / "tests" / copied, target)
     return ws
 
 
@@ -230,7 +234,7 @@ async def kill(
             return MutantOutcome(id=m.id, expect=m.expect, ok=False, detail=str(exc))
         verify = dict(oracle.verify)
         commands = [c for c in named if isinstance(c, CommandCheck)]
-        if commands and (m.files or m.base == "seed"):
+        if commands and (m.files or m.files_from or m.base == "seed"):
             verify |= await trusted_verify(task, ws, commands, isolation=isolation)
         ev = oracle.model_copy(
             update={

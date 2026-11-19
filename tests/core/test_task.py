@@ -277,6 +277,36 @@ def test_desktop_declarations_reject_unlaunchable_tasks(
     assert any(problem in finding for finding in lint(load_task(root)))
 
 
+def test_desktop_packages_load_sorted_and_reject_non_debian_names(tmp_path: Path) -> None:
+    root = copy_task(tmp_path, "mini-repo")
+    path = root / "task.toml"
+    base = path.read_text().replace('["mcp", "workspace", "shell"]', '["mcp", "workspace", "shell", "desktop"]')
+    (root / "environment" / "files").mkdir(parents=True, exist_ok=True)
+    (root / "environment" / "files" / "app.py").write_text("")
+    apps = '[metadata.parallax.desktop]\napps = [{path="app.py", title="App"}]\n'
+    path.write_text(f'{base}\n{apps}packages = ["libgl1-mesa-dri", "blender"]\n')
+    task = load_task(root)
+    assert task.meta.desktop is not None
+    assert sorted(task.meta.desktop.packages) == ["blender", "libgl1-mesa-dri"]
+    path.write_text(f'{base}\n{apps}packages = ["blender; rm -rf /"]\n')
+    with pytest.raises(TaskError):
+        load_task(root)
+
+
+@pytest.mark.parametrize(
+    ("source", "problem"),
+    [("../task.toml", "must stay under tests"), ("mutants/missing.bin", "not found under tests")],
+)
+def test_lint_rejects_files_from_outside_tests_or_missing(tmp_path: Path, source: str, problem: str) -> None:
+    problems = lint_after(
+        tmp_path,
+        "tests/mutations.yaml",
+        "must_fail: [one-send-call]",
+        f"files_from: {{shipped.bin: {source}}}\n    must_fail: [one-send-call]",
+    )
+    assert any(problem in p for p in problems), problems
+
+
 def test_job_steps_load_their_origin_and_scripted_approval(tmp_path: Path) -> None:
     root = copy_task(tmp_path, "mini-steps")
     toml = root / "task.toml"

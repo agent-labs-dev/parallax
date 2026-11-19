@@ -434,7 +434,15 @@ class DockerBox:
     async def create(cls, task: Task, image: str, net: str) -> DockerBox:
         name = f"{net}-box-{secrets.token_hex(4)}"
         run_args = ("--label", f"parallax.net={net}", "--network", net)
-        return await cls.boot(task, image, cls(name, clock=True), run_args, ("sleep", "infinity"))
+        box = cls(name, clock=True, desktop=task.meta.desktop is not None)
+        try:
+            await cls.boot(task, image, box, run_args, ("sleep", "infinity"))
+            if task.meta.desktop is not None:
+                await box.start_desktop(task)
+            return box
+        except BaseException:
+            await box.close()
+            raise
 
     @classmethod
     async def create_device(cls, task: Task, image: str) -> DockerBox:
@@ -640,10 +648,16 @@ class BoxKind(StrEnum):
     DESKTOP = "desktop"
 
 
+def desktop_box(info: HarnessInfo, isolation: Isolation) -> bool:
+    """Whether a trial can be given the desktop session: a docker box, or a remote harness's device box. A host
+    trial has no box to run the session in, so a desktop task is not applicable there."""
+    return isolation is Isolation.DOCKER or device_box(info, isolation)
+
+
 def box_kind(requires: frozenset[Capability], info: HarnessInfo, isolation: Isolation) -> BoxKind:
-    if not device_box(info, isolation):
-        return BoxKind.HOST
-    return BoxKind.DESKTOP if Capability.DESKTOP in requires else BoxKind.DEVICE
+    if Capability.DESKTOP in requires and desktop_box(info, isolation):
+        return BoxKind.DESKTOP
+    return BoxKind.DEVICE if device_box(info, isolation) else BoxKind.HOST
 
 
 async def open_box(task: Task, info: HarnessInfo, isolation: Isolation, net: str | None) -> Box:
@@ -652,13 +666,9 @@ async def open_box(task: Task, info: HarnessInfo, isolation: Isolation, net: str
         case Isolation.DOCKER:
             if net is None:
                 raise ValueError("docker isolation needs the run network (Sidecar.network)")
-            return await DockerBox.create(task, await build_image(info), net)
+            return await DockerBox.create(task, await task_image(task, info), net)
         case Isolation.REMOTE if device_box(info, isolation):
-            desktop = task.meta.desktop
-            image = (
-                await build_desktop_image(info, desktop.packages) if desktop is not None else await build_image(info)
-            )
-            return await DockerBox.create_device(task, image)
+            return await DockerBox.create_device(task, await task_image(task, info))
         case Isolation.HOST | Isolation.REMOTE:
             return HostBox.create(task, isolation)
         case _:
@@ -830,6 +840,13 @@ async def build_desktop_image(info: HarnessInfo, packages: Iterable[str] = ()) -
                 timeout_s=1800,
             )
     return tag
+
+
+async def task_image(task: Task, info: HarnessInfo) -> str:
+    """The image a task's box runs: the harness image, or for a desktop task the desktop image plus its packages."""
+    if task.meta.desktop is None:
+        return await build_image(info)
+    return await build_desktop_image(info, task.meta.desktop.packages)
 
 
 async def verify_image(task: Task) -> str:

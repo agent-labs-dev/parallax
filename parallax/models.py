@@ -241,7 +241,7 @@ class XFail(Model):
 
 
 class DesktopApp(Model):
-    path: str  # Python GTK3 program under environment/files, run with /usr/bin/python3
+    path: str  # Python program under environment/files, run with /usr/bin/python3; it may exec the app it opens
     title: str = Field(min_length=1)  # exact initial window title; startup waits for it
 
 
@@ -584,6 +584,9 @@ class Mutation(Model):
     # narration a final-scoped check must not read; unset, the replacement is one message.
     finals: dict[int, str] = {}
     files: dict[str, str | None] = {}  # workspace path -> new content (None deletes)
+    # workspace path -> a file under the task's tests/ dir copied in byte for byte, for content text cannot hold
+    # (a saved scene, an image); applied after `files`.
+    files_from: dict[str, str] = {}
     turn_files: dict[int, dict[str, str | None]] = {}  # turn -> edits to that turn's snapshot (early-edit mutants)
     # turn -> the approval requests raised in that turn, each answered with the step's decision
     approvals: dict[int, tuple[str, ...]] = {}
@@ -965,6 +968,9 @@ class ConfigFile(Model):
     content: JsonObject  # string leaves may contain {placeholders}
     requires_mcp: bool = False
     mcp_content: JsonObject | None = None
+    # Merged into `content` (nested objects merged key by key) when the trial requires `desktop`: how the harness
+    # reaches the box's desktop session, such as cua-driver's MCP server.
+    desktop_content: JsonObject | None = None
 
 
 class ManifestSpec(Model):

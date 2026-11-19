@@ -9,6 +9,10 @@ All notable changes to Parallax are recorded here. The format follows
 ### Added
 
 - `[metadata.parallax.desktop].packages`: the Debian packages a task's own desktop image installs above the shared GUI layer. The image is tagged by their list, so a task that needs an application (a 3D suite, an editor) carries its install cost alone and two tasks with different lists never share an image; the shared desktop tag and every other image are unchanged.
+- Desktop tasks run under `--isolation docker`: the trial's docker box starts the X11 session and the task's seeded apps before the harness, so the Parallax evals workflow can run them. A host trial of a desktop task is NA.
+- `claude-code` declares `desktop` and reaches the session through cua-driver's MCP server. A manifest's `[[config]]` gives the desktop through `desktop_content`, merged into the file for desktop trials. Its config identity changes, so comparing with earlier claude-code runs needs `--allow-identity-change`.
+- A mutation's `files_from` copies a file from the task's `tests/` directory into the workspace byte for byte, for wrong output text cannot hold, such as a saved scene or an image.
+- `files-desktop-blender-parallax-shot` (draft): animate a camera fly-by in Blender and render a frame. Checks open the saved scene in Blender.
 
 ## [2.0.0.dev53] - 2026-11-18
 

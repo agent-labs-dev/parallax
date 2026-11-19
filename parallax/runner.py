@@ -40,6 +40,7 @@ from parallax.box import (
     BoxKind,
     Sidecar,
     box_kind,
+    desktop_box,
     open_box,
     seed_dir,
     snapshot,
@@ -726,6 +727,9 @@ def trial_capabilities(info: HarnessInfo, run_isolation: Isolation) -> frozenset
     An agent run with `--isolation host` reads the machine's real date, and a remote product keeps
     its own clock, so neither has it unless the harness declares `world_clock`."""
     caps = info.capabilities
+    # A control writes the desktop app's evidence itself; an agent needs the box's desktop session to reach it.
+    if info.kind is not HarnessKind.CONTROL and not desktop_box(info, harness_isolation(info, run_isolation)):
+        caps -= {Capability.DESKTOP}
     match harness_isolation(info, run_isolation):
         case Isolation.DOCKER:
             caps |= {Capability.WORLD_CLOCK}
