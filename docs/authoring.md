@@ -168,7 +168,17 @@ requires = ["mcp", "workspace", "desktop"]
 
 [metadata.parallax.desktop]
 apps = [{path = "app.py", title = "Expense Form"}]
+packages = ["my-editor"]                  # optional: Debian packages this task's apps or agent need
 ```
+
+`packages` keeps a task's own application out of the shared desktop
+layer. The packages are installed in a layer above it and the image is
+tagged by their list, so a task that needs Blender, an editor or a CAD
+tool pays that install once and no other desktop task does; two tasks
+with different lists never share an image. Names are checked to be
+Debian package names. The agent reaches them like any other program in
+the box; a seeded GTK3 app is still the way a task presents a GUI it can
+be graded on.
 
 Keep each app inside its task, deterministic and offline. Give every interactive
 widget a stable accessible name (`widget.get_accessible().set_name(...)`).
@@ -187,7 +197,8 @@ judge credentials. `parallax check --lint-only` checks task structure offline. S
 is usable through cua-driver in a real device box:
 
 ```sh
-uv run python -c 'import asyncio; from parallax.box import build_desktop_image; from parallax.harnesses.oracle import ORACLE_INFO; print(asyncio.run(build_desktop_image(ORACLE_INFO)))'
+uv run python -c 'import asyncio; from parallax.box import build_desktop_image; from parallax.harnesses.oracle import ORACLE_INFO; print(asyncio.run(build_desktop_image(ORACLE_INFO, ())))'
+# A task with `packages` builds its own image; pass the same list, e.g. ("blender", "libgl1-mesa-dri").
 # Set this to the image tag printed above; pytest never downloads an image.
 PARALLAX_TEST_DESKTOP_IMAGE=<printed-tag> uv run pytest -q tests/core/test_desktop.py
 ```

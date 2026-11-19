@@ -61,15 +61,36 @@ deleted tower and edits to both scripts; one `expect: pass` mutant shows a terse
 
 ## What this task needs to run
 
-The task itself is lint-clean and its oracle, controls and mutants were run against a real Blender 4.3 during
-authoring. Two things outside the task directory are still needed before a campaign can run it:
+The task is lint-clean, and its oracle, controls and mutants were run against a real Blender 4.3 during authoring.
 
-1. **Blender in the desktop image**, with Mesa's software GL, because the box's Xvfb has no GPU. One line in
-   `parallax/desktop.Dockerfile` does it - add `blender libgl1-mesa-dri` to the existing `apt-get install` - but it
-   grows an image every desktop task shares, so it is left out of this draft on purpose. A task-scoped package list
-   on `[metadata.parallax.desktop]` would be the cheaper place for it.
-2. **A harness that declares `desktop`.** The in-tree harnesses drive the X11 device box through cua-driver; a
-   product whose Parallax adapter declares only `browser`, `credentials` and `authorization` is NA on this task and
-   on every other desktop task. Measuring a browser-and-desktop product here is a change in that product's own eval
-   plugin: declare `Capability.DESKTOP` and drive its turns against the box's Xvfb display, through its desktop mode,
-   instead of a start URL.
+**Blender is now the task's own problem, not the image's.** The draft declares
+`packages = ["blender", "libgl1-mesa-dri"]` under `[metadata.parallax.desktop]`, which the core honours as a
+task-scoped layer: the desktop image is built on top of the shared GUI layer with only those packages, and tagged by
+the list, so other desktop tasks keep the small shared image. Mesa's software GL is there because the box's Xvfb has
+no GPU. See "Task-scoped desktop packages" in the PR body for the core change.
+
+**The remaining gap is the harness, and it is a desktop-session mismatch, not a wiring gap.** A trial of a desktop
+task needs a product that can drive the box's X11/AT-SPI session. fastbrowse's desktop mode does not: it spawns
+`deskpilot mcp` as a child process and drives a window that deskpilot itself launched, and deskpilot is
+Hyprland-only (`deskpilot windows` with no compositor prints
+`unavailable: No running Hyprland instance under /run/user/1000/hypr`). Parallax's box is Xvfb + openbox with the
+app already launched by `parallax.desktop serve`. Declaring `Capability.DESKTOP` in the fastbrowse adapter today
+would not make this task runnable: every trial would open a box fastbrowse cannot see, and end in error rather than
+NA. Two ways to close it, either of which makes the adapter change a small one:
+
+1. **Give the box a Wayland session.** Parallax already builds a desktop image per task; a `session = "wayland"`
+   mode that starts Hyprland headless instead of Xvfb, with `deskpilot` in `packages`, would let fastbrowse's
+   existing `desktop=` path drive a window inside the box (deskpilot spawned through the box handle, app launched by
+   deskpilot rather than by `parallax.desktop serve`). This is the path that measures exactly what
+   `fastbrowse-evals desktop` already measures on a user's own desktop.
+2. **Give fastbrowse an X11/AT-SPI backend.** Keep the box as it is and have fastbrowse drive the seeded window over
+   the box's AT-SPI bus, as cua-driver does today. That is a product-side backend, not an adapter setting.
+
+Until one of those lands, the honest state is: NA under fastbrowse (no `desktop` capability declared), runnable under
+any harness that drives the X11 device box.
+
+## Compared to Blender's own MCP server
+
+`COMPARISON.md` in this directory sets this eval beside Blender Lab's `blender-mcp` (transport, tools, auth, how it
+reaches Blender) and records where they overlap and diverge: the same task is expressible as one
+`execute_blender_code` call, the evidence would be identical, and the interface being measured is entirely different.

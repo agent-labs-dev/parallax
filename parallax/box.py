@@ -32,7 +32,7 @@ import tarfile
 import tempfile
 import time
 from collections import deque
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -654,7 +654,12 @@ async def open_box(task: Task, info: HarnessInfo, isolation: Isolation, net: str
                 raise ValueError("docker isolation needs the run network (Sidecar.network)")
             return await DockerBox.create(task, await build_image(info), net)
         case Isolation.REMOTE if device_box(info, isolation):
-            image = await build_desktop_image(info) if task.meta.desktop is not None else await build_image(info)
+            desktop = task.meta.desktop
+            image = (
+                await build_desktop_image(info, desktop.packages)
+                if desktop is not None
+                else await build_image(info)
+            )
             return await DockerBox.create_device(task, image)
         case Isolation.HOST | Isolation.REMOTE:
             return HostBox.create(task, isolation)
@@ -702,8 +707,11 @@ def box_image_tag(info: HarnessInfo) -> str:
     return f"parallax-box-{info.name}:{__version__}-{sha8(info.install + build_digest())}"
 
 
-def desktop_image_tag(info: HarnessInfo) -> str:
-    return box_image_tag(info) + "-desktop"
+def desktop_image_tag(info: HarnessInfo, packages: Iterable[str] = ()) -> str:
+    """The shared desktop layer's tag, plus a suffix for the task's own packages so each set is its own image."""
+    tag = box_image_tag(info) + "-desktop"
+    names = tuple(sorted(packages))
+    return tag if not names else f"{tag}-{sha8('\n'.join(names))}"
 
 
 # The desktop layer carries an x86_64 driver. On another host architecture it and the box image under it are
@@ -796,9 +804,15 @@ async def build_image(info: HarnessInfo, platform_: str | None = None) -> str:
     return tag
 
 
-async def build_desktop_image(info: HarnessInfo) -> str:
-    """Optional desktop layer; no change to the default image's install or tag formula."""
-    tag = desktop_image_tag(info)
+async def build_desktop_image(info: HarnessInfo, packages: Iterable[str] = ()) -> str:
+    """Optional desktop layer; no change to the default image's install or tag formula.
+
+    `packages` are the task's own (`metadata.parallax.desktop.packages`). They are installed in a layer above the
+    shared GUI one and carry their own tag, so a task that needs an application does not put it in every desktop
+    box, and two tasks that need different applications never share an image.
+    """
+    names = tuple(sorted(packages))
+    tag = desktop_image_tag(info, names)
     if not await image_exists(tag):
         base = await build_image(info, DESKTOP_PLATFORM)
         with tempfile.TemporaryDirectory(prefix="px-desktop-") as ctx:
@@ -810,6 +824,8 @@ async def build_desktop_image(info: HarnessInfo) -> str:
                 str(PACKAGE_DIR / "desktop.Dockerfile"),
                 "--build-arg",
                 f"BOX_IMAGE={base}",
+                "--build-arg",
+                f"PACKAGES={' '.join(names)}",
                 "-t",
                 tag,
                 ctx,

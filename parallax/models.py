@@ -245,8 +245,23 @@ class DesktopApp(Model):
     title: str = Field(min_length=1)  # exact initial window title; startup waits for it
 
 
+# A Debian binary package name: lowercase, and no shell metacharacters, because the list is joined into the
+# desktop image's `apt-get install` line.
+APT_PACKAGE = re.compile(r"^[a-z0-9][a-z0-9+.-]+$")
+
+
 class Desktop(Model):
     apps: tuple[DesktopApp, ...] = Field(min_length=1)
+    # Debian packages this task's own desktop image installs over the shared GUI layer, so a task that needs an
+    # application (a 3D suite, an editor, a CAD tool) carries its install cost alone instead of every desktop task.
+    packages: SortedSet[str] = frozenset()
+
+    @model_validator(mode="after")
+    def _packages_are_names(self) -> Desktop:
+        for name in self.packages:
+            if not APT_PACKAGE.match(name):
+                raise ValueError(f"desktop package {name!r} is not a Debian package name")
+        return self
 
 
 class TaskMeta(Model):

@@ -298,6 +298,16 @@ def test_desktop_layer_does_not_change_the_default_image_tag() -> None:
     assert desktop_image_tag(desktop) != box_image_tag(desktop)
 
 
+def test_a_tasks_own_desktop_packages_get_an_image_of_their_own() -> None:
+    info = remote_info(RemoteBox.DEVICE)
+    shared = desktop_image_tag(info)
+    blender = desktop_image_tag(info, ["blender", "libgl1-mesa-dri"])
+    assert blender == desktop_image_tag(info, ["libgl1-mesa-dri", "blender"])  # order is not identity
+    assert blender != shared  # the shared layer's tag is untouched
+    assert blender != desktop_image_tag(info, ["blender"])  # one list, one image
+    assert desktop_image_tag(info, []) == shared
+
+
 @pytest.mark.docker
 async def test_docker_box_processes_run_on_the_world_clock() -> None:
     image = f"parallax-runtime:{__version__}"

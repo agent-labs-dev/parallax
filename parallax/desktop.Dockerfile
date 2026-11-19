@@ -15,4 +15,11 @@ RUN echo '51de56e37e1e57cca613cff06e22a3c64bf8285ed97e518660f3d1cb2a4e6fcf  /tmp
  && chmod 755 /usr/local/bin/cua-driver \
  && rm /tmp/cua-driver.tar.gz \
  && cua-driver --version
+# The task's own packages (`metadata.parallax.desktop.packages`), installed above the shared GUI layer: a task that
+# needs an application carries its install here, and its image tag carries the list, so no other desktop task pays
+# for it. Names are validated as Debian package names in `models.Desktop`, so splitting them is safe.
+ARG PACKAGES=""
+RUN if [ -n "$PACKAGES" ]; then apt-get update \
+ && apt-get install -y --no-install-recommends $PACKAGES \
+ && rm -rf /var/lib/apt/lists/*; fi
 USER agent

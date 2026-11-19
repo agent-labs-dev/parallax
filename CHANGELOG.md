@@ -6,6 +6,10 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `[metadata.parallax.desktop].packages`: the Debian packages a task's own desktop image installs above the shared GUI layer. The image is tagged by their list, so a task that needs an application (a 3D suite, an editor) carries its install cost alone and two tasks with different lists never share an image; the shared desktop tag and every other image are unchanged.
+
 ## [2.0.0.dev53] - 2026-11-18
 
 ### Added
