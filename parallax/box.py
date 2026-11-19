@@ -64,6 +64,9 @@ PACKAGE_DIR = Path(__file__).resolve().parent
 VERIFY_IMAGE = "parallax-verify:py3.13"
 WORLD_PORT = 7801
 METER_PORT = 7802
+# Hyprland takes DRM master of the host's one vkms card, so a host runs one hyprland box at a time.
+VKMS_SEAT = asyncio.Lock()
+EGRESS_PORT = 7803  # the sidecar's allowlisting proxy to the model endpoints (parallax.egress)
 WORLD_ADMIN_ENV = "PARALLAX_WORLD_ADMIN_TOKEN"
 BOX_WORKSPACE = Path("/workspace")
 BOX_HOME = Path("/home/agent")
@@ -90,6 +93,8 @@ STREAM_LINE_LIMIT = 16 * 1024 * 1024  # ACP / NDJSON lines carry whole tool sche
 BOX_CPUS = "2"
 BOX_MEMORY = "4096m"
 READY_TIMEOUT_S = 60.0
+# A desktop session may take longer to come up than a sidecar port (deskpilot allows 120s, then the app windows).
+DESKTOP_READY_TIMEOUT_S = 200.0
 # Device boxes join docker's default bridge: the product's daemon inside must reach its API.
 DEVICE_NETWORK = "bridge"
 DEVICE_LABEL = "parallax.device-box"
@@ -114,6 +119,7 @@ class SidecarUrls(Model):
     world_host: str  # as the runner sees it: http://127.0.0.1:<port>/mcp
     meter_internal: str  # http://sidecar:7802
     meter_host: str  # http://127.0.0.1:<port>
+    egress_internal: str  # http://sidecar:7803, the allowlisting proxy to the model endpoints
 
 
 # ---------------------------------------------------------------------------
@@ -340,6 +346,29 @@ class ExecProc:
 # ---------------------------------------------------------------------------
 
 
+def desktop_session(task: Task) -> str:
+    return task.meta.desktop.session if task.meta.desktop is not None else "x11"
+
+
+def vkms_device(drm: Path = Path("/sys/class/drm"), dev: Path = Path("/dev/dri")) -> Path:
+    """The host's vkms display node, the only device a hyprland desktop box needs: Hyprland drives it on its own DRM
+    backend and Mesa renders in software, so no GPU and no render node are involved."""
+    for card in sorted(drm.glob("card*")):
+        # vkms registers its device under its own name, as a platform device or, from Linux 6.15, a faux one.
+        if "-" not in card.name and (card / "device").resolve().name == "vkms":
+            return dev / card.name
+    raise BoxError("a hyprland desktop box needs the host's vkms display: run `sudo modprobe vkms`")
+
+
+def desktop_run_args(task: Task) -> tuple[str, ...]:
+    """The extra `docker run` arguments a task's desktop needs: for hyprland the vkms node and its group, so the
+    unprivileged agent user can open it; nothing else is passed in."""
+    if desktop_session(task) != "hyprland":
+        return ()
+    node = vkms_device()
+    return ("--device", str(node), "--group-add", str(node.stat().st_gid))
+
+
 def web_isolation_for(isolation: Isolation) -> WebIsolation:
     match isolation:
         case Isolation.DOCKER:
@@ -421,6 +450,7 @@ class DockerBox:
         isolation: Isolation = Isolation.DOCKER,
         web_isolation: WebIsolation = WebIsolation.ENFORCED,
         desktop: bool = False,
+        session: str = "x11",
     ) -> None:
         self.container = container
         self.user = user  # images built from box.Dockerfile run harnesses as `agent`
@@ -428,15 +458,18 @@ class DockerBox:
         self.isolation = isolation
         self.web_isolation = web_isolation
         self.desktop = desktop
+        self.session = session  # the desktop session kind the box runs: "x11" or "hyprland"
+        self.seat = False  # holds VKMS_SEAT
         self.workspace = BOX_WORKSPACE
         self.home = BOX_HOME
 
     @classmethod
     async def create(cls, task: Task, image: str, net: str) -> DockerBox:
         name = f"{net}-box-{secrets.token_hex(4)}"
-        run_args = ("--label", f"parallax.net={net}", "--network", net)
-        box = cls(name, clock=True, desktop=task.meta.desktop is not None)
+        run_args = ("--label", f"parallax.net={net}", "--network", net, *desktop_run_args(task))
+        box = cls(name, clock=True, desktop=task.meta.desktop is not None, session=desktop_session(task))
         try:
+            await box.take_seat()
             await cls.boot(task, image, box, run_args, ("sleep", "infinity"))
             if task.meta.desktop is not None:
                 await box.start_desktop(task)
@@ -477,11 +510,17 @@ class DockerBox:
             DEVICE_NETWORK,
             "--hostname",
             name,
+            *desktop_run_args(task),
         )
         box = cls(
-            name, isolation=Isolation.REMOTE, web_isolation=WebIsolation.NONE, desktop=task.meta.desktop is not None
+            name,
+            isolation=Isolation.REMOTE,
+            web_isolation=WebIsolation.NONE,
+            desktop=task.meta.desktop is not None,
+            session=desktop_session(task),
         )
         try:
+            await box.take_seat()
             await cls.boot(task, image, box, run_args, ("sleep", "infinity"))
             if task.meta.desktop is not None:
                 await box.start_desktop(task)
@@ -490,9 +529,16 @@ class DockerBox:
             await box.close()
             raise
 
+    async def take_seat(self) -> None:
+        if self.session == "hyprland":
+            await VKMS_SEAT.acquire()
+            self.seat = True
+
     async def start_desktop(self, task: Task) -> None:
         if task.meta.desktop is None:
             raise BoxError("desktop task has no app specification")
+        # x11 joins the box's private bus; a hyprland session starts deskpilot's own, with its accessibility bus.
+        launcher = "exec" if self.session == "hyprland" else "exec dbus-run-session --"
         await docker(
             "exec",
             "-d",
@@ -501,11 +547,11 @@ class DockerBox:
             self.container,
             "sh",
             "-c",
-            'exec dbus-run-session -- python -m parallax.desktop serve "$1" > /tmp/px-desktop.log 2>&1',
+            f'{launcher} python -m parallax.desktop serve "$1" > /tmp/px-desktop.log 2>&1',
             "sh",
             task.meta.desktop.model_dump_json(),
         )
-        deadline = time.monotonic() + READY_TIMEOUT_S
+        deadline = time.monotonic() + DESKTOP_READY_TIMEOUT_S
         while True:
             state = (await docker("exec", self.container, "python", "-m", "parallax.desktop", "status")).strip()
             if state == "ready":
@@ -517,16 +563,13 @@ class DockerBox:
             await asyncio.sleep(0.2)
 
     async def start_recording(self) -> None:
-        """Records the session's display for the trial's video, outside the graded workspace. Five frames a second
-        on one thread keeps it light beside the app; it is a record of the run, never evidence a check reads."""
-        script = (
-            'echo $$ > "$1.pid"; exec ffmpeg -nostdin -loglevel error -f x11grab -framerate 5 -video_size 1280x800'
-            ' -i :99 -c:v libx264 -preset veryfast -crf 30 -pix_fmt yuv420p -threads 1 "$1" 2> /tmp/px-recording.log'
-        )
+        """Records the session's display for the trial's video, outside the graded workspace: ffmpeg on the X11
+        display, wf-recorder on the Hyprland output (`parallax.desktop record`)."""
+        script = 'echo $$ > "$1.pid"; exec python -m parallax.desktop record "$1" 2> /tmp/px-recording.log'
         await docker("exec", "-d", "-u", self.user, self.container, "sh", "-c", script, "sh", DESKTOP_RECORDING)
 
     async def keep_recording(self, dest: Path) -> Path | None:
-        """Stops the display recording so ffmpeg finishes the file, and copies it to `dest`. None when the box
+        """Stops the display recording so the recorder finishes the file, and copies it to `dest`. None when the box
         records nothing or the recording is lost; a missing video never fails the trial."""
         if not self.desktop:
             return None
@@ -644,8 +687,13 @@ class DockerBox:
         await docker("exec", "-i", "-u", self.user, self.container, "sh", "-c", script, "sh", str(path), stdin=data)
 
     async def close(self) -> None:
-        with contextlib.suppress(BoxError):
-            await docker("rm", "-f", self.container, timeout_s=60)
+        try:
+            with contextlib.suppress(BoxError):
+                await docker("rm", "-f", self.container, timeout_s=60)
+        finally:
+            if self.seat:
+                self.seat = False
+                VKMS_SEAT.release()
 
 
 Box = HostBox | DockerBox
@@ -743,12 +791,28 @@ def box_image_tag(info: HarnessInfo) -> str:
     return f"parallax-box-{info.name}:{__version__}-{sha8(info.install + build_digest())}"
 
 
-def desktop_image_tag(info: HarnessInfo, packages: Iterable[str] = ()) -> str:
-    """The shared desktop layer's tag, plus a suffix for the task's own packages so each set is its own image."""
+def desktop_image_tag(info: HarnessInfo, packages: Iterable[str] = (), session: str = "x11") -> str:
+    """The shared desktop layer's tag, plus a suffix for the task's own packages so each set is its own image. A
+    hyprland desktop is its own image, built from its own recipe over the same wheel and harness install."""
+    if session == "hyprland":
+        names = tuple(sorted(packages))
+        tag = (
+            f"parallax-box-{info.name}:{__version__}-{sha8(info.install + build_digest() + hyprland_recipe())}-hyprland"
+        )
+        return tag if not names else f"{tag}-{sha8(chr(10).join(names))}"
     tag = box_image_tag(info) + "-desktop"
     names = tuple(sorted(packages))
     return tag if not names else f"{tag}-{sha8('\n'.join(names))}"
 
+
+def hyprland_recipe() -> str:
+    """What the hyprland image is built from besides the wheel and the harness install, so a change to either tags a
+    new image."""
+    return (PACKAGE_DIR / "desktop-hyprland.Dockerfile").read_text() + DESKPILOT_REF
+
+
+# The deskpilot the hyprland image installs: the commit whose standalone session the recipe below was built against.
+DESKPILOT_REF = "1aec972d0a5cce1f5b091da6047ae23618c1280b"
 
 # The desktop layer carries an x86_64 driver. On another host architecture it and the box image under it are
 # built for amd64 under their own tags, so the native images every other box uses are never replaced.
@@ -870,10 +934,29 @@ async def build_desktop_image(info: HarnessInfo, packages: Iterable[str] = ()) -
     return tag
 
 
+async def build_hyprland_image(info: HarnessInfo, packages: Iterable[str] = ()) -> str:
+    """`desktop-hyprland.Dockerfile`: Arch Linux with Hyprland and deskpilot's prebuilt plugin, then the harness
+    install, px-clock and the parallax wheel, all in one image since the Debian box image cannot carry Hyprland."""
+    names = tuple(sorted(packages))
+    tag = desktop_image_tag(info, names, "hyprland")
+    if not await image_exists(tag):
+        await build_with_wheel(
+            "desktop-hyprland.Dockerfile",
+            tag,
+            f"HARNESS_INSTALL={info.install}",
+            f"PACKAGES={' '.join(names)}",
+            f"DESKPILOT_REF={DESKPILOT_REF}",
+            platform_=DESKTOP_PLATFORM,
+        )
+    return tag
+
+
 async def task_image(task: Task, info: HarnessInfo) -> str:
     """The image a task's box runs: the harness image, or for a desktop task the desktop image plus its packages."""
     if task.meta.desktop is None:
         return await build_image(info)
+    if task.meta.desktop.session == "hyprland":
+        return await build_hyprland_image(info, task.meta.desktop.packages)
     return await build_desktop_image(info, task.meta.desktop.packages)
 
 
@@ -935,14 +1018,16 @@ class Sidecar:
         env_names = [k for k in UPSTREAM_ENV if k in os.environ]
         serve = (
             f"python -m parallax.world serve --http 0.0.0.0:{WORLD_PORT} & "
+            f"python -m parallax.egress 0.0.0.0:{EGRESS_PORT} & "
             f"exec python -m parallax.meter 0.0.0.0:{METER_PORT}"
         )
         await self.run_detached(image, name, net, env_names, serve)
         self.container = name
         world_port = await self.host_port(WORLD_PORT)
         meter_port = await self.host_port(METER_PORT)
+        egress_port = await self.host_port(EGRESS_PORT)
         deadline = time.monotonic() + READY_TIMEOUT_S
-        for port in (world_port, meter_port):
+        for port in (world_port, meter_port, egress_port):
             if not await asyncio.to_thread(wait_for_port, port, deadline):
                 logs = await run(("docker", "logs", "--tail", "50", name), timeout_s=30)
                 raise BoxError(f"sidecar port {port} not ready after {READY_TIMEOUT_S:.0f}s: {logs.err[-2000:]}")
@@ -951,6 +1036,7 @@ class Sidecar:
             world_host=f"http://127.0.0.1:{world_port}/mcp",
             meter_internal=f"http://sidecar:{METER_PORT}",
             meter_host=f"http://127.0.0.1:{meter_port}",
+            egress_internal=f"http://sidecar:{EGRESS_PORT}",
         )
 
     async def run_detached(self, image: str, name: str, net: str, env_names: list[str], command: str) -> None:
@@ -969,6 +1055,8 @@ class Sidecar:
             f"127.0.0.1::{WORLD_PORT}",
             "-p",
             f"127.0.0.1::{METER_PORT}",
+            "-p",
+            f"127.0.0.1::{EGRESS_PORT}",
             *(a for k in (WORLD_ADMIN_ENV, METER_ADMIN_ENV, *env_names) for a in ("-e", k)),
             image,
             "sh",

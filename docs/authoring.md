@@ -186,6 +186,31 @@ open the saved scene in Blender from the task's own verify image
 (`environment/Dockerfile`), and its oracle and scene mutants are real Blender
 saves (`files_from`) built by `solution/build_scenes.py`.
 
+### A Hyprland session
+
+`session = "hyprland"` runs the task in deskpilot's standalone headless session instead of Xvfb: a Wayland
+desktop (Hyprland on the kernel's virtual display, vkms, rendered in software), for a harness that drives apps
+through deskpilot. It needs a host that can `sudo modprobe vkms`; the box is given that one display node and its
+group, nothing else. GitHub's `ubuntu-24.04` runners can; a Firecracker runner (Blacksmith) cannot, so such a task
+runs only there. The image is its own Arch Linux recipe (`parallax/desktop-hyprland.Dockerfile`), so `packages` are
+Arch Linux package names, and it carries the harness install, px-clock and the parallax wheel like any box image.
+
+```toml
+[metadata.parallax.desktop]
+session = "hyprland"
+launch_by = "harness"                       # box (default): the box opens the apps; harness: the harness opens them
+apps = [{command = ["libreoffice", "--calc"]}]
+packages = ["libreoffice-fresh"]
+```
+
+With `launch_by = "box"` the apps are seeded Python programs with titles, as above, and the box waits for their
+windows. With `launch_by = "harness"` each app is the argv the harness may start itself (`deskpilot` refuses a window
+an agent did not launch), the box starts none and is ready once the session is, and the task's harness gets an
+allowlisted egress: `HTTPS_PROXY` points at the sidecar's proxy, which tunnels HTTPS to the model endpoints
+(`openrouter.ai`) and refuses everything else, so the box stays on its internal network.
+The Wayland variables (`WAYLAND_DISPLAY`, `HYPRLAND_INSTANCE_SIGNATURE`, `XDG_RUNTIME_DIR` and the buses) reach every
+command run in the box; the video is recorded with `wf-recorder` on the output.
+
 Keep each app inside its task, deterministic and offline. Give every interactive
 widget a stable accessible name (`widget.get_accessible().set_name(...)`).
 Persist the visible outcome on Submit/Save to JSON under `/workspace`; merely

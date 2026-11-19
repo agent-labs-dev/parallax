@@ -6,7 +6,7 @@ from pathlib import Path
 
 import parallax.task as task_module
 import pytest
-from parallax.models import ApprovalDecision, Area, Capability, Maturity, RunOrigin
+from parallax.models import ApprovalDecision, Area, Capability, Desktop, DesktopApp, Maturity, RunOrigin
 from parallax.task import (
     SelectError,
     TaskError,
@@ -275,6 +275,42 @@ def test_desktop_declarations_reject_unlaunchable_tasks(
         content += f"\n[metadata.parallax.desktop]\napps = [{apps}]\n"
     path.write_text(content)
     assert any(problem in finding for finding in lint(load_task(root)))
+
+
+@pytest.mark.parametrize(
+    ("desktop", "problem"),
+    [
+        ('session = "x11"\nlaunch_by = "harness"\napps = [{command=["gedit"]}]', 'needs session = "hyprland"'),
+        ('session = "hyprland"\nlaunch_by = "harness"\napps = [{path="app.py", title="App"}]', "names its command"),
+        ('session = "hyprland"\nlaunch_by = "harness"\napps = [{command=["gedit"], title="App"}]', "not a path"),
+        ('session = "hyprland"\napps = [{command=["gedit"]}]', 'needs launch_by = "harness"'),
+        ('session = "hyprland"\napps = [{path="app.py"}]', "window title"),
+    ],
+)
+def test_desktop_session_and_launch_rules(tmp_path: Path, desktop: str, problem: str) -> None:
+    root = copy_task(tmp_path, "mini-repo")
+    path = root / "task.toml"
+    base = path.read_text().replace('["mcp", "workspace", "shell"]', '["mcp", "workspace", "shell", "desktop"]')
+    (root / "environment" / "files").mkdir(parents=True, exist_ok=True)
+    (root / "environment" / "files" / "app.py").write_text("")
+    path.write_text(f"{base}\n[metadata.parallax.desktop]\n{desktop}\n")
+    assert any(problem in finding for finding in lint(load_task(root)))
+
+
+def test_a_harness_launched_hyprland_desktop_lints_clean_and_x11_keeps_its_form(tmp_path: Path) -> None:
+    root = copy_task(tmp_path, "mini-repo")
+    path = root / "task.toml"
+    base = path.read_text().replace('["mcp", "workspace", "shell"]', '["mcp", "workspace", "shell", "desktop"]')
+    path.write_text(
+        f'{base}\n[metadata.parallax.desktop]\nsession = "hyprland"\nlaunch_by = "harness"\n'
+        'apps = [{command=["libreoffice", "--calc"]}]\n'
+    )
+    task = load_task(root)
+    assert task.meta.desktop is not None
+    assert not [f for f in lint(task) if "desktop" in f]
+    assert task.meta.desktop.model_dump()["apps"] == ({"command": ("libreoffice", "--calc")},)
+    plain = Desktop(apps=(DesktopApp(path="a.py", title="A"),))
+    assert plain.model_dump() == {"apps": ({"path": "a.py", "title": "A"},), "packages": frozenset()}
 
 
 def test_desktop_packages_load_sorted_and_reject_non_debian_names(tmp_path: Path) -> None:

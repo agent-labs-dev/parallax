@@ -164,8 +164,28 @@ jobs:
           enable-cache: true
       - run: uv sync --locked
       - name: Task schemas and evidence contracts (no quality grading)
-        run: uv run parallax check core conformance --lint-only
+        run: uv run parallax check core conformance desktop-hyprland --lint-only
 
+
+  hyprland-box:
+    name: hyprland-box
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      # Hyprland draws on the host's vkms display, which Firecracker runners lack.
+      - name: Load vkms
+        run: sudo modprobe vkms || { sudo apt-get update -q && sudo apt-get install -yq "linux-modules-extra-$(uname -r)" && sudo modprobe vkms; }
+      - name: Build the image and run a session in a box
+        run: |
+          tag=$(uv run python -c 'import asyncio; from parallax.box import build_hyprland_image; from parallax.harnesses.oracle import ORACLE_INFO; print(asyncio.run(build_hyprland_image(ORACLE_INFO, ("gtk3", "python-gobject"))))' | tail -1)
+          PARALLAX_TEST_HYPRLAND_IMAGE="$tag" uv run pytest -q tests/core/test_desktop_hyprland.py
 
   public-scan:
     name: public-scan

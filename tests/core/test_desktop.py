@@ -27,6 +27,24 @@ def test_session_env_never_uses_the_hosts_display(monkeypatch: pytest.MonkeyPatc
     assert env["GTK_MODULES"] == "gail:atk-bridge"
 
 
+def test_a_hyprland_session_has_no_x11_display_and_keeps_its_own_wayland_one(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DISPLAY", ":0")
+    monkeypatch.setenv("WAYLAND_DISPLAY", "wayland-host")
+    env = desktop.session_env("hyprland")
+    assert "DISPLAY" not in env
+    assert env["WAYLAND_DISPLAY"] == "wayland-host"  # `serve` publishes the session's own over it
+    assert "GDK_BACKEND" not in env
+
+
+def test_the_recorder_follows_the_session_kind(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert desktop.recorder_argv("x11", "/v.mp4", {})[0] == "ffmpeg"
+    monkeypatch.setattr(desktop.subprocess, "check_output", lambda *a, **k: '[{"name": "HEADLESS-2"}]')
+    argv = desktop.recorder_argv("hyprland", "/v.mp4", {})
+    assert argv[0] == "wf-recorder"
+    assert argv[argv.index("-o") + 1] == "HEADLESS-2"
+    assert argv[-2:] == ["-f", "/v.mp4"]
+
+
 @pytest.mark.docker
 @pytest.mark.parametrize(
     ("task_id", "actions", "expected_failures"),

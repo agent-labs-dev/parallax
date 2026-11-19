@@ -492,6 +492,7 @@ class Services:
     world_internal: str = ""  # MCP URL as a docker box sees it
     meter_local: str | None = None
     meter_internal: str | None = None
+    egress_internal: str | None = None  # the docker sidecar's proxy to the model endpoints
     network: str | None = None
     _server: WorldServer | None = None
     _sidecar: Sidecar | None = None
@@ -506,6 +507,7 @@ class Services:
                 self.world_local = urls.world_host.removesuffix("/mcp")
                 self.world_internal = urls.world_internal
                 self.meter_local, self.meter_internal = urls.meter_host, urls.meter_internal
+                self.egress_internal = urls.egress_internal
             case Isolation.HOST | Isolation.REMOTE:
                 await self._start_embedded()
             case _:
@@ -555,6 +557,20 @@ class Services:
                 return f"{self.world_local}/mcp"
             case _:
                 assert_never(box_isolation)
+
+    def egress_env(self, task: Task, box_isolation: Isolation) -> dict[str, str]:
+        """A harness-launched desktop task's harness calls its model provider itself, so a docker box gets the
+        sidecar's allowlisting proxy to the model endpoints, the only way out of its internal network."""
+        desktop = task.meta.desktop
+        if desktop is None or desktop.launch_by != "harness" or box_isolation is not Isolation.DOCKER:
+            return {}
+        if self.egress_internal is None:
+            raise BoxError("a harness-launched desktop task needs the sidecar's egress proxy, which this run lacks")
+        no_proxy = "sidecar,localhost,127.0.0.1"
+        return {
+            "HTTPS_PROXY": self.egress_internal, "https_proxy": self.egress_internal,
+            "NO_PROXY": no_proxy, "no_proxy": no_proxy,
+        }  # fmt: skip
 
     def meter_for_box(self, box_isolation: Isolation) -> str:
         url = self.meter_internal if box_isolation is Isolation.DOCKER else self.meter_local
@@ -931,6 +947,12 @@ def result_row(
     )  # fmt: skip
 
 
+def desktop_commands(task: Task) -> tuple[tuple[str, ...], ...]:
+    """The apps a harness starts itself: the box opens none when `launch_by = "harness"`."""
+    desktop = task.meta.desktop
+    return tuple(app.command for app in desktop.apps) if desktop is not None and desktop.launch_by == "harness" else ()
+
+
 class TrialExecution:
     """Every step of one trial."""
 
@@ -1128,6 +1150,7 @@ class TrialExecution:
         """`token` is the world's, None for a world-less task: it gets no MCP, no persona, and the wall clock."""
         hp = self.plan.harness
         env = {} if token is None else {TOKEN_ENV: token}
+        env |= self.s.svc.egress_env(self.task, box_isolation(box))
         # Only harnesses the meter cannot route declare these; the rows are flagged unmetered.
         credentials = native_credentials(hp.info, os.environ)
         self.secrets += credentials.values()
@@ -1154,7 +1177,7 @@ class TrialExecution:
             trial_id=self.trial_id(), task_id=self.task.id, model=self.plan.model, mcp=mcp,
             workspace=box.workspace, home=box.home, llm=llm, env=env,
             user=seed.user if seed is not None else None, now=seed.now if seed is not None else datetime.now(UTC),
-            requires=self.task.meta.requires, assets=self.assets,
+            requires=self.task.meta.requires, assets=self.assets, desktop_commands=desktop_commands(self.task),
         )  # fmt: skip
 
     async def conversation(self, harness: Harness, box: Box, control: ControlClient | None) -> None:
