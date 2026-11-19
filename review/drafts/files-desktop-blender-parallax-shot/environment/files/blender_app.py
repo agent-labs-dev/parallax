@@ -1,16 +1,14 @@
-"""Starts Blender on the seeded scene with the scene report hook loaded.
+"""Starts Blender on the seeded scene in the box's X11 session.
 
 The desktop box runs every seeded app as `/usr/bin/python3 <path>`; this one builds `set.blend` if the workspace
-does not have it yet, then hands the process to Blender, which opens the scene in the box's X11 session and loads
-`scene_report.py` so every save writes down what the scene holds. Nothing else runs: the agent drives Blender's
-own window. Software rendering is forced because the box's display is a frame buffer with no GPU behind it.
+does not have it yet, then hands the process to Blender, which opens the scene in the box's display. The display is
+a frame buffer with no GPU behind it, so Mesa's software renderer draws Blender's window.
 """
 
 import os
 import subprocess
 
-os.environ.setdefault("LIBGL_ALWAYS_SOFTWARE", "1")
-os.environ.setdefault("BLENDER_EGL", "0")
+os.environ["LIBGL_ALWAYS_SOFTWARE"] = "1"
 
 if not os.path.exists("/workspace/set.blend"):
     subprocess.run(
@@ -19,4 +17,4 @@ if not os.path.exists("/workspace/set.blend"):
         cwd="/workspace",
     )
 
-os.execvp("blender", ["blender", "/workspace/set.blend", "--python", "/workspace/scene_report.py"])
+os.execvp("blender", ["blender", "--factory-startup", "/workspace/set.blend"])

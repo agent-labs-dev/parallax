@@ -4,8 +4,13 @@ The scene is built from this script rather than shipped as a file so the seed op
 writes it, whatever version that is: a `.blend` saved by one release is not reliably readable by another.
 """
 
+import os
+
 import bpy
 from mathutils import Vector
+
+# The box builds the seed in /workspace; the task's own scene builder builds it in a scratch directory.
+TARGET = os.path.join(os.environ.get("PARALLAX_SET_DIR", "/workspace"), "set.blend")
 
 
 def _cube(name: str, location: tuple[float, float, float], dimensions: tuple[float, float, float]) -> None:
@@ -41,4 +46,6 @@ scene.frame_set(1)
 scene.render.resolution_x = 640
 scene.render.resolution_y = 360
 scene.render.resolution_percentage = 100
-bpy.ops.wm.save_as_mainfile(filepath="/workspace/set.blend", compress=False)
+# Workbench draws a frame in a second on the box's software renderer, where EEVEE takes minutes.
+scene.render.engine = "BLENDER_WORKBENCH"
+bpy.ops.wm.save_as_mainfile(filepath=TARGET, compress=False)

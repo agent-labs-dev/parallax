@@ -48,46 +48,37 @@ involved.
 
 ## How it is graded
 
-`scene_report.py` is loaded into the Blender session the launcher starts. On every save, and once at startup, it
-writes `/workspace/scene_report.json` from Blender's own data: the frame range, the resolution and, for frames
-1, 12, 24, 36, 48, 60, 72, 84 and 96, the camera's world position and forward vector. Nothing in the report comes
-from the agent's words.
+Every scene check opens `set_shipped.blend` in Blender, from the task's verify image (`environment/Dockerfile`,
+the same Debian Blender 4.3 the box installs), and reads the scene itself, so the grade comes from what was saved
+however the agent made it. Each check first asserts the shipped file loaded, since Blender falls back to its default
+scene when a file is missing or unreadable.
 
-The checks read that report, the rendered PNG (signature, 640x360, pixels that are not one flat colour) and a saved
-`set_shipped.blend`, and compare the four seeded objects against the seed. The report hook and the launcher are
-graded as unchanged files, so an agent cannot pass by editing the recorder instead of the scene. Mutants cover a
-static camera, a reversed path, a missing midpoint, a camera aimed away, no render, an empty save, a moved tower, a
-deleted tower and edits to both scripts; one `expect: pass` mutant shows a terser answer passing.
+- `camera-flyby`: the frame range is 1 to 96, the scene camera stays at y 0 and height 1.6 at every frame, passes
+  x -6, 0 and 6 at frames 1, 48 and 96, and moves left to right throughout.
+- `tower-centred`: Tower_B's centre projects to the middle of the camera view, in front of it, at frames 1, 48 and 96.
+- `render-written`: `renders/frame_0048.png` loads as a 640x360 PNG that is not one flat colour.
+- `towers-untouched`: the ground and the three towers keep their world positions and sizes at frames 1, 48 and 96,
+  so a tower moved by its parent or a constraint is caught as well as one moved directly.
 
-## What this task needs to run
+The launcher and the scene builder are graded as unchanged files. The oracle and the scene mutants are real Blender
+saves made by `solution/build_scenes.py`: a static camera, a reversed path, a bowed path, a camera aimed away, a moved
+tower, a deleted tower and a tower moved through a parent, plus a missing render, a flat render, an empty save and
+edits to both scripts. One `expect: pass` mutant shows a terser answer passing.
 
-The task is lint-clean, and its oracle, controls and mutants were run against a real Blender 4.3 during authoring.
+## What it runs on
 
-**Blender is now the task's own problem, not the image's.** The draft declares
-`packages = ["blender", "libgl1-mesa-dri"]` under `[metadata.parallax.desktop]`, which the core honours as a
-task-scoped layer: the desktop image is built on top of the shared GUI layer with only those packages, and tagged by
-the list, so other desktop tasks keep the small shared image. Mesa's software GL is there because the box's Xvfb has
-no GPU. See "Task-scoped desktop packages" in the PR body for the core change.
+`[metadata.parallax.desktop] packages` installs Blender and Mesa's software GL in a layer of this task's own over the
+shared desktop image; the box's Xvfb has no GPU. Under `--isolation docker` the box starts the session and Blender
+before the harness. `claude-code` declares `desktop` and reaches the session through cua-driver's MCP server
+(screenshots of the display or a window, pixel clicks, drags, keys and typing); it also has a shell, which is why the
+checks grade the saved scene rather than how it was made.
 
-**The remaining gap is the harness, and it is a desktop-session mismatch, not a wiring gap.** A trial of a desktop
-task needs a product that can drive the box's X11/AT-SPI session. that product's desktop mode does not: it spawns
-`deskpilot mcp` as a child process and drives a window that deskpilot itself launched, and deskpilot is
-Hyprland-only (`deskpilot windows` with no compositor prints
-`unavailable: No running Hyprland instance under /run/user/1000/hypr`). Parallax's box is Xvfb + openbox with the
-app already launched by `parallax.desktop serve`. Declaring `Capability.DESKTOP` in that product's Parallax adapter today
-would not make this task runnable: every trial would open a box it cannot see, and end in error rather than
-NA. Two ways to close it, either of which makes the adapter change a small one:
+## Products that drive a Wayland desktop
 
-1. **Give the box a Wayland session.** Parallax already builds a desktop image per task; a `session = "wayland"`
-   mode that starts Hyprland headless instead of Xvfb, with `deskpilot` in `packages`, would let its
-   existing `desktop=` path drive a window inside the box (deskpilot spawned through the box handle, app launched by
-   deskpilot rather than by `parallax.desktop serve`). This is the path that measures exactly what
-   `the product's own desktop eval` already measures on a user's own desktop.
-2. **Give the product an X11/AT-SPI backend.** Keep the box as it is and have it drive the seeded window over
-   the box's AT-SPI bus, as cua-driver does today. That is a product-side backend, not an adapter setting.
-
-Until one of those lands, the honest state is: NA under a browser-only harness (no `desktop` capability declared), runnable under
-any harness that drives the X11 device box.
+A product whose desktop mode drives windows through a Hyprland-only tool cannot drive this box, which is Xvfb and
+openbox with the app already launched by `parallax.desktop serve`. Declaring `desktop` in its adapter would make
+every trial open a box it cannot see. Closing that needs either a Wayland session in the box (Hyprland headless, the
+tool in `packages`, the app launched by the tool) or an X11/AT-SPI backend in the product, as cua-driver has.
 
 ## Compared to Blender's own MCP server
 

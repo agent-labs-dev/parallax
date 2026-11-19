@@ -48,9 +48,9 @@ From `readme_tools.rst` (generated from the tool doc-strings, v1.0.3):
 The task here drives Blender **as a user would**: Blender is seeded and open in the Parallax desktop box
 (`environment/files/blender_app.py`), and the agent operates the running application through the desktop lane
 (cua-driver on the box's X11/AT-SPI session, for a desktop-capable harness). Nothing exposes Blender's Python API to
-the agent as a tool. The scene is graded from Blender's own data: `environment/files/scene_report.py` runs inside
-Blender on every save and writes `scene_report.json` (frame range, per-frame camera location and forward vector,
-object transforms), plus the rendered `renders/frame_0048.png` and `set_shipped.blend`.
+the agent as a tool. The scene is graded from Blender's own data: each check opens the saved `set_shipped.blend` in
+Blender and reads the frame range, the camera's path and framing, and the objects' world transforms, and loads the
+rendered `renders/frame_0048.png` as an image.
 
 ## Where they overlap
 
