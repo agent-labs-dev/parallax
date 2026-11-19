@@ -91,6 +91,8 @@ STREAM_LINE_LIMIT = 16 * 1024 * 1024  # ACP / NDJSON lines carry whole tool sche
 BOX_CPUS = "2"
 BOX_MEMORY = "4096m"
 READY_TIMEOUT_S = 60.0
+# A desktop session may take longer to come up than a sidecar port (deskpilot allows 120s, then the app windows).
+DESKTOP_READY_TIMEOUT_S = 200.0
 # Device boxes join docker's default bridge: the product's daemon inside must reach its API.
 DEVICE_NETWORK = "bridge"
 DEVICE_LABEL = "parallax.device-box"
@@ -539,7 +541,7 @@ class DockerBox:
             "sh",
             task.meta.desktop.model_dump_json(),
         )
-        deadline = time.monotonic() + READY_TIMEOUT_S
+        deadline = time.monotonic() + DESKTOP_READY_TIMEOUT_S
         while True:
             state = (await docker("exec", self.container, "python", "-m", "parallax.desktop", "status")).strip()
             if state == "ready":

@@ -947,6 +947,12 @@ def result_row(
     )  # fmt: skip
 
 
+def desktop_commands(task: Task) -> tuple[tuple[str, ...], ...]:
+    """The apps a harness starts itself: the box opens none when `launch_by = "harness"`."""
+    desktop = task.meta.desktop
+    return tuple(app.command for app in desktop.apps) if desktop is not None and desktop.launch_by == "harness" else ()
+
+
 class TrialExecution:
     """Every step of one trial."""
 
@@ -1171,7 +1177,7 @@ class TrialExecution:
             trial_id=self.trial_id(), task_id=self.task.id, model=self.plan.model, mcp=mcp,
             workspace=box.workspace, home=box.home, llm=llm, env=env,
             user=seed.user if seed is not None else None, now=seed.now if seed is not None else datetime.now(UTC),
-            requires=self.task.meta.requires, assets=self.assets,
+            requires=self.task.meta.requires, assets=self.assets, desktop_commands=desktop_commands(self.task),
         )  # fmt: skip
 
     async def conversation(self, harness: Harness, box: Box, control: ControlClient | None) -> None:

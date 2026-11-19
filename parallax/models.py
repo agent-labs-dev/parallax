@@ -833,6 +833,8 @@ class Trial(Model):
     # task has no world clock: this is the wall clock when the trial started.
     now: AwareDatetime
     requires: SortedSet[Capability]
+    # The commands a desktop task (`launch_by = "harness"`) leaves the harness to start itself, one argv each.
+    desktop_commands: tuple[tuple[str, ...], ...] = ()
     # Collector-owned binary evidence, retained below the trial directory and excluded from JSON contracts.
     assets: TrialAssets | None = Field(default=None, exclude=True, repr=False)
 
