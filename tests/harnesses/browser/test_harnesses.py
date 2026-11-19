@@ -35,7 +35,7 @@ from parallax.harnesses.browser.harnesses import (
     _run_v4,
     _usage,
 )
-from parallax.models import Capability, TurnInput
+from parallax.models import Capability, TurnInput, Usage
 
 NOW = datetime(2026, 1, 1, tzinfo=UTC)
 RUN_ID = UUID("00000000-0000-0000-0000-000000000001")
@@ -1254,3 +1254,10 @@ def test_a_harness_reported_component_and_image_count_are_kept_on_usage() -> Non
     )
     assert [(u.component, u.images) for u in usage] == [("jev", 3), ("llm", 0)]
     assert "images" not in usage[1].model_dump()
+    kept = [Usage.model_validate_json(u.model_dump_json()) for u in usage]
+    assert [(u.component, u.images) for u in kept] == [("jev", 3), ("llm", 0)]
+    assert "images" not in usage[1].model_dump_json()
+    # A null count is no count, and a numeric component is not a component name.
+    assert [(u.component, u.images) for u in _usage([{"model": "m", "component": 7, "images": None}], None)] == [
+        (None, 0)
+    ]
