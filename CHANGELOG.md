@@ -12,7 +12,11 @@ All notable changes to Parallax are recorded here. The format follows
 - Desktop tasks run under `--isolation docker`: the trial's docker box starts the X11 session and the task's seeded apps before the harness, so the Parallax evals workflow can run them. A host trial of a desktop task is NA.
 - `claude-code` declares `desktop` and reaches the session through cua-driver's MCP server. A manifest's `[[config]]` gives the desktop through `desktop_content`, merged into the file for desktop trials. Its config identity changes, so comparing with earlier claude-code runs needs `--allow-identity-change`.
 - A mutation's `files_from` copies a file from the task's `tests/` directory into the workspace byte for byte, for wrong output text cannot hold, such as a saved scene or an image.
-- `files-desktop-blender-parallax-shot` (draft): animate a camera fly-by in Blender and render a frame. Checks open the saved scene in Blender.
+- `files-desktop-blender-parallax-shot` (draft): animate a camera fly-by in Blender and render a frame. Checks open the saved scene in Blender, and compare the render with frame 48 rendered again from it.
+
+### Fixed
+
+- A mutant's file edits must stay in its workspace: an absolute path, `..` or a symlink out is refused when the mutant runs and reported by the lint.
 
 ## [2.0.0.dev53] - 2026-11-18
 
