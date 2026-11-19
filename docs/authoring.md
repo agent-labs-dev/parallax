@@ -215,7 +215,9 @@ grading. Extend it with each new desktop task. It makes no harness or model call
 The image currently supports Linux x86_64. Agent trials run under `--isolation
 docker`, where the box runs the desktop session, or on a remote harness with a
 desktop-capable device; a host trial is NA. A harness reaches the session through
-cua-driver's MCP server (`claude-code` declares it through `desktop_content`). Host
+cua-driver's MCP server (`claude-code` declares it through `desktop_content`). A
+desktop task that does not also require `shell` runs with no shell, so the agent has to work the
+app through its window (docs/adapters.md). Host
 controls construct evidence directly, so they are not a GUI capability test.
 A docker desktop box records its display at five frames a second and keeps the video as
 `desktop.mp4` in the trial's directory, or under `parallax run --videos DIR`, which outlives

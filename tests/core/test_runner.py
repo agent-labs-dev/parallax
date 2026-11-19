@@ -779,8 +779,8 @@ def test_world_clock_only_where_the_runner_sets_the_clock() -> None:
     assert Capability.WORLD_CLOCK not in trial_capabilities(agent, Isolation.HOST)  # the machine's date
 
 
-# An open harness that runs in whatever box the run gives it, as claude-code does.
-DOCKER_INFO = INFO.model_copy(update={"isolation": Isolation.DOCKER})
+# An open harness that runs in whatever box the run gives it and can drop its shell, as claude-code does.
+DOCKER_INFO = INFO.model_copy(update={"isolation": Isolation.DOCKER, "shell_disabled_by": "flag"})
 
 
 @pytest.mark.parametrize(
@@ -789,6 +789,15 @@ DOCKER_INFO = INFO.model_copy(update={"isolation": Isolation.DOCKER})
         (DOCKER_INFO, Isolation.DOCKER, True),  # the docker box runs the desktop session
         (DOCKER_INFO, Isolation.HOST, False),  # a host trial has no box to run it in
         (INFO.model_copy(update={"kind": HarnessKind.CONTROL}), Isolation.DOCKER, True),  # writes the evidence itself
+        # A shell it cannot drop would let the agent script the app instead of operating it.
+        (DOCKER_INFO.model_copy(update={"shell_disabled_by": "none"}), Isolation.DOCKER, False),
+        (
+            DOCKER_INFO.model_copy(
+                update={"shell_disabled_by": "none", "capabilities": frozenset(Capability) - {Capability.SHELL}}
+            ),
+            Isolation.DOCKER,
+            True,
+        ),
     ],
 )
 def test_desktop_is_a_capability_only_where_the_trial_gets_a_desktop(

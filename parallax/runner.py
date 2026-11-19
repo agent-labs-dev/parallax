@@ -732,7 +732,11 @@ def trial_capabilities(info: HarnessInfo, run_isolation: Isolation) -> frozenset
     its own clock, so neither has it unless the harness declares `world_clock`."""
     caps = info.capabilities
     # A control writes the desktop app's evidence itself; an agent needs the box's desktop session to reach it.
-    if info.kind is not HarnessKind.CONTROL and not desktop_box(info, harness_isolation(info, run_isolation)):
+    # A desktop trial runs without a shell (`shell_withheld`), so a harness that cannot drop its shell gets no desktop.
+    agent = info.kind is not HarnessKind.CONTROL
+    if agent and not desktop_box(info, harness_isolation(info, run_isolation)):
+        caps -= {Capability.DESKTOP}
+    if agent and Capability.SHELL in caps and info.shell_disabled_by == "none":
         caps -= {Capability.DESKTOP}
     match harness_isolation(info, run_isolation):
         case Isolation.DOCKER:

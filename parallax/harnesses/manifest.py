@@ -19,7 +19,16 @@ from pydantic import JsonValue, ValidationError
 
 from parallax.harnesses.base import SubprocessHarness, config_hash, credential_env_problems
 from parallax.harnesses.parsers import PARSERS
-from parallax.models import Capability, ConfigFile, JsonObject, ManifestSpec, Trial, TurnInput, TurnOutput
+from parallax.models import (
+    Capability,
+    ConfigFile,
+    JsonObject,
+    ManifestSpec,
+    Trial,
+    TurnInput,
+    TurnOutput,
+    shell_withheld,
+)
 from parallax.protocols import BoxHandle, Harness
 
 MANIFEST_DIR = Path(__file__).parent / "manifests"
@@ -67,11 +76,17 @@ def manifest_problems(spec: ManifestSpec, stem: str) -> list[str]:
     if not spec.info.version_cmd:
         problems.append("info.version_cmd is required")
     problems.extend(credential_env_problems(spec.info))
-    for text in (*spec.argv_first, *spec.argv_next, *spec.env.values(), *config_strings(spec.config)):
+    texts = (*spec.argv_first, *spec.argv_next, *spec.mcp_argv, *spec.shell_off_argv)
+    for text in (*texts, *spec.env.values(), *config_strings(spec.config)):
         problems.extend(f"unknown placeholder {{{p}}}" for p in _PLACEHOLDER.findall(text) if p not in PLACEHOLDERS)
     problems.extend(cli_problems(spec))
     if Capability.DESKTOP in spec.info.capabilities and not any(f.desktop_content for f in spec.config):
         problems.append("desktop is declared but no config file gives the harness the desktop (desktop_content)")
+    shell = {Capability.DESKTOP, Capability.SHELL} <= spec.info.capabilities
+    if shell and not spec.shell_off_argv:
+        problems.append("desktop and shell are declared but shell_off_argv does not say how to run without the shell")
+    if bool(spec.shell_off_argv) != (spec.info.shell_disabled_by == "flag"):
+        problems.append('info.shell_disabled_by must be "flag" exactly when shell_off_argv is set')
     return problems
 
 
@@ -298,6 +313,8 @@ class ManifestHarness(SubprocessHarness):
                     break
             else:
                 raise ManifestError(f"{self.spec.info.name}: mcp_argv is absent from rendered argv")
+        if shell_withheld(self.trial.requires):
+            argv += [render(a, values) for a in self.spec.shell_off_argv]
         return argv
 
     def env(self) -> dict[str, str]:

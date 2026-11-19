@@ -8,6 +8,9 @@ argv_first = ["claude", "-p", "--output-format", "stream-json", "--verbose", "--
   "--setting-sources", "project", "--permission-mode", "bypassPermissions",
   "--disallowedTools", "WebSearch,WebFetch"]
 mcp_argv = ["--mcp-config", "{home}/mcp.json", "--strict-mcp-config"]
+# A desktop trial without a shell (`shell_withheld`): no Bash, and not cua-driver's launch_app either, which runs any
+# command through the system shell. Repeated --disallowedTools flags add up (checked against claude 2.1.328).
+shell_off_argv = ["--disallowedTools", "Bash,mcp__desktop__launch_app"]
 argv_next = ["claude", "-p", "--output-format", "stream-json", "--verbose", "--model", "{model_name}",
   "--resume", "{session}", "--mcp-config", "{home}/mcp.json", "--strict-mcp-config",
   "--setting-sources", "project", "--permission-mode", "bypassPermissions",
@@ -22,6 +25,7 @@ cost_source = "metered"
 install = "npm i -g @anthropic-ai/claude-code"
 version_cmd = ["claude", "--version"]
 web_disabled_by = "flag"
+shell_disabled_by = "flag"
 source_url = "https://github.com/anthropics/claude-code"
 
 [env]
