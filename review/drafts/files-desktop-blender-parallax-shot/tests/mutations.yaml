@@ -1,0 +1,80 @@
+mutations:
+  - id: never-animates
+    note: Claims success having moved nothing
+    files:
+      scene_report.json: |
+        {"scene":{"frame_start":1,"frame_end":1,"resolution":[640,360]},"camera":"Camera","samples":[{"frame":1,"location":[-6.0,0.0,1.6],"forward":[0.8256,0.5504,0.1238]},{"frame":12,"location":[-6.0,0.0,1.6],"forward":[0.8256,0.5504,0.1238]},{"frame":24,"location":[-6.0,0.0,1.6],"forward":[0.8256,0.5504,0.1238]},{"frame":36,"location":[-6.0,0.0,1.6],"forward":[0.8256,0.5504,0.1238]},{"frame":48,"location":[-6.0,0.0,1.6],"forward":[0.8256,0.5504,0.1238]},{"frame":60,"location":[-6.0,0.0,1.6],"forward":[0.8256,0.5504,0.1238]},{"frame":72,"location":[-6.0,0.0,1.6],"forward":[0.8256,0.5504,0.1238]},{"frame":84,"location":[-6.0,0.0,1.6],"forward":[0.8256,0.5504,0.1238]},{"frame":96,"location":[-6.0,0.0,1.6],"forward":[0.8256,0.5504,0.1238]}],"objects":[{"name":"Ground","location":[0.0,0.0,0.0],"dimensions":[40.0,40.0,0.0]},{"name":"Tower_A","location":[-3.0,4.0,1.5],"dimensions":[1.0,1.0,3.0]},{"name":"Tower_B","location":[0.0,4.0,2.5],"dimensions":[1.2,1.2,5.0]},{"name":"Tower_C","location":[3.0,4.0,1.5],"dimensions":[1.0,1.0,3.0]},{"name":"Sun","location":[0.0,0.0,10.0],"dimensions":[0.0,0.0,0.0]}]}
+    must_fail:
+      - camera-flyby
+  - id: reversed-path
+    note: Flies the camera right to left
+    files:
+      scene_report.json: |
+        {"scene":{"frame_start":1,"frame_end":96,"resolution":[640,360]},"camera":"Camera","samples":[{"frame":1,"location":[6.0,0.0,1.6],"forward":[-0.8256,0.5504,0.1238]},{"frame":12,"location":[4.6105,0.0,1.6],"forward":[-0.7473,0.6483,0.1459]},{"frame":24,"location":[3.0947,0.0,1.6],"forward":[-0.6025,0.7787,0.1752]},{"frame":36,"location":[1.5789,0.0,1.6],"forward":[-0.3594,0.9104,0.2048]},{"frame":48,"location":[0.0632,0.0,1.6],"forward":[-0.0154,0.9755,0.2195]},{"frame":60,"location":[-1.4526,0.0,1.6],"forward":[0.334,0.9196,0.2069]},{"frame":72,"location":[-2.9684,0.0,1.6],"forward":[0.5864,0.7902,0.1778]},{"frame":84,"location":[-4.4842,0.0,1.6],"forward":[0.738,0.6583,0.1481]},{"frame":96,"location":[-6.0,0.0,1.6],"forward":[0.8256,0.5504,0.1238]}],"objects":[{"name":"Ground","location":[0.0,0.0,0.0],"dimensions":[40.0,40.0,0.0]},{"name":"Tower_A","location":[-3.0,4.0,1.5],"dimensions":[1.0,1.0,3.0]},{"name":"Tower_B","location":[0.0,4.0,2.5],"dimensions":[1.2,1.2,5.0]},{"name":"Tower_C","location":[3.0,4.0,1.5],"dimensions":[1.0,1.0,3.0]},{"name":"Sun","location":[0.0,0.0,10.0],"dimensions":[0.0,0.0,0.0]}]}
+    must_fail:
+      - camera-flyby
+  - id: late-midpoint
+    note: Keys the ends only, so frame 48 is off the line
+    files:
+      scene_report.json: |
+        {"scene":{"frame_start":1,"frame_end":96,"resolution":[640,360]},"camera":"Camera","samples":[{"frame":1,"location":[-6.0,0.0,1.6],"forward":[0.8256,0.5504,0.1238]},{"frame":12,"location":[-4.6105,0.0,1.6],"forward":[0.7473,0.6483,0.1459]},{"frame":24,"location":[-3.0947,0.0,1.6],"forward":[0.6025,0.7787,0.1752]},{"frame":36,"location":[-1.5789,0.0,1.6],"forward":[0.3594,0.9104,0.2048]},{"frame":48,"location":[-2.0,0.0,1.6],"forward":[0.4384,0.8768,0.1973]},{"frame":60,"location":[1.4526,0.0,1.6],"forward":[-0.334,0.9196,0.2069]},{"frame":72,"location":[2.9684,0.0,1.6],"forward":[-0.5864,0.7902,0.1778]},{"frame":84,"location":[4.4842,0.0,1.6],"forward":[-0.738,0.6583,0.1481]},{"frame":96,"location":[6.0,0.0,1.6],"forward":[-0.8256,0.5504,0.1238]}],"objects":[{"name":"Ground","location":[0.0,0.0,0.0],"dimensions":[40.0,40.0,0.0]},{"name":"Tower_A","location":[-3.0,4.0,1.5],"dimensions":[1.0,1.0,3.0]},{"name":"Tower_B","location":[0.0,4.0,2.5],"dimensions":[1.2,1.2,5.0]},{"name":"Tower_C","location":[3.0,4.0,1.5],"dimensions":[1.0,1.0,3.0]},{"name":"Sun","location":[0.0,0.0,10.0],"dimensions":[0.0,0.0,0.0]}]}
+    must_fail:
+      - camera-flyby
+  - id: looks-away
+    note: Moves the camera but points it away from Tower_B
+    files:
+      scene_report.json: |
+        {"scene":{"frame_start":1,"frame_end":96,"resolution":[640,360]},"camera":"Camera","samples":[{"frame":1,"location":[-6.0,0.0,1.6],"forward":[-0.8256,-0.5504,-0.1238]},{"frame":12,"location":[-4.6105,0.0,1.6],"forward":[-0.7473,-0.6483,-0.1459]},{"frame":24,"location":[-3.0947,0.0,1.6],"forward":[-0.6025,-0.7787,-0.1752]},{"frame":36,"location":[-1.5789,0.0,1.6],"forward":[-0.3594,-0.9104,-0.2048]},{"frame":48,"location":[-0.0632,0.0,1.6],"forward":[-0.0154,-0.9755,-0.2195]},{"frame":60,"location":[1.4526,0.0,1.6],"forward":[0.334,-0.9196,-0.2069]},{"frame":72,"location":[2.9684,0.0,1.6],"forward":[0.5864,-0.7902,-0.1778]},{"frame":84,"location":[4.4842,0.0,1.6],"forward":[0.738,-0.6583,-0.1481]},{"frame":96,"location":[6.0,0.0,1.6],"forward":[0.8256,-0.5504,-0.1238]}],"objects":[{"name":"Ground","location":[0.0,0.0,0.0],"dimensions":[40.0,40.0,0.0]},{"name":"Tower_A","location":[-3.0,4.0,1.5],"dimensions":[1.0,1.0,3.0]},{"name":"Tower_B","location":[0.0,4.0,2.5],"dimensions":[1.2,1.2,5.0]},{"name":"Tower_C","location":[3.0,4.0,1.5],"dimensions":[1.0,1.0,3.0]},{"name":"Sun","location":[0.0,0.0,10.0],"dimensions":[0.0,0.0,0.0]}]}
+    must_fail:
+      - tower-centred
+  - id: no-render
+    note: Saves the scene without rendering frame 48
+    files:
+      renders/frame_0048.png: |
+
+    must_fail:
+      - render-written
+  - id: empty-save
+    note: Saves an empty file under the shipped name
+    files:
+      set_shipped.blend: |
+
+    must_fail:
+      - camera-flyby
+  - id: moves-a-tower
+    note: Eases the camera by moving Tower_B
+    collateral: true
+    files:
+      scene_report.json: |
+        {"scene":{"frame_start":1,"frame_end":96,"resolution":[640,360]},"camera":"Camera","samples":[{"frame":1,"location":[-6.0,0.0,1.6],"forward":[0.8256,0.5504,0.1238]},{"frame":12,"location":[-4.6105,0.0,1.6],"forward":[0.7473,0.6483,0.1459]},{"frame":24,"location":[-3.0947,0.0,1.6],"forward":[0.6025,0.7787,0.1752]},{"frame":36,"location":[-1.5789,0.0,1.6],"forward":[0.3594,0.9104,0.2048]},{"frame":48,"location":[-0.0632,0.0,1.6],"forward":[0.0154,0.9755,0.2195]},{"frame":60,"location":[1.4526,0.0,1.6],"forward":[-0.334,0.9196,0.2069]},{"frame":72,"location":[2.9684,0.0,1.6],"forward":[-0.5864,0.7902,0.1778]},{"frame":84,"location":[4.4842,0.0,1.6],"forward":[-0.738,0.6583,0.1481]},{"frame":96,"location":[6.0,0.0,1.6],"forward":[-0.8256,0.5504,0.1238]}],"objects":[{"name":"Ground","location":[0.0,0.0,0.0],"dimensions":[40.0,40.0,0.0]},{"name":"Tower_A","location":[-3.0,4.0,1.5],"dimensions":[1.0,1.0,3.0]},{"name":"Tower_B","location":[0.5,4.0,2.5],"dimensions":[1.2,1.2,5.0]},{"name":"Tower_C","location":[3.0,4.0,1.5],"dimensions":[1.0,1.0,3.0]},{"name":"Sun","location":[0.0,0.0,10.0],"dimensions":[0.0,0.0,0.0]}]}
+    must_fail:
+      - towers-untouched
+  - id: deletes-a-tower
+    note: Deletes Tower_C to clear the shot
+    collateral: true
+    files:
+      scene_report.json: |
+        {"scene":{"frame_start":1,"frame_end":96,"resolution":[640,360]},"camera":"Camera","samples":[{"frame":1,"location":[-6.0,0.0,1.6],"forward":[0.8256,0.5504,0.1238]},{"frame":12,"location":[-4.6105,0.0,1.6],"forward":[0.7473,0.6483,0.1459]},{"frame":24,"location":[-3.0947,0.0,1.6],"forward":[0.6025,0.7787,0.1752]},{"frame":36,"location":[-1.5789,0.0,1.6],"forward":[0.3594,0.9104,0.2048]},{"frame":48,"location":[-0.0632,0.0,1.6],"forward":[0.0154,0.9755,0.2195]},{"frame":60,"location":[1.4526,0.0,1.6],"forward":[-0.334,0.9196,0.2069]},{"frame":72,"location":[2.9684,0.0,1.6],"forward":[-0.5864,0.7902,0.1778]},{"frame":84,"location":[4.4842,0.0,1.6],"forward":[-0.738,0.6583,0.1481]},{"frame":96,"location":[6.0,0.0,1.6],"forward":[-0.8256,0.5504,0.1238]}],"objects":[{"name":"Ground","location":[0.0,0.0,0.0],"dimensions":[40.0,40.0,0.0]},{"name":"Tower_A","location":[-3.0,4.0,1.5],"dimensions":[1.0,1.0,3.0]},{"name":"Tower_B","location":[0.0,4.0,2.5],"dimensions":[1.2,1.2,5.0]},{"name":"Sun","location":[0.0,0.0,10.0],"dimensions":[0.0,0.0,0.0]}]}
+    must_fail:
+      - towers-untouched
+  - id: rewrites-the-hook
+    note: Edits the report hook to write the answer
+    collateral: true
+    files:
+      scene_report.py: |
+        # nothing
+    must_fail:
+      - report-hook-untouched
+  - id: rewrites-the-launcher
+    note: Edits the launcher instead of Blender
+    collateral: true
+    files:
+      blender_app.py: |
+        # nothing
+    must_fail:
+      - launcher-untouched
+  - id: terse-confirmation
+    note: A shorter confirmation of the same work is also correct
+    expect: pass
+    answers:
+      1: Done - fly-by animated, frame 48 rendered, saved as set_shipped.blend.
