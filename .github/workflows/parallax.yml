@@ -121,14 +121,14 @@ jobs:
             --repeats "${REPEATS:-1}" --concurrency "${CONCURRENCY:-4}" --isolation docker \
             --budget "${BUDGET:?every run needs a campaign budget}" \
             --reserve "${RESERVE:?every run needs a per-trial reserve}" \
-            --out "runs/$RUN_ID" --note "${NOTE:-$BRANCH ${GITHUB_SHA::8}}" "${meta[@]}"
+            --out "runs/$RUN_ID" --videos "videos/$RUN_ID" --note "${NOTE:-$BRANCH ${GITHUB_SHA::8}}" "${meta[@]}"
       - name: Keep desktop trial videos
         # Each desktop trial records its display; the videos are for reading a run, not for Langfuse.
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: parallax-videos-${{ github.run_id }}-${{ github.run_attempt }}
-          path: runs/**/desktop.mp4
+          path: videos/
           if-no-files-found: ignore
       - name: Finish an interrupted upload
         if: failure()

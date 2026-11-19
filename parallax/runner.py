@@ -202,6 +202,9 @@ class RunOptions(Model):
     # Where the budget's journal lives; None: `budget.jsonl` in this run directory. Runs run one after another on one
     # journal share one limit, so several run directories (arms that need different models) spend one budget.
     budget_journal: Path | None = None
+    # Where desktop trials' videos are kept, one per trial directory name; None keeps each in its trial directory,
+    # which an upload deletes. A separate directory outlives the upload, for a workflow artifact.
+    videos: Path | None = None
 
 
 @runtime_checkable
@@ -808,9 +811,11 @@ class Session:
         judge_config: JudgeConfig | None,
         turn_timeout_s: float | None = None,
         budget: CampaignBudget | None = None,
+        videos: Path | None = None,
     ) -> None:
         self.svc = svc
         self.run_dir = run_dir
+        self.videos = videos
         self.panel = panel
         self.judge_config = judge_config
         self.turn_timeout_s = turn_timeout_s
@@ -1021,9 +1026,12 @@ class TrialExecution:
         return await self.graded(started, None, await self.meter_report())
 
     async def keep_recording(self, box: Box) -> None:
-        """A desktop trial's video of its display, as `desktop.mp4` beside the trial's record."""
-        if isinstance(box, DockerBox):
-            await box.keep_recording(self.dir / "desktop.mp4")
+        """A desktop trial's video of its display, as `desktop.mp4` in its trial directory or the run's `videos`."""
+        if not isinstance(box, DockerBox):
+            return
+        folder = self.dir if self.s.videos is None else self.s.videos / self.plan.rel_dir
+        folder.mkdir(parents=True, exist_ok=True)
+        await box.keep_recording(folder / "desktop.mp4")
 
     async def unregister(self, control: ControlClient) -> None:
         with contextlib.suppress(ControlError, httpx.HTTPError):
@@ -1673,7 +1681,7 @@ async def run_async(
             budget = CampaignBudget(opts.budget_usd, opts.reserve_usd, journal)
         elif journal.is_file():
             budget = CampaignBudget.from_journal(journal)
-        session = Session(svc, opts.out, panel, judge_config, opts.turn_timeout_s, budget)
+        session = Session(svc, opts.out, panel, judge_config, opts.turn_timeout_s, budget, opts.videos)
         session.live = LiveFeed.open(feed_session)
         if session.live is not None:
             session.live.run_started(
