@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # The fast local gate: format, lint, type check, repository rules and unit tests, offline.
 #   scripts/gate            lint and format the whole tree, ty on files changed from origin/main, all unit tests
-#   scripts/gate --changed  only what this branch's changed files reach (changed tests, plus test_<module>.py; all unit tests for any non-test file under tests/, non-Python inputs or a module with no matching test; the full gate for pyproject.toml or uv.lock)
+#   scripts/gate --changed  lint only changed files; run the changed tests, and every unit test when a source, shared test file or script changed; the full gate for pyproject.toml or uv.lock
 # Whole-repo ty, the task-structure lint, the docs link check and the public scan run in CI.
 set -euo pipefail
+shopt -s extglob
 cd "$(git rev-parse --show-toplevel)"
 
 changed_only=0
@@ -21,28 +22,21 @@ py=()
 src=()
 tests=()
 shared=0
-unmapped=0
 full=0
 for f in "${changed[@]}"; do
   # Project config changes lint, type and test settings for everything.
   [[ $f == pyproject.toml || $f == uv.lock ]] && full=1
-  if [[ $f != *.py ]]; then [[ $f == parallax/* || $f == tests/* ]] && shared=1; continue; fi
-  # Any conftest or helper under tests/ can feed every suite.
-  [[ $f == tests/* && $f != tests/*test_*.py ]] && shared=1
-  [[ -f $f ]] || { [[ $f == parallax/* ]] && unmapped=1; continue; }
-  for p in "${paths[@]}"; do
-    if [[ $f == "$p" || $f == "$p"/* ]]; then py+=("$f"); break; fi
-  done
-  [[ $f == parallax/* ]] && src+=("$f")
-  if [[ $f == tests/core/*test_*.py || $f == tests/world/*test_*.py || $f == tests/harnesses/*test_*.py ]]; then
-    tests+=("$f")
-  elif [[ $f == parallax/* ]]; then
-    stem=$(basename "$f" .py)
-    found=0
-    for t in tests/core/test_"$stem".py tests/world/test_"$stem".py tests/harnesses/test_"$stem".py; do
-      [[ -f $t ]] && { tests+=("$t"); found=1; }
+  if [[ $f == *.py && -f $f ]]; then
+    for p in "${paths[@]}"; do
+      if [[ $f == "$p" || $f == "$p"/* ]]; then py+=("$f"); break; fi
     done
-    ((found)) || unmapped=1
+    [[ $f == parallax/* ]] && src+=("$f")
+  fi
+  if [[ $f == tests/@(core|world|harnesses)/**test_*.py && $f != */fixtures/* ]]; then
+    [[ -f $f ]] && tests+=("$f")
+  elif [[ $f == parallax/* || $f == tests/* || $f == scripts/*.py ]]; then
+    # A source, helper, fixture or script is exercised by suites its name does not give away.
+    shared=1
   fi
 done
 
@@ -61,10 +55,11 @@ if ((${#targets[@]})); then
   uv run ruff check "${targets[@]}"
 fi
 ((${#src[@]})) && uv run ty check --error-on-warning "${src[@]}"
+uv run --no-project python ci/rules/run.py --test
 uv run --no-project python ci/rules/run.py
 
 if ((changed_only)); then
-  if ((shared || unmapped)); then
+  if ((shared)); then
     uv run pytest -q tests/core tests/world tests/harnesses
   else
     mapfile -t tests < <(printf '%s\n' "${tests[@]}" | awk 'NF' | sort -u)
