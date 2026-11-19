@@ -7,7 +7,7 @@ the Blender the box installs. Run it in the task's verify image (`environment/Do
         blender --background --factory-startup --python solution/build_scenes.py
 
 It builds the seed with `environment/files/build_set.py`, then writes `solution/set_shipped.blend`,
-`solution/frame_0048.png` and one `tests/mutants/<id>.blend` per scene mutant (plus a flat render).
+`solution/frame_0048.png` and one `tests/mutants/<id>.blend` per scene mutant (plus a flat render and a render of the wrong frame).
 """
 
 import os
@@ -54,13 +54,18 @@ def flyby() -> None:
     track("Tower_B")
 
 
+def render_frame(frame: int, path: Path) -> None:
+    scene = bpy.context.scene
+    scene.frame_set(frame)
+    scene.render.filepath = str(path)
+    bpy.ops.render.render(write_still=True)
+
+
 def finish(path: Path, render: Path | None = None) -> None:
     scene = bpy.context.scene
     scene.frame_start, scene.frame_end = 1, 96
     if render is not None:
-        scene.frame_set(48)
-        scene.render.filepath = str(render)
-        bpy.ops.render.render(write_still=True)
+        render_frame(48, render)
     scene.frame_set(1)
     bpy.ops.wm.save_as_mainfile(filepath=str(path), compress=True, copy=True)
 
@@ -117,11 +122,13 @@ def parents_a_tower() -> None:
     flyby()
 
 
+bpy.context.preferences.filepaths.save_version = 0  # a rebuild overwrites; no .blend1 backups beside the files
 SOLUTION.mkdir(exist_ok=True)
 MUTANTS.mkdir(exist_ok=True)
 seed()
 flyby()
 finish(SOLUTION / "set_shipped.blend", SOLUTION / "frame_0048.png")
+render_frame(1, MUTANTS / "wrong-frame.png")
 for name, build in (
     ("never-animates", static),
     ("reversed-path", reversed_path),

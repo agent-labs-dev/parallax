@@ -61,17 +61,32 @@ checks:
       - blender
       - --background
       - --factory-startup
+      - set_shipped.blend
       - --python-exit-code
       - "1"
       - --python-expr
       - |
         import os
+        import tempfile
         import bpy
+        assert bpy.path.basename(bpy.data.filepath) == "set_shipped.blend", "set_shipped.blend did not load"
         image = bpy.data.images.load(os.path.abspath("renders/frame_0048.png"))
         assert image.file_format == "PNG", image.file_format
         assert tuple(image.size) == (640, 360), tuple(image.size)
-        pixels = list(image.pixels)
-        assert max(pixels) - min(pixels) > 0.05, "the image is one flat colour"
+        # The same frame rendered here from the saved scene, by the same Blender and Mesa the box runs.
+        scene = bpy.context.scene
+        scene.frame_set(48)
+        scene.render.resolution_x, scene.render.resolution_y, scene.render.resolution_percentage = 640, 360, 100
+        scene.render.image_settings.file_format = "PNG"
+        scene.render.filepath = os.path.join(tempfile.mkdtemp(), "expected.png")
+        bpy.ops.render.render(write_still=True)
+        expected = bpy.data.images.load(scene.render.filepath)
+        got, want = list(image.pixels), list(expected.pixels)
+        assert len(got) == len(want), "the render has a different channel layout"
+        # The box and this check run the same Blender and Mesa on one machine, so a render of this frame matches
+        # exactly; the allowance only covers float rounding. Half a frame off already differs by about 0.006.
+        mean_diff = sum(abs(a - b) for a, b in zip(got, want)) / len(got)
+        assert mean_diff <= 0.002, ("the image is not frame 48 of the saved scene", mean_diff)
   - id: towers-untouched
     kind: command
     mode: collateral_change

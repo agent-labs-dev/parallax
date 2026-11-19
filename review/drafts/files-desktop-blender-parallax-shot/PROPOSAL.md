@@ -56,13 +56,14 @@ scene when a file is missing or unreadable.
 - `camera-flyby`: the frame range is 1 to 96, the scene camera stays at y 0 and height 1.6 at every frame, passes
   x -6, 0 and 6 at frames 1, 48 and 96, and moves left to right throughout.
 - `tower-centred`: Tower_B's centre projects to the middle of the camera view, in front of it, at frames 1, 48 and 96.
-- `render-written`: `renders/frame_0048.png` loads as a 640x360 PNG that is not one flat colour.
+- `render-written`: `renders/frame_0048.png` is a 640x360 PNG that matches frame 48 rendered again from the saved
+  scene, so a placeholder, another frame or a render of a different scene fails.
 - `towers-untouched`: the ground and the three towers keep their world positions and sizes at frames 1, 48 and 96,
   so a tower moved by its parent or a constraint is caught as well as one moved directly.
 
 The launcher and the scene builder are graded as unchanged files. The oracle and the scene mutants are real Blender
 saves made by `solution/build_scenes.py`: a static camera, a reversed path, a bowed path, a camera aimed away, a moved
-tower, a deleted tower and a tower moved through a parent, plus a missing render, a flat render, an empty save and
+tower, a deleted tower and a tower moved through a parent, plus a missing render, a flat render, a render of the wrong frame, an empty save and
 edits to both scripts. One `expect: pass` mutant shows a terser answer passing.
 
 ## What it runs on

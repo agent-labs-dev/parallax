@@ -36,6 +36,12 @@ mutations:
       renders/frame_0048.png: mutants/flat-render.png
     must_fail:
       - render-written
+  - id: wrong-frame
+    note: Writes a real render of frame 1 under the frame 48 name
+    files_from:
+      renders/frame_0048.png: mutants/wrong-frame.png
+    must_fail:
+      - render-written
   - id: empty-save
     note: Saves an empty file under the shipped name
     files:
