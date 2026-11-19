@@ -104,9 +104,10 @@ def _meter(calls: list[dict[str, Any]]) -> None:
         return response
 
     def build(self: Any, options: Any, *, retries_taken: int = 0) -> Any:
+        request = build_request(self, options, retries_taken=retries_taken)
         if retries_taken:
             calls.append(_unpriced("retried"))
-        return build_request(self, options, retries_taken=retries_taken)
+        return request
 
     completions.Completions.create = create
     completions.AsyncCompletions.create = acreate
