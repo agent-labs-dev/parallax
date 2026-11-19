@@ -656,9 +656,7 @@ async def open_box(task: Task, info: HarnessInfo, isolation: Isolation, net: str
         case Isolation.REMOTE if device_box(info, isolation):
             desktop = task.meta.desktop
             image = (
-                await build_desktop_image(info, desktop.packages)
-                if desktop is not None
-                else await build_image(info)
+                await build_desktop_image(info, desktop.packages) if desktop is not None else await build_image(info)
             )
             return await DockerBox.create_device(task, image)
         case Isolation.HOST | Isolation.REMOTE:
