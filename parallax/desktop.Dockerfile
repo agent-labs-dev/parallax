@@ -6,7 +6,7 @@ RUN test "$(dpkg --print-architecture)" = amd64 \
  && apt-get update \
  && apt-get install -y --no-install-recommends xvfb x11-utils openbox dbus at-spi2-core \
     python3-gi gir1.2-gtk-3.0 libgail-common libatk-bridge2.0-0 \
-    libx11-6 libxi6 libxkbcommon0 libxcb1 libxext6 \
+    libx11-6 libxi6 libxkbcommon0 libxcb1 libxext6 ffmpeg \
  && rm -rf /var/lib/apt/lists/*
 # Published checksums.txt, cua-driver-rs-v0.28.3; binary-only archive, no installer side effects.
 ADD https://github.com/trycua/cua/releases/download/cua-driver-rs-v0.28.3/cua-driver-rs-0.28.3-linux-x86_64-binary.tar.gz /tmp/cua-driver.tar.gz

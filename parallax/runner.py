@@ -38,6 +38,7 @@ from parallax.box import (
     Box,
     BoxError,
     BoxKind,
+    DockerBox,
     Sidecar,
     box_kind,
     desktop_box,
@@ -987,6 +988,7 @@ class TrialExecution:
                 await self.drive(harness, box, token, control)
                 workspace = await self.snapshot(box)
             finally:
+                await self.keep_recording(box)
                 await box.close()
             world = await self.world_evidence(control)
             meter = await self.meter_report()
@@ -1014,8 +1016,14 @@ class TrialExecution:
         try:
             await self.drive(harness, box, None, None)
         finally:
+            await self.keep_recording(box)
             await box.close()
         return await self.graded(started, None, await self.meter_report())
+
+    async def keep_recording(self, box: Box) -> None:
+        """A desktop trial's video of its display, as `desktop.mp4` beside the trial's record."""
+        if isinstance(box, DockerBox):
+            await box.keep_recording(self.dir / "desktop.mp4")
 
     async def unregister(self, control: ControlClient) -> None:
         with contextlib.suppress(ControlError, httpx.HTTPError):

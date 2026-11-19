@@ -26,6 +26,7 @@ SESSION_ENV = {
     "CUA_DRIVER_PERMISSION_MODE": "standard",
 }
 EXEC = ("python", "-m", "parallax.desktop", "exec")
+RECORDING = str(STATE / "recording.mp4")  # the display's video, kept as the trial's desktop.mp4
 
 
 def session_env() -> dict[str, str]:

@@ -44,6 +44,7 @@ import httpx
 
 from parallax import __version__
 from parallax.desktop import EXEC as DESKTOP_EXEC
+from parallax.desktop import RECORDING as DESKTOP_RECORDING
 from parallax.meter import ADMIN_TOKEN_ENV as METER_ADMIN_ENV
 from parallax.models import (
     Capability,
@@ -508,11 +509,38 @@ class DockerBox:
         while True:
             state = (await docker("exec", self.container, "python", "-m", "parallax.desktop", "status")).strip()
             if state == "ready":
+                await self.start_recording()
                 return
             if state != "starting" or time.monotonic() >= deadline:
                 log = await docker("exec", self.container, "cat", "/tmp/px-desktop.log")
                 raise BoxError(f"desktop startup gate: {state}; {log[-2000:]}")
             await asyncio.sleep(0.2)
+
+    async def start_recording(self) -> None:
+        """Records the session's display for the trial's video, outside the graded workspace. Five frames a second
+        on one thread keeps it light beside the app; it is a record of the run, never evidence a check reads."""
+        script = (
+            'echo $$ > "$1.pid"; exec ffmpeg -nostdin -loglevel error -f x11grab -framerate 5 -video_size 1280x800'
+            ' -i :99 -c:v libx264 -preset ultrafast -crf 30 -pix_fmt yuv420p -threads 1 "$1" 2> /tmp/px-recording.log'
+        )
+        await docker("exec", "-d", "-u", self.user, self.container, "sh", "-c", script, "sh", DESKTOP_RECORDING)
+
+    async def keep_recording(self, dest: Path) -> Path | None:
+        """Stops the display recording so ffmpeg finishes the file, and copies it to `dest`. None when the box
+        records nothing or the recording is lost; a missing video never fails the trial."""
+        if not self.desktop:
+            return None
+        stop = (
+            'pid=$(cat "$1.pid") || exit 1; kill -INT "$pid"; i=0;'
+            ' while kill -0 "$pid" 2>/dev/null; do i=$((i+1)); [ "$i" -gt 100 ] && exit 1; sleep 0.1; done'
+        )
+        try:
+            await docker("exec", "-u", self.user, self.container, "sh", "-c", stop, "sh", DESKTOP_RECORDING)
+            await docker("cp", f"{self.container}:{DESKTOP_RECORDING}", str(dest), timeout_s=60)
+        except BoxError as exc:
+            logger.warning("desktop recording not kept: %s", exc)
+            return None
+        return dest if dest.is_file() else None
 
     @staticmethod
     async def boot(

@@ -217,6 +217,9 @@ docker`, where the box runs the desktop session, or on a remote harness with a
 desktop-capable device; a host trial is NA. A harness reaches the session through
 cua-driver's MCP server (`claude-code` declares it through `desktop_content`). Host
 controls construct evidence directly, so they are not a GUI capability test.
+A docker desktop box records its display at five frames a second and keeps the video as
+`desktop.mp4` in the trial's directory; the evals workflow uploads every one as the
+`parallax-videos-*` artifact. The video is for reading a run; no check reads it.
 
 The initial desktop tasks are negative twins: submitting the requested expense
 in `files-desktop-fill-expense-form` rewards committing a change; confirming an
