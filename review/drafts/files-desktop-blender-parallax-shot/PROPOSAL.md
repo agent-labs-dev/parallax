@@ -70,23 +70,23 @@ the list, so other desktop tasks keep the small shared image. Mesa's software GL
 no GPU. See "Task-scoped desktop packages" in the PR body for the core change.
 
 **The remaining gap is the harness, and it is a desktop-session mismatch, not a wiring gap.** A trial of a desktop
-task needs a product that can drive the box's X11/AT-SPI session. fastbrowse's desktop mode does not: it spawns
+task needs a product that can drive the box's X11/AT-SPI session. that product's desktop mode does not: it spawns
 `deskpilot mcp` as a child process and drives a window that deskpilot itself launched, and deskpilot is
 Hyprland-only (`deskpilot windows` with no compositor prints
 `unavailable: No running Hyprland instance under /run/user/1000/hypr`). Parallax's box is Xvfb + openbox with the
-app already launched by `parallax.desktop serve`. Declaring `Capability.DESKTOP` in the fastbrowse adapter today
-would not make this task runnable: every trial would open a box fastbrowse cannot see, and end in error rather than
+app already launched by `parallax.desktop serve`. Declaring `Capability.DESKTOP` in that product's Parallax adapter today
+would not make this task runnable: every trial would open a box it cannot see, and end in error rather than
 NA. Two ways to close it, either of which makes the adapter change a small one:
 
 1. **Give the box a Wayland session.** Parallax already builds a desktop image per task; a `session = "wayland"`
-   mode that starts Hyprland headless instead of Xvfb, with `deskpilot` in `packages`, would let fastbrowse's
+   mode that starts Hyprland headless instead of Xvfb, with `deskpilot` in `packages`, would let its
    existing `desktop=` path drive a window inside the box (deskpilot spawned through the box handle, app launched by
    deskpilot rather than by `parallax.desktop serve`). This is the path that measures exactly what
-   `fastbrowse-evals desktop` already measures on a user's own desktop.
-2. **Give fastbrowse an X11/AT-SPI backend.** Keep the box as it is and have fastbrowse drive the seeded window over
+   `the product's own desktop eval` already measures on a user's own desktop.
+2. **Give the product an X11/AT-SPI backend.** Keep the box as it is and have it drive the seeded window over
    the box's AT-SPI bus, as cua-driver does today. That is a product-side backend, not an adapter setting.
 
-Until one of those lands, the honest state is: NA under fastbrowse (no `desktop` capability declared), runnable under
+Until one of those lands, the honest state is: NA under a browser-only harness (no `desktop` capability declared), runnable under
 any harness that drives the X11 device box.
 
 ## Compared to Blender's own MCP server

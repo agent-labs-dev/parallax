@@ -2,8 +2,8 @@
 
 Blender Lab ships an MCP server for Blender (announced on <https://www.blender.org/lab/mcp-server/>, source at
 <https://projects.blender.org/lab/blender_mcp>, GPL-3.0, latest release v1.0.3). It is the obvious alternative way to
-get an agent to do 3D work, so this note records what it is, what it exposes, and where it overlaps with — and
-diverges from — the eval in this directory.
+get an agent to do 3D work, so this note records what it is, what it exposes, and where it overlaps with - and
+diverges from - the eval in this directory.
 
 ## What it is
 
@@ -12,8 +12,8 @@ connecting to LLMs"):
 
 1. **An add-on inside Blender** (v1.0.3, Blender **5.1 or newer**), installed from the Blender Lab repository or a
    `.mcpb`/zip, which connects the running Blender session to the server.
-2. **An MCP server** — a Python package run through `uv --directory …/mcp run blender-mcp`, or a `.mcpb` bundle.
-3. **An MCP client** — any MCP-speaking LLM client (the project documents llama.cpp; Claude Code, Codex and friends
+2. **An MCP server** - a Python package run through `uv --directory …/mcp run blender-mcp`, or a `.mcpb` bundle.
+3. **An MCP client** - any MCP-speaking LLM client (the project documents llama.cpp; Claude Code, Codex and friends
    work the same way).
 
 The core operation is `execute_blender_code`: the model writes Python and Blender runs it. The project states plainly
@@ -54,12 +54,12 @@ object transforms), plus the rendered `renders/frame_0048.png` and `set_shipped.
 
 ## Where they overlap
 
-- **The same task is expressible in both.** "Animate the camera from (-6, 0, 1.6) to (6, 0, 1.6) over frames 1–96
-  looking at Tower_B, render frame 48, save as `set_shipped.blend`" is a handful of lines of `bpy` — which is exactly
+- **The same task is expressible in both.** "Animate the camera from (-6, 0, 1.6) to (6, 0, 1.6) over frames 1-96
+  looking at Tower_B, render frame 48, save as `set_shipped.blend`" is a handful of lines of `bpy` - which is exactly
   what `execute_blender_code` accepts.
 - **Both end in the same evidence.** `render_viewport_to_path` produces the frame; the saved `.blend` and the scene
   state are what this eval already grades, so an MCP arm would need no new grading.
-- **Both leave the choice of approach to the agent** — GUI, Python console or an MCP tool — which is what a good
+- **Both leave the choice of approach to the agent** - GUI, Python console or an MCP tool - which is what a good
   outcome-graded task wants.
 
 ## Where they diverge
@@ -70,7 +70,7 @@ object transforms), plus the rendered `renders/frame_0048.png` and `set_shipped.
   would skip everything the desktop lane exists to test.
 - **Observation.** blender-mcp returns purpose-built observations (window layout as JSON, area screenshots, API docs
   search, blend-file summaries); a desktop agent gets pixels and an AT-SPI tree of an application that exposes very
-  little semantics. That makes the MCP route far cheaper per step and far more reliable — a real result, but a
+  little semantics. That makes the MCP route far cheaper per step and far more reliable - a real result, but a
   different one.
 - **Grading.** blender-mcp has no scoring at all; it is a product, not a benchmark. This eval's score is a gate on
   observable scene state, so it cannot be talked around: `camera-flyby` reads the camera's evaluated position and
@@ -80,7 +80,7 @@ object transforms), plus the rendered `renders/frame_0048.png` and `set_shipped.
   measuring a very different risk surface, which belongs in the comparison rather than being elided.
 - **Version floor.** blender-mcp needs Blender **5.1+**. Debian trixie (the desktop image's base) packages Blender
   **4.3.2**, so the add-on cannot be installed in the box as it stands; an MCP arm would need a task-scoped Blender
-  5.1 binary, an add-on install inside Blender, and `uv` in the box — all expressible with
+  5.1 binary, an add-on install inside Blender, and `uv` in the box - all expressible with
   `[metadata.parallax.desktop].packages`, but not free.
 
 ## What this means for the eval
@@ -91,7 +91,7 @@ object transforms), plus the rendered `renders/frame_0048.png` and `set_shipped.
    `desktop`, since `requires` decides which box a trial gets.
 2. **The task stays desktop-only for now.** Turning it into a tool-call task would delete the thing it measures; the
    MCP route is worth adding as a second arm, not as a shortcut for this one.
-3. **Nothing in this eval depends on blender-mcp**, and nothing in blender-mcp would need changing to be measured —
+3. **Nothing in this eval depends on blender-mcp**, and nothing in blender-mcp would need changing to be measured -
    which is the sign that the comparison is fair: same task, same evidence, different interface.
 
 Sources: <https://www.blender.org/lab/mcp-server/>, <https://projects.blender.org/lab/blender_mcp>,
