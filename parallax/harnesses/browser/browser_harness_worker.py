@@ -29,6 +29,8 @@ from starlette.requests import Request
 from starlette.responses import StreamingResponse
 from starlette.routing import Route
 
+from parallax.harnesses.parsers import result_text
+
 OPENROUTER = "https://openrouter.ai"
 AGENT_COMPONENT = "agent model"
 # What the relay forwards: the agent's credentials and the request's encoding, never hop-by-hop headers.
@@ -319,7 +321,8 @@ def parse_claude(stdout: str) -> Run:
                     if isinstance(block, dict) and block.get("type") == "tool_result":
                         step = calls.get(str(block.get("tool_use_id")))
                         if step is not None:
-                            step["output"] = block.get("content")
+                            # A screenshot returns a list of blocks, not a string.
+                            step["output"] = result_text(block.get("content"))
                             step["ok"] = not block.get("is_error", False)
             case "result":
                 run.finished = event.get("subtype") == "success" and not event.get("is_error", False)
