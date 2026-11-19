@@ -1,0 +1,2 @@
+owner = "public"
+purpose = "Desktop tasks that run in a headless Hyprland session (deskpilot's standalone mode), which needs a runner that can load vkms."

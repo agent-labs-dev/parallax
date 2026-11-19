@@ -34,6 +34,7 @@ from parallax.models import (
     Capability,
     CheckSet,
     CommandCheck,
+    Desktop,
     FileCheck,
     Match,
     Matcher,
@@ -704,14 +705,31 @@ def _lint_requires(task: Task) -> Iterator[str]:
     if desktop is not None:
         if Capability.WORKSPACE not in requires:
             yield "desktop apps need requires to include workspace"
-        seed = (task.path / "environment" / "files").resolve()
+        yield from _lint_desktop_apps(task, desktop)
+
+
+def _lint_desktop_apps(task: Task, desktop: Desktop) -> Iterator[str]:
+    if desktop.launch_by == "harness":
+        if desktop.session != "hyprland":
+            yield 'launch_by = "harness" needs session = "hyprland"'
         for app in desktop.apps:
-            path = Path(app.path)
-            target = (seed / path).resolve()
-            if path.is_absolute() or ".." in path.parts or not target.is_relative_to(seed):
-                yield f"desktop app path must stay under environment/files: {app.path}"
-            elif path.suffix != ".py" or not target.is_file():
-                yield f"desktop app must be a seeded Python file: {app.path}"
+            if not app.command:
+                yield 'a harness-launched desktop app names its command, e.g. command = ["gedit"]'
+            if app.path or app.title:
+                yield "a harness-launched desktop app has a command, not a path or a title"
+        return
+    seed = (task.path / "environment" / "files").resolve()
+    for app in desktop.apps:
+        if app.command:
+            yield f'desktop app {app.path or app.command[0]}: command needs launch_by = "harness"'
+        if not app.title:
+            yield f"desktop app {app.path}: name the window title startup waits for"
+        path = Path(app.path)
+        target = (seed / path).resolve()
+        if path.is_absolute() or ".." in path.parts or not target.is_relative_to(seed):
+            yield f"desktop app path must stay under environment/files: {app.path}"
+        elif path.suffix != ".py" or not target.is_file():
+            yield f"desktop app must be a seeded Python file: {app.path}"
 
 
 def mounted_services(task: Task) -> frozenset[str]:

@@ -13,7 +13,7 @@ uv run ruff format --check parallax tests/core tests/world tests/harnesses scrip
 uv run ruff check parallax tests/core tests/world tests/harnesses scripts/scan_public.py ci/rules/run.py ci/rules/checks
 uv run ty check --error-on-warning parallax
 uv run pytest -q
-uv run parallax check core conformance --lint-only
+uv run parallax check core conformance desktop-hyprland --lint-only
 uv run --no-project python ci/rules/run.py
 ```
 
