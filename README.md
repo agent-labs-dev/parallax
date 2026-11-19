@@ -93,9 +93,11 @@ work, persistent memory and delegation. The in-tree harnesses are
 [harness matrix](docs/adapters.md#harness-matrix) records what has been verified
 for each. Docker is the default isolation boundary.
 
-Desktop tasks declare `desktop` and run seeded GTK apps in a private X11 device
-box. A harness that declares `desktop` controls them through its own computer-use
-tools; grading reads the apps' saved workspace files. Other harnesses are NA. See the
+Desktop tasks declare `desktop` and run seeded apps, GTK programs or a real
+application such as Blender, in a private X11 session in the trial's docker box
+or device box. A harness that declares `desktop` controls them through
+computer-use tools (`claude-code` through cua-driver); grading reads the apps'
+saved workspace files. Other harnesses are NA. See the
 [desktop recipe](docs/authoring.md#desktop-apps) for image building, offline GUI
 smoke tests, and task authoring.
 

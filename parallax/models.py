@@ -241,12 +241,27 @@ class XFail(Model):
 
 
 class DesktopApp(Model):
-    path: str  # Python GTK3 program under environment/files, run with /usr/bin/python3
+    path: str  # Python program under environment/files, run with /usr/bin/python3; it may exec the app it opens
     title: str = Field(min_length=1)  # exact initial window title; startup waits for it
+
+
+# A Debian binary package name: lowercase, and no shell metacharacters, because the list is joined into the
+# desktop image's `apt-get install` line.
+APT_PACKAGE = re.compile(r"^[a-z0-9][a-z0-9+.-]+$")
 
 
 class Desktop(Model):
     apps: tuple[DesktopApp, ...] = Field(min_length=1)
+    # Debian packages this task's own desktop image installs over the shared GUI layer, so a task that needs an
+    # application (a 3D suite, an editor, a CAD tool) carries its install cost alone instead of every desktop task.
+    packages: SortedSet[str] = frozenset()
+
+    @model_validator(mode="after")
+    def _packages_are_names(self) -> Desktop:
+        for name in self.packages:
+            if not APT_PACKAGE.match(name):
+                raise ValueError(f"desktop package {name!r} is not a Debian package name")
+        return self
 
 
 class TaskMeta(Model):
@@ -569,6 +584,9 @@ class Mutation(Model):
     # narration a final-scoped check must not read; unset, the replacement is one message.
     finals: dict[int, str] = {}
     files: dict[str, str | None] = {}  # workspace path -> new content (None deletes)
+    # workspace path -> a file under the task's tests/ dir copied in byte for byte, for content text cannot hold
+    # (a saved scene, an image); applied after `files`.
+    files_from: dict[str, str] = {}
     turn_files: dict[int, dict[str, str | None]] = {}  # turn -> edits to that turn's snapshot (early-edit mutants)
     # turn -> the approval requests raised in that turn, each answered with the step's decision
     approvals: dict[int, tuple[str, ...]] = {}
@@ -950,6 +968,9 @@ class ConfigFile(Model):
     content: JsonObject  # string leaves may contain {placeholders}
     requires_mcp: bool = False
     mcp_content: JsonObject | None = None
+    # Merged into `content` (nested objects merged key by key) when the trial requires `desktop`: how the harness
+    # reaches the box's desktop session, such as cua-driver's MCP server.
+    desktop_content: JsonObject | None = None
 
 
 class ManifestSpec(Model):

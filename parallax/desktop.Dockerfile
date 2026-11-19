@@ -6,7 +6,7 @@ RUN test "$(dpkg --print-architecture)" = amd64 \
  && apt-get update \
  && apt-get install -y --no-install-recommends xvfb x11-utils openbox dbus at-spi2-core \
     python3-gi gir1.2-gtk-3.0 libgail-common libatk-bridge2.0-0 \
-    libx11-6 libxi6 libxkbcommon0 libxcb1 libxext6 \
+    libx11-6 libxi6 libxkbcommon0 libxcb1 libxext6 ffmpeg \
  && rm -rf /var/lib/apt/lists/*
 # Published checksums.txt, cua-driver-rs-v0.28.3; binary-only archive, no installer side effects.
 ADD https://github.com/trycua/cua/releases/download/cua-driver-rs-v0.28.3/cua-driver-rs-0.28.3-linux-x86_64-binary.tar.gz /tmp/cua-driver.tar.gz
@@ -15,4 +15,11 @@ RUN echo '51de56e37e1e57cca613cff06e22a3c64bf8285ed97e518660f3d1cb2a4e6fcf  /tmp
  && chmod 755 /usr/local/bin/cua-driver \
  && rm /tmp/cua-driver.tar.gz \
  && cua-driver --version
+# The task's own packages (`metadata.parallax.desktop.packages`), installed above the shared GUI layer: a task that
+# needs an application carries its install here, and its image tag carries the list, so no other desktop task pays
+# for it. Names are validated as Debian package names in `models.Desktop`, so splitting them is safe.
+ARG PACKAGES=""
+RUN if [ -n "$PACKAGES" ]; then apt-get update \
+ && apt-get install -y --no-install-recommends $PACKAGES \
+ && rm -rf /var/lib/apt/lists/*; fi
 USER agent

@@ -38,8 +38,10 @@ from parallax.box import (
     Box,
     BoxError,
     BoxKind,
+    DockerBox,
     Sidecar,
     box_kind,
+    desktop_box,
     open_box,
     seed_dir,
     snapshot,
@@ -200,6 +202,9 @@ class RunOptions(Model):
     # Where the budget's journal lives; None: `budget.jsonl` in this run directory. Runs run one after another on one
     # journal share one limit, so several run directories (arms that need different models) spend one budget.
     budget_journal: Path | None = None
+    # Where desktop trials' videos are kept, one per trial directory name; None keeps each in its trial directory,
+    # which an upload deletes. A separate directory outlives the upload, for a workflow artifact.
+    videos: Path | None = None
 
 
 @runtime_checkable
@@ -726,6 +731,9 @@ def trial_capabilities(info: HarnessInfo, run_isolation: Isolation) -> frozenset
     An agent run with `--isolation host` reads the machine's real date, and a remote product keeps
     its own clock, so neither has it unless the harness declares `world_clock`."""
     caps = info.capabilities
+    # A control writes the desktop app's evidence itself; an agent needs the box's desktop session to reach it.
+    if info.kind is not HarnessKind.CONTROL and not desktop_box(info, harness_isolation(info, run_isolation)):
+        caps -= {Capability.DESKTOP}
     match harness_isolation(info, run_isolation):
         case Isolation.DOCKER:
             caps |= {Capability.WORLD_CLOCK}
@@ -803,9 +811,11 @@ class Session:
         judge_config: JudgeConfig | None,
         turn_timeout_s: float | None = None,
         budget: CampaignBudget | None = None,
+        videos: Path | None = None,
     ) -> None:
         self.svc = svc
         self.run_dir = run_dir
+        self.videos = videos
         self.panel = panel
         self.judge_config = judge_config
         self.turn_timeout_s = turn_timeout_s
@@ -983,6 +993,7 @@ class TrialExecution:
                 await self.drive(harness, box, token, control)
                 workspace = await self.snapshot(box)
             finally:
+                await self.keep_recording(box)
                 await box.close()
             world = await self.world_evidence(control)
             meter = await self.meter_report()
@@ -1010,8 +1021,17 @@ class TrialExecution:
         try:
             await self.drive(harness, box, None, None)
         finally:
+            await self.keep_recording(box)
             await box.close()
         return await self.graded(started, None, await self.meter_report())
+
+    async def keep_recording(self, box: Box) -> None:
+        """A desktop trial's video of its display, as `desktop.mp4` in its trial directory or the run's `videos`."""
+        if not isinstance(box, DockerBox):
+            return
+        folder = self.dir if self.s.videos is None else self.s.videos / self.plan.rel_dir
+        folder.mkdir(parents=True, exist_ok=True)
+        await box.keep_recording(folder / "desktop.mp4")
 
     async def unregister(self, control: ControlClient) -> None:
         with contextlib.suppress(ControlError, httpx.HTTPError):
@@ -1661,7 +1681,7 @@ async def run_async(
             budget = CampaignBudget(opts.budget_usd, opts.reserve_usd, journal)
         elif journal.is_file():
             budget = CampaignBudget.from_journal(journal)
-        session = Session(svc, opts.out, panel, judge_config, opts.turn_timeout_s, budget)
+        session = Session(svc, opts.out, panel, judge_config, opts.turn_timeout_s, budget, opts.videos)
         session.live = LiveFeed.open(feed_session)
         if session.live is not None:
             session.live.run_started(

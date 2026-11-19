@@ -298,6 +298,16 @@ def test_desktop_layer_does_not_change_the_default_image_tag() -> None:
     assert desktop_image_tag(desktop) != box_image_tag(desktop)
 
 
+def test_a_tasks_own_desktop_packages_get_an_image_of_their_own() -> None:
+    info = remote_info(RemoteBox.DEVICE)
+    shared = desktop_image_tag(info)
+    blender = desktop_image_tag(info, ["blender", "libgl1-mesa-dri"])
+    assert blender == desktop_image_tag(info, ["libgl1-mesa-dri", "blender"])  # order is not identity
+    assert blender != shared  # the shared layer's tag is untouched
+    assert blender != desktop_image_tag(info, ["blender"])  # one list, one image
+    assert desktop_image_tag(info, []) == shared
+
+
 @pytest.mark.docker
 async def test_docker_box_processes_run_on_the_world_clock() -> None:
     image = f"parallax-runtime:{__version__}"
@@ -392,3 +402,27 @@ def test_a_foreign_platform_build_never_shares_the_native_tag(monkeypatch: pytes
     assert box._foreign(box.DESKTOP_PLATFORM) == "-amd64"
     monkeypatch.setattr(box.platform, "machine", lambda: "x86_64")
     assert box._foreign(box.DESKTOP_PLATFORM) == ""
+
+
+@pytest.mark.parametrize(
+    ("desktop", "fails", "kept"), [(True, False, True), (True, True, False), (False, False, False)]
+)
+async def test_a_desktop_box_keeps_its_display_recording_and_a_lost_one_never_fails(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, desktop: bool, fails: bool, kept: bool
+) -> None:
+    calls: list[str] = []
+
+    async def fake_docker(*args: str, timeout_s: float = 600.0) -> str:
+        calls.append(args[0])
+        if fails:
+            raise BoxError("no such file")
+        if args[0] == "cp":
+            Path(args[-1]).write_bytes(b"mp4")
+        return ""
+
+    monkeypatch.setattr(boxes, "docker", fake_docker)
+    dest = tmp_path / "desktop.mp4"
+    got = await DockerBox("box", desktop=desktop).keep_recording(dest)
+    assert (got == dest) is kept
+    # ffmpeg is stopped before the copy, so the file it finishes is the one kept.
+    assert calls == (["exec"] if fails else ["exec", "cp"] if desktop else [])

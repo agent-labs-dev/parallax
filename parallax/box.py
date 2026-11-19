@@ -32,7 +32,7 @@ import tarfile
 import tempfile
 import time
 from collections import deque
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -44,6 +44,7 @@ import httpx
 
 from parallax import __version__
 from parallax.desktop import EXEC as DESKTOP_EXEC
+from parallax.desktop import RECORDING as DESKTOP_RECORDING
 from parallax.meter import ADMIN_TOKEN_ENV as METER_ADMIN_ENV
 from parallax.models import (
     Capability,
@@ -434,7 +435,15 @@ class DockerBox:
     async def create(cls, task: Task, image: str, net: str) -> DockerBox:
         name = f"{net}-box-{secrets.token_hex(4)}"
         run_args = ("--label", f"parallax.net={net}", "--network", net)
-        return await cls.boot(task, image, cls(name, clock=True), run_args, ("sleep", "infinity"))
+        box = cls(name, clock=True, desktop=task.meta.desktop is not None)
+        try:
+            await cls.boot(task, image, box, run_args, ("sleep", "infinity"))
+            if task.meta.desktop is not None:
+                await box.start_desktop(task)
+            return box
+        except BaseException:
+            await box.close()
+            raise
 
     @classmethod
     async def create_device(cls, task: Task, image: str) -> DockerBox:
@@ -500,11 +509,38 @@ class DockerBox:
         while True:
             state = (await docker("exec", self.container, "python", "-m", "parallax.desktop", "status")).strip()
             if state == "ready":
+                await self.start_recording()
                 return
             if state != "starting" or time.monotonic() >= deadline:
                 log = await docker("exec", self.container, "cat", "/tmp/px-desktop.log")
                 raise BoxError(f"desktop startup gate: {state}; {log[-2000:]}")
             await asyncio.sleep(0.2)
+
+    async def start_recording(self) -> None:
+        """Records the session's display for the trial's video, outside the graded workspace. Five frames a second
+        on one thread keeps it light beside the app; it is a record of the run, never evidence a check reads."""
+        script = (
+            'echo $$ > "$1.pid"; exec ffmpeg -nostdin -loglevel error -f x11grab -framerate 5 -video_size 1280x800'
+            ' -i :99 -c:v libx264 -preset veryfast -crf 30 -pix_fmt yuv420p -threads 1 "$1" 2> /tmp/px-recording.log'
+        )
+        await docker("exec", "-d", "-u", self.user, self.container, "sh", "-c", script, "sh", DESKTOP_RECORDING)
+
+    async def keep_recording(self, dest: Path) -> Path | None:
+        """Stops the display recording so ffmpeg finishes the file, and copies it to `dest`. None when the box
+        records nothing or the recording is lost; a missing video never fails the trial."""
+        if not self.desktop:
+            return None
+        stop = (
+            'pid=$(cat "$1.pid") || exit 1; kill -INT "$pid"; i=0;'
+            ' while kill -0 "$pid" 2>/dev/null; do i=$((i+1)); [ "$i" -gt 100 ] && exit 1; sleep 0.1; done'
+        )
+        try:
+            await docker("exec", "-u", self.user, self.container, "sh", "-c", stop, "sh", DESKTOP_RECORDING)
+            await docker("cp", f"{self.container}:{DESKTOP_RECORDING}", str(dest), timeout_s=60)
+        except BoxError as exc:
+            logger.warning("desktop recording not kept: %s", exc)
+            return None
+        return dest if dest.is_file() else None
 
     @staticmethod
     async def boot(
@@ -640,10 +676,16 @@ class BoxKind(StrEnum):
     DESKTOP = "desktop"
 
 
+def desktop_box(info: HarnessInfo, isolation: Isolation) -> bool:
+    """Whether a trial can be given the desktop session: a docker box, or a remote harness's device box. A host
+    trial has no box to run the session in, so a desktop task is not applicable there."""
+    return isolation is Isolation.DOCKER or device_box(info, isolation)
+
+
 def box_kind(requires: frozenset[Capability], info: HarnessInfo, isolation: Isolation) -> BoxKind:
-    if not device_box(info, isolation):
-        return BoxKind.HOST
-    return BoxKind.DESKTOP if Capability.DESKTOP in requires else BoxKind.DEVICE
+    if Capability.DESKTOP in requires and desktop_box(info, isolation):
+        return BoxKind.DESKTOP
+    return BoxKind.DEVICE if device_box(info, isolation) else BoxKind.HOST
 
 
 async def open_box(task: Task, info: HarnessInfo, isolation: Isolation, net: str | None) -> Box:
@@ -652,10 +694,9 @@ async def open_box(task: Task, info: HarnessInfo, isolation: Isolation, net: str
         case Isolation.DOCKER:
             if net is None:
                 raise ValueError("docker isolation needs the run network (Sidecar.network)")
-            return await DockerBox.create(task, await build_image(info), net)
+            return await DockerBox.create(task, await task_image(task, info), net)
         case Isolation.REMOTE if device_box(info, isolation):
-            image = await build_desktop_image(info) if task.meta.desktop is not None else await build_image(info)
-            return await DockerBox.create_device(task, image)
+            return await DockerBox.create_device(task, await task_image(task, info))
         case Isolation.HOST | Isolation.REMOTE:
             return HostBox.create(task, isolation)
         case _:
@@ -702,8 +743,11 @@ def box_image_tag(info: HarnessInfo) -> str:
     return f"parallax-box-{info.name}:{__version__}-{sha8(info.install + build_digest())}"
 
 
-def desktop_image_tag(info: HarnessInfo) -> str:
-    return box_image_tag(info) + "-desktop"
+def desktop_image_tag(info: HarnessInfo, packages: Iterable[str] = ()) -> str:
+    """The shared desktop layer's tag, plus a suffix for the task's own packages so each set is its own image."""
+    tag = box_image_tag(info) + "-desktop"
+    names = tuple(sorted(packages))
+    return tag if not names else f"{tag}-{sha8('\n'.join(names))}"
 
 
 # The desktop layer carries an x86_64 driver. On another host architecture it and the box image under it are
@@ -796,9 +840,15 @@ async def build_image(info: HarnessInfo, platform_: str | None = None) -> str:
     return tag
 
 
-async def build_desktop_image(info: HarnessInfo) -> str:
-    """Optional desktop layer; no change to the default image's install or tag formula."""
-    tag = desktop_image_tag(info)
+async def build_desktop_image(info: HarnessInfo, packages: Iterable[str] = ()) -> str:
+    """Optional desktop layer; no change to the default image's install or tag formula.
+
+    `packages` are the task's own (`metadata.parallax.desktop.packages`). They are installed in a layer above the
+    shared GUI one and carry their own tag, so a task that needs an application does not put it in every desktop
+    box, and two tasks that need different applications never share an image.
+    """
+    names = tuple(sorted(packages))
+    tag = desktop_image_tag(info, names)
     if not await image_exists(tag):
         base = await build_image(info, DESKTOP_PLATFORM)
         with tempfile.TemporaryDirectory(prefix="px-desktop-") as ctx:
@@ -810,12 +860,21 @@ async def build_desktop_image(info: HarnessInfo) -> str:
                 str(PACKAGE_DIR / "desktop.Dockerfile"),
                 "--build-arg",
                 f"BOX_IMAGE={base}",
+                "--build-arg",
+                f"PACKAGES={' '.join(names)}",
                 "-t",
                 tag,
                 ctx,
                 timeout_s=1800,
             )
     return tag
+
+
+async def task_image(task: Task, info: HarnessInfo) -> str:
+    """The image a task's box runs: the harness image, or for a desktop task the desktop image plus its packages."""
+    if task.meta.desktop is None:
+        return await build_image(info)
+    return await build_desktop_image(info, task.meta.desktop.packages)
 
 
 async def verify_image(task: Task) -> str:

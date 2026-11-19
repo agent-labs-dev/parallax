@@ -1,0 +1,135 @@
+# Each scene check opens set_shipped.blend in Blender (the verify image, environment/Dockerfile) and reads the
+# scene itself, so the grade comes from what was saved, however the agent made it. Blender falls back to its
+# default scene when the file is missing or unreadable, so every check first asserts the shipped file loaded.
+checks:
+  - id: camera-flyby
+    kind: command
+    mode: missing_action
+    run:
+      - blender
+      - --background
+      - --factory-startup
+      - set_shipped.blend
+      - --python-exit-code
+      - "1"
+      - --python-expr
+      - |
+        import bpy
+        assert bpy.path.basename(bpy.data.filepath) == "set_shipped.blend", "set_shipped.blend did not load"
+        scene = bpy.context.scene
+        assert (scene.frame_start, scene.frame_end) == (1, 96), (scene.frame_start, scene.frame_end)
+        camera = bpy.data.objects["Camera"]
+        assert scene.camera == camera, f"the scene camera is {scene.camera}"
+        xs = []
+        for frame in range(1, 97):
+            scene.frame_set(frame)
+            x, y, z = camera.matrix_world.translation
+            assert abs(y) <= 0.05 and abs(z - 1.6) <= 0.05, ("off the line", frame, (x, y, z))
+            xs.append(x)
+        for frame, want in ((1, -6.0), (48, 0.0), (96, 6.0)):
+            assert abs(xs[frame - 1] - want) <= 0.15, ("x", frame, xs[frame - 1])
+        assert all(b > a for a, b in zip(xs, xs[1:])), "the camera does not travel left to right throughout"
+  - id: tower-centred
+    kind: command
+    mode: wrong_output
+    run:
+      - blender
+      - --background
+      - --factory-startup
+      - set_shipped.blend
+      - --python-exit-code
+      - "1"
+      - --python-expr
+      - |
+        import bpy
+        from bpy_extras.object_utils import world_to_camera_view
+        from mathutils import Vector
+        assert bpy.path.basename(bpy.data.filepath) == "set_shipped.blend", "set_shipped.blend did not load"
+        scene = bpy.context.scene
+        tower = bpy.data.objects["Tower_B"]
+        for frame in (1, 48, 96):
+            scene.frame_set(frame)
+            corners = [tower.matrix_world @ Vector(corner) for corner in tower.bound_box]
+            centre = sum(corners, Vector()) / len(corners)
+            u, v, depth = world_to_camera_view(scene, scene.camera, centre)
+            assert depth > 0, ("Tower_B is behind the camera", frame)
+            assert abs(u - 0.5) <= 0.05 and abs(v - 0.5) <= 0.05, ("Tower_B off centre", frame, (u, v))
+  - id: render-written
+    kind: command
+    mode: missing_action
+    run:
+      - blender
+      - --background
+      - --factory-startup
+      - set_shipped.blend
+      - --python-exit-code
+      - "1"
+      - --python-expr
+      - |
+        import os
+        import tempfile
+        import bpy
+        assert bpy.path.basename(bpy.data.filepath) == "set_shipped.blend", "set_shipped.blend did not load"
+        image = bpy.data.images.load(os.path.abspath("renders/frame_0048.png"))
+        assert image.file_format == "PNG", image.file_format
+        assert tuple(image.size) == (640, 360), tuple(image.size)
+        # The same frame rendered here from the saved scene, by the same Blender and Mesa the box runs.
+        scene = bpy.context.scene
+        scene.frame_set(48)
+        scene.render.resolution_x, scene.render.resolution_y, scene.render.resolution_percentage = 640, 360, 100
+        scene.render.image_settings.file_format = "PNG"
+        scene.render.filepath = os.path.join(tempfile.mkdtemp(), "expected.png")
+        bpy.ops.render.render(write_still=True)
+        expected = bpy.data.images.load(scene.render.filepath)
+        got, want = list(image.pixels), list(expected.pixels)
+        assert len(got) == len(want), "the render has a different channel layout"
+        # The box and this check run the same Blender and Mesa on one machine, so a render of this frame matches
+        # exactly; the allowance only covers float rounding. Half a frame off already differs by about 0.006.
+        mean_diff = sum(abs(a - b) for a, b in zip(got, want)) / len(got)
+        assert mean_diff <= 0.002, ("the image is not frame 48 of the saved scene", mean_diff)
+  - id: towers-untouched
+    kind: command
+    mode: collateral_change
+    run:
+      - blender
+      - --background
+      - --factory-startup
+      - set_shipped.blend
+      - --python-exit-code
+      - "1"
+      - --python-expr
+      - |
+        import bpy
+        assert bpy.path.basename(bpy.data.filepath) == "set_shipped.blend", "set_shipped.blend did not load"
+        seed = {
+            "Ground": ((0.0, 0.0, 0.0), (40.0, 40.0, 0.0)),
+            "Tower_A": ((-3.0, 4.0, 1.5), (1.0, 1.0, 3.0)),
+            "Tower_B": ((0.0, 4.0, 2.5), (1.2, 1.2, 5.0)),
+            "Tower_C": ((3.0, 4.0, 1.5), (1.0, 1.0, 3.0)),
+        }
+        scene = bpy.context.scene
+        for frame in (1, 48, 96):
+            scene.frame_set(frame)
+            for name, (location, dimensions) in seed.items():
+                obj = bpy.data.objects.get(name)
+                assert obj is not None, f"{name} is gone"
+                got = tuple(obj.matrix_world.translation)
+                assert max(abs(a - b) for a, b in zip(got, location)) <= 0.01, (name, frame, got)
+                assert max(abs(a - b) for a, b in zip(obj.dimensions, dimensions)) <= 0.01, (name, tuple(obj.dimensions))
+  - id: launcher-untouched
+    kind: file
+    mode: collateral_change
+    path: blender_app.py
+    unchanged: true
+  - id: set-builder-untouched
+    kind: file
+    mode: collateral_change
+    path: build_set.py
+    unchanged: true
+  - id: world-untouched
+    kind: state
+    mode: collateral_change
+    table: '*'
+    unchanged: true
+    except_tables:
+      - user.interactions
