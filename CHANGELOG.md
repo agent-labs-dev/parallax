@@ -6,6 +6,11 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The claude-code install line allows its own package's install script, so under npm 12, which blocks scripts by default, the Hyprland desktop box gets claude's native binary instead of a launcher that exits 1.
+- A desktop recording that is not kept logs why: the stop step reports a missing recorder, one that will not stop, or one that wrote no file, with the recorder's log, instead of an empty reason.
+
 ## [2.0.0.dev54] - 2026-11-19
 
 ### Added
