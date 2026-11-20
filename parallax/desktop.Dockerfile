@@ -8,6 +8,9 @@ RUN test "$(dpkg --print-architecture)" = amd64 \
     python3-gi gir1.2-gtk-3.0 libgail-common libatk-bridge2.0-0 \
     libx11-6 libxi6 libxkbcommon0 libxcb1 libxext6 ffmpeg \
  && rm -rf /var/lib/apt/lists/*
+# The user a task's remote session (`metadata.parallax.desktop.remote`) runs as. Its home is private to it, so the
+# agent, running as `agent`, can read nothing the session holds and signal none of its processes.
+RUN useradd --create-home --home-dir /home/remote --shell /bin/sh --user-group remote && chmod 700 /home/remote
 # Published checksums.txt, cua-driver-rs-v0.28.3; binary-only archive, no installer side effects.
 ADD https://github.com/trycua/cua/releases/download/cua-driver-rs-v0.28.3/cua-driver-rs-0.28.3-linux-x86_64-binary.tar.gz /tmp/cua-driver.tar.gz
 RUN echo '51de56e37e1e57cca613cff06e22a3c64bf8285ed97e518660f3d1cb2a4e6fcf  /tmp/cua-driver.tar.gz' | sha256sum -c - \

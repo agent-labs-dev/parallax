@@ -712,6 +712,8 @@ def _lint_requires(task: Task) -> Iterator[str]:
                 yield f"desktop app path must stay under environment/files: {app.path}"
             elif path.suffix != ".py" or not target.is_file():
                 yield f"desktop app must be a seeded Python file: {app.path}"
+        if desktop.remote is not None and not (task.path / "environment" / "remote").is_dir():
+            yield "a remote session needs its files under environment/remote"
 
 
 def mounted_services(task: Task) -> frozenset[str]:

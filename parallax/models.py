@@ -12,7 +12,7 @@ import json
 import re
 from datetime import date
 from enum import StrEnum
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Annotated, Literal, TypeVar
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, JsonValue, PlainSerializer, model_validator
@@ -250,11 +250,33 @@ class DesktopApp(Model):
 APT_PACKAGE = re.compile(r"^[a-z0-9][a-z0-9+.-]+$")
 
 
+class RemoteSession(Model):
+    """A second desktop session the agent cannot reach except through a viewer window on its own display.
+
+    The task's `environment/remote/` directory is copied to `/home/remote/session` and `command` runs there as the
+    box's `remote` user, whose home is private to it: its X server, application, data and processes are out of the
+    agent's reach. `ready` is a path (relative to the session directory) that appears once the session accepts a
+    viewer, and `evidence` lists files under that home whose bytes a check reads after the trial."""
+
+    command: tuple[str, ...] = Field(min_length=1)
+    ready: str = Field(min_length=1)
+    evidence: tuple[str, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _under_home(self) -> RemoteSession:
+        for rel in (self.ready, *self.evidence):
+            path = PurePosixPath(rel)
+            if path.is_absolute() or ".." in path.parts:
+                raise ValueError(f"remote path {rel!r} must be relative to the remote session directory")
+        return self
+
+
 class Desktop(Model):
     apps: tuple[DesktopApp, ...] = Field(min_length=1)
     # Debian packages this task's own desktop image installs over the shared GUI layer, so a task that needs an
     # application (a 3D suite, an editor, a CAD tool) carries its install cost alone instead of every desktop task.
     packages: SortedSet[str] = frozenset()
+    remote: RemoteSession | None = Field(default=None, exclude_if=lambda v: v is None)
 
     @model_validator(mode="after")
     def _packages_are_names(self) -> Desktop:

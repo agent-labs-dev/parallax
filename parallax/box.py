@@ -37,7 +37,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
 from importlib.metadata import distributions
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import assert_never
 
 import httpx
@@ -54,6 +54,7 @@ from parallax.models import (
     Isolation,
     Model,
     RemoteBox,
+    RemoteSession,
     Task,
     WebIsolation,
 )
@@ -90,6 +91,9 @@ STREAM_LINE_LIMIT = 16 * 1024 * 1024  # ACP / NDJSON lines carry whole tool sche
 BOX_CPUS = "2"
 BOX_MEMORY = "4096m"
 READY_TIMEOUT_S = 60.0
+REMOTE_HOME = "/home/remote"
+REMOTE_SESSION = f"{REMOTE_HOME}/session"
+REMOTE_EVIDENCE_DIR = ".parallax-remote"
 # Device boxes join docker's default bridge: the product's daemon inside must reach its API.
 DEVICE_NETWORK = "bridge"
 DEVICE_LABEL = "parallax.device-box"
@@ -428,6 +432,7 @@ class DockerBox:
         self.isolation = isolation
         self.web_isolation = web_isolation
         self.desktop = desktop
+        self.remote_evidence: tuple[str, ...] = ()  # files in the remote session's home a check reads
         self.workspace = BOX_WORKSPACE
         self.home = BOX_HOME
 
@@ -493,6 +498,8 @@ class DockerBox:
     async def start_desktop(self, task: Task) -> None:
         if task.meta.desktop is None:
             raise BoxError("desktop task has no app specification")
+        if task.meta.desktop.remote is not None:
+            await self.start_remote(task, task.meta.desktop.remote)
         await docker(
             "exec",
             "-d",
@@ -515,6 +522,47 @@ class DockerBox:
                 log = await docker("exec", self.container, "cat", "/tmp/px-desktop.log")
                 raise BoxError(f"desktop startup gate: {state}; {log[-2000:]}")
             await asyncio.sleep(0.2)
+
+    async def start_remote(self, task: Task, remote: RemoteSession) -> None:
+        """Starts the task's remote session as the box's `remote` user, before the local session opens its viewer.
+
+        The session directory is copied in by the docker daemon and handed to `remote` alone (mode 700 on the
+        home), so the agent, running as `agent`, can read none of it and signal none of its processes."""
+        source = task.path / "environment" / "remote"
+        if not source.is_dir():
+            raise BoxError(f"remote session: {source} is missing")
+        await docker("exec", "-u", "root", self.container, "mkdir", "-p", REMOTE_SESSION)
+        await docker("cp", f"{source}/.", f"{self.container}:{REMOTE_SESSION}")
+        await docker("exec", "-u", "root", self.container, "chown", "-R", "remote:remote", REMOTE_HOME)
+        await docker("exec", "-u", "root", self.container, "chmod", "700", REMOTE_HOME)
+        await docker(
+            "exec",
+            "-d",
+            "-u",
+            "remote",
+            "-w",
+            REMOTE_SESSION,
+            self.container,
+            "sh",
+            "-c",
+            'exec "$@" > /home/remote/session.log 2>&1',
+            "sh",
+            *remote.command,
+        )
+        ready = f"{REMOTE_SESSION}/{remote.ready}"
+        deadline = time.monotonic() + READY_TIMEOUT_S
+        while True:
+            try:
+                await docker("exec", "-u", "root", self.container, "test", "-e", ready)
+                break
+            except BoxError:
+                if time.monotonic() >= deadline:
+                    log = await docker(
+                        "exec", "-u", "root", self.container, "tail", "-c", "2000", f"{REMOTE_HOME}/session.log"
+                    )
+                    raise BoxError(f"remote session never became ready; {log}") from None
+                await asyncio.sleep(0.5)
+        self.remote_evidence = tuple(f"{REMOTE_SESSION}/{rel}" for rel in remote.evidence)
 
     async def start_recording(self) -> None:
         """Records the session's display for the trial's video, outside the graded workspace. Five frames a second
@@ -1034,7 +1082,23 @@ async def snapshot(box: Box, dest: Path) -> Path:
             assert_never(box)
     out = dest / "workspace"
     await asyncio.to_thread(extract, archive, out)
+    if isinstance(box, DockerBox) and box.remote_evidence:
+        await keep_remote_evidence(box, out)
     return out
+
+
+async def keep_remote_evidence(box: DockerBox, workspace: Path) -> None:
+    """Copies the remote session's evidence files into the snapshot under `.parallax-remote/`, a name the platform
+    owns: whatever the agent left there is discarded first, so a check reading it reads the remote session's own
+    store and nothing the agent wrote. `docker cp` reads as the daemon, so the agent's own reach does not matter."""
+    folder = workspace / REMOTE_EVIDENCE_DIR
+    await asyncio.to_thread(shutil.rmtree, folder, ignore_errors=True)
+    folder.mkdir(parents=True)
+    for path in box.remote_evidence:
+        try:
+            await docker("cp", f"{box.container}:{path}", str(folder / PurePosixPath(path).name))
+        except BoxError as exc:  # a store the app never wrote is absence, which the checks grade
+            logger.warning("remote evidence %s not kept: %s", path, exc)
 
 
 def tar_dir(src: Path, archive: Path) -> None:
