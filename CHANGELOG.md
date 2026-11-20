@@ -6,6 +6,10 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- A desktop recording that is not kept logs why: the stop step reports a missing recorder, one that will not stop, or one that wrote no file, with the recorder's log, instead of an empty reason.
+
 ## [2.0.0.dev54] - 2026-11-19
 
 ### Added
