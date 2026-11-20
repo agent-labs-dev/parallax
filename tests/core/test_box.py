@@ -14,6 +14,7 @@ import signal
 import socket
 import subprocess
 import sys
+import threading
 import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -458,6 +459,47 @@ async def test_a_desktop_box_keeps_its_display_recording_and_a_lost_one_never_fa
     assert (got == dest) is kept
     # ffmpeg is stopped before the copy, so the file it finishes is the one kept.
     assert calls == (["exec"] if fails else ["exec", "cp"] if desktop else [])
+
+
+def stop_recording(tmp_path: Path, *, pid: int | None, written: bool) -> subprocess.CompletedProcess[str]:
+    video = tmp_path / "recording.mp4"
+    if pid is not None:
+        (tmp_path / "recording.mp4.pid").write_text(str(pid))
+    if written:
+        video.write_bytes(b"mp4")
+    return subprocess.run(["sh", "-c", boxes.STOP_RECORDING, "sh", str(video)], capture_output=True, text=True)
+
+
+def test_a_recording_that_cannot_be_stopped_says_why_on_stderr(tmp_path: Path) -> None:
+    missing = stop_recording(tmp_path, pid=None, written=False)
+    assert missing.returncode == 1
+    assert "recorder never started" in missing.stderr
+    recorder = subprocess.Popen(["sleep", "30"])
+    threading.Thread(target=recorder.wait, daemon=True).start()  # reaped on exit, so the stop script sees it end
+    empty = stop_recording(tmp_path, pid=recorder.pid, written=False)
+    assert empty.returncode == 1
+    assert "recorder exited without writing" in empty.stderr
+    recorder = subprocess.Popen(["sleep", "30"])
+    threading.Thread(target=recorder.wait, daemon=True).start()
+    assert stop_recording(tmp_path, pid=recorder.pid, written=True).returncode == 0
+
+
+async def test_a_lost_recording_logs_the_reason_docker_reported(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    async def fake_docker(*args: str, timeout_s: float = 600.0) -> str:
+        raise BoxError("docker exec -u failed (1): recorder never started")
+
+    monkeypatch.setattr(boxes, "docker", fake_docker)
+    with caplog.at_level("WARNING", logger="parallax.box"):
+        assert await DockerBox("box", desktop=True).keep_recording(tmp_path / "desktop.mp4") is None
+    assert "recorder never started" in caplog.text
+
+
+def test_the_hyprland_box_runs_the_harness_install_with_its_scripts_allowed() -> None:
+    # npm 12 blocks install scripts by default, which leaves `npm i -g @anthropic-ai/claude-code` without its binary.
+    dockerfile = (Path(boxes.__file__).parent / "desktop-hyprland.Dockerfile").read_text()
+    assert 'npm_config_dangerously_allow_all_scripts=true sh -c "$HARNESS_INSTALL"' in dockerfile
 
 
 async def test_hyprland_boxes_take_the_one_display_in_turn(monkeypatch: pytest.MonkeyPatch) -> None:
