@@ -28,4 +28,4 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: agent-labs-dev/tally@9aee976a0e2c6204036c0da5629021dd704d386d # v0.4.1
+      - uses: agent-labs-dev/tally@4a4201e50513a063b16d8ac4c012bc47ae97bf11 # v0.6.0
