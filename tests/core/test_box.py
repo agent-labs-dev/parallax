@@ -38,6 +38,7 @@ from parallax.box import (
     verify_host,
 )
 from parallax.harnesses.base import config_hash
+from parallax.harnesses.manifest import harness_from_manifest
 from parallax.models import (
     Capability,
     CommandCheck,
@@ -496,10 +497,17 @@ async def test_a_lost_recording_logs_the_reason_docker_reported(
     assert "recorder never started" in caplog.text
 
 
-def test_the_hyprland_box_runs_the_harness_install_with_its_scripts_allowed() -> None:
-    # npm 12 blocks install scripts by default, which leaves `npm i -g @anthropic-ai/claude-code` without its binary.
-    dockerfile = (Path(boxes.__file__).parent / "desktop-hyprland.Dockerfile").read_text()
-    assert 'npm_config_dangerously_allow_all_scripts=true sh -c "$HARNESS_INSTALL"' in dockerfile
+def test_every_box_image_runs_the_harness_install_line_as_the_manifest_wrote_it() -> None:
+    # The manifest's install line owns its npm script policy; an image-wide override would run every dependency's.
+    run = 'RUN if [ -n "$HARNESS_INSTALL" ]; then sh -c "$HARNESS_INSTALL"; fi'
+    for name in ("box.Dockerfile", "desktop-hyprland.Dockerfile"):
+        assert run in (Path(boxes.__file__).parent / name).read_text(), name
+
+
+def test_the_claude_code_install_allows_only_its_own_package_scripts() -> None:
+    # npm 12 blocks install scripts by default; claude-code's postinstall places its native binary.
+    install = harness_from_manifest("claude-code").info.install
+    assert install == "npm i -g @anthropic-ai/claude-code --allow-scripts=@anthropic-ai/claude-code"
 
 
 async def test_hyprland_boxes_take_the_one_display_in_turn(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -28,11 +28,10 @@ ARG PACKAGES=""
 RUN if [ -n "$PACKAGES" ]; then pacman -S --noconfirm --needed $PACKAGES && pacman -Scc --noconfirm; fi
 
 # The install line comes from the harness manifest (trusted repository data), so it is a shell RUN. It precedes the
-# wheels so a parallax source change reuses this layer from the build cache. npm 12 blocks install scripts unless
-# allowed, which leaves `npm i -g @anthropic-ai/claude-code` without its native binary; the manifest's line is trusted,
-# so its scripts run.
+# wheels so a parallax source change reuses this layer from the build cache. npm 12 blocks install scripts, so a
+# manifest whose package needs one names it with `--allow-scripts` on its own line.
 ARG HARNESS_INSTALL=""
-RUN if [ -n "$HARNESS_INSTALL" ]; then npm_config_dangerously_allow_all_scripts=true sh -c "$HARNESS_INSTALL"; fi
+RUN if [ -n "$HARNESS_INSTALL" ]; then sh -c "$HARNESS_INSTALL"; fi
 ARG DESKPILOT_REF
 RUN uv pip install --system --break-system-packages "deskpilot @ git+https://github.com/agent-labs-dev/deskpilot@${DESKPILOT_REF}"
 # In-box workers (`python -m parallax.desktop`, `python -m parallax.world bridge`) are parallax code.
