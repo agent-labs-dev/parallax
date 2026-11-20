@@ -777,3 +777,32 @@ def test_world_clock_only_where_the_runner_sets_the_clock() -> None:
     assert Capability.WORLD_CLOCK in trial_capabilities(agent, Isolation.DOCKER)  # px-clock
     assert Capability.WORLD_CLOCK in trial_capabilities(control, Isolation.DOCKER)  # reads no clock
     assert Capability.WORLD_CLOCK not in trial_capabilities(agent, Isolation.HOST)  # the machine's date
+
+
+# An open harness that runs in whatever box the run gives it, as claude-code does.
+DOCKER_INFO = INFO.model_copy(update={"isolation": Isolation.DOCKER})
+
+
+@pytest.mark.parametrize(
+    ("info", "isolation", "desktop"),
+    [
+        (DOCKER_INFO, Isolation.DOCKER, True),  # the docker box runs the desktop session
+        (DOCKER_INFO, Isolation.HOST, False),  # a host trial has no box to run it in
+        (INFO.model_copy(update={"kind": HarnessKind.CONTROL}), Isolation.DOCKER, True),  # writes the evidence itself
+    ],
+)
+def test_desktop_is_a_capability_only_where_the_trial_gets_a_desktop(
+    info: HarnessInfo, isolation: Isolation, desktop: bool
+) -> None:
+    assert (Capability.DESKTOP in trial_capabilities(info, isolation)) is desktop
+
+
+def test_docker_harness_probes_the_desktop_image_separately() -> None:
+    from parallax.box import BoxKind, box_kind
+
+    tasks = [*discover([TASKS]), load_task(Path("tasks/core/files-desktop-fill-expense-form"))]
+    probed = probe_tasks(tasks, DOCKER_INFO, Isolation.DOCKER)
+    assert {box_kind(task.meta.requires, DOCKER_INFO, Isolation.DOCKER) for task in probed.values()} == {
+        BoxKind.HOST,
+        BoxKind.DESKTOP,
+    }

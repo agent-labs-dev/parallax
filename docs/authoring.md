@@ -156,10 +156,10 @@ rename_ids: {tracker.issues: {i1: i1-new}}
 ## Desktop apps
 
 Declare `desktop` and `workspace` alongside the mandatory `mcp`, then list the
-GTK3 programs to open. Paths are relative to `environment/files`; titles are the
-exact initial window titles. Apps run from `/workspace` with Debian's
-`/usr/bin/python3` (which has `gi`), after the files are seeded and before the
-harness enables its device.
+programs to open. Paths are relative to `environment/files`; titles are the
+exact window titles the box waits for before the harness starts. Apps run from
+`/workspace` with Debian's `/usr/bin/python3` (which has `gi`), after the files
+are seeded. An app may be a launcher that `exec`s a real application.
 
 ```toml
 [metadata.parallax]
@@ -168,7 +168,48 @@ requires = ["mcp", "workspace", "desktop"]
 
 [metadata.parallax.desktop]
 apps = [{path = "app.py", title = "Expense Form"}]
+packages = ["my-editor"]                  # optional: Debian packages this task's apps or agent need
 ```
+
+`packages` keeps a task's own application out of the shared desktop
+layer. The packages are installed in a layer above it and the image is
+tagged by their list, so a task that needs Blender, an editor or a CAD
+tool pays that install once and no other desktop task does; two tasks
+with different lists never share an image. Names are checked to be
+Debian package names. The agent reaches them like any other program in
+the box; a seeded GTK3 app is still the way a task presents a GUI it can
+be graded on.
+
+The box has no GPU: a 3D application needs Mesa (`libgl1-mesa-dri`) to draw in
+software. `files-desktop-blender-parallax-shot` runs Blender this way. Its checks
+open the saved scene in Blender from the task's own verify image
+(`environment/Dockerfile`), and its oracle and scene mutants are real Blender
+saves (`files_from`) built by `solution/build_scenes.py`.
+
+### A Hyprland session
+
+`session = "hyprland"` runs the task in deskpilot's standalone headless session instead of Xvfb: a Wayland
+desktop (Hyprland on the kernel's virtual display, vkms, rendered in software), for a harness that drives apps
+through deskpilot. It needs a host that can `sudo modprobe vkms`; the box is given that one display node and its
+group, nothing else. GitHub's `ubuntu-24.04` runners can; a Firecracker runner (Blacksmith) cannot, so such a task
+runs only there. The image is its own Arch Linux recipe (`parallax/desktop-hyprland.Dockerfile`), so `packages` are
+Arch Linux package names, and it carries the harness install, px-clock and the parallax wheel like any box image.
+
+```toml
+[metadata.parallax.desktop]
+session = "hyprland"
+launch_by = "harness"                       # box (default): the box opens the apps; harness: the harness opens them
+apps = [{command = ["libreoffice", "--calc"]}]
+packages = ["libreoffice-fresh"]
+```
+
+With `launch_by = "box"` the apps are seeded Python programs with titles, as above, and the box waits for their
+windows. With `launch_by = "harness"` each app is the argv the harness may start itself (`deskpilot` refuses a window
+an agent did not launch), the box starts none and is ready once the session is, and the task's harness gets an
+allowlisted egress: `HTTPS_PROXY` points at the sidecar's proxy, which tunnels HTTPS to the model endpoints
+(`openrouter.ai`) and refuses everything else, so the box stays on its internal network.
+The Wayland variables (`WAYLAND_DISPLAY`, `HYPRLAND_INSTANCE_SIGNATURE`, `XDG_RUNTIME_DIR` and the buses) reach every
+command run in the box; the video is recorded with `wf-recorder` on the output.
 
 Keep each app inside its task, deterministic and offline. Give every interactive
 widget a stable accessible name (`widget.get_accessible().set_name(...)`).
@@ -187,7 +228,8 @@ judge credentials. `parallax check --lint-only` checks task structure offline. S
 is usable through cua-driver in a real device box:
 
 ```sh
-uv run python -c 'import asyncio; from parallax.box import build_desktop_image; from parallax.harnesses.oracle import ORACLE_INFO; print(asyncio.run(build_desktop_image(ORACLE_INFO)))'
+uv run python -c 'import asyncio; from parallax.box import build_desktop_image; from parallax.harnesses.oracle import ORACLE_INFO; print(asyncio.run(build_desktop_image(ORACLE_INFO, ())))'
+# A task with `packages` builds its own image; pass the same list, e.g. ("blender", "libgl1-mesa-dri").
 # Set this to the image tag printed above; pytest never downloads an image.
 PARALLAX_TEST_DESKTOP_IMAGE=<printed-tag> uv run pytest -q tests/core/test_desktop.py
 ```
@@ -195,9 +237,15 @@ PARALLAX_TEST_DESKTOP_IMAGE=<printed-tag> uv run pytest -q tests/core/test_deskt
 The smoke test operates the three seeded apps over MCP and checks their saved
 files directly to verify the app fixtures. It does not run benchmark quality
 grading. Extend it with each new desktop task. It makes no harness or model calls.
-The image currently supports Linux x86_64. Real agent trials use a remote harness
-with a desktop-capable device; other harnesses are NA. Host controls construct
-evidence directly, so they are not a GUI capability test.
+The image currently supports Linux x86_64. Agent trials run under `--isolation
+docker`, where the box runs the desktop session, or on a remote harness with a
+desktop-capable device; a host trial is NA. A harness reaches the session through
+cua-driver's MCP server (`claude-code` declares it through `desktop_content`). Host
+controls construct evidence directly, so they are not a GUI capability test.
+A docker desktop box records its display at five frames a second and keeps the video as
+`desktop.mp4` in the trial's directory, or under `parallax run --videos DIR`, which outlives
+the run directory's upload; the evals workflow passes it and uploads the videos as the
+`parallax-videos-*` artifact. The video is for reading a run; no check reads it.
 
 The initial desktop tasks are negative twins: submitting the requested expense
 in `files-desktop-fill-expense-form` rewards committing a change; confirming an
@@ -403,6 +451,9 @@ mutations:
   answer. It takes no `must_fail`. Add one whenever a check pins a detail the
   instruction leaves open.
 
+- `files_from` copies a file from the task's `tests/` directory into the workspace byte for byte, for a
+  mutant whose wrong output text cannot hold, such as a saved scene or an image:
+  `files_from: {set_shipped.blend: mutants/moved-tower.blend}`.
 - `base: seed` starts from the untouched world with an empty call log.
 - **Every task whose oracle writes needs at least one `collateral: true`
   mutant.** It proves that a stray write is caught.

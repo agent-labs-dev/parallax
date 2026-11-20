@@ -6,6 +6,7 @@ locally, named by PARALLAX_TEST_SH_IMAGE (an image with sh, cp and util-linux se
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import os
 import secrets
@@ -298,6 +299,47 @@ def test_desktop_layer_does_not_change_the_default_image_tag() -> None:
     assert desktop_image_tag(desktop) != box_image_tag(desktop)
 
 
+def test_a_tasks_own_desktop_packages_get_an_image_of_their_own() -> None:
+    info = remote_info(RemoteBox.DEVICE)
+    shared = desktop_image_tag(info)
+    blender = desktop_image_tag(info, ["blender", "libgl1-mesa-dri"])
+    assert blender == desktop_image_tag(info, ["libgl1-mesa-dri", "blender"])  # order is not identity
+    assert blender != shared  # the shared layer's tag is untouched
+    assert blender != desktop_image_tag(info, ["blender"])  # one list, one image
+    assert desktop_image_tag(info, []) == shared
+
+
+def test_a_hyprland_desktop_is_its_own_image() -> None:
+    info = remote_info(RemoteBox.DEVICE)
+    tag = desktop_image_tag(info, session="hyprland")
+    assert tag.endswith("-hyprland")
+    assert tag not in {desktop_image_tag(info), box_image_tag(info)}
+    assert desktop_image_tag(info, ["libreoffice-fresh"], "hyprland") != tag
+    assert desktop_image_tag(info, ["b", "a"], "hyprland") == desktop_image_tag(info, ["a", "b"], "hyprland")
+
+
+def test_a_hyprland_box_gets_the_vkms_node_and_its_group_and_nothing_else(tmp_path: Path) -> None:
+    drm, dev = tmp_path / "drm", tmp_path / "dev"
+    dev.mkdir()
+    for name, driver in (("card0", "i915"), ("card1", "vkms"), ("card1-Virtual-1", "vkms")):
+        (drm / name).mkdir(parents=True)
+        target = tmp_path / "drivers" / driver
+        target.mkdir(parents=True, exist_ok=True)
+        (drm / name / "device").symlink_to(target)
+    (dev / "card1").write_text("")
+    assert boxes.vkms_device(drm, dev) == dev / "card1"
+    (drm / "card1" / "device").unlink()
+    (drm / "card1" / "device").symlink_to(tmp_path / "drivers" / "i915")
+    with pytest.raises(BoxError, match="modprobe vkms"):
+        boxes.vkms_device(drm, dev)
+
+
+def test_only_a_hyprland_task_asks_docker_for_a_device() -> None:
+    from parallax.task import load_task
+
+    assert boxes.desktop_run_args(load_task(Path("tasks/core/files-desktop-fill-expense-form"))) == ()
+
+
 @pytest.mark.docker
 async def test_docker_box_processes_run_on_the_world_clock() -> None:
     image = f"parallax-runtime:{__version__}"
@@ -392,3 +434,42 @@ def test_a_foreign_platform_build_never_shares_the_native_tag(monkeypatch: pytes
     assert box._foreign(box.DESKTOP_PLATFORM) == "-amd64"
     monkeypatch.setattr(box.platform, "machine", lambda: "x86_64")
     assert box._foreign(box.DESKTOP_PLATFORM) == ""
+
+
+@pytest.mark.parametrize(
+    ("desktop", "fails", "kept"), [(True, False, True), (True, True, False), (False, False, False)]
+)
+async def test_a_desktop_box_keeps_its_display_recording_and_a_lost_one_never_fails(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, desktop: bool, fails: bool, kept: bool
+) -> None:
+    calls: list[str] = []
+
+    async def fake_docker(*args: str, timeout_s: float = 600.0) -> str:
+        calls.append(args[0])
+        if fails:
+            raise BoxError("no such file")
+        if args[0] == "cp":
+            Path(args[-1]).write_bytes(b"mp4")
+        return ""
+
+    monkeypatch.setattr(boxes, "docker", fake_docker)
+    dest = tmp_path / "desktop.mp4"
+    got = await DockerBox("box", desktop=desktop).keep_recording(dest)
+    assert (got == dest) is kept
+    # ffmpeg is stopped before the copy, so the file it finishes is the one kept.
+    assert calls == (["exec"] if fails else ["exec", "cp"] if desktop else [])
+
+
+async def test_hyprland_boxes_take_the_one_display_in_turn(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def rm(*_args: object, **_kwargs: object) -> str:
+        return ""
+
+    monkeypatch.setattr("parallax.box.docker", rm)
+    first, second = DockerBox("a", session="hyprland"), DockerBox("b", session="hyprland")
+    await first.take_seat()
+    waiting = asyncio.create_task(second.take_seat())
+    await asyncio.sleep(0.05)
+    assert not waiting.done()
+    await first.close()
+    await asyncio.wait_for(waiting, 1)
+    await second.close()

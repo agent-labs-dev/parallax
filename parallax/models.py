@@ -241,12 +241,41 @@ class XFail(Model):
 
 
 class DesktopApp(Model):
-    path: str  # Python GTK3 program under environment/files, run with /usr/bin/python3
-    title: str = Field(min_length=1)  # exact initial window title; startup waits for it
+    # Launched by the box (`launch_by = "box"`): a Python program under environment/files, run with /usr/bin/python3;
+    # it may exec the app it opens. `title` is the exact initial window title; startup waits for it.
+    path: str = Field(default="", exclude_if=lambda v: not v)
+    title: str = Field(default="", exclude_if=lambda v: not v)
+    # Launched by the harness (`launch_by = "harness"`): the argv it starts itself when the run needs the app.
+    command: tuple[str, ...] = Field(default=(), exclude_if=lambda v: not v)
+
+
+# A Debian binary package name: lowercase, and no shell metacharacters, because the list is joined into the
+# desktop image's `apt-get install` line.
+APT_PACKAGE = re.compile(r"^[a-z0-9][a-z0-9+.-]+$")
+
+DesktopSession = Literal["x11", "hyprland"]
+DesktopLaunch = Literal["box", "harness"]
 
 
 class Desktop(Model):
     apps: tuple[DesktopApp, ...] = Field(min_length=1)
+    # x11: Xvfb, openbox and cua-driver. hyprland: deskpilot's standalone headless Hyprland session (a Wayland
+    # desktop on the host's vkms display), for harnesses that drive the desktop through deskpilot.
+    session: DesktopSession = Field(default="x11", exclude_if=lambda v: v == "x11")
+    # box: the box starts every app and waits for its window before the trial. harness: the apps are the commands
+    # the harness may start itself, so the box starts none and waits only for the session.
+    launch_by: DesktopLaunch = Field(default="box", exclude_if=lambda v: v == "box")
+    # Packages this task's own desktop image installs over the shared GUI layer, so a task that needs an
+    # application (a 3D suite, an editor, a CAD tool) carries its install cost alone instead of every desktop task.
+    # Debian names for x11, Arch Linux names for hyprland.
+    packages: SortedSet[str] = frozenset()
+
+    @model_validator(mode="after")
+    def _packages_are_names(self) -> Desktop:
+        for name in self.packages:
+            if not APT_PACKAGE.match(name):
+                raise ValueError(f"desktop package {name!r} is not a package name")
+        return self
 
 
 class TaskMeta(Model):
@@ -569,6 +598,9 @@ class Mutation(Model):
     # narration a final-scoped check must not read; unset, the replacement is one message.
     finals: dict[int, str] = {}
     files: dict[str, str | None] = {}  # workspace path -> new content (None deletes)
+    # workspace path -> a file under the task's tests/ dir copied in byte for byte, for content text cannot hold
+    # (a saved scene, an image); applied after `files`.
+    files_from: dict[str, str] = {}
     turn_files: dict[int, dict[str, str | None]] = {}  # turn -> edits to that turn's snapshot (early-edit mutants)
     # turn -> the approval requests raised in that turn, each answered with the step's decision
     approvals: dict[int, tuple[str, ...]] = {}
@@ -801,6 +833,8 @@ class Trial(Model):
     # task has no world clock: this is the wall clock when the trial started.
     now: AwareDatetime
     requires: SortedSet[Capability]
+    # The commands a desktop task (`launch_by = "harness"`) leaves the harness to start itself, one argv each.
+    desktop_commands: tuple[tuple[str, ...], ...] = ()
     # Collector-owned binary evidence, retained below the trial directory and excluded from JSON contracts.
     assets: TrialAssets | None = Field(default=None, exclude=True, repr=False)
 
@@ -950,6 +984,9 @@ class ConfigFile(Model):
     content: JsonObject  # string leaves may contain {placeholders}
     requires_mcp: bool = False
     mcp_content: JsonObject | None = None
+    # Merged into `content` (nested objects merged key by key) when the trial requires `desktop`: how the harness
+    # reaches the box's desktop session, such as cua-driver's MCP server.
+    desktop_content: JsonObject | None = None
 
 
 class ManifestSpec(Model):

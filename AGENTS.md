@@ -11,7 +11,7 @@ scripts/gate --changed    # only what this branch's changed files reach: run thi
 ```
 
 Whole-repo `ty check --error-on-warning parallax`, the full suite (smoke included), `parallax check core
-conformance --lint-only`, the docs link check and the public scan run in CI; do not run them locally.
+conformance desktop-hyprland --lint-only`, the docs link check and the public scan run in CI; do not run them locally.
 
 ## Rules
 

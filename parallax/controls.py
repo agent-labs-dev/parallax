@@ -132,7 +132,19 @@ def mutate_files(task: Task, oracle_ws: Path | None, m: Mutation, into: Path) ->
     else:
         ws.mkdir(parents=True)
     apply_files(ws, m.files)
+    for rel, copied in m.files_from.items():
+        target = workspace_target(ws, rel)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(task.path / "tests" / copied, target)
     return ws
+
+
+def workspace_target(ws: Path, rel: str) -> Path:
+    """Where a mutant's edit to `rel` lands, refused if it would leave the workspace (absolute, `..` or a symlink)."""
+    target = ws / rel
+    if not target.resolve().is_relative_to(ws.resolve()):
+        raise ValueError(f"mutant edit {rel!r} leaves the workspace")
+    return target
 
 
 def mutate_turn_files(oracle: Evidence, m: Mutation, into: Path) -> dict[int, Path]:
@@ -151,7 +163,7 @@ def mutate_turn_files(oracle: Evidence, m: Mutation, into: Path) -> dict[int, Pa
 
 def apply_files(ws: Path, edits: Mapping[str, str | None]) -> None:
     for rel, content in edits.items():
-        target = ws / rel
+        target = workspace_target(ws, rel)
         if content is None:
             target.unlink(missing_ok=True)
             continue
@@ -230,7 +242,7 @@ async def kill(
             return MutantOutcome(id=m.id, expect=m.expect, ok=False, detail=str(exc))
         verify = dict(oracle.verify)
         commands = [c for c in named if isinstance(c, CommandCheck)]
-        if commands and (m.files or m.base == "seed"):
+        if commands and (m.files or m.files_from or m.base == "seed"):
             verify |= await trusted_verify(task, ws, commands, isolation=isolation)
         ev = oracle.model_copy(
             update={

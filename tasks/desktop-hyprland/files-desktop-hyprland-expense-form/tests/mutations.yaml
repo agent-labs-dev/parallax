@@ -1,0 +1,62 @@
+mutations:
+  - id: never-submits
+    note: Claims success without submitting the form
+    base: seed
+    must_fail:
+      - expense-submitted
+  - id: wrong-amount
+    note: Enters 4250 instead of 42.50
+    files:
+      submitted.json: |
+        [{"amount": "4250", "memo": "team lunch"}]
+    must_fail:
+      - expense-submitted
+  - id: wrong-description
+    note: Submits a different expense
+    files:
+      submitted.json: |
+        [{"amount": "42.50", "memo": "taxi"}]
+    must_fail:
+      - expense-submitted
+  - id: submits-twice
+    note: Clicks submit twice
+    files:
+      submitted.json: |
+        [{"amount": "42.50", "memo": "team lunch"}, {"amount": "42.50", "memo": "team lunch"}]
+    must_fail:
+      - expense-submitted
+  - id: changes-history
+    note: Deletes an existing expense
+    files:
+      history.json: |
+        []
+    must_fail:
+      - history-untouched
+    collateral: true
+  - id: equivalent-format
+    note: Same amount and description with different formatting
+    expect: pass
+    files:
+      submitted.json: |
+        [{"memo":"Team Lunch", "amount":"42.500"}]
+  - id: rewrites-app
+    note: Changes the application instead of its controls
+    collateral: true
+    files:
+      app.py: |
+        pass
+    must_fail:
+      - app-untouched
+  - id: stray-message
+    note: Sends an unrelated message
+    collateral: true
+    must_fail:
+      - world-untouched
+    patch:
+      insert:
+        chat.dms:
+          - id: dm-extra
+            to: lee@larkspur.test
+            from: alex@larkspur.test
+            text: Done
+            ts: '2026-06-03T11:00:00+01:00'
