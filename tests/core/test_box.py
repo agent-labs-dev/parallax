@@ -496,6 +496,12 @@ async def test_a_lost_recording_logs_the_reason_docker_reported(
     assert "recorder never started" in caplog.text
 
 
+def test_the_hyprland_box_runs_the_harness_install_with_its_scripts_allowed() -> None:
+    # npm 12 blocks install scripts by default, which leaves `npm i -g @anthropic-ai/claude-code` without its binary.
+    dockerfile = (Path(boxes.__file__).parent / "desktop-hyprland.Dockerfile").read_text()
+    assert 'npm_config_dangerously_allow_all_scripts=true sh -c "$HARNESS_INSTALL"' in dockerfile
+
+
 async def test_hyprland_boxes_take_the_one_display_in_turn(monkeypatch: pytest.MonkeyPatch) -> None:
     async def rm(*_args: object, **_kwargs: object) -> str:
         return ""
