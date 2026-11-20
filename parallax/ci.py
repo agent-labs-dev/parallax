@@ -104,6 +104,18 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
 {install}
+      - name: Refuse a Hyprland suite on Firecracker
+        # Its box needs the vkms module, which a Firecracker runner cannot load.
+        if: ${{{{ contains(inputs.runner || 'ubuntu-24.04', 'blacksmith') && contains(inputs.suite, 'hyprland') }}}}
+        run: |
+          echo "::error::a hyprland desktop task needs a runner that can load vkms: dispatch it with runner=ubuntu-24.04"
+          exit 1
+      - name: Load vkms
+        # A hyprland desktop task's box drives the kernel's virtual display, so it runs where the module loads: GitHub's
+        # own runners do, a Firecracker one does not and runs no such task.
+        if: ${{{{ !contains(inputs.runner || 'ubuntu-24.04', 'blacksmith') }}}}
+        run: |
+          sudo modprobe vkms || {{ sudo apt-get update -q && sudo apt-get install -yq "linux-modules-extra-$(uname -r)" && sudo modprobe vkms; }}
       - name: Evaluate
         env:
           SUITE: ${{{{ inputs.suite }}}}

@@ -38,8 +38,10 @@ from parallax.box import (
     Box,
     BoxError,
     BoxKind,
+    DockerBox,
     Sidecar,
     box_kind,
+    desktop_box,
     open_box,
     seed_dir,
     snapshot,
@@ -200,6 +202,9 @@ class RunOptions(Model):
     # Where the budget's journal lives; None: `budget.jsonl` in this run directory. Runs run one after another on one
     # journal share one limit, so several run directories (arms that need different models) spend one budget.
     budget_journal: Path | None = None
+    # Where desktop trials' videos are kept, one per trial directory name; None keeps each in its trial directory,
+    # which an upload deletes. A separate directory outlives the upload, for a workflow artifact.
+    videos: Path | None = None
 
 
 @runtime_checkable
@@ -487,6 +492,7 @@ class Services:
     world_internal: str = ""  # MCP URL as a docker box sees it
     meter_local: str | None = None
     meter_internal: str | None = None
+    egress_internal: str | None = None  # the docker sidecar's proxy to the model endpoints
     network: str | None = None
     _server: WorldServer | None = None
     _sidecar: Sidecar | None = None
@@ -501,6 +507,7 @@ class Services:
                 self.world_local = urls.world_host.removesuffix("/mcp")
                 self.world_internal = urls.world_internal
                 self.meter_local, self.meter_internal = urls.meter_host, urls.meter_internal
+                self.egress_internal = urls.egress_internal
             case Isolation.HOST | Isolation.REMOTE:
                 await self._start_embedded()
             case _:
@@ -550,6 +557,20 @@ class Services:
                 return f"{self.world_local}/mcp"
             case _:
                 assert_never(box_isolation)
+
+    def egress_env(self, task: Task, box_isolation: Isolation) -> dict[str, str]:
+        """A harness-launched desktop task's harness calls its model provider itself, so a docker box gets the
+        sidecar's allowlisting proxy to the model endpoints, the only way out of its internal network."""
+        desktop = task.meta.desktop
+        if desktop is None or desktop.launch_by != "harness" or box_isolation is not Isolation.DOCKER:
+            return {}
+        if self.egress_internal is None:
+            raise BoxError("a harness-launched desktop task needs the sidecar's egress proxy, which this run lacks")
+        no_proxy = "sidecar,localhost,127.0.0.1"
+        return {
+            "HTTPS_PROXY": self.egress_internal, "https_proxy": self.egress_internal,
+            "NO_PROXY": no_proxy, "no_proxy": no_proxy,
+        }  # fmt: skip
 
     def meter_for_box(self, box_isolation: Isolation) -> str:
         url = self.meter_internal if box_isolation is Isolation.DOCKER else self.meter_local
@@ -726,6 +747,9 @@ def trial_capabilities(info: HarnessInfo, run_isolation: Isolation) -> frozenset
     An agent run with `--isolation host` reads the machine's real date, and a remote product keeps
     its own clock, so neither has it unless the harness declares `world_clock`."""
     caps = info.capabilities
+    # A control writes the desktop app's evidence itself; an agent needs the box's desktop session to reach it.
+    if info.kind is not HarnessKind.CONTROL and not desktop_box(info, harness_isolation(info, run_isolation)):
+        caps -= {Capability.DESKTOP}
     match harness_isolation(info, run_isolation):
         case Isolation.DOCKER:
             caps |= {Capability.WORLD_CLOCK}
@@ -803,9 +827,11 @@ class Session:
         judge_config: JudgeConfig | None,
         turn_timeout_s: float | None = None,
         budget: CampaignBudget | None = None,
+        videos: Path | None = None,
     ) -> None:
         self.svc = svc
         self.run_dir = run_dir
+        self.videos = videos
         self.panel = panel
         self.judge_config = judge_config
         self.turn_timeout_s = turn_timeout_s
@@ -921,6 +947,12 @@ def result_row(
     )  # fmt: skip
 
 
+def desktop_commands(task: Task) -> tuple[tuple[str, ...], ...]:
+    """The apps a harness starts itself: the box opens none when `launch_by = "harness"`."""
+    desktop = task.meta.desktop
+    return tuple(app.command for app in desktop.apps) if desktop is not None and desktop.launch_by == "harness" else ()
+
+
 class TrialExecution:
     """Every step of one trial."""
 
@@ -983,6 +1015,7 @@ class TrialExecution:
                 await self.drive(harness, box, token, control)
                 workspace = await self.snapshot(box)
             finally:
+                await self.keep_recording(box)
                 await box.close()
             world = await self.world_evidence(control)
             meter = await self.meter_report()
@@ -1010,8 +1043,17 @@ class TrialExecution:
         try:
             await self.drive(harness, box, None, None)
         finally:
+            await self.keep_recording(box)
             await box.close()
         return await self.graded(started, None, await self.meter_report())
+
+    async def keep_recording(self, box: Box) -> None:
+        """A desktop trial's video of its display, as `desktop.mp4` in its trial directory or the run's `videos`."""
+        if not isinstance(box, DockerBox):
+            return
+        folder = self.dir if self.s.videos is None else self.s.videos / self.plan.rel_dir
+        folder.mkdir(parents=True, exist_ok=True)
+        await box.keep_recording(folder / "desktop.mp4")
 
     async def unregister(self, control: ControlClient) -> None:
         with contextlib.suppress(ControlError, httpx.HTTPError):
@@ -1108,6 +1150,7 @@ class TrialExecution:
         """`token` is the world's, None for a world-less task: it gets no MCP, no persona, and the wall clock."""
         hp = self.plan.harness
         env = {} if token is None else {TOKEN_ENV: token}
+        env |= self.s.svc.egress_env(self.task, box_isolation(box))
         # Only harnesses the meter cannot route declare these; the rows are flagged unmetered.
         credentials = native_credentials(hp.info, os.environ)
         self.secrets += credentials.values()
@@ -1134,7 +1177,7 @@ class TrialExecution:
             trial_id=self.trial_id(), task_id=self.task.id, model=self.plan.model, mcp=mcp,
             workspace=box.workspace, home=box.home, llm=llm, env=env,
             user=seed.user if seed is not None else None, now=seed.now if seed is not None else datetime.now(UTC),
-            requires=self.task.meta.requires, assets=self.assets,
+            requires=self.task.meta.requires, assets=self.assets, desktop_commands=desktop_commands(self.task),
         )  # fmt: skip
 
     async def conversation(self, harness: Harness, box: Box, control: ControlClient | None) -> None:
@@ -1661,7 +1704,7 @@ async def run_async(
             budget = CampaignBudget(opts.budget_usd, opts.reserve_usd, journal)
         elif journal.is_file():
             budget = CampaignBudget.from_journal(journal)
-        session = Session(svc, opts.out, panel, judge_config, opts.turn_timeout_s, budget)
+        session = Session(svc, opts.out, panel, judge_config, opts.turn_timeout_s, budget, opts.videos)
         session.live = LiveFeed.open(feed_session)
         if session.live is not None:
             session.live.run_started(

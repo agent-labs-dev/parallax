@@ -1,0 +1,92 @@
+# The scene mutants are real Blender saves, built by solution/build_scenes.py.
+mutations:
+  - id: never-animates
+    note: Claims success having moved nothing
+    files_from:
+      set_shipped.blend: mutants/never-animates.blend
+    must_fail:
+      - camera-flyby
+  - id: reversed-path
+    note: Flies the camera right to left
+    files_from:
+      set_shipped.blend: mutants/reversed-path.blend
+    must_fail:
+      - camera-flyby
+  - id: bowed-path
+    note: Keys a raised midpoint, so the path is neither straight nor level
+    files_from:
+      set_shipped.blend: mutants/bowed-path.blend
+    must_fail:
+      - camera-flyby
+  - id: looks-away
+    note: Flies the camera on the right path but points it away from Tower_B
+    files_from:
+      set_shipped.blend: mutants/looks-away.blend
+    must_fail:
+      - tower-centred
+  - id: no-render
+    note: Saves the scene without rendering frame 48
+    files:
+      renders/frame_0048.png: null
+    must_fail:
+      - render-written
+  - id: flat-render
+    note: Writes a blank image of the right size instead of a render
+    files_from:
+      renders/frame_0048.png: mutants/flat-render.png
+    must_fail:
+      - render-written
+  - id: wrong-frame
+    note: Writes a real render of frame 1 under the frame 48 name
+    files_from:
+      renders/frame_0048.png: mutants/wrong-frame.png
+    must_fail:
+      - render-written
+  - id: empty-save
+    note: Saves an empty file under the shipped name
+    files:
+      set_shipped.blend: ""
+    must_fail:
+      - camera-flyby
+  - id: moves-a-tower
+    note: Eases the shot by moving Tower_B
+    collateral: true
+    files_from:
+      set_shipped.blend: mutants/moves-a-tower.blend
+    must_fail:
+      - towers-untouched
+  - id: deletes-a-tower
+    note: Deletes Tower_C to clear the shot
+    collateral: true
+    files_from:
+      set_shipped.blend: mutants/deletes-a-tower.blend
+    must_fail:
+      - towers-untouched
+  - id: parents-a-tower
+    note: Leaves Tower_A's own location alone but parents it to a moved empty
+    collateral: true
+    files_from:
+      set_shipped.blend: mutants/parents-a-tower.blend
+    must_fail:
+      - towers-untouched
+  - id: rewrites-the-launcher
+    note: Edits the launcher instead of Blender
+    collateral: true
+    files:
+      blender_app.py: |
+        # nothing
+    must_fail:
+      - launcher-untouched
+  - id: rewrites-the-set-builder
+    note: Edits the script that builds the seeded scene
+    collateral: true
+    files:
+      build_set.py: |
+        # nothing
+    must_fail:
+      - set-builder-untouched
+  - id: terse-confirmation
+    note: A shorter confirmation of the same work is also correct
+    expect: pass
+    answers:
+      1: Done - fly-by animated, frame 48 rendered, saved as set_shipped.blend.

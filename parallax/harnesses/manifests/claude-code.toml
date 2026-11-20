@@ -16,7 +16,7 @@ argv_next = ["claude", "-p", "--output-format", "stream-json", "--verbose", "--m
 [info]
 name = "claude-code"
 kind = "open"
-capabilities = ["mcp", "workspace", "shell", "multi_turn", "memory"]
+capabilities = ["mcp", "workspace", "shell", "desktop", "multi_turn", "memory"]
 pins_model = true
 cost_source = "metered"
 install = "npm i -g @anthropic-ai/claude-code"
@@ -35,4 +35,7 @@ path = "home:mcp.json"
 requires_mcp = true
 format = "json"
 content = { mcpServers = { world = { type = "http", url = "{world_url}", headers = { Authorization = "Bearer {world_token}" } } } }
+# A desktop task's box runs an X11 session; cua-driver's MCP server (in the desktop image) is how claude sees and
+# drives its windows, launched inside that session because every box command joins it.
+desktop_content = { mcpServers = { desktop = { type = "stdio", command = "cua-driver", args = ["mcp"] } } }
 

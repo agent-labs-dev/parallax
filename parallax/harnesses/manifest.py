@@ -70,6 +70,8 @@ def manifest_problems(spec: ManifestSpec, stem: str) -> list[str]:
     for text in (*spec.argv_first, *spec.argv_next, *spec.env.values(), *config_strings(spec.config)):
         problems.extend(f"unknown placeholder {{{p}}}" for p in _PLACEHOLDER.findall(text) if p not in PLACEHOLDERS)
     problems.extend(cli_problems(spec))
+    if Capability.DESKTOP in spec.info.capabilities and not any(f.desktop_content for f in spec.config):
+        problems.append("desktop is declared but no config file gives the harness the desktop (desktop_content)")
     return problems
 
 
@@ -102,6 +104,9 @@ def config_strings(files: tuple[ConfigFile, ...]) -> list[str]:
 
     for f in files:
         walk(f.content)
+        for extra in (f.mcp_content, f.desktop_content):
+            if extra is not None:
+                walk(extra)
     return out
 
 
@@ -183,9 +188,12 @@ def dump_config(fmt: Literal["json", "toml", "yaml"], content: JsonObject) -> by
 async def write_configs(files: tuple[ConfigFile, ...], trial: Trial, box: BoxHandle) -> None:
     values = trial_values(trial)
     for f in files:
-        if Capability.MCP not in trial.requires and f.requires_mcp:
+        world = Capability.MCP in trial.requires or not f.requires_mcp
+        desktop = Capability.DESKTOP in trial.requires and f.desktop_content is not None
+        if not (world or desktop):
             continue
-        content = render_json(f.content, values)
+        # A desktop trial without the world still gets the file, holding the desktop alone.
+        content = render_json(f.content, values) if world else {}
         if not isinstance(content, dict):
             raise ManifestError(f"{f.path}: content must render to an object")
         if Capability.MCP in trial.requires and f.mcp_content is not None:
@@ -193,7 +201,22 @@ async def write_configs(files: tuple[ConfigFile, ...], trial: Trial, box: BoxHan
             if not isinstance(mcp_content, dict):
                 raise ManifestError(f"{f.path}: mcp_content must render to an object")
             content = {**content, **mcp_content}
+        if desktop:
+            desktop_content = render_json(f.desktop_content, values)
+            if not isinstance(desktop_content, dict):
+                raise ManifestError(f"{f.path}: desktop_content must render to an object")
+            content = merged(content, desktop_content)
         await box.write_file(config_target(f.path, trial), dump_config(f.format, content))
+
+
+def merged(base: JsonObject, extra: JsonObject) -> JsonObject:
+    """`base` with `extra` laid over it, objects merged key by key, so a desktop server joins the world's
+    `mcpServers` rather than replacing it."""
+    out = dict(base)
+    for key, value in extra.items():
+        current = out.get(key)
+        out[key] = merged(current, value) if isinstance(current, dict) and isinstance(value, dict) else value
+    return out
 
 
 # ---------------------------------------------------------------------------
