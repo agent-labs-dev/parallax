@@ -61,6 +61,15 @@ from parallax.models import (
 logger = logging.getLogger(__name__)
 
 PACKAGE_DIR = Path(__file__).resolve().parent
+# Interrupts the display recorder (path in $1) and waits for it to finish the file. Each way out says why on stderr
+# with the recorder's own log, because docker reports only a bare exit status.
+STOP_RECORDING = (
+    'fail() { echo "$1; recorder log: $(tail -c 1500 /tmp/px-recording.log 2>&1)" >&2; exit 1; };'
+    ' pid=$(cat "$1.pid") || fail "recorder never started (no $1.pid)"; kill -INT "$pid"; i=0;'
+    ' while kill -0 "$pid" 2>/dev/null; do i=$((i+1));'
+    ' [ "$i" -gt 100 ] && fail "recorder still running 10s after interrupt"; sleep 0.1; done;'
+    ' [ -s "$1" ] || fail "recorder exited without writing $1"'
+)
 VERIFY_IMAGE = "parallax-verify:py3.13"
 WORLD_PORT = 7801
 METER_PORT = 7802
@@ -573,12 +582,8 @@ class DockerBox:
         records nothing or the recording is lost; a missing video never fails the trial."""
         if not self.desktop:
             return None
-        stop = (
-            'pid=$(cat "$1.pid") || exit 1; kill -INT "$pid"; i=0;'
-            ' while kill -0 "$pid" 2>/dev/null; do i=$((i+1)); [ "$i" -gt 100 ] && exit 1; sleep 0.1; done'
-        )
         try:
-            await docker("exec", "-u", self.user, self.container, "sh", "-c", stop, "sh", DESKTOP_RECORDING)
+            await docker("exec", "-u", self.user, self.container, "sh", "-c", STOP_RECORDING, "sh", DESKTOP_RECORDING)
             await docker("cp", f"{self.container}:{DESKTOP_RECORDING}", str(dest), timeout_s=60)
         except BoxError as exc:
             logger.warning("desktop recording not kept: %s", exc)
