@@ -1,0 +1,5 @@
+# MergeLoop reads this file from the default branch. The dashboard opens a PR to change it.
+version: 1
+label: mergepatrol
+fix_ci:
+  attempts: 2
