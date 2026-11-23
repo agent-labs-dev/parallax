@@ -888,6 +888,9 @@ class Usage(Model):
     cache_write: int = 0
     reasoning: int = 0
     requests: int = 0
+    # Images the component's requests carried as input, such as screenshots a decision model was shown; absent when
+    # it sent none, so ledgers written before the field read unchanged.
+    images: int = Field(default=0, ge=0, exclude_if=lambda v: v == 0)
     cost_usd: float | None
     source: CostSource
 
