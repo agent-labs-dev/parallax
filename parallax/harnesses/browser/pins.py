@@ -40,7 +40,8 @@ def stale(http: httpx.Client, names: list[str] | None = None) -> list[dict[str, 
         entries = [entry for entry in entries if entry["name"] in wanted]
     behind = []
     for entry in entries:
-        newest = latest(http, entry["name"], entry["registry"])
+        # An arm-specific pin names the registry package it installs; the key alone is not always one.
+        newest = latest(http, entry.get("package", entry["name"]), entry["registry"])
         if newest != entry["version"]:
             behind.append({**entry, "latest": newest})
     return behind

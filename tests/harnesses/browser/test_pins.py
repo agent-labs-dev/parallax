@@ -32,3 +32,20 @@ def test_stale_reports_only_packages_that_changed(monkeypatch: object) -> None:
     assert pins.stale(FakeHTTP()) == [
         {"name": "browser-use", "registry": "pypi", "version": "1.0.1", "latest": "1.0.2"}
     ]
+
+
+def test_arm_pin_checks_the_distribution_it_installs() -> None:
+    """An arm-specific pin resolves its `package`, not its own key, against the registry."""
+    import httpx
+
+    requested: list[str] = []
+
+    def registry(request: httpx.Request) -> httpx.Response:
+        requested.append(request.url.path)
+        if request.url.path == "/pypi/browser-use/json":
+            return httpx.Response(200, json={"info": {"version": "1.0.8"}})
+        return httpx.Response(404, json={"message": "Not Found"})
+
+    with httpx.Client(transport=httpx.MockTransport(registry)) as http:
+        assert pins.stale(http, ["browser-use-1"]) == []
+    assert requested == ["/pypi/browser-use/json"]
