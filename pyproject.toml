@@ -65,11 +65,11 @@ dev = [
     # The browser harness tests build the hosted SDK's own response models.
     "parallax-evals[browser]",
     # The judge bridge meters this SDK. The upstream judges pin older majors (1.x, 2.x); the hook it wraps is the same.
-    "openai==3.52.0",
+    "openai==3.57.0",
     "pytest-asyncio",
     "pytest-xdist>=3.8.0",
     "ruff",
-    "ty==0.0.104",
+    "ty==0.0.107",
 ]
 
 [project.scripts]
