@@ -172,15 +172,24 @@ RECORDED_CALL = {
 }
 
 
-@pytest.mark.parametrize("asynchronous", [False, True])
-def test_the_bridge_records_each_judge_call_with_the_price_the_endpoint_reported(monkeypatch, asynchronous):
-    """2026-11-17: the bridge reported no price, so every Online-Mind2Web trial kept its full budget hold and half the
-    smoke was refused; the judge's spend was only visible on the key."""
+@pytest.fixture
+def judge_calls(monkeypatch) -> list[dict[str, object]]:
+    """The judge calls the bridge meter records; the SDK methods it wraps are restored after the test."""
     completions = importlib.import_module("openai.resources.chat.completions")
-    for cls in (completions.Completions, completions.AsyncCompletions):
-        monkeypatch.setattr(cls, "create", cls.create)  # restored after the test
+    base = importlib.import_module("openai._base_client")
+    for cls, name in ((completions.Completions, "create"), (completions.AsyncCompletions, "create"),
+                      (base.BaseClient, "_build_request")):  # fmt: skip
+        monkeypatch.setattr(cls, name, getattr(cls, name))
     calls: list[dict[str, object]] = []
     official_bridge._meter(calls)
+    return calls
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+def test_the_bridge_records_each_judge_call_with_the_price_the_endpoint_reported(judge_calls, asynchronous):
+    """2026-11-17: the bridge reported no price, so every Online-Mind2Web trial kept its full budget hold and half the
+    smoke was refused; the judge's spend was only visible on the key."""
+    calls = judge_calls
     reply = httpx.MockTransport(lambda _request: httpx.Response(200, json=RECORDED_COMPLETION))
     message = [{"role": "user", "content": "Reply with OK"}]
     if asynchronous:
@@ -197,16 +206,10 @@ def test_the_bridge_records_each_judge_call_with_the_price_the_endpoint_reported
 
 
 @pytest.mark.parametrize("asynchronous", [False, True])
-def test_a_retried_judge_call_leaves_the_judge_cost_unknown(monkeypatch, asynchronous):
+def test_a_retried_judge_call_leaves_the_judge_cost_unknown(judge_calls, asynchronous):
     """The SDK retries inside `create`, and the first attempt may already have been billed, so the price the final
     response reports is not the whole spend."""
-    completions = importlib.import_module("openai.resources.chat.completions")
-    base = importlib.import_module("openai._base_client")
-    for cls, name in ((completions.Completions, "create"), (completions.AsyncCompletions, "create"),
-                      (base.SyncAPIClient, "_retry_request"), (base.AsyncAPIClient, "_retry_request")):  # fmt: skip
-        monkeypatch.setattr(cls, name, getattr(cls, name))  # restored after the test
-    calls: list[dict[str, object]] = []
-    official_bridge._meter(calls)
+    calls = judge_calls
     replies = iter((httpx.Response(500, json={}), httpx.Response(200, json=RECORDED_COMPLETION)))
     reply = httpx.MockTransport(lambda _request: next(replies))
     message = [{"role": "user", "content": "Reply with OK"}]
@@ -225,33 +228,27 @@ def test_a_retried_judge_call_leaves_the_judge_cost_unknown(monkeypatch, asynchr
     assert judgment is not None and judgment.cost()[1] == 1  # one unpriced attempt: the budget keeps the hold
 
 
-def test_a_retry_in_the_openai_2_sdk_leaves_the_judge_cost_unknown(monkeypatch):
-    """2026-11-17: the BU Bench judge pins openai 2.15.0, which has no `_retry_request`, so the meter raised before
-    the judge ran and every BU Bench trial was graded INVALID. openai 2.x calls `_sleep_for_retry`
-    once before each repeated attempt instead."""
-    completions = importlib.import_module("openai.resources.chat.completions")
+def test_a_retry_that_fails_before_it_is_sent_is_not_metered_as_an_attempt(monkeypatch):
+    """Only an attempt the SDK has built can be sent and billed: a retry whose request cannot be built records just
+    the error `create` raises."""
     base = importlib.import_module("openai._base_client")
-    for cls in (completions.Completions, completions.AsyncCompletions):
-        monkeypatch.setattr(cls, "create", cls.create)  # restored after the test
-    slept: list[int] = []
-    for cls in (base.SyncAPIClient, base.AsyncAPIClient):
-        monkeypatch.delattr(cls, "_retry_request")
-    monkeypatch.setattr(
-        base.SyncAPIClient, "_sleep_for_retry", lambda self, **kw: slept.append(kw["retries_taken"]), raising=False
-    )
+    build_request = base.BaseClient._build_request
 
-    async def asleep(self, **kw):
-        slept.append(kw["retries_taken"])
+    def build(self, options, *, retries_taken=0):
+        if retries_taken:
+            raise RuntimeError("request could not be built")
+        return build_request(self, options, retries_taken=retries_taken)
 
-    monkeypatch.setattr(base.AsyncAPIClient, "_sleep_for_retry", asleep, raising=False)
+    monkeypatch.setattr(base.BaseClient, "_build_request", build)
+    completions = importlib.import_module("openai.resources.chat.completions")
+    monkeypatch.setattr(completions.Completions, "create", completions.Completions.create)
     calls: list[dict[str, object]] = []
     official_bridge._meter(calls)
-    client = openai.OpenAI(api_key="test", base_url="https://judge.invalid/v1")
-    client._sleep_for_retry(retries_taken=0, max_retries=1, options=None, response=None)
-    asyncio.run(openai.AsyncOpenAI(api_key="test", base_url="https://judge.invalid/v1")._sleep_for_retry(
-        retries_taken=0, max_retries=1, options=None, response=None))  # fmt: skip
-    assert slept == [0, 0]
-    assert [call["cost_usd"] for call in calls] == [None, None]
+    http = httpx.Client(transport=httpx.MockTransport(lambda _request: httpx.Response(500, json={})))
+    client = openai.OpenAI(api_key="test", base_url="https://judge.invalid/v1", http_client=http, max_retries=1)
+    with pytest.raises(RuntimeError):
+        client.chat.completions.create(model="openai/gpt-6.1-terra", messages=[{"role": "user", "content": "OK"}])
+    assert [call["error"] for call in calls] == ["RuntimeError"]
 
 
 @pytest.mark.asyncio
