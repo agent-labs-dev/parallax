@@ -6,6 +6,10 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- A usage line keeps the billed component and the number of images its requests carried, as `component` and `images`, when a harness reports them. A browser agent that shows its decision model screenshots can then be compared by image-bearing calls alongside its tokens and dollars, per component. A line with no images omits the field, and earlier ledgers read unchanged.
+
 ## [2.0.0.dev54] - 2026-11-19
 
 ### Added

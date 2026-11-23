@@ -195,12 +195,16 @@ def _usage(raw: object, model: str | None) -> tuple[Usage, ...]:
             output.append(
                 Usage(
                     model=str(item.get("model") or model or "unreported"),
+                    component=item["component"]
+                    if isinstance(item.get("component"), str) and item["component"]
+                    else None,
                     input=int(item.get("input", item.get("input_tokens", 0))),
                     output=int(item.get("output", item.get("output_tokens", 0))),
                     cache_read=int(item.get("cache_read", item.get("cached_input_tokens", 0))),
                     cache_write=int(item.get("cache_write", 0)),
                     reasoning=int(item.get("reasoning", 0)),
                     requests=int(item.get("requests", 1)),
+                    images=int(item.get("images") or 0),
                     cost_usd=float(item["cost_usd"]) if item.get("cost_usd") is not None else None,
                     source=CostSource.HARNESS,
                 )
