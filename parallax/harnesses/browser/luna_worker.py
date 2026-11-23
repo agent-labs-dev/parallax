@@ -1,7 +1,7 @@
-"""JSON-line worker for browser-use 1.x in the bu-ultrafast configuration.
+"""JSON-line worker for browser-use 1.x in Browser Use's fast gateway configuration.
 
 The model is fixed by the arm, not the trial: GPT-6 Luna through OpenRouter at
-low reasoning effort, run in browser-use's ultrafast mode. OpenRouter serves it
+low reasoning effort, run in browser-use's accessibility-tree mode. OpenRouter serves it
 under the OpenAI-compatible id `openai/gpt-6-luna`, and `ChatOpenAI` with a
 non-OpenAI `base_url` sends chat completions with `reasoning_effort` as-is, so
 the effort goes on the model, not `Agent(reasoning=...)`, which such servers do
@@ -34,9 +34,11 @@ async def run(request: dict[str, object]) -> None:
         agent_type = getattr(browser_use, agent_name)
         browser_type = getattr(browser_use, browser_name)
         chat_openai = getattr(browser_use, llm_name)
+        # The accessibility-tree mode is the library's one non-default mode; its name comes from the library's own list.
+        agent_mode = next(m for m in importlib.import_module("browser_use.repl.session").MODES if m != "default")
         key = os.environ.get("OPENROUTER_API_KEY")
         if not key:
-            raise RuntimeError("browser-use-1-ultrafast needs OPENROUTER_API_KEY for its model")
+            raise RuntimeError("browser-use-1-luna needs OPENROUTER_API_KEY for its model")
         # The host's limit for this turn, so a browser whose stop is missed stops itself (cloud.browser_minutes).
         browser = browser_type(keep_alive=True, cloud_timeout=request["browser_minutes"])
         started = time.monotonic()
@@ -56,7 +58,7 @@ async def run(request: dict[str, object]) -> None:
             task=request["goal"],
             llm=llm,
             browser=browser,
-            mode="ultrafast",
+            mode=agent_mode,
             judge=False,
             sensitive_data=sensitive if isinstance(sensitive, dict) and sensitive else None,
         )

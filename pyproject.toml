@@ -39,7 +39,7 @@ browser = [
 [project.entry-points."parallax.harnesses"]
 browser-use-cloud = "parallax.harnesses.browser:BrowserHarnessCloud"
 browser-use-oss = "parallax.harnesses.browser:BrowserHarnessOSS"
-browser-use-1-ultrafast = "parallax.harnesses.browser:BrowserHarnessUltrafast"
+browser-use-1-luna = "parallax.harnesses.browser:BrowserHarnessLuna"
 browser-harness = "parallax.harnesses.browser:BrowserHarnessRunner"
 browser-harness-claude-code = "parallax.harnesses.browser:BrowserHarnessClaudeCode"
 agent-browser = "parallax.harnesses.browser:AgentBrowserRunner"

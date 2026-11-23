@@ -25,9 +25,9 @@ from browser_use_sdk.v4 import (
 )
 from parallax.harnesses.browser.harnesses import (
     BrowserHarnessCloud,
+    BrowserHarnessLuna,
     BrowserHarnessOSS,
     BrowserHarnessRunner,
-    BrowserHarnessUltrafast,
     CuaCodexHarness,
     _evidence_payload,
     _interruption,
@@ -523,29 +523,37 @@ def test_oss_declares_the_pinned_runtime_install() -> None:
     assert f"browser-use=={pins.load()['browser-use']['version']}" in BrowserHarnessOSS.info.install
 
 
-def test_ultrafast_declares_the_pinned_1_0_runtime_install() -> None:
+def test_luna_declares_the_pinned_1_0_runtime_install() -> None:
     from parallax.harnesses.browser import pins
 
     assert pins.load()["browser-use-1"]["version"] == "1.0.8"
-    assert "browser-use==1.0.8" in BrowserHarnessUltrafast.info.install
-    assert BrowserHarnessUltrafast.info.name == "browser-use-1-ultrafast"
-    assert BrowserHarnessUltrafast.info.capabilities == frozenset({Capability.BROWSER, Capability.CREDENTIALS})
-    assert BrowserHarnessUltrafast.info.credential_env == ("BROWSER_USE_API_KEY",)
-    assert BrowserHarnessUltrafast.pin == "browser-use-1"
-    assert BrowserHarnessUltrafast.fixed_model == "openai/gpt-6-luna"
+    assert "browser-use==1.0.8" in BrowserHarnessLuna.info.install
+    assert BrowserHarnessLuna.info.name == "browser-use-1-luna"
+    assert BrowserHarnessLuna.info.capabilities == frozenset({Capability.BROWSER, Capability.CREDENTIALS})
+    assert BrowserHarnessLuna.info.credential_env == ("BROWSER_USE_API_KEY",)
+    assert BrowserHarnessLuna.pin == "browser-use-1"
+    assert BrowserHarnessLuna.fixed_model == "openai/gpt-6-luna"
 
 
-def test_ultrafast_marks_a_row_that_names_another_model_invalid() -> None:
+def test_luna_marks_a_row_that_names_another_model_invalid() -> None:
     from parallax.models import Trial
 
-    harness = BrowserHarnessUltrafast()
+    harness = BrowserHarnessLuna()
     harness._trial = Trial.model_construct(model="openai/other", env={})
     request = harness._worker_request(TurnInput(index=1, text="find it", new_session=True))
     assert request["model"] == "openai/gpt-6-luna"
     assert harness.trial_invalid == ["asked for model openai/other, this arm runs openai/gpt-6-luna"]
 
 
-async def test_ultrafast_sends_secrets_only_as_sensitive_data(monkeypatch) -> None:
+async def test_luna_fails_its_preflight_without_the_openrouter_key(monkeypatch) -> None:
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    from parallax.harnesses.base import HarnessError
+
+    with pytest.raises(HarnessError, match="OPENROUTER_API_KEY"):
+        await BrowserHarnessLuna().version(None)
+
+
+async def test_luna_sends_secrets_only_as_sensitive_data(monkeypatch) -> None:
     from pathlib import Path
 
     from parallax.harnesses.browser import harnesses
@@ -576,7 +584,7 @@ async def test_ultrafast_sends_secrets_only_as_sensitive_data(monkeypatch) -> No
             return next(self.events)
 
     monkeypatch.setattr(harnesses, "JsonWorker", Worker)
-    harness = BrowserHarnessUltrafast()
+    harness = BrowserHarnessLuna()
     harness._trial = Trial.model_construct(model="openai/gpt-6-luna", env={})
     harness._secret_values = {"shop_password": "correct-horse-battery-staple"}
     harness._start_url = "https://shop.example/login"
@@ -585,7 +593,7 @@ async def test_ultrafast_sends_secrets_only_as_sensitive_data(monkeypatch) -> No
     assert result["status"] == "completed"
     assert sent[0]["model"] == "openai/gpt-6-luna"
     assert sent[0]["sensitive_data"] == {"https://shop.example": {"shop_password": "correct-horse-battery-staple"}}
-    assert harness.trial_details()["mode"] == "ultrafast"
+    assert harness.trial_details()["mode"] == "accessibility-tree"
     assert harness.trial_details()["reasoning_effort"] == "low"
     await harness.stop()
 

@@ -29,7 +29,7 @@ import httpx
 from pydantic import BaseModel, ConfigDict
 
 from parallax.harnesses.base import HarnessError, config_hash
-from parallax.harnesses.browser import oss_worker, ultrafast_worker
+from parallax.harnesses.browser import luna_worker, oss_worker
 from parallax.harnesses.browser.browser_harness_worker import Agent
 from parallax.harnesses.browser.clock import SESSION_INCLUDED, AttemptClock
 from parallax.harnesses.browser.cloud import (
@@ -1037,14 +1037,14 @@ class BrowserHarnessOSS(BrowserHarness):
         return result
 
 
-class BrowserHarnessUltrafast(BrowserHarnessOSS):
-    """browser-use 1.x in Browser Use's own bu-ultrafast configuration: GPT-6 Luna through OpenRouter at low
-    reasoning effort in ultrafast mode, on a hosted Browser Use browser, with browser-use's own judge off
+class BrowserHarnessLuna(BrowserHarnessOSS):
+    """browser-use 1.x in Browser Use's own fast gateway configuration: GPT-6 Luna through OpenRouter at low
+    reasoning effort in accessibility-tree mode, on a hosted Browser Use browser, with browser-use's own judge off
     because Parallax judges. The model is the arm's, so `--model openai/gpt-6-luna` names the row and any
     other model marks it invalid."""
 
     info = _info(
-        "browser-use-1-ultrafast",
+        "browser-use-1-luna",
         source_url="https://github.com/browser-use/browser-use",
         pins_model=True,
         credentials=True,
@@ -1053,8 +1053,15 @@ class BrowserHarnessUltrafast(BrowserHarnessOSS):
     )
 
     pin = "browser-use-1"
-    worker_file = ultrafast_worker.__file__
-    fixed_model = ultrafast_worker.MODEL
+    worker_file = luna_worker.__file__
+    fixed_model = luna_worker.MODEL
+
+    async def version(self, box: Any) -> str:
+        """The runtime check, plus the model key the worker cannot run without: `credential_env` is any-of and
+        may not name a metered provider's key, so the host's OpenRouter key is checked here, before any trial."""
+        if not os.environ.get("OPENROUTER_API_KEY"):
+            raise HarnessError(f"{self.info.name} needs OPENROUTER_API_KEY on the host for its model")
+        return await super().version(box)
 
     def _worker_request(self, turn: TurnInput) -> dict[str, Any]:
         request = super()._worker_request(turn)
@@ -1069,10 +1076,10 @@ class BrowserHarnessUltrafast(BrowserHarnessOSS):
             request["sensitive_data"] = dict(self._secret_values)
         self._details.update(
             {
-                "agent_model": ultrafast_worker.MODEL,
-                "model_base_url": ultrafast_worker.OPENROUTER_BASE_URL,
+                "agent_model": luna_worker.MODEL,
+                "model_base_url": luna_worker.OPENROUTER_BASE_URL,
                 "reasoning_effort": "low",
-                "mode": "ultrafast",
+                "mode": "accessibility-tree",
                 "judge": False,
             }
         )

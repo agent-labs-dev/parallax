@@ -6,7 +6,7 @@ from types import ModuleType, SimpleNamespace
 from typing import Any
 
 import pytest
-from parallax.harnesses.browser import ultrafast_worker
+from parallax.harnesses.browser import luna_worker
 
 
 class FakeBrowser:
@@ -72,18 +72,22 @@ def fake_browser_use(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     module.Agent = Agent  # type: ignore[attr-defined]
     module.Browser = FakeBrowser  # type: ignore[attr-defined]
     module.ChatOpenAI = chat_openai  # type: ignore[attr-defined]
+    session = ModuleType("browser_use.repl.session")
+    session.MODES = ("default", "accessibility-tree-mode")  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, "browser_use", module)
+    monkeypatch.setitem(sys.modules, "browser_use.repl", ModuleType("browser_use.repl"))
+    monkeypatch.setitem(sys.modules, "browser_use.repl.session", session)
     return seen
 
 
-async def test_the_worker_runs_the_ultrafast_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_the_worker_runs_the_luna_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
     seen = fake_browser_use(monkeypatch)
     monkeypatch.setenv("OPENROUTER_API_KEY", "or-key")
     monkeypatch.setattr(sys, "stdin", io.StringIO("{}\n"))
     emitted: list[dict[str, object]] = []
-    monkeypatch.setattr(ultrafast_worker, "emit", emitted.append)
+    monkeypatch.setattr(luna_worker, "emit", emitted.append)
 
-    await ultrafast_worker.run(
+    await luna_worker.run(
         {"goal": "find it", "browser_minutes": 5, "sensitive_data": {"shop_password": "correct-horse"}}
     )
 
@@ -95,7 +99,7 @@ async def test_the_worker_runs_the_ultrafast_configuration(monkeypatch: pytest.M
     }
     agent = seen["agent"]
     assert agent["task"] == "find it"
-    assert agent["mode"] == "ultrafast"
+    assert agent["mode"] == "accessibility-tree-mode"
     assert agent["judge"] is False
     assert agent["sensitive_data"] == {"shop_password": "correct-horse"}
     assert FakeBrowser.instances[0].kwargs == {"keep_alive": True, "cloud_timeout": 5}
@@ -119,9 +123,9 @@ async def test_the_worker_reports_a_missing_openrouter_key_without_starting_a_br
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     FakeBrowser.instances.clear()
     emitted: list[dict[str, object]] = []
-    monkeypatch.setattr(ultrafast_worker, "emit", emitted.append)
+    monkeypatch.setattr(luna_worker, "emit", emitted.append)
 
-    await ultrafast_worker.run({"goal": "find it", "browser_minutes": 5, "sensitive_data": {}})
+    await luna_worker.run({"goal": "find it", "browser_minutes": 5, "sensitive_data": {}})
 
     assert FakeBrowser.instances == []
     assert emitted[0]["status"] == "error"
