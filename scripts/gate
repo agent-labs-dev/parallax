@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# The fast local gate: format, lint, type check, repository rules and unit tests, offline.
+#   scripts/gate            lint and format the whole tree, ty on files changed from origin/main, all unit tests
+#   scripts/gate --changed  lint only changed files; run the changed tests, and every unit test when a source, shared test file or script changed; the full gate for pyproject.toml or uv.lock
+# Whole-repo ty, the task-structure lint, the docs link check and the public scan run in CI.
+set -euo pipefail
+shopt -s extglob
+cd "$(git rev-parse --show-toplevel)"
+
+changed_only=0
+case "${1:-}" in
+  "") ;;
+  --changed) changed_only=1 ;;
+  *) echo "usage: scripts/gate [--changed]" >&2; exit 2 ;;
+esac
+
+paths=(parallax tests/core tests/world tests/harnesses scripts/scan_public.py ci/rules/run.py ci/rules/checks)
+base=$(git merge-base HEAD origin/main 2>/dev/null || git merge-base HEAD main)
+mapfile -t changed < <({ git diff --name-only "$base"; git ls-files --others --exclude-standard; } | sort -u)
+
+py=()
+src=()
+tests=()
+shared=0
+full=0
+for f in "${changed[@]}"; do
+  # Project config changes lint, type and test settings for everything.
+  [[ $f == pyproject.toml || $f == uv.lock ]] && full=1
+  if [[ $f == *.py && -f $f ]]; then
+    for p in "${paths[@]}"; do
+      if [[ $f == "$p" || $f == "$p"/* ]]; then py+=("$f"); break; fi
+    done
+    [[ $f == parallax/* ]] && src+=("$f")
+  fi
+  if [[ $f == tests/@(core|world|harnesses)/**test_*.py && $f != */fixtures/* ]]; then
+    [[ -f $f ]] && tests+=("$f")
+  elif [[ $f == parallax/* || $f == tests/* || $f == scripts/* ]]; then
+    # A source, helper, fixture or script is exercised by suites its name does not give away.
+    shared=1
+  fi
+done
+
+uv sync --locked -q
+if ((full)); then
+  shared=1
+  src=(parallax)
+fi
+if ((changed_only && !full)); then
+  targets=("${py[@]}")
+else
+  targets=("${paths[@]}")
+fi
+if ((${#targets[@]})); then
+  uv run ruff format --check "${targets[@]}"
+  uv run ruff check "${targets[@]}"
+fi
+((${#src[@]})) && uv run ty check --error-on-warning "${src[@]}"
+uv run --no-project python ci/rules/run.py --test
+uv run --no-project python ci/rules/run.py
+
+if ((changed_only)); then
+  if ((shared)); then
+    uv run pytest -q tests/core tests/world tests/harnesses
+  else
+    mapfile -t tests < <(printf '%s\n' "${tests[@]}" | awk 'NF' | sort -u)
+    ((${#tests[@]})) && uv run pytest -q "${tests[@]}"
+  fi
+else
+  uv run pytest -q tests/core tests/world tests/harnesses
+fi
+exit 0

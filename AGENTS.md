@@ -5,17 +5,13 @@ review rules are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Checks
 
-The offline gate, the same steps CI runs. It needs no keys and spends nothing:
-
 ```sh
-uv sync --locked
-uv run ruff format --check parallax tests/core tests/world tests/harnesses scripts/scan_public.py ci/rules/run.py ci/rules/checks
-uv run ruff check parallax tests/core tests/world tests/harnesses scripts/scan_public.py ci/rules/run.py ci/rules/checks
-uv run ty check --error-on-warning parallax
-uv run pytest -q
-uv run parallax check core conformance desktop-hyprland --lint-only
-uv run --no-project python ci/rules/run.py
+scripts/gate              # format, lint, rules, unit tests; ty on files changed from origin/main (offline, no keys)
+scripts/gate --changed    # only what this branch's changed files reach: run this before every push
 ```
+
+Whole-repo `ty check --error-on-warning parallax`, the full suite (smoke included), `parallax check core
+conformance desktop-hyprland --lint-only`, the docs link check and the public scan run in CI; do not run them locally.
 
 ## Rules
 
@@ -42,5 +38,4 @@ against the answer. `tests/core/test_judge_only.py` fails if answer-side code re
 
 ## Standards
 
-- `repo-standards`: the RS-* requirements every agent-labs-dev repo meets (repo, Actions and security settings,
-  rulesets, CI hardening, community files); its `audit.py` checks this repo.
+- `repo-standards`: the RS-* requirements every agent-labs-dev repo meets; its `audit.py` checks this repo.
