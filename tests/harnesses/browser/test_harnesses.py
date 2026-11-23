@@ -529,7 +529,7 @@ def test_ultrafast_declares_the_pinned_1_0_runtime_install() -> None:
     assert pins.load()["browser-use-1"]["version"] == "1.0.8"
     assert "browser-use==1.0.8" in BrowserHarnessUltrafast.info.install
     assert BrowserHarnessUltrafast.info.name == "browser-use-1-ultrafast"
-    assert BrowserHarnessUltrafast.info.capabilities == frozenset({Capability.BROWSER})
+    assert BrowserHarnessUltrafast.info.capabilities == frozenset({Capability.BROWSER, Capability.CREDENTIALS})
     assert BrowserHarnessUltrafast.info.credential_env == ("BROWSER_USE_API_KEY",)
     assert BrowserHarnessUltrafast.pin == "browser-use-1"
     assert BrowserHarnessUltrafast.fixed_model == "openai/gpt-6-luna"
@@ -579,10 +579,12 @@ async def test_ultrafast_sends_secrets_only_as_sensitive_data(monkeypatch) -> No
     harness = BrowserHarnessUltrafast()
     harness._trial = Trial.model_construct(model="openai/gpt-6-luna", env={})
     harness._secret_values = {"shop_password": "correct-horse-battery-staple"}
+    harness._start_url = "https://shop.example/login"
+    harness._start_host = "shop.example"
     result = await harness.execute(TurnInput(index=1, text="sign in", new_session=True))
     assert result["status"] == "completed"
     assert sent[0]["model"] == "openai/gpt-6-luna"
-    assert sent[0]["sensitive_data"] == {"shop_password": "correct-horse-battery-staple"}
+    assert sent[0]["sensitive_data"] == {"https://shop.example": {"shop_password": "correct-horse-battery-staple"}}
     assert harness.trial_details()["mode"] == "ultrafast"
     assert harness.trial_details()["reasoning_effort"] == "low"
     await harness.stop()
@@ -893,7 +895,9 @@ async def test_oss_reports_the_browser_use_its_worker_runs(monkeypatch) -> None:
     # A stand-in interpreter: its own -c runs, and the probe's arguments follow as its argv.
     monkeypatch.setattr(harnesses, "oss_python", lambda *_: (sys.executable, "-c", "print('1.0.5')", "--"))
     assert await BrowserHarnessOSS().version(None) == "browser-use 1.0.5"
-    monkeypatch.setattr(harnesses, "oss_python", lambda *_: (sys.executable, "-c", "raise SystemExit('no uv env')", "--"))
+    monkeypatch.setattr(
+        harnesses, "oss_python", lambda *_: (sys.executable, "-c", "raise SystemExit('no uv env')", "--")
+    )
     with pytest.raises(HarnessError, match="no uv env"):
         await BrowserHarnessOSS().version(None)
 

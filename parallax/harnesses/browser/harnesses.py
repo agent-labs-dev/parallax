@@ -1047,6 +1047,7 @@ class BrowserHarnessUltrafast(BrowserHarnessOSS):
         "browser-use-1-ultrafast",
         source_url="https://github.com/browser-use/browser-use",
         pins_model=True,
+        credentials=True,
         credential_env=("BROWSER_USE_API_KEY",),
         install="pip install --no-cache-dir 'browser-use==1.0.8'",
     )
@@ -1057,9 +1058,15 @@ class BrowserHarnessUltrafast(BrowserHarnessOSS):
 
     def _worker_request(self, turn: TurnInput) -> dict[str, Any]:
         request = super()._worker_request(turn)
-        # Secrets reach the agent only as browser-use sensitive_data, never through the worker's environment,
-        # which `_agent_env` already strips of every task-secret variable.
-        request["sensitive_data"] = dict(self._secret_values)
+        # Secrets reach the agent only as browser-use sensitive_data scoped to the task's start host, never
+        # through the worker's environment, which `_agent_env` already strips of every task-secret variable.
+        # `start` refuses task secrets without a start host, so the scope always exists when a secret does.
+        if self._secret_values and self._start_host is not None:
+            parts = urlsplit(self._start_url) if self._start_url is not None else None
+            origin = f"{parts.scheme}://{parts.netloc}" if parts is not None and parts.netloc else self._start_host
+            request["sensitive_data"] = {origin: dict(self._secret_values)}
+        else:
+            request["sensitive_data"] = dict(self._secret_values)
         self._details.update(
             {
                 "agent_model": ultrafast_worker.MODEL,

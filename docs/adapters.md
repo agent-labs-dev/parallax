@@ -465,8 +465,9 @@ Source tasks may declare `secrets` as an alias to environment-variable mapping.
 The runner checks those variables before spending, and the browser base reads
 their values only at trial start. It scopes cloud V4 secret bindings to the
 task's start host and scrubs values from answers, steps and pages before evidence
-is written. The cloud adapter declares `credentials`; the other built-in browser
-adapters declare only `browser`. A task may also declare `answer_schema`; cloud
+is written. The cloud and `browser-use-1-ultrafast` adapters declare
+`credentials` (the latter scopes its `sensitive_data` to the start host the
+same way); the other built-in browser adapters declare only `browser`. A task may also declare `answer_schema`; cloud
 V4 sends it as structured output, while other harnesses ignore it. `{today}` in
 a source prompt is replaced with the UTC date at trial start (`{today+N}` with
 the date N days later) and the template
@@ -478,7 +479,7 @@ The built-in browser harness entry points are:
 |---|---|---|
 | `browser-use-cloud` | Hosted Cloud API, V3 or V4 | Provider-reported costs; `browser`, `credentials` |
 | `browser-use-oss` | Optional Python browser worker | Browser and model costs from the worker; `browser` |
-| `browser-use-1-ultrafast` | Optional Python browser worker on browser-use 1.0.8 | Browser and model costs from the worker; `browser` |
+| `browser-use-1-ultrafast` | Optional Python browser worker on browser-use 1.0.8 | Browser and model costs from the worker; `browser`, `credentials` |
 | `browser-harness` | Browser Use's browser-harness skill run by Codex on a Cloud browser | Browser cost plus the model cost OpenRouter reports; `browser` |
 | `browser-harness-claude-code` | The same skill and browser, run by Claude Code | Browser cost plus the model cost OpenRouter reports; `browser` |
 | `agent-browser` | Vercel's agent-browser skill run by Codex on a Cloud browser | Browser cost plus the model cost OpenRouter reports; `browser` |
@@ -501,7 +502,8 @@ Browser Use's own bu-ultrafast configuration: `ChatOpenAI` for GPT-6 Luna
 through OpenRouter (`--model openai/gpt-6-luna`, `OPENROUTER_API_KEY` on the
 host) at low reasoning effort, `mode='ultrafast'`, on a hosted Browser Use
 browser like every other arm. Its own judge is off because Parallax judges.
-Task secrets reach the agent only as browser-use `sensitive_data`. Naming any
+Task secrets reach the agent only as browser-use `sensitive_data`, scoped to
+the task's start host. Naming any
 other model marks the row invalid, since the arm, not the caller, picks it.
 
 The two `browser-harness` harnesses compare coding agents on one skill, and
