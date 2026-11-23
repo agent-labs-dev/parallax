@@ -34,7 +34,7 @@ for f in "${changed[@]}"; do
   fi
   if [[ $f == tests/@(core|world|harnesses)/**test_*.py && $f != */fixtures/* ]]; then
     [[ -f $f ]] && tests+=("$f")
-  elif [[ $f == parallax/* || $f == tests/* || $f == scripts/*.py ]]; then
+  elif [[ $f == parallax/* || $f == tests/* || $f == scripts/* ]]; then
     # A source, helper, fixture or script is exercised by suites its name does not give away.
     shared=1
   fi
