@@ -29,7 +29,7 @@ import httpx
 from pydantic import BaseModel, ConfigDict
 
 from parallax.harnesses.base import HarnessError, config_hash
-from parallax.harnesses.browser import oss_worker
+from parallax.harnesses.browser import oss_worker, ultrafast_worker
 from parallax.harnesses.browser.browser_harness_worker import Agent
 from parallax.harnesses.browser.clock import SESSION_INCLUDED, AttemptClock
 from parallax.harnesses.browser.cloud import (
@@ -943,14 +943,14 @@ def _cost_from_view(view: Mapping[str, Any]) -> list[dict[str, Any]]:
     return [{"component": component, "dollars": view[key]} for key, component in _COST_FIELDS.items() if key in view]
 
 
-def oss_python() -> tuple[str, ...]:
-    """The Python that runs the browser-use worker: this one when it has the pinned browser-use, else a uv
+def oss_python(pin: str = "browser-use") -> tuple[str, ...]:
+    """The Python that runs a browser-use worker: this one when it has the pinned browser-use, else a uv
     environment with exactly that version. The worker script imports only the standard library and browser_use."""
     import importlib.metadata
 
     from parallax.harnesses.browser import pins
 
-    pinned = pins.load()["browser-use"]["version"]
+    pinned = pins.load()[pin]["version"]
     try:
         if importlib.metadata.version("browser-use") == pinned:
             return (sys.executable,)
@@ -958,7 +958,7 @@ def oss_python() -> tuple[str, ...]:
         pass
     uv = shutil.which("uv")
     if uv is None:
-        raise HarnessError(f"browser-use-oss needs browser-use=={pinned} in {sys.executable} or uv to install it")
+        raise HarnessError(f"a browser-use worker needs browser-use=={pinned} in {sys.executable} or uv to install it")
     return (uv, "run", "--no-project", "--quiet", "--with", f"browser-use=={pinned}", "python")
 
 
@@ -971,11 +971,17 @@ class BrowserHarnessOSS(BrowserHarness):
         install="pip install --no-cache-dir 'browser-use==1.0.6'",
     )
 
+    # The pins.json entry this arm's worker runs, and the worker script itself. An arm on another browser-use
+    # line overrides both; a fixed-model arm also sets `fixed_model`.
+    pin: str = "browser-use"
+    worker_file: str = oss_worker.__file__
+    fixed_model: str | None = None
+
     async def version(self, box: Any) -> str:
         """The browser-use the worker runs, checked before any trial reserves budget. The worker runs on the host,
         not in the box the declared install builds, and browser-use pins dependencies Parallax cannot share
         (websockets), so unless this Python has the pinned package the worker runs in its own uv environment."""
-        command = oss_python()
+        command = oss_python(self.pin)
         proc = await asyncio.create_subprocess_exec(
             # The worker's own isolation (-I), and an import, not only metadata: what the worker will load.
             *command, "-I", "-c", "import browser_use, importlib.metadata as m; print(m.version('browser-use'))",
@@ -986,18 +992,24 @@ class BrowserHarnessOSS(BrowserHarness):
             raise HarnessError(f"browser-use runtime failed to start: {err.decode(errors='replace').strip()[-500:]}")
         return f"browser-use {out.decode().strip()}"
 
-    async def execute(self, turn: TurnInput) -> dict[str, Any]:
-        request = {
+    def _worker_request(self, turn: TurnInput) -> dict[str, Any]:
+        if self.fixed_model is not None and self.trial.model not in (None, self.fixed_model):
+            # The row would be filed under a model that never ran.
+            self.trial_invalid.append(f"asked for model {self.trial.model}, this arm runs {self.fixed_model}")
+        return {
             "goal": turn.text,
-            "model": self.trial.model,
+            "model": self.fixed_model or self.trial.model,
             "max_steps": None,
             "timeout": None,
             "browser_minutes": browser_minutes(self.seconds_left()),
         }
+
+    async def execute(self, turn: TurnInput) -> dict[str, Any]:
+        request = self._worker_request(turn)
         worker = JsonWorker(
             # -I: run by path, the script's own directory would lead sys.path, and its sibling subprocess.py would
             # shadow the standard library's.
-            (*oss_python(), "-I", str(Path(oss_worker.__file__))),
+            (*oss_python(self.pin), "-I", self.worker_file),
             env=self._agent_env(),
             cwd=self.worker_dir,
         )
@@ -1023,6 +1035,41 @@ class BrowserHarnessOSS(BrowserHarness):
             browser_cost = await stopped_browser_cost(ready["browser_id"])
             result["cost_lines"] = [*_mapping_list(result.get("cost_lines")), *browser_cost]
         return result
+
+
+class BrowserHarnessUltrafast(BrowserHarnessOSS):
+    """browser-use 1.x in Browser Use's own bu-ultrafast configuration: GPT-6 Luna through OpenRouter at low
+    reasoning effort in ultrafast mode, on a hosted Browser Use browser, with browser-use's own judge off
+    because Parallax judges. The model is the arm's, so `--model openai/gpt-6-luna` names the row and any
+    other model marks it invalid."""
+
+    info = _info(
+        "browser-use-1-ultrafast",
+        source_url="https://github.com/browser-use/browser-use",
+        pins_model=True,
+        credential_env=("BROWSER_USE_API_KEY",),
+        install="pip install --no-cache-dir 'browser-use==1.0.8'",
+    )
+
+    pin = "browser-use-1"
+    worker_file = ultrafast_worker.__file__
+    fixed_model = ultrafast_worker.MODEL
+
+    def _worker_request(self, turn: TurnInput) -> dict[str, Any]:
+        request = super()._worker_request(turn)
+        # Secrets reach the agent only as browser-use sensitive_data, never through the worker's environment,
+        # which `_agent_env` already strips of every task-secret variable.
+        request["sensitive_data"] = dict(self._secret_values)
+        self._details.update(
+            {
+                "agent_model": ultrafast_worker.MODEL,
+                "model_base_url": ultrafast_worker.OPENROUTER_BASE_URL,
+                "reasoning_effort": "low",
+                "mode": "ultrafast",
+                "judge": False,
+            }
+        )
+        return request
 
 
 class BrowserHarnessRunner(BrowserHarness):

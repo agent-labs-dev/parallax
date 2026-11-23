@@ -7,6 +7,10 @@
     "registry": "pypi",
     "version": "1.0.6"
   },
+  "browser-use-1": {
+    "registry": "pypi",
+    "version": "1.0.8"
+  },
   "browser-harness": {
     "registry": "pypi",
     "version": "0.1.13"

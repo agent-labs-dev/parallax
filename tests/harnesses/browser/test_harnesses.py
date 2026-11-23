@@ -27,6 +27,7 @@ from parallax.harnesses.browser.harnesses import (
     BrowserHarnessCloud,
     BrowserHarnessOSS,
     BrowserHarnessRunner,
+    BrowserHarnessUltrafast,
     CuaCodexHarness,
     _evidence_payload,
     _interruption,
@@ -522,6 +523,71 @@ def test_oss_declares_the_pinned_runtime_install() -> None:
     assert f"browser-use=={pins.load()['browser-use']['version']}" in BrowserHarnessOSS.info.install
 
 
+def test_ultrafast_declares_the_pinned_1_0_runtime_install() -> None:
+    from parallax.harnesses.browser import pins
+
+    assert pins.load()["browser-use-1"]["version"] == "1.0.8"
+    assert "browser-use==1.0.8" in BrowserHarnessUltrafast.info.install
+    assert BrowserHarnessUltrafast.info.name == "browser-use-1-ultrafast"
+    assert BrowserHarnessUltrafast.info.capabilities == frozenset({Capability.BROWSER})
+    assert BrowserHarnessUltrafast.info.credential_env == ("BROWSER_USE_API_KEY",)
+    assert BrowserHarnessUltrafast.pin == "browser-use-1"
+    assert BrowserHarnessUltrafast.fixed_model == "openai/gpt-6-luna"
+
+
+def test_ultrafast_marks_a_row_that_names_another_model_invalid() -> None:
+    from parallax.models import Trial
+
+    harness = BrowserHarnessUltrafast()
+    harness._trial = Trial.model_construct(model="openai/other", env={})
+    request = harness._worker_request(TurnInput(index=1, text="find it", new_session=True))
+    assert request["model"] == "openai/gpt-6-luna"
+    assert harness.trial_invalid == ["asked for model openai/other, this arm runs openai/gpt-6-luna"]
+
+
+async def test_ultrafast_sends_secrets_only_as_sensitive_data(monkeypatch) -> None:
+    from pathlib import Path
+
+    from parallax.harnesses.browser import harnesses
+    from parallax.models import Trial
+
+    sent: list[dict[str, object]] = []
+
+    class Worker:
+        def __init__(self, command: object, *, env: object, cwd: Path) -> None:
+            self.events = iter(
+                [
+                    {"event": "ready"},
+                    {"event": "result", "status": "completed", "answer": "ok"},
+                    {"event": "stopped", "stopped": True},
+                ]
+            )
+
+        async def __aenter__(self) -> Worker:
+            return self
+
+        async def __aexit__(self, *_: object) -> None:
+            return None
+
+        async def send(self, message: dict[str, object]) -> None:
+            sent.append(message)
+
+        async def receive(self, event: str) -> dict[str, object]:
+            return next(self.events)
+
+    monkeypatch.setattr(harnesses, "JsonWorker", Worker)
+    harness = BrowserHarnessUltrafast()
+    harness._trial = Trial.model_construct(model="openai/gpt-6-luna", env={})
+    harness._secret_values = {"shop_password": "correct-horse-battery-staple"}
+    result = await harness.execute(TurnInput(index=1, text="sign in", new_session=True))
+    assert result["status"] == "completed"
+    assert sent[0]["model"] == "openai/gpt-6-luna"
+    assert sent[0]["sensitive_data"] == {"shop_password": "correct-horse-battery-staple"}
+    assert harness.trial_details()["mode"] == "ultrafast"
+    assert harness.trial_details()["reasoning_effort"] == "low"
+    await harness.stop()
+
+
 def test_browser_worker_does_not_declare_a_metered_provider_as_native() -> None:
     from parallax.harnesses.base import credential_env_problems, native_credentials
     from parallax.harnesses.browser.harnesses import BrowserHarnessRunner
@@ -825,9 +891,9 @@ async def test_oss_reports_the_browser_use_its_worker_runs(monkeypatch) -> None:
     from parallax.harnesses.browser import harnesses
 
     # A stand-in interpreter: its own -c runs, and the probe's arguments follow as its argv.
-    monkeypatch.setattr(harnesses, "oss_python", lambda: (sys.executable, "-c", "print('1.0.5')", "--"))
+    monkeypatch.setattr(harnesses, "oss_python", lambda *_: (sys.executable, "-c", "print('1.0.5')", "--"))
     assert await BrowserHarnessOSS().version(None) == "browser-use 1.0.5"
-    monkeypatch.setattr(harnesses, "oss_python", lambda: (sys.executable, "-c", "raise SystemExit('no uv env')", "--"))
+    monkeypatch.setattr(harnesses, "oss_python", lambda *_: (sys.executable, "-c", "raise SystemExit('no uv env')", "--"))
     with pytest.raises(HarnessError, match="no uv env"):
         await BrowserHarnessOSS().version(None)
 
@@ -998,7 +1064,7 @@ async def test_oss_probes_its_runtime_as_the_worker_runs_it(monkeypatch) -> None
         seen.append(argv)
         return await real(sys.executable, "-c", "print('1.0.5')", **kwargs)  # ty: ignore[invalid-argument-type]
 
-    monkeypatch.setattr(harnesses, "oss_python", lambda: ("py",))
+    monkeypatch.setattr(harnesses, "oss_python", lambda *_: ("py",))
     monkeypatch.setattr(harnesses.asyncio, "create_subprocess_exec", record)
     assert await BrowserHarnessOSS().version(None) == "browser-use 1.0.5"
     assert seen[0][:3] == ("py", "-I", "-c") and "import browser_use" in seen[0][3]
