@@ -19,6 +19,7 @@ from parallax.browser_evidence import BrowserEvidence, BrowserPage, BrowserStep,
 from parallax.judge import JudgeConfig, JudgePanel
 from parallax.judging import Decision, JudgePolicy, combined, identity
 from parallax.models import (
+    ENVIRONMENT_INTERRUPTION,
     Area,
     Capability,
     CostSource,
@@ -445,13 +446,14 @@ JUDGE_ROUTE = JudgeConfig(base_url="https://fake/v1", api_key="t")
 
 
 def panel_answering(answers: dict[str, bool | None], seen: list[JsonObject]) -> httpx.MockTransport:
-    """A judge panel that answers each question it is asked with `answers`, recording the evidence it was sent."""
+    """A judge panel that answers each question it is asked with `answers` (null when none is given, so a test names
+    only the questions it cares about), recording the evidence it was sent."""
 
     def handle(request: httpx.Request) -> httpx.Response:
         body = json.loads(request.content)
         content = body["messages"][1]["content"]
         seen.append(json.loads(content if isinstance(content, str) else content[0]["text"]))
-        items = [{"q": q, "why": "seen", "yes": answers[q]} for q in seen[-1]["questions"]]
+        items = [{"q": q, "why": "seen", "yes": answers.get(q)} for q in seen[-1]["questions"]]
         return httpx.Response(200, json={"choices": [{"message": {"content": json.dumps({"items": items})}}]})
 
     return httpx.MockTransport(handle)
@@ -486,6 +488,33 @@ async def test_the_browser_policy_answers_both_questions(
     assert state["data"] == RECORD.data and state["answer"] == "$24.00"
     assert [p["id"] for p in state["pages"]] == ["page-1", "page-2"] and state["timeline"][0]["saw"] == "page-1"
     assert graded.judge_identity == identity(browser_evidence.JUDGE, JUDGES, JUDGE_ROUTE)
+
+
+@pytest.mark.parametrize(
+    ("site", "interruption", "retried"),
+    [
+        (True, True, True),  # the judge puts the unavailable evidence down to the site: waited out and re-run
+        (False, False, False),  # the agent's own doing, or missing observations: left as a judgment
+        (None, False, False),  # the panel abstained on the cause: left as it stands
+    ],
+)
+async def test_a_judge_found_site_failure_is_an_environment_interruption_that_is_retried(
+    site: bool | None, interruption: bool, retried: bool, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    answers = {"evidence_available": False, "task_satisfied": None, "site_interruption": site}
+    graded = await grade({"browser": OBSERVED.model_dump(mode="json")}, panel_answering(answers, []))
+    verdict, reason = decide(None, [], runner.TrajectoryStatus.COMPLETED, graded.checks)
+    assert verdict is Verdict.INVALID and reason is not None
+    assert reason.startswith(ENVIRONMENT_INTERRUPTION) is interruption
+    # The same row policy that retries a harness-reported outage reads the reason, whatever harness produced it.
+    (row,) = read_results(await run_browsing(tmp_path, monkeypatch, Browsing(), retry_invalid=0) / "results.jsonl")
+    assert runner.transient_invalid(row.model_copy(update={"invalid_reason": reason})) is retried
+
+
+async def test_a_site_failure_the_agent_did_not_cause_is_not_asked_about_when_the_evidence_is_available() -> None:
+    answers = {"evidence_available": True, "task_satisfied": False, "site_interruption": True}
+    graded = await grade({"browser": OBSERVED.model_dump(mode="json")}, panel_answering(answers, []))
+    assert decide(None, [], runner.TrajectoryStatus.COMPLETED, graded.checks)[0] is Verdict.FAIL
 
 
 async def test_a_page_read_again_as_the_final_page_is_listed_once() -> None:
@@ -525,7 +554,9 @@ async def test_a_screenshot_reaches_the_fallback_as_an_image() -> None:
     def handle(request: httpx.Request) -> httpx.Response:
         body = json.loads(request.content)
         seen.append(body)
-        items = [{"q": q, "why": "seen", "yes": True} for q in ("evidence_available", "task_satisfied")]
+        items = [
+            {"q": q, "why": "seen", "yes": True} for q in ("evidence_available", "task_satisfied", "site_interruption")
+        ]
         return httpx.Response(200, json={"choices": [{"message": {"content": json.dumps({"items": items})}}]})
 
     shot = OBSERVED.model_copy(

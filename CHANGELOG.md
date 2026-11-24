@@ -12,6 +12,7 @@ All notable changes to Parallax are recorded here. The format follows
 
 ### Fixed
 
+- A browser trial whose judge finds its evidence unavailable because the live site failed transiently (an error page, a 5xx or 429, an outage) is retried under `--retry-invalid` like a harness-reported outage, so no harness gets a second attempt another does not. The browser judge answers a typed `site_interruption` question for it, which changes the `browser-evidence-v2` judging identity; rows judged before do not pool with later ones.
 - The claude-code install line allows its own package's install script, so under npm 12, which blocks scripts by default, the Hyprland desktop box gets claude's native binary instead of a launcher that exits 1.
 - A desktop recording that is not kept logs why: the stop step reports a missing recorder, one that will not stop, or one that wrote no file, with the recorder's log, instead of an empty reason.
 

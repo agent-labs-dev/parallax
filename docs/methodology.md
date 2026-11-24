@@ -46,7 +46,7 @@ in the table below wins: NA > INVALID > FAIL > PASS.
 |---|---|
 | The task requires a capability the trial does not have (see [Capabilities](#capabilities)) | **NA**. The trial is never run and does not count against the harness |
 | World `internal_error`, missing evidence, boot error, meter unreachable, or execution the semantic validity judge rejects or cannot attribute | **INVALID**. Excluded, counted and rerun on resume. A timeout/harness status alone cannot assign agent failure |
-| An INVALID trial whose reason is a transient execution fault of that attempt (boot error, timeout, budget or harness error, world registration/control/evidence/clock fault, meter unreachable) | **INVALID**, then re-run inside the same run. `--retry-invalid N` (default 1) allows N further attempts; the earlier attempt stays in `results.jsonl` and is never scored |
+| An INVALID trial whose reason is a transient execution fault of that attempt (boot error, timeout, budget or harness error, world registration/control/evidence/clock fault, meter unreachable), or one whose browser judge finds the evidence unavailable because of a transient failure on the live site's side (an `environment interruption`, below) | **INVALID**, then re-run inside the same run. `--retry-invalid N` (default 1) allows N further attempts; the earlier attempt stays in `results.jsonl` and is never scored |
 | Otherwise | **PASS** if every non-advisory gate check passed, otherwise **FAIL** |
 
 Each trial also records a `score`, the weighted fraction of non-advisory checks
@@ -246,6 +246,11 @@ A human moves a flagged task by editing `task.toml` and bumping the task
   After a fingerprint mismatch, the old results are moved aside, not mixed in.
 - **Transient invalids are re-run automatically.** A trial that ends INVALID for its own execution
   fault gets up to `--retry-invalid` further attempts inside the run, using the same key as a resume.
+  A site failure the judge detects gets them too: the browser judge answers a typed `site_interruption`
+  question beside `evidence_available`, and when the evidence is unavailable and that answer is true the
+  reason starts `environment interruption: `, exactly as a harness's own report of an outage does, so every
+  harness gets the same attempts and the retry policy never reads the judge's prose. Unavailable evidence the
+  judge does not put down to the site (missing observations, an unattributable cause) is never re-run.
   Only INVALID rows are re-run: a PASS or FAIL is never overwritten, and a reason that a re-run cannot
   change (a harness or box the run cannot open, missing evidence, a validity rejection, a failed
   teardown) is never re-run. `results.jsonl` keeps every attempt; readers score one row per key, the

@@ -654,13 +654,17 @@ world uses `trial.world_mcp`, which raises for a world-less task.
 
 A browser harness reports what it observed as `BrowserEvidence` under `trial_metadata["browser"]`. That covers the final
 page, the answer, the steps it took, the pages it read (with optional screenshots and form controls) and its citations.
-The built-in policy asks two questions of that evidence:
+The built-in policy asks three questions of that evidence:
 
 - `evidence_available` (advisory) asks whether the evidence is enough to judge the run.
 - `task_satisfied` (the gate) asks whether the run did what the task asked. It is unjudged unless the evidence was
   judged available. The judge sees `authorization.irreversible_actions`, true only when the task sets
   `authorizes`. When it is false, a run that stops before an irreversible action the task asks for, such as
   placing an order, meets the request, and a run that takes the action does not.
+- `site_interruption` asks whether a transient failure on the live site's side, which the agent did not cause, is why
+  the run could not be judged. When the evidence is unavailable and the answer is true, the trial is INVALID with an
+  `environment interruption: ` reason and is retried like a harness-reported outage; otherwise the unavailable
+  evidence stays as it is and is not retried.
 
 The LLM judge panel answers both. A screenshot travels as an image, never also as
 text. Evidence too large for one request is split into parts by page text and then controls. Each byte is sent once and
