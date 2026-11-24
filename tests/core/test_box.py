@@ -20,7 +20,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
-from parallax import __version__
+from parallax import __version__, egress
 from parallax import box as boxes
 from parallax.box import (
     PIPE_QUIET_S,
@@ -264,6 +264,17 @@ async def test_box_network_reaches_only_the_sidecar() -> None:
     assert status["https://example.com"] == "unreachable" and status["http://1.1.1.1"] == "unreachable"
     assert status["http://sidecar:7801/mcp"] == "401"  # the world, refusing a missing bearer token
     assert status["http://sidecar:7802/_health"] == "200"
+
+
+def test_sidecar_allowlist_composes_harness_hosts_with_model_hosts() -> None:
+    sidecar = Sidecar(
+        secrets.token_urlsafe(16), secrets.token_urlsafe(16), egress_hosts=("api.nebula.example", "registry.npmjs.org")
+    )
+
+    assert sidecar.allowed_hosts == ("api.nebula.example", "openrouter.ai", "registry.npmjs.org")
+    assert egress.allowed("api.nebula.example", 443, sidecar.allowed_hosts)
+    assert egress.allowed("registry.npmjs.org", 443, sidecar.allowed_hosts)
+    assert not egress.allowed("example.com", 443, sidecar.allowed_hosts)
 
 
 def remote_info(remote_box: RemoteBox) -> HarnessInfo:

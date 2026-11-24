@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import functools
+import os
 import sys
 
 # Model endpoints only: a host listed here, or any subdomain of it.
@@ -18,9 +20,9 @@ HEADER_LIMIT = 16 * 1024
 CONNECT_TIMEOUT_S = 15.0
 
 
-def allowed(host: str, port: int) -> bool:
+def allowed(host: str, port: int, allowed_hosts: tuple[str, ...] = ALLOWED_HOSTS) -> bool:
     host = host.lower().rstrip(".")
-    return port == ALLOWED_PORT and any(host == h or host.endswith("." + h) for h in ALLOWED_HOSTS)
+    return port == ALLOWED_PORT and any(host == h or host.endswith("." + h) for h in allowed_hosts)
 
 
 async def pipe(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
@@ -35,12 +37,16 @@ async def pipe(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> No
             writer.close()
 
 
-async def handle(client_r: asyncio.StreamReader, client_w: asyncio.StreamWriter) -> None:
+async def handle(
+    client_r: asyncio.StreamReader,
+    client_w: asyncio.StreamWriter,
+    allowed_hosts: tuple[str, ...] = ALLOWED_HOSTS,
+) -> None:
     try:
         head = await asyncio.wait_for(client_r.readuntil(b"\r\n\r\n"), CONNECT_TIMEOUT_S)
         method, target, *_ = head.split(b"\r\n", 1)[0].decode("latin-1").split(" ")
         host, _, port_text = target.rpartition(":")
-        if method != "CONNECT" or not port_text.isdigit() or not allowed(host, int(port_text)):
+        if method != "CONNECT" or not port_text.isdigit() or not allowed(host, int(port_text), allowed_hosts):
             client_w.write(b"HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n")
             await client_w.drain()
             client_w.close()
@@ -59,15 +65,17 @@ async def handle(client_r: asyncio.StreamReader, client_w: asyncio.StreamWriter)
     await asyncio.gather(pipe(client_r, upstream_w), pipe(upstream_r, client_w))
 
 
-async def serve(host: str, port: int) -> None:
-    server = await asyncio.start_server(handle, host, port, limit=HEADER_LIMIT)
+async def serve(host: str, port: int, allowed_hosts: tuple[str, ...] = ALLOWED_HOSTS) -> None:
+    handler = functools.partial(handle, allowed_hosts=allowed_hosts)
+    server = await asyncio.start_server(handler, host, port, limit=HEADER_LIMIT)
     async with server:
         await server.serve_forever()
 
 
 def main() -> None:
     host, _, port = sys.argv[1].rpartition(":")
-    asyncio.run(serve(host, int(port)))
+    configured = tuple(host for host in os.environ.get("PARALLAX_EGRESS_HOSTS", "").split(",") if host) or ALLOWED_HOSTS
+    asyncio.run(serve(host, int(port), configured))
 
 
 if __name__ == "__main__":

@@ -26,6 +26,7 @@ from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol, assert_never, cast, runtime_checkable
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -61,6 +62,7 @@ from parallax.harnesses.base import (
 from parallax.harnesses.parsers import turn_answer
 from parallax.judge import JudgeConfig, JudgePanel, config_from_env, panel_from_env
 from parallax.meter import (
+    DEFAULT_UPSTREAM,
     BudgetRefused,
     CampaignBudget,
     MeterClient,
@@ -481,6 +483,14 @@ async def serve_embedded(app: ASGIApp, host: str, port: int = 0) -> _Embedded:
     return _Embedded(server=server, task=task, port=port)
 
 
+def world_bind_host(public_url: str | None) -> str:
+    return "0.0.0.0" if public_url else "127.0.0.1"
+
+
+def advertised_world_mcp_url(public_url: str | None, world_local: str) -> str:
+    return f"{public_url.rstrip('/')}/mcp" if public_url is not None else f"{world_local.rstrip('/')}/mcp"
+
+
 @dataclass
 class Services:
     """The run's world server and (when any harness is metered) its meter, wherever isolation puts them."""
@@ -489,6 +499,7 @@ class Services:
     public_url: str | None
     need_meter: bool
     run_id: str
+    egress_hosts: tuple[str, ...] = ()
     world_port: int | None = None
     world_admin: str = field(default_factory=lambda: secrets.token_urlsafe(32))
     meter_admin: str = field(default_factory=lambda: secrets.token_urlsafe(32))
@@ -505,7 +516,7 @@ class Services:
     async def start(self) -> None:
         match self.isolation:
             case Isolation.DOCKER:
-                self._sidecar = Sidecar(self.world_admin, self.meter_admin)
+                self._sidecar = Sidecar(self.world_admin, self.meter_admin, self.egress_hosts)
                 urls = await self._sidecar.up(self.run_id)
                 self.network = self._sidecar.network
                 self.world_local = urls.world_host.removesuffix("/mcp")
@@ -518,17 +529,22 @@ class Services:
                 assert_never(self.isolation)
 
     async def _start_embedded(self) -> None:
-        host = "0.0.0.0" if self.public_url else "127.0.0.1"
         self._server = WorldServer(admin_token=self.world_admin)
-        world = await serve_embedded(self._server.app(), host, self.world_port or 0)
+        world, _url = await self.serve_embedded_world(self._server.app(), self.world_port or 0)
         self._embedded.append(world)
         self.world_local = f"http://127.0.0.1:{world.port}"
         if self.need_meter:
             meter = await serve_embedded(meter_app(self.meter_admin, upstreams_from_env(os.environ)), "127.0.0.1")
             self._embedded.append(meter)
             self.meter_local = self.meter_internal = f"http://127.0.0.1:{meter.port}"
+
+    async def serve_embedded_world(self, app: ASGIApp, port: int = 0) -> tuple[_Embedded, str]:
+        """Serve a world app with the public bind, URL and reachability contract for this run."""
+        embedded = await serve_embedded(app, world_bind_host(self.public_url), port)
+        local = f"http://127.0.0.1:{embedded.port}"
         if self.public_url is not None:
-            await check_public_world(self.public_url, self.world_local)
+            await check_public_world(self.public_url, local)
+        return embedded, advertised_world_mcp_url(self.public_url, local)
 
     async def stop(self) -> None:
         for embedded in reversed(self._embedded):
@@ -613,10 +629,20 @@ async def check_public_world(public_url: str, world_local: str) -> None:
 
 @contextlib.asynccontextmanager
 async def services(
-    isolation: Isolation, public_url: str | None, need_meter: bool, run_id: str, world_port: int | None = None
+    isolation: Isolation,
+    public_url: str | None,
+    need_meter: bool,
+    run_id: str,
+    world_port: int | None = None,
+    egress_hosts: Sequence[str] = (),
 ) -> AsyncGenerator[Services]:
     svc = Services(
-        isolation=isolation, public_url=public_url, need_meter=need_meter, run_id=run_id, world_port=world_port
+        isolation=isolation,
+        public_url=public_url,
+        need_meter=need_meter,
+        run_id=run_id,
+        world_port=world_port,
+        egress_hosts=tuple(egress_hosts),
     )
     try:
         await svc.start()
@@ -1066,7 +1092,12 @@ class TrialExecution:
 
                 try:
                     await start_task_container(
-                        self.task.data, name=self.task_container, trial_id=self.trial_id(), run_id=self.s.run_id
+                        self.task.data,
+                        name=self.task_container,
+                        trial_id=self.trial_id(),
+                        run_id=self.s.run_id,
+                        network=self.s.svc.network,
+                        egress_proxy=self.s.svc.egress_internal,
                     )
                 except (HarborTaskError, OSError) as exc:
                     # The same cleanup as every other early return: stop the unstarted
@@ -1106,8 +1137,8 @@ class TrialExecution:
                 await box.close()
                 return TrialRun(self.finish(started, None), None)
             self._tau2_log = Tau2ToolLog(self._tau2_runtime)
-            embedded = await serve_embedded(tau2_mcp_app(self._tau2_log), "127.0.0.1")
-            self.tau2_mcp = McpEndpoint(url=f"http://127.0.0.1:{embedded.port}/mcp", stdio=())
+            embedded, url = await self.s.svc.serve_embedded_world(tau2_mcp_app(self._tau2_log))
+            self.tau2_mcp = McpEndpoint(url=url, stdio=())
             try:
                 await self.drive(harness, box, None, None)
             finally:
@@ -1869,6 +1900,15 @@ def judge_setup(models: Sequence[str]) -> tuple[JudgePanel | None, JudgeConfig |
     return panel, config_from_env()
 
 
+def model_egress_hosts(environ: Mapping[str, str]) -> tuple[str, ...]:
+    hosts = {
+        host
+        for wire, default in DEFAULT_UPSTREAM.items()
+        if (host := urlsplit(environ.get(f"PARALLAX_UPSTREAM_{wire.upper()}") or default).hostname) is not None
+    }
+    return tuple(sorted(hosts))
+
+
 def live_session(out: Path) -> str:
     """The run directory's live feed session: the one its manifest already holds on a resume, else a new one. The
     directory name stays readable in it; the suffix keeps runs whose directories share a name apart."""
@@ -1909,7 +1949,10 @@ async def run_async(
     opts = opts.model_copy(update={"judge": panel.models if panel else ()})
     infos = [load_harness(h).info for h in harnesses]
     need_meter = any(i.cost_source is CostSource.METERED for i in infos)
-    async with services(opts.isolation, opts.world_public_url, need_meter, opts.out.name, opts.world_port) as svc:
+    egress_hosts = (*model_egress_hosts(os.environ), *(host for info in infos for host in info.egress_hosts))
+    async with services(
+        opts.isolation, opts.world_public_url, need_meter, opts.out.name, opts.world_port, egress_hosts
+    ) as svc:
         plans_h = [await plan_harness(h, chosen, opts.isolation, svc.network) for h in harnesses]
         plans = only_pairs(plan_trials(chosen, plans_h, models, opts), opts.pairs)
         opts.out.mkdir(parents=True, exist_ok=True)  # only now: a run interrupted in setup leaves no husk

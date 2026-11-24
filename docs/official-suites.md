@@ -152,6 +152,20 @@ and null controls run through this same path: the oracle runs the pinned `soluti
 (as root, bounded by the task's agent timeout) in the runner-owned container and must pass, the
 null control runs nothing and the verifier alone must fail. No credential enters the container.
 
+The task environment's network policy is an egress contract. A `network_mode = "public"` task
+uses Docker's default public bridge. A `network_mode = "no-network"` task joins the run's
+internal Docker network instead of Docker's `none` network, receives the run sidecar's
+`HTTP_PROXY` and `HTTPS_PROXY`, and can leave only through that proxy. The proxy allowlist starts
+with the configured model endpoints and adds each selected harness's typed `HarnessInfo.egress_hosts`
+declaration. Manifest harnesses set this in their `[info]` table. Plugins set the same field for
+their product API and any HTTPS hosts needed to install or run their CLI. Hosts not in that
+allowlist and non-HTTPS proxy requests are refused. A no-network task requires Docker isolation,
+because that is where the run sidecar and its internal network exist.
+
+After the harness phase, grading restarts the same owned container. Restart preserves its Docker
+network attachment, so the verifier runs under the task's original network policy and cannot
+inherit a wider public network.
+
 Tests: `tests/core/test_harbor_tasks.py` runs the real verifier in Docker against tiny alpine
 fixtures (pass, fail, missing reward file, forged tests and a self-respawning background reward
 writer, verifier timeout as an agent failure, timeout cleanup) plus a Debian fixture whose

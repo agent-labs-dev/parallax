@@ -42,7 +42,7 @@ from typing import assert_never
 
 import httpx
 
-from parallax import __version__
+from parallax import __version__, egress
 from parallax.desktop import EXEC as DESKTOP_EXEC
 from parallax.desktop import RECORDING as DESKTOP_RECORDING
 from parallax.meter import ADMIN_TOKEN_ENV as METER_ADMIN_ENV
@@ -76,6 +76,7 @@ METER_PORT = 7802
 # Hyprland takes DRM master of the host's one vkms card, so a host runs one hyprland box at a time.
 VKMS_SEAT = asyncio.Lock()
 EGRESS_PORT = 7803  # the sidecar's allowlisting proxy to the model endpoints (parallax.egress)
+EGRESS_HOSTS_ENV = "PARALLAX_EGRESS_HOSTS"
 WORLD_ADMIN_ENV = "PARALLAX_WORLD_ADMIN_TOKEN"
 BOX_WORKSPACE = Path("/workspace")
 BOX_HOME = Path("/home/agent")
@@ -1006,9 +1007,12 @@ class Sidecar:
     values come from the runner's environment and never appear in an argv.
     """
 
-    def __init__(self, world_admin_token: str, meter_admin_token: str) -> None:
+    def __init__(self, world_admin_token: str, meter_admin_token: str, egress_hosts: Iterable[str] = ()) -> None:
         self.world_admin_token = world_admin_token
         self.meter_admin_token = meter_admin_token
+        self.allowed_hosts = tuple(
+            sorted({*egress.ALLOWED_HOSTS, *(host.lower().rstrip(".") for host in egress_hosts)})
+        )
         self.network: str | None = None
         self.container: str | None = None
 
@@ -1045,7 +1049,12 @@ class Sidecar:
         )
 
     async def run_detached(self, image: str, name: str, net: str, env_names: list[str], command: str) -> None:
-        env = {**os.environ, WORLD_ADMIN_ENV: self.world_admin_token, METER_ADMIN_ENV: self.meter_admin_token}
+        env = {
+            **os.environ,
+            WORLD_ADMIN_ENV: self.world_admin_token,
+            METER_ADMIN_ENV: self.meter_admin_token,
+            EGRESS_HOSTS_ENV: ",".join(self.allowed_hosts),
+        }
         argv = [
             "docker",
             "run",
@@ -1062,6 +1071,8 @@ class Sidecar:
             f"127.0.0.1::{METER_PORT}",
             "-p",
             f"127.0.0.1::{EGRESS_PORT}",
+            "-e",
+            EGRESS_HOSTS_ENV,
             *(a for k in (WORLD_ADMIN_ENV, METER_ADMIN_ENV, *env_names) for a in ("-e", k)),
             image,
             "sh",

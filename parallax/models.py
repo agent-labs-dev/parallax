@@ -792,6 +792,9 @@ class HarnessInfo(Model):
     version_cmd: tuple[str, ...] = ()
     web_disabled_by: Literal["flag", "config", "none"] = "none"
     source_url: str = ""
+    # HTTPS hosts a harness needs to reach directly through the run's egress proxy, such as a
+    # product API or a CLI distribution host. The proxy still starts with its model endpoints.
+    egress_hosts: tuple[str, ...] = Field(default=(), exclude_if=lambda hosts: not hosts)
     # Host env vars forwarded into the box verbatim, for a harness the meter cannot route (its
     # provider API is not one the meter speaks). Only legal when cost_source is not metered; every
     # row it produces is flagged NATIVE_CREDENTIAL, since nothing parallax-owned saw its spend.

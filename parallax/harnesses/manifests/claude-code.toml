@@ -34,6 +34,7 @@ install = "npm i -g @anthropic-ai/claude-code@2.1.325 --allow-scripts=@anthropic
 version_cmd = ["claude", "--version"]
 web_disabled_by = "flag"
 source_url = "https://github.com/anthropics/claude-code"
+egress_hosts = ["nodejs.org", "raw.githubusercontent.com", "registry.npmjs.org"]
 
 [env]
 # claude appends /v1/messages to the base URL.

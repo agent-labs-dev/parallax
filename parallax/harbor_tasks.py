@@ -525,7 +525,7 @@ async def run_verifier(container: str, data: JsonObject) -> dict[str, JsonValue]
     await _check_container_image(container, spec)
     timeout = spec.verifier_timeout_s
     # Restart kills every process the agent left (a self-respawning reward writer included)
-    # while keeping the filesystem the agent worked on; nothing of the agent's survives it.
+    # while keeping the filesystem and Docker network policy the agent worked under.
     code, _out, err = await _docker("restart", container)
     if code != 0:
         return _infra(f"restarting the task container failed (exit {code}): {err.strip()[-300:]}", copy_exit=code)
@@ -619,8 +619,50 @@ async def _storage_args(storage_mb: int | None) -> list[str]:
     return ["--storage-opt", f"size={storage_mb}m"]
 
 
+def task_container_argv(
+    spec: HarborTaskSpec,
+    ref: str,
+    container: str,
+    *,
+    network: str | None = None,
+    egress_proxy: str | None = None,
+    storage_args: Iterable[str] = (),
+    trial_id: str | None = None,
+    run_id: str | None = None,
+) -> list[str]:
+    """Build the Docker argv for one task container under its declared network policy."""
+    argv = [
+        "run", "-d", "--name", container,
+        "--cpus", str(spec.cpus), "--memory", f"{spec.memory_mb}m",
+        "--pids-limit", str(spec.pids_limit),
+        "--security-opt", "no-new-privileges",
+    ]  # fmt: skip
+    argv[8:8] = list(storage_args)
+    if trial_id is not None:
+        argv += ["--label", f"{TRIAL_LABEL}={trial_id}"]
+    if run_id is not None:
+        argv += ["--label", f"{RUN_LABEL}={run_id}"]
+    if spec.network_mode == "no-network":
+        if network is None or egress_proxy is None:
+            raise HarborTaskError("no-network TB2 tasks require the run network and its egress proxy")
+        argv += ["--label", f"parallax.net={network}"]
+        argv += ["--network", network]
+        for name in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"):
+            argv += ["--env", f"{name}={egress_proxy}"]
+        for name in ("NO_PROXY", "no_proxy"):
+            argv += ["--env", f"{name}=sidecar,localhost,127.0.0.1"]
+    # `public` uses Docker's default bridge.
+    return [*argv, ref, "sh", "-c", "while true; do sleep 3600; done"]
+
+
 async def start_task_container(
-    data: JsonObject, *, name: str | None = None, trial_id: str | None = None, run_id: str | None = None
+    data: JsonObject,
+    *,
+    name: str | None = None,
+    trial_id: str | None = None,
+    run_id: str | None = None,
+    network: str | None = None,
+    egress_proxy: str | None = None,
 ) -> str:
     """Pull the pinned image, then start one named, resource-limited task container.
 
@@ -628,6 +670,8 @@ async def start_task_container(
     removes the container by that name on every path, so a failed start still cleans up.
     """
     spec = _spec_from_data(data)
+    if spec.network_mode == "no-network" and (network is None or egress_proxy is None):
+        raise HarborTaskError("no-network TB2 tasks require the run network and its egress proxy")
     container = name or task_container_name()
     ref = _image_ref(spec)
     code, _out, err = await _docker("pull", ref, timeout=IMAGE_PULL_TIMEOUT_S)
@@ -636,21 +680,10 @@ async def start_task_container(
     # Docker's default capability set, as upstream Harbor uses: `--cap-drop ALL` breaks apt in
     # most TB2 test scripts (`setgroups`/`seteuid` fail). `no-new-privileges` alone was verified
     # to keep `apt-get` working on a Debian image.
-    argv = [
-        "run", "-d", "--name", container,
-        "--cpus", str(spec.cpus), "--memory", f"{spec.memory_mb}m",
-        "--pids-limit", str(spec.pids_limit),
-        "--security-opt", "no-new-privileges",
-    ]  # fmt: skip
-    argv[8:8] = await _storage_args(spec.storage_mb)
-    if trial_id is not None:
-        argv += ["--label", f"{TRIAL_LABEL}={trial_id}"]
-    if run_id is not None:
-        argv += ["--label", f"{RUN_LABEL}={run_id}"]
-    if spec.network_mode == "no-network":
-        argv += ["--network", "none"]
-    # `public` uses docker's default bridge.
-    argv += [ref, "sh", "-c", "while true; do sleep 3600; done"]
+    argv = task_container_argv(
+        spec, ref, container, network=network, egress_proxy=egress_proxy,
+        storage_args=await _storage_args(spec.storage_mb), trial_id=trial_id, run_id=run_id,
+    )  # fmt: skip
     code, out, err = await _docker(*argv)
     if code != 0:
         raise HarborTaskError(f"starting task container failed (exit {code}): {err.strip()[-300:]}")
@@ -852,6 +885,7 @@ __all__ = [
     "remove_container",
     "run_solution",
     "run_verifier",
+    "task_container_argv",
     "start_task_container",
     "sweep_run_containers",
     "task_container_name",

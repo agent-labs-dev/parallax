@@ -68,6 +68,15 @@ def test_tau2_records_carry_only_frozen_data_keys(monkeypatch):
     assert "Cancel my flight" not in records[0].prompt  # the scenario never enters the agent prompt
 
 
+def test_tau2_world_server_uses_the_shared_public_url_contract():
+    from parallax.runner import advertised_world_mcp_url, world_bind_host
+
+    assert world_bind_host(None) == "127.0.0.1"
+    assert world_bind_host("https://world.example") == "0.0.0.0"
+    assert advertised_world_mcp_url(None, "http://127.0.0.1:1234") == "http://127.0.0.1:1234/mcp"
+    assert advertised_world_mcp_url("https://world.example/", "http://127.0.0.1:1234") == "https://world.example/mcp"
+
+
 def _tau2_request(recorded, *, domain: str = "airline", task_id: str = "0"):
     full_task = {"id": task_id, "user_scenario": {"instructions": "scenario"}}
     record = TaskRecord(

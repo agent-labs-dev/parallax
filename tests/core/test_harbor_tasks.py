@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+import os
 import shutil
 import subprocess
 import tomllib
@@ -14,6 +15,19 @@ from parallax.models import Capability
 from parallax.task import task_from_record
 
 FIXTURES = Path(__file__).parent / "fixtures" / "harbor"
+TEST_EGRESS_PROXY = "http://sidecar:7803"
+
+
+@pytest.fixture
+def tb2_internal_network():
+    name = f"parallax-test-tb2-{os.getpid()}-{os.urandom(3).hex()}"
+    created = subprocess.run(["docker", "network", "create", "--internal", name], capture_output=True, text=True)
+    if created.returncode != 0:
+        pytest.skip(f"Docker internal network unavailable: {created.stderr.strip()}")
+    try:
+        yield name
+    finally:
+        subprocess.run(["docker", "network", "rm", name], capture_output=True, check=False)
 
 
 def test_parse_task_dir_reads_the_pinned_harbor_subset():
@@ -31,6 +45,24 @@ def test_parse_task_dir_reads_the_pinned_harbor_subset():
     expected = hashlib.sha256((FIXTURES / "example-task" / "tests" / "test.sh").read_bytes()).hexdigest()
     assert spec.tests_digest != expected  # digest covers the tests tree listing, not one file alone
     assert harbor.tests_digest(FIXTURES / "example-task" / "tests") == spec.tests_digest
+
+
+def test_tb2_container_argv_uses_the_run_network_for_no_network_tasks():
+    spec = harbor.HarborTaskSpec(
+        upstream_id="x", instruction="i", docker_image="example/x:1", network_mode="no-network"
+    )
+
+    restricted = harbor.task_container_argv(
+        spec, "example/x:1", "container", network="px-run", egress_proxy="http://sidecar:7803"
+    )
+    assert restricted[restricted.index("--network") + 1] == "px-run"
+    assert "none" not in restricted
+    assert "parallax.net=px-run" in restricted
+    assert "HTTPS_PROXY=http://sidecar:7803" in restricted
+
+    public = harbor.task_container_argv(spec.model_copy(update={"network_mode": "public"}), "example/x:1", "container")
+    assert "--network" not in public
+    assert not any(value.endswith("sidecar:7803") for value in public)
 
 
 def test_pinned_tb2_images_resolve_to_registry_digests():
@@ -251,9 +283,11 @@ def _container_exists(name: str) -> bool:
 
 @pytest.mark.docker
 @pytest.mark.asyncio
-async def test_tb2_verifier_pass_and_fail_in_live_container(tmp_path):
+async def test_tb2_verifier_pass_and_fail_in_live_container(tmp_path, tb2_internal_network):
     request = _tb2_request(None, tmp_path=tmp_path)
-    container = await harbor.start_task_container(request.task.data)
+    container = await harbor.start_task_container(
+        request.task.data, network=tb2_internal_network, egress_proxy=TEST_EGRESS_PROXY
+    )
     try:
         graded = await harbor._grade(_tb2_request(None, tmp_path=tmp_path, task_container=container))
         assert graded.checks[0].passed is False
@@ -274,9 +308,11 @@ async def test_tb2_verifier_pass_and_fail_in_live_container(tmp_path):
 
 @pytest.mark.docker
 @pytest.mark.asyncio
-async def test_tb2_verifier_missing_reward_file_is_a_failed_check(tmp_path):
+async def test_tb2_verifier_missing_reward_file_is_a_failed_check(tmp_path, tb2_internal_network):
     request = _tb2_request(None, fixture="no-reward-task", tmp_path=tmp_path)
-    container = await harbor.start_task_container(request.task.data)
+    container = await harbor.start_task_container(
+        request.task.data, network=tb2_internal_network, egress_proxy=TEST_EGRESS_PROXY
+    )
     try:
         graded = await harbor._grade(
             _tb2_request(None, fixture="no-reward-task", tmp_path=tmp_path, task_container=container)
@@ -291,12 +327,14 @@ async def test_tb2_verifier_missing_reward_file_is_a_failed_check(tmp_path):
 
 @pytest.mark.docker
 @pytest.mark.asyncio
-async def test_tb2_oracle_solution_passes_and_null_fails_through_the_owned_container(tmp_path):
+async def test_tb2_oracle_solution_passes_and_null_fails_through_the_owned_container(tmp_path, tb2_internal_network):
     # The runner-owned path the oracle/null controls use: parallax starts the container, the
     # oracle runs the pinned solve.sh inside it (run_solution), the grader verifies, parallax
     # removes it. Null runs no solution in its container and must fail.
     request = _tb2_request(None, tmp_path=tmp_path)
-    container = await harbor.start_task_container(request.task.data)
+    container = await harbor.start_task_container(
+        request.task.data, network=tb2_internal_network, egress_proxy=TEST_EGRESS_PROXY
+    )
     started = [container]
     try:
         code, detail = await harbor.run_solution(container, request.task.data)
@@ -306,7 +344,9 @@ async def test_tb2_oracle_solution_passes_and_null_fails_through_the_owned_conta
         assert graded.score == 1.0
     finally:
         await harbor.remove_container(container)
-    container = await harbor.start_task_container(request.task.data)
+    container = await harbor.start_task_container(
+        request.task.data, network=tb2_internal_network, egress_proxy=TEST_EGRESS_PROXY
+    )
     started.append(container)
     try:
         graded = await harbor._grade(_tb2_request(None, tmp_path=tmp_path, task_container=container))
@@ -320,9 +360,11 @@ async def test_tb2_oracle_solution_passes_and_null_fails_through_the_owned_conta
 
 @pytest.mark.docker
 @pytest.mark.asyncio
-async def test_tb2_forged_tests_and_background_reward_writer_do_not_pass(tmp_path):
+async def test_tb2_forged_tests_and_background_reward_writer_do_not_pass(tmp_path, tb2_internal_network):
     request = _tb2_request(None, tmp_path=tmp_path)
-    container = await harbor.start_task_container(request.task.data)
+    container = await harbor.start_task_container(
+        request.task.data, network=tb2_internal_network, egress_proxy=TEST_EGRESS_PROXY
+    )
     try:
         # Plant a forged test suite and a self-respawning reward writer: a supervisor that
         # relaunches its worker whenever the worker dies, so only the grader's container
@@ -353,11 +395,13 @@ async def test_tb2_forged_tests_and_background_reward_writer_do_not_pass(tmp_pat
 
 @pytest.mark.docker
 @pytest.mark.asyncio
-async def test_tb2_verifier_timeout_is_an_agent_failure_and_container_removed(tmp_path):
+async def test_tb2_verifier_timeout_is_an_agent_failure_and_container_removed(tmp_path, tb2_internal_network):
     # Upstream Harbor fails on verifier timeout regardless of reward, so no late-reward
     # fixture exists: a timed-out verifier is the agent's failure, never a read reward.
     request = _tb2_request(None, fixture="slow-task", tmp_path=tmp_path)
-    container = await harbor.start_task_container(request.task.data)
+    container = await harbor.start_task_container(
+        request.task.data, network=tb2_internal_network, egress_proxy=TEST_EGRESS_PROXY
+    )
     try:
         outcome = await harbor.run_verifier(container, request.task.data)
         assert outcome["reward"] is None
@@ -410,7 +454,7 @@ async def test_tb2_runner_oracle_passes_null_fails_and_start_failure_and_cancel_
         [task],
         ["oracle", "null-claim"],
         [None],
-        RunOptions(out=out, isolation=Isolation.HOST, quiet=True, retry_invalid=0),
+        RunOptions(out=out, isolation=Isolation.DOCKER, quiet=True, retry_invalid=0),
     )
     rows = {(r.harness): r for r in read_results(out / "results.jsonl")}
     assert rows["oracle"].verdict is Verdict.PASS and rows["oracle"].score == 1.0
@@ -434,7 +478,7 @@ async def test_tb2_runner_oracle_passes_null_fails_and_start_failure_and_cancel_
     out = tmp_path / "run-cancel"
     run = asyncio.create_task(
         run_async(
-            [task], ["oracle"], [None], RunOptions(out=out, isolation=Isolation.HOST, quiet=True, retry_invalid=0)
+            [task], ["oracle"], [None], RunOptions(out=out, isolation=Isolation.DOCKER, quiet=True, retry_invalid=0)
         )
     )
     try:
@@ -486,7 +530,7 @@ def test_builtin_manifest_tb2_declarations():
 
 @pytest.mark.docker
 @pytest.mark.asyncio
-async def test_tb2_fixture_manifest_agent_solves_tiny_task_through_docker_exec(tmp_path):
+async def test_tb2_fixture_manifest_agent_solves_tiny_task_through_docker_exec(tmp_path, tb2_internal_network):
     # A fixture manifest whose "agent" is a shell command: its install step runs as root in
     # the owned container and its agent command runs there via docker exec, solving the task.
     from datetime import UTC, datetime
@@ -505,7 +549,9 @@ async def test_tb2_fixture_manifest_agent_solves_tiny_task_through_docker_exec(t
     )
     harness = ManifestHarness(load_manifest(manifest))
     request = _tb2_request(None, tmp_path=tmp_path)
-    container = await harbor.start_task_container(request.task.data)
+    container = await harbor.start_task_container(
+        request.task.data, network=tb2_internal_network, egress_proxy=TEST_EGRESS_PROXY
+    )
     try:
         trial = Trial(
             trial_id="t", task_id=request.task.id, model=None, mcp=None,
@@ -566,7 +612,7 @@ async def test_tb2_agent_timeout_still_verifies_and_scores_the_reward(tmp_path, 
 
     started = time.monotonic()
     await runner.run_async(
-        [task], ["oracle"], [None], runner.RunOptions(out=out, isolation=Isolation.HOST, quiet=True, retry_invalid=0)
+        [task], ["oracle"], [None], runner.RunOptions(out=out, isolation=Isolation.DOCKER, quiet=True, retry_invalid=0)
     )
     assert time.monotonic() - started < 25
     (row,) = runner.read_results(out / "results.jsonl")

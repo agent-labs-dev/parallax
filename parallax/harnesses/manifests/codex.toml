@@ -31,6 +31,7 @@ install = "npm i -g @openai/codex@0.169.0"
 version_cmd = ["codex", "--version"]
 web_disabled_by = "config"
 source_url = "https://github.com/openai/codex"
+egress_hosts = ["nodejs.org", "raw.githubusercontent.com", "registry.npmjs.org"]
 
 [env]
 CODEX_HOME = "{home}/.codex"
