@@ -115,7 +115,6 @@ async def test_tb2_grade_never_trusts_a_harness_reported_container_or_reward(tmp
     await request.client.aclose()
     assert graded.checks[0].passed is None
     assert graded.score is None
-    assert not hasattr(harbor, "oracle_conformance") and not hasattr(harbor, "null_conformance")
 
 
 def test_image_ref_pins_the_digest_and_check_refuses_a_mismatch(monkeypatch):
@@ -263,7 +262,9 @@ async def test_tb2_forged_tests_and_background_reward_writer_do_not_pass(tmp_pat
     request = _tb2_request(None, tmp_path=tmp_path)
     container = await harbor.start_task_container(request.task.data)
     try:
-        # Plant a forged test suite and a background loop rewriting the reward file.
+        # Plant a forged test suite and a self-respawning reward writer: a supervisor that
+        # relaunches its worker whenever the worker dies, so only the grader's container
+        # restart (not a process kill) can stop it rewriting the reward file.
         code, _o, _e = await harbor._docker(
             "exec",
             container,
@@ -273,14 +274,12 @@ async def test_tb2_forged_tests_and_background_reward_writer_do_not_pass(tmp_pat
             "echo forged > /tests/conftest.py; chmod +x /tests/test.sh",
         )
         assert code == 0
-        code, _o, _e = await harbor._docker(
-            "exec",
-            "-d",
-            container,
-            "sh",
-            "-c",
-            "while true; do mkdir -p /logs/verifier; echo 1 > /logs/verifier/reward.txt; sleep 0.2; done",
+        writer = (
+            "while true; do "
+            "sh -c 'while true; do mkdir -p /logs/verifier; echo 1 > /logs/verifier/reward.txt; sleep 0.1; done' & "
+            "wait $!; done"
         )
+        code, _o, _e = await harbor._docker("exec", "-d", container, "sh", "-c", writer)
         assert code == 0
         graded = await harbor._grade(_tb2_request(None, tmp_path=tmp_path, task_container=container))
         assert graded.checks[0].passed is False
@@ -292,30 +291,95 @@ async def test_tb2_forged_tests_and_background_reward_writer_do_not_pass(tmp_pat
 
 @pytest.mark.docker
 @pytest.mark.asyncio
-async def test_tb2_reward_written_before_timeout_kill_is_read(tmp_path):
-    request = _tb2_request(None, fixture="late-reward-task", tmp_path=tmp_path)
-    container = await harbor.start_task_container(request.task.data)
-    try:
-        outcome = await harbor.run_verifier(container, request.task.data)
-        assert outcome["reward"] == 1.0
-    finally:
-        await harbor.remove_container(container)
-        await request.client.aclose()
-
-
-@pytest.mark.docker
-@pytest.mark.asyncio
-async def test_tb2_verifier_timeout_is_recorded_and_container_removed(tmp_path):
+async def test_tb2_verifier_timeout_is_an_agent_failure_and_container_removed(tmp_path):
+    # Upstream Harbor fails on verifier timeout regardless of reward, so no late-reward
+    # fixture exists: a timed-out verifier is the agent's failure, never a read reward.
     request = _tb2_request(None, fixture="slow-task", tmp_path=tmp_path)
     container = await harbor.start_task_container(request.task.data)
     try:
         outcome = await harbor.run_verifier(container, request.task.data)
         assert outcome["reward"] is None
+        assert outcome["failure_kind"] == "agent"
         assert "timed out" in str(outcome["error"])
     finally:
         await harbor.remove_container(container)
         await request.client.aclose()
     assert _leftover_containers() == []
+
+
+def _labelled_containers(run_id: str) -> list[str]:
+    out = subprocess.run(
+        ["docker", "ps", "-aq", "--filter", f"label={harbor.RUN_LABEL}={run_id}"],
+        capture_output=True,
+        text=True,
+        check=False,
+    ).stdout.split()
+    return out
+
+
+def _tiny_task(tmp_path: Path, **data_overrides):
+    root = tmp_path / "tb2"
+    root.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(FIXTURES / "tiny-task", root / "tiny-task", dirs_exist_ok=True)
+    record = list(harbor.terminal_bench_tasks(root=root))[0]
+    if data_overrides:
+        record = record.model_copy(update={"data": {**record.data, **data_overrides}})
+    return task_from_record(harbor.TERMINAL_BENCH, record)
+
+
+@pytest.mark.docker
+@pytest.mark.asyncio
+async def test_tb2_runner_oracle_passes_null_fails_and_start_failure_and_cancel_clean_up(tmp_path):
+    # Through the runner itself: the oracle control passes on the tiny fixture and the null
+    # control fails, each in the runner-owned labelled container, removed afterwards.
+    from parallax.models import Isolation, Verdict
+    from parallax.runner import RunOptions, read_results, run_async
+
+    task = _tiny_task(tmp_path / "ok")
+    out = tmp_path / "run-ok"
+    await run_async(
+        [task],
+        ["oracle", "null-claim"],
+        [None],
+        RunOptions(out=out, isolation=Isolation.HOST, quiet=True, retry_invalid=0),
+    )
+    rows = {(r.harness): r for r in read_results(out / "results.jsonl")}
+    assert rows["oracle"].verdict is Verdict.PASS and rows["oracle"].score == 1.0
+    assert rows["null-claim"].verdict is Verdict.FAIL and rows["null-claim"].score == 0.0
+    assert _labelled_containers(out.name) == []
+
+    # A start failure (a digest the pinned tests refuse) cleans up the box it opened and
+    # leaves no labelled container behind.
+    bad = _tiny_task(tmp_path / "bad", docker_image_digest="sha256:" + "0" * 64)
+    out = tmp_path / "run-bad"
+    await run_async(
+        [bad], ["null-claim"], [None], RunOptions(out=out, isolation=Isolation.HOST, quiet=True, retry_invalid=0)
+    )
+    (row,) = read_results(out / "results.jsonl")
+    assert row.verdict is Verdict.INVALID
+    assert _labelled_containers(out.name) == []
+
+    # A cancelled trial leaves no labelled container either.
+    task = _tiny_task(tmp_path / "cancel")
+    out = tmp_path / "run-cancel"
+    run = asyncio.create_task(
+        run_async(
+            [task], ["oracle"], [None], RunOptions(out=out, isolation=Isolation.HOST, quiet=True, retry_invalid=0)
+        )
+    )
+    try:
+        for _ in range(600):
+            if _labelled_containers(out.name) or run.done():
+                break
+            await asyncio.sleep(0.05)
+        assert _labelled_containers(out.name), "the trial never started its labelled container"
+        run.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await run
+    finally:
+        if not run.done():
+            run.cancel()
+    assert _labelled_containers(out.name) == []
 
 
 @pytest.mark.docker

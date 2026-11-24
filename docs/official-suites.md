@@ -70,30 +70,41 @@ kept in the user cache. Multi-step tasks are rejected by the importer rather tha
 pinned set is single-step.
 
 Grading is structured, not answer-text matching. Parallax owns the task container: for each
-trial of a task requiring `live_container`, the runner starts one container from the task image,
-hands its handle to the harness as the typed `Trial.task_container` field (a manifest harness
-reads it as `{task_container}`), and removes it after grading on every path. A harness with
-`LIVE_CONTAINER` acts inside that container; one without it scores NA before the run, never a
-graded 0. The grader uses only the handle parallax recorded, never a harness-reported name, and
-a harness-reported reward is never trusted. The grader, never the harness, runs the verifier: it
-re-checks the record's `tests_digest` against the pinned `tests/` in its digest-checked cache,
-then, as root, kills every process in the container except PID 1 and the verifier exec itself,
-removes `/tests` and `/logs/verifier` wholesale, copies the pinned tests in, and runs
-`tests/test.sh` there (directly, as upstream Harbor does) with the container's existing network,
-which follows the task's `[environment]`.
+trial of a task requiring `live_container`, the runner generates the container name and records
+it on the trial before `docker run` (labelled `parallax.trial=<trial id>` and
+`parallax.run=<run id>`), pulls the pinned image explicitly (`docker pull` of the digest ref,
+bounded by `IMAGE_PULL_TIMEOUT_S` at 1800 s, then `docker run -d` on the short timeout), hands
+its handle to the harness as the typed `Trial.task_container` field (a manifest harness reads
+it as `{task_container}`), and removes it after grading on every path, including a failed start
+and a cancelled trial (the removal is shielded, so a second cancellation cannot strand it). At
+run start and exit the runner sweeps containers carrying that run's `parallax.run` label, and
+only that label, which clears up after a crashed run. A harness with `LIVE_CONTAINER` acts
+inside that container; one without it scores NA before the run, never a graded 0. The grader
+uses only the handle parallax recorded, never a harness-reported name, and a harness-reported
+reward is never trusted. The grader, never the harness, runs the verifier: it re-checks the
+record's `tests_digest` against the pinned `tests/` in its digest-checked cache, restarts the
+owned container (killing every process the agent left, a self-respawning reward writer
+included, while keeping its filesystem), then as root removes `/tests` and `/logs/verifier`
+wholesale, copies the pinned tests in, and runs `tests/test.sh` there (directly, as upstream
+Harbor does) with the container's existing network, which follows the task's `[environment]`.
 
 Reward comes only from the verifier's reward file, `/logs/verifier/reward.json` or
-`/logs/verifier/reward.txt`, as upstream Harbor defines them; reward 1 is a pass. The reward file
-is read whatever the test exit was, including a timeout kill; a timeout is reported only when no
-reward was written and the timeout killed the test. A verifier infrastructure failure (a failed
-copy or setup, before the test ran) is unjudged, while a missing or unparsable reward file after
-the test ran is a failed check, never a stdout fallback, and the copy and test exit codes are
-recorded in the check detail either way. Residual risk: the agent ran in the container and could
-have altered system Python or site-packages that the pinned tests import, the same exposure as
-upstream Harbor; the pinned tests themselves, once copied in, cannot be the agent's copies. Task
-images named by mutable tag are pinned by digest: the importer records the registry digest
-resolved for the pinned set in `PINNED_IMAGE_DIGESTS`, and grading refuses a container whose
-image digest differs.
+`/logs/verifier/reward.txt`, as upstream Harbor defines them; reward 1 is a pass. A verifier
+timeout fails the trial whatever reward was written: upstream Harbor's
+`Trial._verify_with_timeout` (`harbor/trial/trial.py` in laude-institute/harbor, the version the
+TB2 pin targets) wraps `Verifier.verify()` in `asyncio.wait_for` and raises
+`VerifierTimeoutError` before `verify()` reaches its reward-file read, so no reward written
+before the kill is ever read. `failure_kind=infrastructure`, which leaves the trial unjudged,
+is recorded only when docker itself fails: the daemon is unreachable, the CLI exits 125, or the
+image or container is missing per `docker inspect`. After the container has restarted, any
+in-container failure (a copy that fills the disk, a broken `sh`, a missing or unparsable reward
+file) is the agent's and scores as a failure, never a stdout fallback, and the copy and test
+exit codes are recorded in the check detail either way. Residual risk: the agent ran in the
+container and could have altered system Python or site-packages that the pinned tests import,
+the same exposure as upstream Harbor; the pinned tests themselves, once copied in, cannot be
+the agent's copies. Task images named by mutable tag are pinned by digest: the importer records
+the registry digest resolved for the pinned set in `PINNED_IMAGE_DIGESTS`, and grading refuses
+a container whose image digest differs.
 
 The container is named, limited by the task's `--cpus`, `--memory` and `--pids-limit` (512 by
 default), and started with Docker's default capability set, as upstream Harbor uses, plus
@@ -104,16 +115,19 @@ and null controls run through this same path: the oracle runs the pinned `soluti
 null control runs nothing and the verifier alone must fail. No credential enters the container.
 
 Tests: `tests/core/test_harbor_tasks.py` runs the real verifier in Docker against tiny alpine
-fixtures (pass, fail, missing reward file, forged tests and a background reward writer, a reward
-written before a timeout kill, timeout cleanup, oracle and null through the owned container)
-plus a Debian fixture whose `test.sh` runs `apt-get` (skipped without network), and pure
-digest-pinning tests for `_image_ref`/`_check_container_image`, and
-`tests/core/test_tau2_suites.py` runs the real bridge against a pinned tau2 checkout on the `mock`
-domain (`agent_stop` passes, `max_steps` scores 0) plus pure evidence-validation tests. CI's test
-shards run on GitHub's ubuntu runners, where the Docker-marked tests run when a daemon answers
-(they skip with that reason otherwise); the tau2 bridge tests skip in CI, which provides no pinned
-tau2 checkout, network judge or checkout venv, and run wherever `PARALLAX_OFFICIAL_TAU2_ROOT`
-points at one.
+fixtures (pass, fail, missing reward file, forged tests and a self-respawning background reward
+writer, verifier timeout as an agent failure, timeout cleanup) plus a Debian fixture whose
+`test.sh` runs `apt-get` (skipped without network), pure digest-pinning tests for
+`_image_ref`/`_check_container_image`, and a Docker-marked runner test (the oracle control
+passes and the null control fails on the tiny fixture through the runner, a start failure from
+a bad digest cleans up its box and leaves no labelled container, and a cancelled trial leaves
+none), and `tests/core/test_tau2_suites.py` runs the real bridge against a pinned tau2 checkout
+on the `mock` domain (`agent_stop` passes, `max_steps` scores 0, a tiny bridge timeout kills
+the process group, a failed judge call is captured in the side file) plus pure
+evidence-validation and preflight tests. CI's test shards run on GitHub's ubuntu runners, where
+the Docker-marked tests run when a daemon answers (they skip with that reason otherwise); the
+tau2 bridge tests skip in CI, which provides no pinned tau2 checkout, network judge or checkout
+venv, and run wherever `PARALLAX_OFFICIAL_TAU2_ROOT` points at one.
 
 ## tau2
 
@@ -143,17 +157,20 @@ upstream `evaluate_simulation` with `EvaluationType.ALL`, upstream's default SEM
 scoring and its NL-assertion evaluator; no database, action or communication comparison is
 reimplemented in Parallax. Both judges run through the run's configured Parallax judge gateway
 under the ids `gpt-5.5` (communicate info) and `gpt-5.4-mini-2026-03-17` (NL assertions), the
-upstream pins at this revision, and a preflight validates the gateway and those ids before any
-bridge process starts, so a bad judge configuration fails before judge spend instead of after it.
-Only the judge's endpoint and key reach the bridge, through an explicit env allowlist
+upstream pins at this revision. Once per run, a preflight queries the configured gateway's model
+list and refuses to start grading if either judge id is missing (the result is cached for the
+run), so a bad judge configuration fails before any bridge process or judge spend starts. Only
+the judge's endpoint and key reach the bridge, through an explicit env allowlist
 (`OPENAI_BASE_URL`, `OPENAI_API_KEY`, from the run's judge config). The bridge subprocess is
-bounded by a timeout and its process group is killed on timeout or cancellation. Every judge call
-the evaluator makes is recorded as it happens (a side-channel file and structured stderr lines)
-and recorded on the grade as a priced call, or unpriced when upstream reported no cost, never
-dropped: a failed judge call is recorded unpriced and the calls made before a bridge failure still
-price the grade, while a bridge that fails with no recorded call counts one unpriced call.
-Simulator (user-model) spend stays in the harness's trial metadata: it never enters the trial's
-usage or the grade's calls.
+bounded by a timeout and its process group is killed on timeout or cancellation. Every judge
+call the evaluator makes is recorded as it happens in one channel, the side file, and recorded
+on the grade as a priced call, or unpriced when upstream reported no cost, never dropped: a
+failed judge call records only its exception class and HTTP status, never the exception
+message, and the calls made before a bridge failure still price the grade, while a bridge
+failure with no recorded calls records zero calls, not one unpriced call. Bridge stderr reaches
+a grade only as the exception class plus a fixed reason, never raw text. Simulator (user-model)
+spend stays in the harness's trial metadata: it never enters the trial's usage or the grade's
+calls.
 
 ## live-web
 

@@ -5,11 +5,13 @@ Upstream tasks are Harbor task directories, not Parallax task directories, so th
 at run time, verified against a per-file SHA-256 manifest, and kept in the user cache; no dataset
 bytes are committed. Grading is structured, not answer-text matching: parallax itself starts the
 task container for a trial (`Trial.task_container`), the harness acts inside it, and after the
-harness stops parallax kills every other process in the container, replaces `/tests` and
-`/logs/verifier` with the pinned tests, and runs `tests/test.sh` there, reading the reward only
-from the verifier reward file. Parallax removes the container after grading on every path. A
-harness that cannot act in that container does not declare `live_container` and scores NA. The
-oracle and null controls run through the same runner-owned container and grader.
+harness stops parallax restarts that container (killing every process it held, keeping its
+filesystem), replaces `/tests` and `/logs/verifier` with the pinned tests, and runs `tests/test.sh`
+there, reading the reward only from the verifier reward file. A verifier timeout fails the trial
+whatever reward was written, as upstream Harbor's `_verify_with_timeout` raises before any reward
+file is read. Parallax removes the container after grading on every path. A harness that cannot
+act in that container does not declare `live_container` and scores NA. The oracle and null
+controls run through the same runner-owned container and grader.
 """
 
 from __future__ import annotations
@@ -58,6 +60,9 @@ TERMINAL_BENCH_MANIFEST_SHA256 = "efcb17d74def636fc67695b6a2bfb4a6b65945c2e52e5e
 TERMINAL_BENCH_EXPECTED_COUNT = 89
 DEFAULT_PIDS_LIMIT = 512
 DEFAULT_DOCKER_TIMEOUT_S = 120.0
+IMAGE_PULL_TIMEOUT_S = 1800.0  # a cold task image can take far longer than any other docker call
+TRIAL_LABEL = "parallax.trial"
+RUN_LABEL = "parallax.run"
 REWARD_TEXT = "/logs/verifier/reward.txt"
 REWARD_JSON = "/logs/verifier/reward.json"
 
@@ -469,13 +474,9 @@ async def _check_container_image(container: str, spec: HarborTaskSpec) -> None:
         )
 
 
-# Before verification, as root: kill every process except PID 1 and this exec, then replace
-# /tests and /logs/verifier wholesale, so agent-planted tests or reward writers cannot survive.
-_PURGE = (
-    "for d in /proc/[0-9]*; do pid=${d#/proc/}; "
-    'case "$pid" in 1|$$) continue;; esac; kill -9 "$pid" 2>/dev/null; done; '
-    "rm -rf /tests /logs/verifier; mkdir -p /tests /logs/verifier"
-)
+def _docker_failed(code: int | None, err: str) -> bool:
+    """Docker itself failed: the daemon is unreachable or the CLI could not act (exit 125)."""
+    return code == 125 or "Cannot connect to the Docker daemon" in err or "docker daemon" in err.lower()
 
 
 def _infra(error: str, *, copy_exit: int | None = None, test_exit: int | None = None) -> dict[str, JsonValue]:
@@ -488,14 +489,28 @@ def _infra(error: str, *, copy_exit: int | None = None, test_exit: int | None = 
     }
 
 
+def _agent(error: str, *, copy_exit: int | None = None, test_exit: int | None = None) -> dict[str, JsonValue]:
+    return {
+        "reward": None,
+        "copy_exit": copy_exit,
+        "test_exit": test_exit,
+        "error": error,
+        "failure_kind": "agent",
+    }
+
+
 async def run_verifier(container: str, data: JsonObject) -> dict[str, JsonValue]:
     """Copy the pinned `tests/` into the parallax-owned container and run `tests/test.sh` there.
 
     Reward comes only from `/logs/verifier/reward.json` or `reward.txt` (upstream Harbor's
-    `EnvironmentPaths`). `failure_kind` is typed: `infrastructure` (setup failed before the test
-    ran, so the trial is unjudged) versus `agent` (the test ran and wrote no usable reward, a
-    failure). The reward file is read whatever the test exit was, 124/137 included; a timeout is
-    reported only when no reward was written and our timeout killed the test. Residual risk: the
+    `EnvironmentPaths`). `failure_kind` is typed: `infrastructure` only when docker itself fails
+    (the daemon is unreachable, the CLI exits 125, or the image or container is missing per
+    `docker inspect`), so the trial is unjudged; after the owned container has restarted, any
+    in-container failure (a copy that fills the disk, a broken `sh`, a missing or unparsable
+    reward) is the agent's and scores as a failure. A verifier timeout fails the trial whatever
+    reward was written, matching upstream Harbor: `Trial._verify_with_timeout` in
+    `harbor/trial/trial.py` wraps `Verifier.verify()` in `asyncio.wait_for` and raises
+    `VerifierTimeoutError` before `verify()` reaches its reward-file read. Residual risk: the
     agent ran as root in the container and could have altered system Python or site-packages the
     verifier imports, as under upstream Harbor; the pinned tests themselves cannot be altered.
     """
@@ -506,39 +521,47 @@ async def run_verifier(container: str, data: JsonObject) -> dict[str, JsonValue]
         raise HarborTaskError(f"container {container!r} is not a live task container: {err.strip()[-300:]}")
     await _check_container_image(container, spec)
     timeout = spec.verifier_timeout_s
-    code, _out, err = await _docker("exec", "-u", "0", container, "sh", "-c", _PURGE)
+    # Restart kills every process the agent left (a self-respawning reward writer included)
+    # while keeping the filesystem the agent worked on; nothing of the agent's survives it.
+    code, _out, err = await _docker("restart", container)
     if code != 0:
-        return _infra(f"preparing /tests failed: {err.strip()[-300:]}", copy_exit=code)
+        return _infra(f"restarting the task container failed (exit {code}): {err.strip()[-300:]}", copy_exit=code)
+    code, _out, err = await _docker(
+        "exec", "-u", "0", container, "sh", "-c", "rm -rf /tests /logs/verifier; mkdir -p /tests /logs/verifier"
+    )
+    if code != 0:
+        if _docker_failed(code, err):
+            return _infra(f"docker failed preparing /tests (exit {code})", copy_exit=code)
+        return _agent(f"preparing /tests failed (exit {code}): {err.strip()[-300:]}", copy_exit=code)
     code, _out, err = await _docker("cp", f"{tests}/.", f"{container}:/tests")
     if code != 0:
-        return _infra(f"copying pinned tests failed (exit {code}): {err.strip()[-300:]}", copy_exit=code)
+        if _docker_failed(code, err):
+            return _infra(f"docker failed copying pinned tests (exit {code})", copy_exit=code)
+        return _agent(f"copying pinned tests failed (exit {code}): {err.strip()[-300:]}", copy_exit=code)
     # Upstream Harbor executes the test script directly (its shebang chooses the shell), as root.
     command = (
         f"mkdir -p /logs/verifier; chmod +x /tests/test.sh; "
         f"timeout -s KILL {timeout} /tests/test.sh > /logs/verifier/test-stdout.txt 2>&1"
     )
     timed_out = False
+    err = ""
     try:
         test_exit, _out, err = await _docker("exec", "-u", "0", container, "sh", "-c", command, timeout=timeout + 30)
     except TimeoutError:
         test_exit, timed_out = None, True
+    if _docker_failed(test_exit, err):
+        return _infra(f"docker failed running the verifier (exit {test_exit})", copy_exit=0, test_exit=test_exit)
+    if timed_out or test_exit in (124, 137):
+        # Upstream fails on verifier timeout regardless of any reward already written.
+        return _agent(f"verifier timed out after {timeout}s (test exit {test_exit})", copy_exit=0, test_exit=test_exit)
     code, out, err = await _docker(
         "exec", "-u", "0", container, "sh", "-c",
         f"if [ -f {REWARD_JSON} ]; then echo json; cat {REWARD_JSON}; elif [ -f {REWARD_TEXT} ]; then echo text; cat {REWARD_TEXT}; else exit 3; fi",
     )  # fmt: skip
     if code != 0:
-        if timed_out or test_exit in (124, 137):
-            return {
-                "reward": None, "copy_exit": 0, "test_exit": test_exit, "failure_kind": "agent",
-                "error": f"verifier timed out after {timeout}s and wrote no reward file (test exit {test_exit})",
-            }  # fmt: skip
-        return {
-            "reward": None,
-            "copy_exit": 0,
-            "test_exit": test_exit,
-            "failure_kind": "agent",
-            "error": f"verifier wrote no reward file (test exit {test_exit})",
-        }
+        if _docker_failed(code, err):
+            return _infra(f"docker failed reading the reward file (exit {code})", copy_exit=0, test_exit=test_exit)
+        return _agent(f"verifier wrote no reward file (test exit {test_exit})", copy_exit=0, test_exit=test_exit)
     lines = out.splitlines()
     kind, body = (lines[0].strip(), "\n".join(lines[1:]).strip()) if lines else ("", "")
     try:
@@ -553,13 +576,10 @@ async def run_verifier(container: str, data: JsonObject) -> dict[str, JsonValue]
             if not math.isfinite(reward):
                 raise ValueError(f"non-finite reward {body!r}")
     except (ValueError, TypeError):
-        return {
-            "reward": None,
-            "copy_exit": 0,
-            "test_exit": test_exit,
-            "failure_kind": "agent",
-            "error": f"verifier reward file is unparsable: {body[:200]!r} (test exit {test_exit})",
-        }
+        return _agent(
+            f"verifier reward file is unparsable: {body[:200]!r} (test exit {test_exit})",
+            copy_exit=0, test_exit=test_exit,
+        )  # fmt: skip
     return {
         "reward": reward,
         "copy_exit": 0,
@@ -569,10 +589,25 @@ async def run_verifier(container: str, data: JsonObject) -> dict[str, JsonValue]
     }
 
 
-async def start_task_container(data: JsonObject, *, name: str | None = None) -> str:
-    """Start one named, resource-limited task container; the caller removes it by name."""
+def task_container_name() -> str:
+    """A fresh task-container name; the runner records it on the trial before `docker run`."""
+    return f"parallax-tb2-{uuid.uuid4().hex[:12]}"
+
+
+async def start_task_container(
+    data: JsonObject, *, name: str | None = None, trial_id: str | None = None, run_id: str | None = None
+) -> str:
+    """Pull the pinned image, then start one named, resource-limited task container.
+
+    The caller generates the name (see `task_container_name`), records it before calling, and
+    removes the container by that name on every path, so a failed start still cleans up.
+    """
     spec = _spec_from_data(data)
-    container = name or f"parallax-tb2-{uuid.uuid4().hex[:12]}"
+    container = name or task_container_name()
+    ref = _image_ref(spec)
+    code, _out, err = await _docker("pull", ref, timeout=IMAGE_PULL_TIMEOUT_S)
+    if code != 0:
+        raise HarborTaskError(f"pulling task image {ref} failed (exit {code}): {err.strip()[-300:]}")
     # Docker's default capability set, as upstream Harbor uses: `--cap-drop ALL` breaks apt in
     # most TB2 test scripts (`setgroups`/`seteuid` fail). `no-new-privileges` alone was verified
     # to keep `apt-get` working on a Debian image.
@@ -582,22 +617,58 @@ async def start_task_container(data: JsonObject, *, name: str | None = None) -> 
         "--pids-limit", str(spec.pids_limit),
         "--security-opt", "no-new-privileges",
     ]  # fmt: skip
+    if trial_id is not None:
+        argv += ["--label", f"{TRIAL_LABEL}={trial_id}"]
+    if run_id is not None:
+        argv += ["--label", f"{RUN_LABEL}={run_id}"]
     if spec.network_mode == "no-network":
         argv += ["--network", "none"]
     # `public` uses docker's default bridge.
-    argv += [_image_ref(spec), "sh", "-c", "while true; do sleep 3600; done"]
+    argv += [ref, "sh", "-c", "while true; do sleep 3600; done"]
     code, out, err = await _docker(*argv)
     if code != 0:
-        await remove_container(container)
         raise HarborTaskError(f"starting task container failed (exit {code}): {err.strip()[-300:]}")
     return container
 
 
 async def remove_container(container: str) -> None:
-    """Remove a container parallax started, by name, on every exit path; log a failed removal."""
-    code, _out, err = await _docker("rm", "-f", container)
-    if code != 0:
-        logger.warning("removing task container %s failed (exit %s): %s", container, code, err.strip()[-300:])
+    """Remove a container parallax started, by name, on every exit path; log a failed removal.
+
+    Shielded: a second cancellation landing during the removal does not strand the container;
+    the removal runs to its end and the cancellation is re-raised afterwards.
+    """
+    task = asyncio.ensure_future(_docker("rm", "-f", container))
+    cancelled = False
+    while not task.done():
+        try:
+            await asyncio.shield(task)
+        except asyncio.CancelledError:
+            cancelled = True
+    if task.cancelled():
+        logger.warning("removing task container %s was itself cancelled", container)
+    else:
+        code, _out, err = task.result()
+        if code != 0 and "No such container" not in err:
+            logger.warning("removing task container %s failed (exit %s): %s", container, code, err.strip()[-300:])
+    if cancelled:
+        raise asyncio.CancelledError
+
+
+async def sweep_run_containers(run_id: str) -> None:
+    """Remove containers labelled with this run's id only: leftovers of a crashed run.
+
+    Scoped strictly to `parallax.run=<run_id>`; containers of any other run are untouched. A
+    docker failure is logged, never raised, so the sweep cannot take the run down with it.
+    """
+    try:
+        code, out, err = await _docker("ps", "-aq", "--filter", f"label={RUN_LABEL}={run_id}")
+        if code != 0:
+            logger.warning("sweeping run %s containers failed (exit %s): %s", run_id, code, err.strip()[-300:])
+            return
+        for container in out.split():
+            await remove_container(container)
+    except OSError as exc:
+        logger.warning("sweeping run %s containers failed: %s", run_id, exc)
 
 
 async def run_solution(container: str, data: JsonObject) -> tuple[int | None, str]:
@@ -734,7 +805,10 @@ TB2_POLICY_EXTENSION = TaskExtension(
 
 __all__ = [
     "DEFAULT_PIDS_LIMIT",
+    "IMAGE_PULL_TIMEOUT_S",
     "PINNED_IMAGE_DIGESTS",
+    "RUN_LABEL",
+    "TRIAL_LABEL",
     "REWARD_JSON",
     "REWARD_TEXT",
     "TB2_POLICY",
@@ -753,6 +827,8 @@ __all__ = [
     "run_solution",
     "run_verifier",
     "start_task_container",
+    "sweep_run_containers",
+    "task_container_name",
     "terminal_bench_tasks",
     "tests_digest",
 ]

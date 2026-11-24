@@ -828,9 +828,11 @@ class Session:
         turn_timeout_s: float | None = None,
         budget: CampaignBudget | None = None,
         videos: Path | None = None,
+        run_id: str | None = None,
     ) -> None:
         self.svc = svc
         self.run_dir = run_dir
+        self.run_id = run_id or run_dir.name  # labels every task container this run starts
         self.videos = videos
         self.panel = panel
         self.judge_config = judge_config
@@ -1041,14 +1043,26 @@ class TrialExecution:
             self.t.status, self.t.error = TrajectoryStatus.BOOT_ERROR, f"box: {exc}"
             await self.stop_unstarted(harness)
             return TrialRun(self.finish(started, None), None)
+        if Capability.LIVE_CONTAINER in self.task.meta.requires:
+            from parallax.harbor_tasks import task_container_name
+
+            # Recorded before `docker run`, so the finally below removes the container even
+            # when starting it fails or the trial is cancelled mid-start.
+            self.task_container = task_container_name()
         try:
-            if Capability.LIVE_CONTAINER in self.task.meta.requires:
+            if self.task_container is not None:
                 from parallax.harbor_tasks import HarborTaskError, start_task_container
 
                 try:
-                    self.task_container = await start_task_container(self.task.data)
+                    await start_task_container(
+                        self.task.data, name=self.task_container, trial_id=self.trial_id(), run_id=self.s.run_id
+                    )
                 except (HarborTaskError, OSError) as exc:
+                    # The same cleanup as every other early return: stop the unstarted
+                    # harness and close the box; the finally removes the container.
                     self.t.status, self.t.error = TrajectoryStatus.BOOT_ERROR, f"task container: {exc}"
+                    await self.stop_unstarted(harness)
+                    await box.close()
                     return TrialRun(self.finish(started, None), None)
             try:
                 await self.drive(harness, box, None, None)
@@ -1721,7 +1735,9 @@ async def run_async(
             budget = CampaignBudget(opts.budget_usd, opts.reserve_usd, journal)
         elif journal.is_file():
             budget = CampaignBudget.from_journal(journal)
-        session = Session(svc, opts.out, panel, judge_config, opts.turn_timeout_s, budget, opts.videos)
+        session = Session(
+            svc, opts.out, panel, judge_config, opts.turn_timeout_s, budget, opts.videos, run_id=opts.out.name
+        )
         session.live = LiveFeed.open(feed_session)
         if session.live is not None:
             session.live.run_started(
@@ -1729,10 +1745,14 @@ async def run_async(
                 labels=sorted({live_label(p.harness.name, p.model) for p in plans}), kept=sorted({p.key for p in plans} - {p.key for p in todo}),
                 planned=[p.key for p in todo],
             )  # fmt: skip
+        from parallax.harbor_tasks import sweep_run_containers
+
+        await sweep_run_containers(session.run_id)  # containers a crashed earlier run left behind
         try:
             runs = {r.result.key: r for r in await execute_all(session, todo, opts, retries_left=opts.retry_invalid)}
             await retry_transient_invalid(session, todo, runs, opts)
         finally:
+            await sweep_run_containers(session.run_id)
             if session.live is not None:
                 session.live.run_finished()
             if budget is not None:

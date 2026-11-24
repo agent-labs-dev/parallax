@@ -8,9 +8,10 @@ models); no database, action or communication comparison is reimplemented here. 
 assistant tool calls are each followed by their ToolMessage, and an explicit termination reason.
 The evaluator replays the transcript itself. Simulator (user-model) usage never enters this bridge:
 the simulation is built with no agent/user cost, and every judge call the evaluator makes is
-recorded as it happens - in `calls`, as a `PARALLAX_JUDGE_CALL` JSON line on stderr, and in the
-request's `calls_file` when one is given - priced when upstream reported a cost and unpriced
-otherwise, including a call that fails. Termination reasons come from `tau2_terms.py`, the
+recorded as it happens in the request's `calls_file` (the one judge-call channel), priced when
+upstream reported a cost and unpriced otherwise, including a call that fails; a failed call
+records only its exception class and HTTP status, never the exception message. Termination
+reasons come from `tau2_terms.py`, the
 single source this bridge and `parallax.official_suites.Tau2Evidence` both validate against.
 """
 
@@ -40,7 +41,6 @@ def _load_terms() -> tuple[str, ...]:
 
 TERMINATION_REASONS = _load_terms()
 _TERMINATION_SET = frozenset(TERMINATION_REASONS)
-JUDGE_CALL_PREFIX = "PARALLAX_JUDGE_CALL "
 
 
 def _root(request: dict[str, Any]) -> Path:
@@ -97,20 +97,26 @@ def _messages(request: dict[str, Any]) -> list[dict[str, Any]]:
     return messages
 
 
-def _emit_call(calls: list[dict[str, Any]], calls_file: str | None, entry: dict[str, Any]) -> None:
-    calls.append(entry)
-    print(JUDGE_CALL_PREFIX + json.dumps(entry), file=sys.stderr, flush=True)
+def _emit_call(calls_file: str | None, entry: dict[str, Any]) -> None:
     if calls_file:
         with Path(calls_file).open("a", encoding="utf-8") as stream:
             stream.write(json.dumps(entry) + "\n")
 
 
-def _judge_calls(calls: list[dict[str, Any]], calls_file: str | None = None) -> Any:
+def _error_label(exc: BaseException) -> str:
+    """A failed call's recorded error: its exception class and HTTP status only, never its message."""
+    status = getattr(exc, "status_code", None)
+    if not isinstance(status, int):
+        status = getattr(getattr(exc, "response", None), "status_code", None)
+    return f"{type(exc).__name__} (HTTP {status})" if isinstance(status, int) else type(exc).__name__
+
+
+def _judge_calls(calls_file: str | None = None) -> Any:
     """Wrap the evaluator modules' `generate` so every judge call is recorded as it happens.
 
     Returns a restore callable. Each entry carries the model called, token usage when the reply
     reported any, and its cost (None, never dropped, when upstream reported none); a call that
-    raises is recorded unpriced with its error and then re-raised.
+    raises is recorded unpriced with its error class and status only, then re-raised.
     """
     import importlib
 
@@ -125,13 +131,13 @@ def _judge_calls(calls: list[dict[str, Any]], calls_file: str | None = None) -> 
             try:
                 reply = _original(*args, **kwargs)
             except BaseException as exc:
-                _emit_call(calls, calls_file, {
+                _emit_call(calls_file, {
                     "model": model, "input_tokens": None, "output_tokens": None, "cost_usd": None,
-                    "latency_ms": int((time.monotonic() - started) * 1000), "error": f"{type(exc).__name__}: {exc}",
+                    "latency_ms": int((time.monotonic() - started) * 1000), "error": _error_label(exc),
                 })  # fmt: skip
                 raise
             usage = getattr(reply, "usage", None) or {}
-            _emit_call(calls, calls_file, {
+            _emit_call(calls_file, {
                 "model": str(kwargs.get("model") or getattr(reply, "model", "") or "unknown"),
                 "input_tokens": usage.get("prompt_tokens"),
                 "output_tokens": usage.get("completion_tokens"),
@@ -184,8 +190,7 @@ def _evaluate(request: dict[str, Any]) -> dict[str, Any]:
         agent_cost=None,  # simulator and agent cost stay out of the upstream reward path
         user_cost=None,
     )
-    calls: list[dict[str, Any]] = []
-    restore = _judge_calls(calls, str(request["calls_file"]) if request.get("calls_file") else None)
+    restore = _judge_calls(str(request["calls_file"]) if request.get("calls_file") else None)
     # Route both judges through the caller's configured gateway with the ids it validated:
     # the communicate judge via its settings, the NL judge via the module's pinned name.
     judge_models = request.get("judge_models") or {}
@@ -220,12 +225,12 @@ def _evaluate(request: dict[str, Any]) -> dict[str, Any]:
         "score": score,
         "reward": score,
         "reason": json.dumps(reward.model_dump(mode="json"), ensure_ascii=False, sort_keys=True),
-        "calls": calls,
     }
 
 
 def failure(exc: BaseException) -> str:
-    return " ".join(f"{type(exc).__name__}: {exc}".split())
+    """What stderr may carry about a failed bridge: the exception class only, never its message."""
+    return type(exc).__name__
 
 
 def main() -> None:
@@ -237,7 +242,7 @@ def main() -> None:
         raise RuntimeError("unsupported bridge operation")
     with contextlib.redirect_stdout(sys.stderr):
         result = _evaluate(request)
-    json.dump({**result, "calls": result.get("calls", [])}, sys.stdout)
+    json.dump(result, sys.stdout)
     sys.stdout.write("\n")
 
 

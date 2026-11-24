@@ -191,38 +191,68 @@ def test_tau2_termination_reasons_have_one_source():
     assert "agent_stop" in TERMINATION_REASONS
 
 
-def test_tau2_read_judge_calls_from_file_and_stderr(tmp_path):
+def test_tau2_read_judge_calls_reads_only_the_side_file(tmp_path):
     calls_file = tmp_path / "calls.jsonl"
     calls_file.write_text('{"model": "gpt-5.5", "cost_usd": null, "latency_ms": 3}\nnot json\n')
-    assert official._read_judge_calls(calls_file, "") == [{"model": "gpt-5.5", "cost_usd": None, "latency_ms": 3}]
-    line = tau2_bridge.JUDGE_CALL_PREFIX + '{"model": "gpt-5.5", "cost_usd": 0.5, "latency_ms": 2}'
-    assert official._read_judge_calls(tmp_path / "missing.jsonl", line) == [
-        {"model": "gpt-5.5", "cost_usd": 0.5, "latency_ms": 2}
-    ]
+    assert official._read_judge_calls(calls_file) == [{"model": "gpt-5.5", "cost_usd": None, "latency_ms": 3}]
+    assert official._read_judge_calls(tmp_path / "missing.jsonl") == []
+
+
+def test_tau2_bridge_error_reduces_stderr_to_class_and_fixed_reason():
+    assert (
+        official._bridge_error("noise\nRuntimeError: judge down with a secret\n") == "RuntimeError: tau2 bridge failed"
+    )
+    assert official._bridge_error("") == "Error: tau2 bridge failed"
+
+
+def test_tau2_failed_call_error_label_is_class_and_status_only():
+    class GatewayDown(Exception):
+        status_code = 503
+
+    assert tau2_bridge._error_label(GatewayDown("secret gateway message")) == "GatewayDown (HTTP 503)"
+    assert tau2_bridge._error_label(RuntimeError("secret message")) == "RuntimeError"
+    assert "secret" not in tau2_bridge.failure(RuntimeError("secret message"))
 
 
 @pytest.mark.asyncio
-async def test_tau2_bridge_failure_still_records_judge_calls(monkeypatch, tmp_path):
-    root = tmp_path / "tau2"
-    (root / ".venv" / "bin").mkdir(parents=True)
-    (root / ".venv" / "bin" / "python").touch()
-    monkeypatch.setenv("PARALLAX_OFFICIAL_TAU2_ROOT", str(root))
-    failed_call = {
-        "model": official.TAU2_COMMUNICATE_JUDGE_MODEL, "input_tokens": None, "output_tokens": None,
-        "cost_usd": None, "latency_ms": 4, "error": "RuntimeError: judge down",
-    }  # fmt: skip
+async def test_tau2_preflight_queries_gateway_once_and_refuses_missing_judge(monkeypatch, tmp_path):
+    import threading
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-    async def fake_bridge(req, payload):
-        return {"error": "RuntimeError: judge down", "calls": [failed_call]}
+    (tmp_path / ".venv" / "bin").mkdir(parents=True)
+    (tmp_path / ".venv" / "bin" / "python").touch()
+    monkeypatch.setenv("PARALLAX_OFFICIAL_TAU2_ROOT", str(tmp_path))
+    seen: list[str] = []
 
-    monkeypatch.setattr(official, "_tau2_bridge", fake_bridge)
-    request = _tau2_request({"tau2": {"transcript": TRANSCRIPT, "termination_reason": "agent_stop"}})
-    graded = await official._grade_tau2(request)
-    await request.client.aclose()
-    assert graded.checks[0].passed is None
-    assert len(graded.judgments) == 1
-    assert graded.judgments[0].fallback_calls[0].cost_usd is None
-    assert graded.judgments[0].cost() == (0.0, 1)  # the failed call is recorded unpriced, never dropped
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            seen.append(self.path)
+            body = json.dumps({"data": [{"id": official.TAU2_COMMUNICATE_JUDGE_MODEL}]}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        import dataclasses
+
+        request = dataclasses.replace(
+            _tau2_request(None),
+            judge_config=JudgeConfig(base_url=f"http://127.0.0.1:{server.server_port}/v1", api_key="test"),
+        )
+        first = await official._tau2_preflight(request)
+        second = await official._tau2_preflight(request)
+    finally:
+        server.shutdown()
+    assert first is not None and official.TAU2_NL_JUDGE_MODEL in first
+    assert second == first
+    assert seen == ["/v1/models"]  # cached per run: the gateway is queried once
 
 
 # --- real pinned checkout, `mock` domain (skipped where unavailable) ------
@@ -248,23 +278,51 @@ requires_tau2 = pytest.mark.skipif(
 @requires_tau2
 @pytest.mark.asyncio
 async def test_tau2_bridge_agent_stop_passes_and_max_steps_scores_zero(monkeypatch):
+    # The preflight needs a gateway offering both judge ids; this task's reward basis calls
+    # neither judge, so the gateway only ever serves its model list.
+    import dataclasses
+    from http.server import BaseHTTPRequestHandler
+
+    class Models(BaseHTTPRequestHandler):
+        def do_GET(self):
+            body = json.dumps(
+                {"data": [{"id": official.TAU2_COMMUNICATE_JUDGE_MODEL}, {"id": official.TAU2_NL_JUDGE_MODEL}]}
+            ).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    base_url, server = _gateway(Models)
     root, _python = _tau2_checkout()  # type: ignore[misc]
     monkeypatch.setenv("PARALLAX_OFFICIAL_TAU2_ROOT", str(root))
-    product = {"tau2": {"transcript": TRANSCRIPT, "termination_reason": "agent_stop"}}
-    request = _tau2_request(product, domain="mock", task_id="create_task_1_with_env_assertions")
-    graded = await official._grade_tau2(request)
-    await request.client.aclose()
-    assert graded.checks[0].passed is True
-    assert graded.score == 1.0
-    # No communicate or NL judge was in this task's reward basis, so no judge calls are priced.
-    assert graded.judgments == ()
+    config = JudgeConfig(base_url=base_url, api_key="test")
+    try:
+        product = {"tau2": {"transcript": TRANSCRIPT, "termination_reason": "agent_stop"}}
+        request = dataclasses.replace(
+            _tau2_request(product, domain="mock", task_id="create_task_1_with_env_assertions"), judge_config=config
+        )
+        graded = await official._grade_tau2(request)
+        await request.client.aclose()
+        assert graded.checks[0].passed is True
+        assert graded.score == 1.0
+        # No communicate or NL judge was in this task's reward basis, so no judge calls are priced.
+        assert graded.judgments == ()
 
-    product = {"tau2": {"transcript": TRANSCRIPT, "termination_reason": "max_steps"}}
-    request = _tau2_request(product, domain="mock", task_id="create_task_1_with_env_assertions")
-    graded = await official._grade_tau2(request)
-    await request.client.aclose()
-    assert graded.checks[0].passed is False
-    assert graded.score == 0.0
+        product = {"tau2": {"transcript": TRANSCRIPT, "termination_reason": "max_steps"}}
+        request = dataclasses.replace(
+            _tau2_request(product, domain="mock", task_id="create_task_1_with_env_assertions"), judge_config=config
+        )
+        graded = await official._grade_tau2(request)
+        await request.client.aclose()
+        assert graded.checks[0].passed is False
+        assert graded.score == 0.0
+    finally:
+        server.shutdown()  # type: ignore[attr-defined]
 
 
 @requires_tau2
@@ -296,4 +354,163 @@ def test_tau2_bridge_script_against_mock_domain():
     assert result.returncode == 0, result.stderr.decode()[-500:]
     outcome = json.loads(result.stdout)
     assert outcome["passed"] is True
-    assert outcome["calls"] == []
+    assert "calls" not in outcome  # judge calls travel only in the side file, never on stdout
+
+
+def _gateway(handler) -> tuple[str, object]:
+    import threading
+    from http.server import ThreadingHTTPServer
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return f"http://127.0.0.1:{server.server_port}/v1", server
+
+
+def _nl_payload() -> dict:
+    # `update_task_with_initialization_data` carries communicate_info, so the semantic
+    # communicate judge (in the default reward basis) is called on the assistant text.
+    transcript = [
+        {"role": "user", "content": "Continue our earlier discussion and mark task_2 as completed."},
+        {
+            "role": "assistant",
+            "content": "As we discussed earlier about task_2, I have marked it as completed successfully.",
+        },
+    ]
+    return {
+        "operation": "evaluate",
+        "suite": "tau2",
+        "commit": official.TAU2_UPSTREAM_COMMIT,
+        "domain": "mock",
+        "task_id": "update_task_with_initialization_data",
+        "transcript": transcript,
+        "termination_reason": "agent_stop",
+        "judge_models": {"communicate": official.TAU2_COMMUNICATE_JUDGE_MODEL, "nl": official.TAU2_NL_JUDGE_MODEL},
+    }
+
+
+@requires_tau2
+@pytest.mark.asyncio
+async def test_tau2_bridge_timeout_kills_the_process_group(monkeypatch):
+    # The real bridge subprocess against the pinned checkout, with a gateway that never
+    # answers: a tiny bridge timeout must kill the whole process group and return promptly.
+    import time
+    from http.server import BaseHTTPRequestHandler
+
+    class Hanging(BaseHTTPRequestHandler):
+        def do_POST(self):
+            time.sleep(60)
+
+        def log_message(self, *args):
+            pass
+
+    base_url, server = _gateway(Hanging)
+    root, _python = _tau2_checkout()  # type: ignore[misc]
+    monkeypatch.setenv("PARALLAX_OFFICIAL_TAU2_ROOT", str(root))
+    monkeypatch.setattr(official, "TAU2_BRIDGE_TIMEOUT_S", 3.0)
+    import dataclasses
+
+    request = dataclasses.replace(_tau2_request(None), judge_config=JudgeConfig(base_url=base_url, api_key="test"))
+    started = time.monotonic()
+    try:
+        result = await official._tau2_bridge(request, _nl_payload())
+    finally:
+        server.shutdown()  # type: ignore[attr-defined]
+    assert time.monotonic() - started < 30
+    assert "timed out" in result["error"]
+    assert result["calls"] == []
+
+
+@requires_tau2
+@pytest.mark.asyncio
+async def test_tau2_grade_bridge_failure_records_calls_and_no_unpriced_stand_in(monkeypatch):
+    # Through _grade_tau2 with the real bridge: the gateway offers both judge ids (preflight
+    # passes) then refuses every judge call. The recorded failed call prices as unpriced, the
+    # grade detail carries no raw gateway text, and no stand-in unpriced call is added.
+    from http.server import BaseHTTPRequestHandler
+
+    marker = "gateway-secret-marker"
+
+    class Gateway(BaseHTTPRequestHandler):
+        def do_GET(self):
+            body = json.dumps(
+                {"data": [{"id": official.TAU2_COMMUNICATE_JUDGE_MODEL}, {"id": official.TAU2_NL_JUDGE_MODEL}]}
+            ).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def do_POST(self):
+            body = json.dumps({"error": {"message": marker, "type": "invalid_request_error"}}).encode()
+            self.send_response(400)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    base_url, server = _gateway(Gateway)
+    root, _python = _tau2_checkout()  # type: ignore[misc]
+    monkeypatch.setenv("PARALLAX_OFFICIAL_TAU2_ROOT", str(root))
+    import dataclasses
+
+    product = {"tau2": {"transcript": _nl_payload()["transcript"], "termination_reason": "agent_stop"}}
+    request = dataclasses.replace(
+        _tau2_request(product, domain="mock", task_id="update_task_with_initialization_data"),
+        judge_config=JudgeConfig(base_url=base_url, api_key="test"),
+    )
+    try:
+        graded = await official._grade_tau2(request)
+    finally:
+        server.shutdown()  # type: ignore[attr-defined]
+        await request.client.aclose()
+    assert graded.checks[0].passed is None
+    assert marker not in graded.checks[0].detail
+    assert graded.unpriced_calls == 0
+    if graded.judgments:
+        assert graded.judgments[0].fallback_calls[0].cost_usd is None
+        assert graded.judgments[0].cost() == (0.0, 1)
+
+
+@requires_tau2
+@pytest.mark.asyncio
+async def test_tau2_bridge_failed_judge_call_is_captured_in_the_side_file_only(monkeypatch):
+    # The real bridge subprocess: the gateway refuses the judge call with a marker message.
+    # The side file records the call with class and status only; neither the recorded error
+    # nor the grade-facing bridge error may carry the gateway's raw message.
+    from http.server import BaseHTTPRequestHandler
+
+    marker = "gateway-secret-marker"
+
+    class Refusing(BaseHTTPRequestHandler):
+        def do_POST(self):
+            body = json.dumps({"error": {"message": marker, "type": "invalid_request_error"}}).encode()
+            self.send_response(400)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    base_url, server = _gateway(Refusing)
+    root, _python = _tau2_checkout()  # type: ignore[misc]
+    monkeypatch.setenv("PARALLAX_OFFICIAL_TAU2_ROOT", str(root))
+    import dataclasses
+
+    request = dataclasses.replace(_tau2_request(None), judge_config=JudgeConfig(base_url=base_url, api_key="test"))
+    try:
+        result = await official._tau2_bridge(request, _nl_payload())
+    finally:
+        server.shutdown()  # type: ignore[attr-defined]
+    assert marker not in result["error"]
+    assert result["error"].endswith("tau2 bridge failed")
+    assert result["calls"], "the failed judge call was not recorded in the side file"
+    recorded = result["calls"][0]
+    assert recorded["cost_usd"] is None
+    assert marker not in str(recorded.get("error"))
+    assert "400" in str(recorded.get("error")) or recorded.get("error")

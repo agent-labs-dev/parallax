@@ -706,8 +706,8 @@ def _tau2_judge_env(req: GradeRequest) -> dict[str, str]:
     return env
 
 
-def _read_judge_calls(calls_file: Path, error_text: str) -> list[dict[str, Any]]:
-    """Judge calls recorded as they happened: the side-channel file, else the stderr JSON lines."""
+def _read_judge_calls(calls_file: Path) -> list[dict[str, Any]]:
+    """Judge calls recorded as they happened, from the side file: the one judge-call channel."""
     calls: list[dict[str, Any]] = []
     if calls_file.is_file():
         for line in calls_file.read_text(encoding="utf-8").splitlines():
@@ -717,19 +717,19 @@ def _read_judge_calls(calls_file: Path, error_text: str) -> list[dict[str, Any]]
                 continue
             if isinstance(entry, dict):
                 calls.append(entry)
-    if calls:
-        return calls
-    from parallax.tau2_bridge import JUDGE_CALL_PREFIX
-
-    for line in error_text.splitlines():
-        if line.startswith(JUDGE_CALL_PREFIX):
-            try:
-                entry = json.loads(line[len(JUDGE_CALL_PREFIX) :])
-            except json.JSONDecodeError:
-                continue
-            if isinstance(entry, dict):
-                calls.append(entry)
     return calls
+
+
+def _bridge_error(error_text: str) -> str:
+    """Grade detail for a failed bridge: the stderr exception class and a fixed reason only.
+
+    Raw bridge stderr never reaches a grade: it can carry judge responses and request detail.
+    """
+    last = error_text.strip().splitlines()[-1:][0].strip() if error_text.strip() else ""
+    label = last.split(":", 1)[0].strip()
+    if not re.fullmatch(r"[A-Za-z_][\w.]*", label or ""):
+        label = "Error"
+    return f"{label}: tau2 bridge failed"
 
 
 async def _tau2_bridge(req: GradeRequest, payload: dict[str, JsonValue]) -> dict[str, Any]:
@@ -771,19 +771,18 @@ async def _tau2_bridge(req: GradeRequest, payload: dict[str, JsonValue]) -> dict
         if timed_out:
             return {
                 "error": f"tau2 bridge timed out after {TAU2_BRIDGE_TIMEOUT_S:.0f}s",
-                "calls": _read_judge_calls(calls_file, error_text),
+                "calls": _read_judge_calls(calls_file),
             }
-        calls = _read_judge_calls(calls_file, error_text)
+        calls = _read_judge_calls(calls_file)
         if process.returncode != 0:
-            message = error_text.strip().splitlines()[-1:] or ["tau2 bridge failed"]
-            return {"error": message[0], "calls": calls}
+            return {"error": _bridge_error(error_text), "calls": calls}
         try:
             result = json.loads(output)
-        except json.JSONDecodeError as exc:
-            return {"error": f"tau2 bridge returned invalid JSON: {exc}", "calls": calls}
+        except json.JSONDecodeError:
+            return {"error": "tau2 bridge returned invalid JSON", "calls": calls}
         if not isinstance(result, dict):
             return {"error": "tau2 bridge returned a non-object", "calls": calls}
-        return {**cast(dict[str, Any], result), "calls": calls or result.get("calls", [])}
+        return {**cast(dict[str, Any], result), "calls": calls}
 
 
 def _tau2_judgment(req: GradeRequest, payload: Mapping[str, JsonValue], result: Mapping[str, Any]) -> Judgment | None:
@@ -811,15 +810,50 @@ def _tau2_judgment(req: GradeRequest, payload: Mapping[str, JsonValue], result: 
     )
 
 
-def _tau2_preflight(req: GradeRequest) -> str | None:
-    """Validate the judge gateway and its model ids before any bridge process (or judge spend) starts."""
-    if not _tau2_judge_env(req):
+# One gateway probe per run: keyed by gateway and both judge ids, so every later grade in the
+# run reuses the first result instead of re-querying (or re-refusing) per trial.
+_TAU2_PREFLIGHT_CACHE: dict[tuple[str, str, str], str | None] = {}
+
+
+async def _tau2_gateway_models(base_url: str, api_key: str) -> set[str]:
+    """The model ids the configured judge gateway offers, from its OpenAI-compatible list."""
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        response = await client.get(f"{base_url.rstrip('/')}/models", headers={"Authorization": f"Bearer {api_key}"})
+        response.raise_for_status()
+        payload = response.json()
+    rows = payload.get("data") if isinstance(payload, dict) else None
+    if not isinstance(rows, list):
+        raise OfficialSuiteError("tau2 judge gateway returned no model list")
+    return {str(row["id"]) for row in rows if isinstance(row, dict) and row.get("id")}
+
+
+async def _tau2_preflight(req: GradeRequest) -> str | None:
+    """Query the judge gateway's model list once per run and refuse when either judge id is missing.
+
+    The probe result is cached per run (keyed by gateway and both judge ids); a missing judge
+    endpoint or key, an unreachable gateway and a missing checkout each refuse before any bridge
+    process or judge spend starts.
+    """
+    env = _tau2_judge_env(req)
+    if not env.get("OPENAI_BASE_URL") or not env.get("OPENAI_API_KEY"):
         return "tau2 judge gateway is not configured (judge endpoint and key are required)"
     try:
         _tau2_root()
     except OfficialSuiteError as exc:
         return str(exc)
-    return None
+    key = (env["OPENAI_BASE_URL"], TAU2_COMMUNICATE_JUDGE_MODEL, TAU2_NL_JUDGE_MODEL)
+    if key in _TAU2_PREFLIGHT_CACHE:
+        return _TAU2_PREFLIGHT_CACHE[key]
+    result: str | None
+    try:
+        offered = await _tau2_gateway_models(env["OPENAI_BASE_URL"], env["OPENAI_API_KEY"])
+    except (httpx.HTTPError, OSError, ValueError, OfficialSuiteError) as exc:
+        result = f"tau2 judge gateway model list could not be read ({type(exc).__name__})"
+    else:
+        missing = [model for model in key[1:] if model not in offered]
+        result = f"tau2 judge model(s) not offered by the configured gateway: {', '.join(missing)}" if missing else None
+    _TAU2_PREFLIGHT_CACHE[key] = result
+    return result
 
 
 async def _grade_tau2(req: GradeRequest) -> Graded:
@@ -830,7 +864,7 @@ async def _grade_tau2(req: GradeRequest) -> Graded:
         evidence = parse_tau2_evidence(req.product)
     except ValueError as exc:
         return _tau2_unjudged(req.task, f"missing evidence: invalid tau2 evidence: {exc}")
-    if (preflight := _tau2_preflight(req)) is not None:
+    if (preflight := await _tau2_preflight(req)) is not None:
         return _tau2_unjudged(req.task, f"missing evidence: tau2 judge preflight failed: {preflight}")
     data = req.task.data
     # Simulator spend is the harness's own metadata: it is not forwarded and never priced here.
@@ -847,19 +881,13 @@ async def _grade_tau2(req: GradeRequest) -> Graded:
     try:
         result = await _tau2_bridge(req, payload)
     except (OfficialSuiteError, OSError, ValueError) as exc:
-        # The bridge may have reached the judge before failing, so its cost is unknown, not zero.
-        return _tau2_unjudged(req.task, f"missing evidence: upstream tau2 evaluator unavailable: {exc}").model_copy(
-            update={"unpriced_calls": 1}
-        )
+        # No judge calls were recorded, so zero calls are recorded: no unpriced call stands in.
+        return _tau2_unjudged(req.task, f"missing evidence: upstream tau2 evaluator unavailable: {type(exc).__name__}")
     if isinstance(result.get("error"), str):
-        # Judge calls recorded before the failure still price the grade; with none recorded the
-        # bridge may have reached the judge, so one unpriced call stands for the unknown spend.
+        # Judge calls recorded before the failure still price the grade; with none recorded,
+        # zero calls are recorded, not one unpriced call.
         judgment = _tau2_judgment(req, payload, result)
-        spend = (
-            {"judgments": (judgment,), "unpriced_calls": 0}
-            if judgment is not None
-            else {"judgments": (), "unpriced_calls": 1}
-        )
+        spend = {"judgments": (judgment,) if judgment is not None else (), "unpriced_calls": 0}
         return _tau2_unjudged(
             req.task, f"missing evidence: upstream tau2 evaluator unavailable: {result['error']}"
         ).model_copy(update=spend)
