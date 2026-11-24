@@ -269,11 +269,11 @@ async def test_box_network_reaches_only_the_sidecar() -> None:
 
 def test_sidecar_allowlist_composes_harness_hosts_with_model_hosts() -> None:
     sidecar = Sidecar(
-        secrets.token_urlsafe(16), secrets.token_urlsafe(16), egress_hosts=("api.nebula.example", "registry.npmjs.org")
+        secrets.token_urlsafe(16), secrets.token_urlsafe(16), egress_hosts=("api.product.example", "registry.npmjs.org")
     )
 
-    assert sidecar.allowed_hosts == ("api.nebula.example", "openrouter.ai", "registry.npmjs.org")
-    assert egress.allowed("api.nebula.example", 443, sidecar.allowed_hosts)
+    assert sidecar.allowed_hosts == ("api.product.example", "openrouter.ai", "registry.npmjs.org")
+    assert egress.allowed("api.product.example", 443, sidecar.allowed_hosts)
     assert egress.allowed("registry.npmjs.org", 443, sidecar.allowed_hosts)
     assert not egress.allowed("example.com", 443, sidecar.allowed_hosts)
 

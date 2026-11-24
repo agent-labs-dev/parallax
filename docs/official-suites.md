@@ -93,7 +93,7 @@ or written to disk. The manifest's rendered config files are written inside the 
 (`home:` under `/root`, `workspace:` under `/app`). Manifests that declare this get
 `live_container`. The built-in `codex` (pinned `@openai/codex@0.169.0`) and `claude-code`
 (pinned `@anthropic-ai/claude-code@2.1.325`) manifests declare it; `hermes` and `openclaw`
-do not, so they (and any non-manifest harness without `live_container`, such as Nebula) score
+do not, so they (and any non-manifest harness without `live_container`) score
 NA on terminal-bench-2 until they declare a TB2 path.
 
 `storage_mb` is recorded in the task and trial metadata, but the official Harbor Docker runner
