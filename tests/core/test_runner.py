@@ -153,6 +153,61 @@ INFO = HarnessInfo(name="h", kind=HarnessKind.OPEN, capabilities=frozenset(Capab
                    cost_source=CostSource.METERED, isolation=Isolation.HOST, version_cmd=("h",))  # fmt: skip
 
 
+async def test_budget_admission_refuses_unpriced_model_before_reserve(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from types import SimpleNamespace
+
+    class Budget:
+        reservation = 0.1
+
+        def __init__(self) -> None:
+            self.reserves = 0
+
+        async def reserve(self, _trial: str) -> None:
+            self.reserves += 1
+            raise AssertionError("budget.reserve must not be called")
+
+        async def settle(self, _hold: object, _spent: float | None) -> None:
+            raise AssertionError("budget.settle must not be called")
+
+    task = load_task(TASKS / "mini-mail")
+    plan = runner.TrialPlan(
+        task=task,
+        harness=runner.HarnessPlan("h", INFO, "1", "config"),
+        model="openai/unpriced",
+        repeat=0,
+        key="mini-mail:h:openai-unpriced:0",
+    )
+    seen_urls: list[str] = []
+    monkeypatch.setenv("PARALLAX_UPSTREAM_OPENAI", "https://actual-upstream.test/v1")
+    monkeypatch.setattr(runner, "model_price_known", lambda _model, url: seen_urls.append(url) or False)
+    session = runner.Session(SimpleNamespace(isolation=Isolation.HOST), tmp_path, None, None, budget=Budget())
+    result = await session.trial(plan)
+    assert seen_urls == ["https://actual-upstream.test/v1"]
+    assert "no known price" in (result.result.invalid_reason or "")
+
+
+@pytest.mark.asyncio
+async def test_tau2_registration_unhooks_backend_when_public_check_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    from parallax.world.server import WorldServer
+
+    service = runner.Services(Isolation.HOST, "https://world.test", False, "run")
+    service._server = WorldServer()
+    service.world_local = "http://127.0.0.1:1234"
+    seen: list[str] = []
+
+    async def fail_check(_public: str, _local: str, *, token: str | None, nonce: str | None) -> None:
+        assert token is not None and nonce is not None
+        seen.append(token)
+        raise runner.BoxError("wrong public world")
+
+    monkeypatch.setattr(runner, "check_public_world", fail_check)
+    with pytest.raises(runner.BoxError, match="wrong public world"):
+        await service.register_tau2(object())
+    assert seen and service._server.backend_for(seen[0]) is None
+
+
 @pytest.mark.parametrize(
     ("actual", "unobserved", "flags"),
     [

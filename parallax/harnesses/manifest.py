@@ -14,6 +14,7 @@ import json
 import os
 import re
 import shlex
+import tempfile
 import tomllib
 from collections.abc import Mapping
 from pathlib import Path
@@ -377,14 +378,18 @@ class ManifestHarness(SubprocessHarness):
             response.raise_for_status()
         except httpx.HTTPError as exc:
             raise ManifestError(f"{self.spec.info.name}: artifact {artifact.name} download failed: {exc}") from exc
-        temporary = target.with_suffix(target.suffix + ".tmp")
-        temporary.write_bytes(response.content)
-        if self._digest(temporary, artifact) != artifact.digest:
+        descriptor, temporary_name = tempfile.mkstemp(dir=cache, prefix=f".{artifact.name}.", suffix=".tmp")
+        os.close(descriptor)
+        temporary = Path(temporary_name)
+        try:
+            temporary.write_bytes(response.content)
+            if self._digest(temporary, artifact) != artifact.digest:
+                raise ManifestError(
+                    f"{self.spec.info.name}: artifact {artifact.name} failed {artifact.algorithm} verification"
+                )
+            os.replace(temporary, target)
+        finally:
             temporary.unlink(missing_ok=True)
-            raise ManifestError(
-                f"{self.spec.info.name}: artifact {artifact.name} failed {artifact.algorithm} verification"
-            )
-        os.replace(temporary, target)
         return target
 
     async def _copy_artifact(self, source: Path, name: str) -> None:

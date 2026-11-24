@@ -312,6 +312,8 @@ class _ServeSession:
         """One simulator generation, executing any user tool calls it makes on the way."""
         extra: list[dict[str, Any]] = []
         consumed = 0
+        if remaining_steps is not None and remaining_steps <= 0:
+            return None, extra
         message, self.user_state = self.simulator.generate_next_message(incoming, self.user_state)
         consumed += 1
         if getattr(message, "cost", None):
@@ -328,6 +330,8 @@ class _ServeSession:
                 result_message = result.model_dump(mode="json")
                 result_message.update({"tau2_actor": "env", "tau2_batch": batch})
                 extra.append(result_message)
+            # Upstream counts one environment step for this whole batch, not one step per
+            # result. A follow-up simulator message, if any, is the next user step.
             consumed += 1
             if remaining_steps is not None and consumed >= max(1, remaining_steps):
                 return None, extra

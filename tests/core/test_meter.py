@@ -8,7 +8,18 @@ import json
 import httpx
 import parallax.meter as meter_module
 import pytest
-from parallax.meter import MeterClient, TrialMeter, Upstream, UsageAccumulator, Wire, app, llm_endpoint, record
+from parallax.meter import (
+    MeterClient,
+    Observed,
+    TrialMeter,
+    Upstream,
+    UsageAccumulator,
+    Wire,
+    app,
+    llm_endpoint,
+    price,
+    record,
+)
 from parallax.models import CostSource
 from pydantic import SecretStr
 
@@ -143,32 +154,56 @@ async def test_unknown_price_is_none_not_zero(meter: httpx.AsyncBaseTransport) -
     assert report.unpriced_requests == 1
 
 
-async def test_unknown_price_does_not_lock_out_a_budgeted_trial(meter: httpx.AsyncBaseTransport) -> None:
+async def test_budgeted_registration_rejects_an_unpriced_model(meter: httpx.AsyncBaseTransport) -> None:
     control = MeterClient("http://meter", ADMIN, transport=meter)
-    await control.register(KEY, budget_usd=0.000001)
+    with pytest.raises(httpx.HTTPStatusError) as exc:
+        await control.register(KEY, budget_usd=0.000001, model="nobody/unreal-model-9", wire=Wire.OPENAI)
+    assert exc.value.response.status_code == 400
+
+
+async def test_budgeted_forward_rejects_an_unpriced_request_before_upstream(
+    meter: httpx.AsyncBaseTransport, seen: list[httpx.Request]
+) -> None:
+    control = MeterClient("http://meter", ADMIN, transport=meter)
+    await control.register(KEY, budget_usd=0.000001, model="openai/gpt-4o", wire=Wire.OPENAI)
     ep = llm_endpoint("http://meter", KEY, "http://meter")
     async with httpx.AsyncClient(transport=meter) as c:
         unknown = await c.post(
             f"{ep.openai_base_url}/chat/completions", json={"model": "nobody/unreal-model-9", "messages": []}
         )
-        priced = await c.post(f"{ep.openai_base_url}/chat/completions", json={"model": "openai/gpt-4o", "messages": []})
-        second_priced = await c.post(
-            f"{ep.openai_base_url}/chat/completions", json={"model": "openai/gpt-4o", "messages": []}
-        )
-    assert unknown.status_code == 200
-    assert priced.status_code == 429
-    assert second_priced.status_code == 429
-    report = await control.report(KEY)
-    assert report.unpriced_requests == 1
-    assert {u.model: u.cost_usd for u in report.usage}["nobody/unreal-model-9"] is None
+    assert unknown.status_code == 400
+    assert unknown.json()["error"]["code"] == "unpriced_model"
+    assert seen == []
 
 
-def test_missing_usage_on_priced_model_charges_the_trial_cap() -> None:
+def test_missing_usage_on_priced_model_uses_a_conservative_bound() -> None:
     trial = TrialMeter(budget_usd=0.000001)
-    record(trial, UsageAccumulator(Wire.OPENAI, "openai/gpt-4o"), "https://openrouter.ai/api/v1")
+    acc = UsageAccumulator(
+        Wire.OPENAI,
+        "openai/gpt-4o",
+        request={"max_tokens": 100},
+        request_bytes=2000,
+    )
+    acc.response_bytes = 3000
+    record(trial, acc, "https://openrouter.ai/api/v1")
     assert trial.unpriced_requests == 1
-    assert trial.spent_usd() == 0.000001
+    assert trial.spent_usd() == price(Observed("openai/gpt-4o", 2000, 3000, 0, 0, 0), "https://openrouter.ai/api/v1")
     assert trial.over_budget()
+
+
+def test_usage_with_only_total_tokens_is_unobserved() -> None:
+    acc = UsageAccumulator(Wire.OPENAI, "openai/gpt-4o")
+    acc.feed({"model": "openai/gpt-4o", "usage": {"total_tokens": 12}})
+    assert acc.observed() is None
+
+
+def test_unpriced_response_model_charges_the_full_budget() -> None:
+    trial = TrialMeter(budget_usd=0.25)
+    acc = UsageAccumulator(Wire.OPENAI, "openai/gpt-4o")
+    acc.feed({"model": "nobody/unreal-model-9", "usage": {"prompt_tokens": 1, "completion_tokens": 1}})
+    record(trial, acc, "https://openrouter.ai/api/v1")
+    assert trial.spent_usd() == 0.25
+    assert trial.report().usage[0].cost_usd is None
 
 
 async def test_unknown_trial_key_and_upstream_errors(meter: httpx.AsyncBaseTransport) -> None:

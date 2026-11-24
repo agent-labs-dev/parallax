@@ -20,6 +20,7 @@ import asyncio
 import contextlib
 import gzip
 import hashlib
+import json
 import logging
 import os
 import platform
@@ -201,6 +202,31 @@ async def sweep_orphan_device_boxes() -> None:
         if await process_start_stamp(int(owner_pid)) != started:
             logger.warning("removing orphan device box %s (runner %s exited)", container, owner_pid)
             await docker("rm", "-f", container)
+
+
+async def sweep_orphan_trial_networks() -> None:
+    """Remove no-network trial networks left after their run's sidecar disappeared."""
+    rows = await docker("network", "ls", "--filter", "label=parallax.trial", "--format", "{{.Name}}")
+    for network in rows.splitlines():
+        try:
+            details = json.loads(await docker("network", "inspect", "--format", "{{json .Containers}}", network))
+        except (BoxError, json.JSONDecodeError) as exc:
+            logger.warning("inspecting trial network %s failed: %s", network, exc)
+            continue
+        names = (
+            {
+                str(container.get("Name"))
+                for container in details.values()
+                if isinstance(container, dict) and container.get("Name")
+            }
+            if isinstance(details, dict)
+            else set()
+        )
+        if any(name.startswith("px-") and name.endswith("-sidecar") for name in names):
+            continue
+        logger.warning("removing orphan trial network %s", network)
+        with contextlib.suppress(BoxError):
+            await docker("network", "rm", network)
 
 
 class TailBuffer:
@@ -1019,6 +1045,7 @@ class Sidecar:
     async def up(self, run_id: str) -> SidecarUrls:
         net = f"px-{run_id}"
         name = f"{net}-sidecar"
+        await sweep_orphan_trial_networks()
         image = await build_base_image()
         self.network = net
         await self.down()  # a resumed run reuses its id: clear what a killed attempt left behind

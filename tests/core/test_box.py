@@ -298,6 +298,23 @@ async def test_sidecar_trial_network_is_private_and_removed(monkeypatch: pytest.
     ]
 
 
+async def test_orphan_trial_network_sweep_keeps_live_sidecar_networks(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[tuple[str, ...]] = []
+
+    async def fake_docker(*args: str, **kwargs: object) -> str:
+        calls.append(args)
+        if args[:3] == ("network", "ls", "--filter"):
+            return "orphan\nlive\n"
+        if args[:2] == ("network", "inspect"):
+            return "{}" if args[-1] == "orphan" else '{"id": {"Name": "px-run-sidecar"}}'
+        return ""
+
+    monkeypatch.setattr(boxes, "docker", fake_docker)
+    await boxes.sweep_orphan_trial_networks()
+    assert ("network", "rm", "orphan") in calls
+    assert ("network", "rm", "live") not in calls
+
+
 def remote_info(remote_box: RemoteBox) -> HarnessInfo:
     return HarnessInfo(
         name="remote", kind=next(iter(HarnessKind)), capabilities=frozenset(), pins_model=True,

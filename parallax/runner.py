@@ -70,6 +70,7 @@ from parallax.meter import (
     llm_endpoint,
     model_price_known,
     new_trial_key,
+    trial_wire,
     upstreams_from_env,
 )
 from parallax.meter import app as meter_app
@@ -566,8 +567,12 @@ class Services:
         if self._server is None:
             return None
         token, control_token, nonce = self._server.register_backend(backend)
-        if self.public_url is not None:
-            await check_public_world(self.public_url, self.world_local, token=token, nonce=nonce)
+        try:
+            if self.public_url is not None:
+                await check_public_world(self.public_url, self.world_local, token=token, nonce=nonce)
+        except BaseException:
+            self._server.unregister(control_token)
+            raise
         url = advertised_world_mcp_url(self.public_url, self.world_local)
         return token, control_token, nonce, url
 
@@ -928,8 +933,9 @@ class Session:
         if self.budget is None:
             return await self.execute(plan)
         if hp.info.cost_source is CostSource.METERED and plan.model is not None:
-            upstream_urls = tuple(DEFAULT_UPSTREAM.values())
-            if not any(model_price_known(plan.model, url) for url in upstream_urls):
+            wire = trial_wire(plan.model, hp.name)
+            upstream_url = upstreams_from_env(os.environ)[wire].base_url
+            if not model_price_known(plan.model, upstream_url):
                 return TrialRun(
                     self.unrun(
                         plan,
@@ -1359,7 +1365,12 @@ class TrialExecution:
             self.meter_key = new_trial_key()
             self.secrets.append(self.meter_key)
             budget_usd = self.s.budget.reservation if self.s.budget is not None else None
-            await self.s.svc.meter_client().register(self.meter_key, budget_usd=budget_usd)
+            await self.s.svc.meter_client().register(
+                self.meter_key,
+                budget_usd=budget_usd,
+                model=self.plan.model,
+                wire=trial_wire(self.plan.model or "", self.plan.harness.name) if self.plan.model else None,
+            )
             svc = self.s.svc
             llm = llm_endpoint(svc.meter_for_box(box_isolation(box)), self.meter_key, svc.meter_for_box(Isolation.HOST))
         mcp = self.tau2_mcp  # a tau2 trial's tool server, served by parallax for this trial
@@ -1479,17 +1490,35 @@ class TrialExecution:
             return out
 
         def progress() -> Tau2Progress:
+            batch_error_counts: dict[tuple[str, int], int] = {}
+            for message in transcript:
+                actor = message.get("tau2_actor")
+                batch = message.get("tau2_batch")
+                if actor == "env" and isinstance(batch, int) and batch > 0:
+                    key = (str(actor), batch)
+                    batch_error_counts[key] = batch_error_counts.get(key, 0) + int(bool(message.get("error")))
             events: list[Tau2Event] = []
+            emitted_batches: set[tuple[str, int]] = set()
             for message in transcript:
                 actor = message.get("tau2_actor")
                 if actor not in {"user", "agent", "env"}:
                     actor = {"user": "user", "tool": "env"}.get(str(message.get("role")), "agent")
+                batch = message.get("tau2_batch")
+                if actor == "env" and isinstance(batch, int) and batch > 0:
+                    key = (str(actor), batch)
+                    if key in emitted_batches:
+                        continue
+                    emitted_batches.add(key)
+                    error_count = batch_error_counts.get(key, 0)
+                else:
+                    error_count = int(bool(message.get("error"))) if actor == "env" else 0
                 events.append(
                     Tau2Event(
                         actor=cast(Any, actor),
                         waits_for_environment=bool(message.get("tool_calls")),
                         stop=bool(message.get("tau2_stop")),
-                        error=bool(message.get("error")) if actor == "env" else False,
+                        error=bool(error_count),
+                        error_count=error_count,
                     )
                 )
             return tau2_progress(events, max_steps, max_errors)
@@ -1567,8 +1596,11 @@ class TrialExecution:
                 except Tau2RuntimeError:
                     termination = "user_error"
                 else:
-                    transcript += cleaned(nxt.get("messages"), stop=bool(nxt.get("stop")))
+                    messages = nxt.get("messages")
+                    transcript += cleaned(messages, stop=bool(nxt.get("stop")))
                     termination = progress().termination
+                    if termination is None and not messages:
+                        termination = "max_steps" if progress().step_count >= max_steps else "user_error"
         if runtime.simulator_cost_usd is not None:
             self.t.metrics["simulator_cost_usd"] = runtime.simulator_cost_usd
         self.tau2_recorded = cast(

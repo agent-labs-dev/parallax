@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
+import os
 import sys
+import threading
 import tomllib
 from datetime import UTC, datetime
 from pathlib import Path
 
+import httpx
+import parallax.harnesses.manifest as manifest_module
 import pytest
 import yaml
 from parallax.box import HostBox
@@ -222,6 +227,54 @@ async def test_tb2_install_copies_host_verified_artifacts_before_install(
     harness._write_container_file = fake_write  # type: ignore[method-assign]
     await harness.write_config(trial)
     assert order[:3] == [("fetch", "node.tar.xz"), ("copy", "node.tar.xz"), ("install", "install-artifacts")]
+
+
+@pytest.mark.asyncio
+async def test_artifact_fetch_uses_distinct_temps_for_concurrent_downloads(
+    box: HostBox, fake_spec: ManifestSpec, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    payload = b"artifact"
+    artifact = Tb2Artifact(
+        name="tool.tgz", url="https://node.invalid/tool.tgz", digest=hashlib.sha256(payload).hexdigest()
+    )
+    harness = ManifestHarness(fake_spec)
+    cache = tmp_path / "cache"
+    monkeypatch.setattr(harness, "_artifact_cache", staticmethod(lambda: cache))
+    barrier = threading.Barrier(2)
+
+    def get(url: str, **_kwargs: object) -> httpx.Response:
+        barrier.wait()
+        return httpx.Response(200, request=httpx.Request("GET", url), content=payload)
+
+    monkeypatch.setattr(
+        manifest_module.httpx,
+        "get",
+        get,
+    )
+    replacements: list[Path] = []
+    original_replace = manifest_module.os.replace
+
+    def replace(source: str | os.PathLike[str], target: str | os.PathLike[str]) -> None:
+        replacements.append(Path(source))
+        original_replace(source, target)
+
+    monkeypatch.setattr(manifest_module.os, "replace", replace)
+    first, second = await asyncio.gather(harness._fetch_artifact(artifact), harness._fetch_artifact(artifact))
+    assert first == second == cache / artifact.name
+    assert len(replacements) == 2 and replacements[0] != replacements[1]
+    assert not list(cache.glob("*.tmp"))
+
+
+@pytest.mark.parametrize("name", ("claude-code", "codex"))
+def test_tb2_install_names_every_declared_platform_artifact_and_no_container_hashing(name: str) -> None:
+    spec = load_manifest(manifest_path(name))
+    assert all(
+        artifact.name in spec.tb2_install for artifact in spec.tb2_artifacts if not artifact.name.startswith("node-v")
+    )
+    assert "sha256sum" not in spec.tb2_install
+    assert "openssl" not in spec.tb2_install
+    assert "base64" not in spec.tb2_install
+    assert "missing prerequisite:" in spec.tb2_install
 
 
 async def test_config_rendered_into_home(box: HostBox, fake_spec: ManifestSpec) -> None:

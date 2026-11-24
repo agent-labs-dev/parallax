@@ -242,6 +242,23 @@ def test_tau2_progress_matches_upstream_message_hops_and_precedence():
     assert overridden.termination == "too_many_errors"
 
 
+def test_tau2_progress_counts_each_error_in_one_parallel_batch():
+    from parallax.tau2_terms import Tau2Event, tau2_progress
+
+    progress = tau2_progress(
+        [
+            Tau2Event("user"),
+            Tau2Event("agent", waits_for_environment=True),
+            Tau2Event("env", error=True, error_count=3),
+        ],
+        max_steps=10,
+        max_errors=3,
+    )
+    assert progress.step_count == 3
+    assert progress.num_errors == 3
+    assert progress.termination == "too_many_errors"
+
+
 def test_tau2_read_judge_calls_reads_only_the_side_file(tmp_path):
     calls_file = tmp_path / "calls.jsonl"
     calls_file.write_text('{"model": "gpt-5.5", "cost_usd": null, "latency_ms": 3}\nnot json\n')
@@ -601,6 +618,129 @@ class _FakeTau2Runtime:
 
     async def close(self):
         return None
+
+
+class _ScriptedLoopRuntime:
+    max_errors = 10
+    simulator_cost_usd = None
+    tool_errors = 0
+
+    def __init__(self, mode: str, max_steps: int = 20) -> None:
+        self.mode = mode
+        self.max_steps = max_steps
+        self.remaining: list[int | None] = []
+        self.calls = 0
+
+    async def user_turn(self, *, first, assistant="", remaining_steps=None):
+        self.remaining.append(remaining_steps)
+        if first:
+            if self.mode == "user-tools":
+                return {
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": None,
+                            "tool_calls": [{"id": "u1", "name": "lookup", "arguments": {}}],
+                            "tau2_actor": "user",
+                            "tau2_batch": 1,
+                        },
+                        {
+                            "role": "tool",
+                            "id": "u1",
+                            "content": "looked up",
+                            "error": False,
+                            "tau2_actor": "env",
+                            "tau2_batch": 1,
+                        },
+                        {"role": "user", "content": "Now answer", "tau2_actor": "user"},
+                    ],
+                    "stop": False,
+                }
+            return {"messages": [{"role": "user", "content": "Start", "tau2_actor": "user"}], "stop": False}
+        if self.mode == "none-at-cap" and remaining_steps == 2:
+            return {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": None,
+                        "tool_calls": [{"id": "u1", "name": "lookup", "arguments": {}}],
+                        "tau2_actor": "user",
+                        "tau2_batch": 2,
+                    },
+                    {
+                        "role": "tool",
+                        "id": "u1",
+                        "content": "looked up",
+                        "error": False,
+                        "tau2_actor": "env",
+                        "tau2_batch": 2,
+                    },
+                ],
+                "stop": False,
+            }
+        return {"messages": [{"role": "user", "content": "Stop", "tau2_actor": "user"}], "stop": True}
+
+    async def call_tool(self, name, arguments, call_id):
+        import asyncio
+
+        self.calls += 1
+        await asyncio.sleep(0)
+        return {"content": name, "error": False, "id": call_id}
+
+
+async def _run_scripted_loop(mode: str, *, max_steps: int = 20):
+    import asyncio
+    import types
+
+    import parallax.runner as runner
+    from parallax.tau2_runtime import Tau2ToolLog
+
+    runtime = _ScriptedLoopRuntime(mode, max_steps)
+    trial = cast(Any, object.__new__(runner.TrialExecution))
+    trial.task = types.SimpleNamespace(turns=[types.SimpleNamespace(text="Policy")])
+    trial.t = runner.Transcript(answers=[""])
+    trial._tau2_runtime = runtime
+    trial._tau2_log = Tau2ToolLog(runtime)
+    delivered = 0
+
+    async def deliver(_harness, index, _text, _new_session, _attached):
+        nonlocal delivered
+        delivered += 1
+        if mode == "sequential":
+            for name in ("one", "two", "three"):
+                await trial._tau2_log.call(name, {})
+        elif mode == "parallel":
+            await asyncio.gather(*(trial._tau2_log.call(name, {}) for name in ("one", "two", "three")))
+        trial.t.answers[index - 1] = "done"
+        return True
+
+    trial.deliver = deliver
+    await trial.tau2_loop(None)
+    return runtime, trial, delivered
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(("mode", "want_remaining"), [("sequential", 12), ("parallel", 16), ("user-tools", 16)])
+async def test_tau2_loop_counts_tool_batches(mode: str, want_remaining: int) -> None:
+    runtime, trial, delivered = await _run_scripted_loop(mode)
+    assert delivered == 1
+    assert runtime.remaining == [20, want_remaining]
+    assert trial.tau2_recorded["termination_reason"] == "user_stop"
+
+
+@pytest.mark.asyncio
+async def test_tau2_loop_user_stop_at_step_cap_is_max_steps() -> None:
+    runtime, trial, _delivered = await _run_scripted_loop("stop-at-cap", max_steps=3)
+    assert runtime.remaining == [3, 1]
+    assert trial.tau2_recorded["termination_reason"] == "max_steps"
+
+
+@pytest.mark.asyncio
+async def test_tau2_loop_none_user_turn_at_cap_does_not_reuse_stale_text() -> None:
+    runtime, trial, delivered = await _run_scripted_loop("none-at-cap", max_steps=4)
+    assert delivered == 1
+    assert runtime.remaining == [4, 2]
+    assert trial.tau2_recorded["termination_reason"] == "max_steps"
 
 
 @pytest.mark.asyncio

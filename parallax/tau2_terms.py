@@ -29,12 +29,13 @@ Tau2Actor = Literal["user", "agent", "env"]
 
 
 class Tau2Event(NamedTuple):
-    """One upstream message or environment step in a recorded tau2 sequence."""
+    """One upstream message or environment batch in a recorded tau2 sequence."""
 
     actor: Tau2Actor
     waits_for_environment: bool = False
     stop: bool = False
     error: bool = False
+    error_count: int = 0
 
 
 class Tau2Progress(NamedTuple):
@@ -47,16 +48,16 @@ class Tau2Progress(NamedTuple):
 def tau2_progress(events: Sequence[Tau2Event], max_steps: int, max_errors: int) -> Tau2Progress:
     """Mirror upstream ``step`` and ``_check_termination`` over recorded events.
 
-    A message that sends tool calls waits for its environment step, so limits are not checked
-    until that environment event. Max steps is checked before max errors, and max errors wins
-    when both limits become true in the same check.
+    A message that sends tool calls waits for its environment batch, so limits are not checked
+    until that batch event. Max steps is checked before max errors, and max errors wins when both
+    limits become true in the same check.
     """
     steps = 0
     errors = 0
     termination: str | None = None
     for cut, event in enumerate(events, start=1):
         steps += 1
-        errors += int(event.error)
+        errors += event.error_count if event.error_count else int(event.error)
         if event.stop:
             termination = "user_stop" if event.actor == "user" else "agent_stop"
         if event.waits_for_environment:
