@@ -54,6 +54,23 @@ MIND2WEB_DATASET_REVISION = "eacad896a84dc5b65e29b0b06e4699ab0544d701"
 MIND2WEB_DATASET_SHA256 = "7dedf381531d423dc0fc48d21dc1d425655dd75f38b10211a880fa09102f257f"
 MIND2WEB_DATASET_GIT_BLOB = "e8a5e5a99f2be9eae14f4e4259bd5af562f80da9"
 BU_JUDGE_MODEL = "gpt-5.6-luna"
+TAU2 = "tau2"
+TAU2_POLICY = "tau2-upstream-v1"
+TAU2_UPSTREAM_COMMIT = "768f3d8fe8528b4f32a5096f9ed008ae50f48ead"
+TAU2_DOMAINS = ("airline", "retail", "telecom")
+TAU2_POLICY_FILES = {"airline": "policy.md", "retail": "policy.md", "telecom": "main_policy.md"}
+TAU2_FILE_SHA256 = {
+    ("airline", "tasks.json"): "ccd8ba737b4cc371415af70151187788f728d6108d0916e73bb4317b40542052",
+    ("airline", "split_tasks.json"): "b22ced4d9a9850ac9aea31c53bdcb6d6009058140bd9acc7db37c1d36222ba8b",
+    ("airline", "policy.md"): "10dc0525421521208be39cee235bba84a16e2bcba9899eb93d92cd81d2f62fc4",
+    ("retail", "tasks.json"): "8e03ebce7901bd6218e7a7dc3105faa9324091a68058f7fe61c65262868812e8",
+    ("retail", "split_tasks.json"): "ed0580ec52575b63fbf76568af42490da6ee7783ecb4aa81af46961291358f20",
+    ("retail", "policy.md"): "2c9652afbce57d6e087768d37cda64d31c53d50b3e3225cfdb791bac66466467",
+    ("telecom", "tasks.json"): "37e562e1ae3242577407e1303b1548bc64e7ea68e37d36173e6747990ceaf8a4",
+    ("telecom", "split_tasks.json"): "605b488bb9a6acb3c7f4505240a855fdc8681d09aadb16a8f38b2efcfc5c3aec",
+    ("telecom", "main_policy.md"): "95943844a0cf11fdf0e2842b483b81d9f9338aa53235712ed131db075d086ed7",
+}
+TAU2_EXPECTED_BASE = {"airline": 50, "retail": 114, "telecom": 114}
 
 
 @dataclass(frozen=True)
@@ -275,6 +292,67 @@ def bu_tasks() -> Iterable[TaskRecord]:
 
 def mind2web_tasks() -> Iterable[TaskRecord]:
     return _records(MIND2WEB_SPEC, fetch_dataset(MIND2WEB_SPEC, token=os.environ.get("HF_TOKEN")))
+
+
+def _fetch_tau2_file(domain: str, name: str) -> bytes:
+    spec = SuiteSpec(
+        source=f"{TAU2}-{domain}",
+        policy=TAU2_POLICY,
+        upstream_commit=TAU2_UPSTREAM_COMMIT,
+        dataset_url=(
+            f"https://raw.githubusercontent.com/sierra-research/tau2-bench/{TAU2_UPSTREAM_COMMIT}"
+            f"/data/tau2/domains/{domain}/{name}"
+        ),
+        dataset_sha256=TAU2_FILE_SHA256[(domain, name)],
+        dataset_revision=TAU2_UPSTREAM_COMMIT,
+        expected_count=1,
+    )
+    return fetch_dataset(spec)
+
+
+def _tau2_json(domain: str, name: str) -> Any:
+    try:
+        return json.loads(_fetch_tau2_file(domain, name))
+    except json.JSONDecodeError as exc:
+        raise OfficialSuiteError(f"{TAU2}: {domain}/{name} is not JSON") from exc
+
+
+def tau2_tasks() -> Iterable[TaskRecord]:
+    """One world-less record per (domain, base-split task id); the harness drives the simulator loop."""
+    records: list[TaskRecord] = []
+    used: set[str] = set()
+    for domain in TAU2_DOMAINS:
+        rows = _tau2_json(domain, "tasks.json")
+        splits = _tau2_json(domain, "split_tasks.json")
+        if not isinstance(rows, list) or not isinstance(splits, dict) or not isinstance(splits.get("base"), list):
+            raise OfficialSuiteError(f"{TAU2}: {domain} dataset has no base split")
+        by_id = {str(row.get("id")): row for row in rows if isinstance(row, dict) and row.get("id") is not None}
+        base = [str(task_id) for task_id in splits["base"]]
+        if len(base) != TAU2_EXPECTED_BASE[domain] or any(task_id not in by_id for task_id in base):
+            raise OfficialSuiteError(f"{TAU2}: {domain} base split does not match its task list")
+        policy = _fetch_tau2_file(domain, TAU2_POLICY_FILES[domain]).decode()
+        policy_ref = f"data/tau2/domains/{domain}/{TAU2_POLICY_FILES[domain]}@{TAU2_UPSTREAM_COMMIT}"
+        for upstream_id in base:
+            prompt = (
+                f"{policy.strip()}\n\n---\n\nYou are the {domain} customer-service agent. A simulated "
+                "customer will describe their request over several turns; use the domain tools and follow "
+                "the policy above."
+            )
+            records.append(
+                TaskRecord(
+                    id=_task_id(TAU2, f"{domain}-{upstream_id}", len(records), used),
+                    version=1,
+                    area=Area.SAAS,
+                    summary=f"{TAU2} {domain} task {upstream_id}",
+                    prompt=prompt,
+                    grading=TAU2_POLICY,
+                    requires=frozenset({Capability.MCP, Capability.MULTI_TURN}),
+                    maturity="regression",
+                    provenance=Provenance.CONVERTED,
+                    data={"domain": domain, "upstream_task_id": upstream_id, "policy_ref": policy_ref},
+                )
+            )
+    return records
 
 
 def _config(req: GradeRequest, spec: SuiteSpec) -> _Config:
@@ -516,6 +594,116 @@ def _policy(spec: SuiteSpec) -> GradingPolicy:
         identity=lambda: _policy_identity(spec),
     )
 
+
+def _tau2_checks(_task: Task) -> tuple[Check, ...]:
+    return (
+        RubricCheck(
+            id="upstream_evaluator",
+            kind="rubric",
+            mode=FailureMode.WRONG_OUTPUT,
+            items=("The pinned upstream tau2 evaluate_simulation accepts the completed simulation.",),
+        ),
+    )
+
+
+def _tau2_unjudged(task: Task, detail: str) -> Graded:
+    return Graded(checks=tuple(_result(check, None, detail) for check in _tau2_checks(task)))
+
+
+def _tau2_root() -> tuple[Path, Path]:
+    root_text = os.environ.get("PARALLAX_OFFICIAL_TAU2_ROOT") or os.environ.get("PARALLAX_OFFICIAL_UPSTREAM_ROOT")
+    if not root_text:
+        raise OfficialSuiteError("PARALLAX_OFFICIAL_TAU2_ROOT is required for tau2 grading")
+    root = Path(root_text).expanduser().resolve()
+    python = Path(
+        os.environ.get("PARALLAX_OFFICIAL_TAU2_PYTHON")
+        or os.environ.get("PARALLAX_OFFICIAL_UPSTREAM_PYTHON", root / ".venv" / "bin" / "python")
+    )
+    if not root.is_dir() or not python.is_file():
+        raise OfficialSuiteError("tau2 checkout and its interpreter must be configured")
+    return root, python.expanduser().absolute()
+
+
+async def _tau2_bridge(_req: GradeRequest, payload: dict[str, JsonValue]) -> dict[str, Any]:
+    root, python = _tau2_root()
+    payload = {**payload, "root": str(root)}
+    command = (str(python), "-B", str(Path(__file__).with_name("tau2_bridge.py")))
+    env = {"PATH": os.environ.get("PATH", ""), "LANG": os.environ.get("LANG", "C.UTF-8"),
+           "LC_ALL": os.environ.get("LC_ALL", "C.UTF-8")}  # fmt: skip
+    process = await asyncio.create_subprocess_exec(
+        *command, cwd=root, env=env, stdin=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+    )  # fmt: skip
+    output, error = await process.communicate(json.dumps(payload).encode())
+    if process.returncode != 0:
+        message = error.decode(errors="replace").strip().splitlines()[-1:] or ["tau2 bridge failed"]
+        raise OfficialSuiteError(message[0])
+    try:
+        result = json.loads(output)
+    except json.JSONDecodeError as exc:
+        raise OfficialSuiteError("tau2 bridge returned invalid JSON") from exc
+    if not isinstance(result, dict):
+        raise OfficialSuiteError("tau2 bridge returned a non-object")
+    return cast(dict[str, Any], result)
+
+
+async def _grade_tau2(req: GradeRequest) -> Graded:
+    interruption = req.execution.get("error")
+    if isinstance(interruption, str) and interruption.startswith("environment interruption: "):
+        return _tau2_unjudged(req.task, interruption)
+    product = req.product or {}
+    evidence = product.get("tau2")
+    if not isinstance(evidence, dict) or not evidence.get("transcript"):
+        return _tau2_unjudged(req.task, "missing evidence: harness reported no tau2 transcript")
+    data = req.task.data
+    # Simulator calls are deliberately not forwarded and never priced here: they are the user
+    # simulator's spend, kept in trial metadata, not in the harness's TurnOutput.usage.
+    payload: dict[str, JsonValue] = {
+        "operation": "evaluate",
+        "suite": TAU2,
+        "commit": TAU2_UPSTREAM_COMMIT,
+        "domain": str(data.get("domain", "")),
+        "task_id": str(data.get("upstream_task_id", "")),
+        "transcript": evidence.get("transcript"),
+        "tool_calls": cast(JsonValue, evidence.get("tool_calls") or []),
+        "final_db_state": evidence.get("final_db_state"),
+    }
+    try:
+        result = await _tau2_bridge(req, payload)
+    except (OfficialSuiteError, OSError, ValueError) as exc:
+        return _tau2_unjudged(req.task, f"missing evidence: upstream tau2 evaluator unavailable: {exc}")
+    if not isinstance(result.get("score"), (int, float)) or not isinstance(result.get("passed"), bool):
+        return _tau2_unjudged(req.task, "missing evidence: upstream tau2 evaluator returned no valid score")
+    score = float(result["score"])
+    if not 0 <= score <= 1:
+        return _tau2_unjudged(req.task, "missing evidence: upstream tau2 evaluator returned an out-of-range score")
+    detail = f"upstream tau2 reward={score:.6g}; revision={TAU2_UPSTREAM_COMMIT}"
+    return Graded(
+        checks=tuple(_result(check, bool(result["passed"]), detail) for check in _tau2_checks(req.task)),
+        judge_identity=f"{TAU2_POLICY}:{TAU2}:evaluator-{TAU2_UPSTREAM_COMMIT}",
+        score=score,
+    )
+
+
+TAU2_POLICY_OBJECT = GradingPolicy(
+    id=TAU2_POLICY,
+    checks=_tau2_checks,
+    evidence=_no_world,
+    grade=_grade_tau2,
+    judge=JudgePolicy(
+        name=f"{TAU2_POLICY}:{TAU2_UPSTREAM_COMMIT}",
+        questions={"upstream": "The pinned upstream tau2 evaluator decides the task."},
+        evidence_form=f"tau2 transcript, tool calls and final database state, pinned revision {TAU2_UPSTREAM_COMMIT}",
+    ),
+    identity=lambda: f"{TAU2_POLICY}:{TAU2}:evaluator-{TAU2_UPSTREAM_COMMIT}",
+)
+
+TAU2_POLICY_EXTENSION = TaskExtension(
+    name="official-tau2",
+    model=OfficialMetadata,
+    default_services=False,
+    policy=TAU2_POLICY_OBJECT,
+)
 
 BU_POLICY_EXTENSION = TaskExtension(
     name="official-bu-bench",

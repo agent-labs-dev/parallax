@@ -52,10 +52,14 @@ plain-cdp = "parallax.harnesses.browser.observer:PlainCDPObserver"
 bu-bench = "parallax.official_suites:bu_tasks"
 online-mind2web = "parallax.official_suites:mind2web_tasks"
 live-web = "parallax.live_web:task_records"
+terminal-bench-2 = "parallax.harbor_tasks:terminal_bench_tasks"
+tau2 = "parallax.official_suites:tau2_tasks"
 
 [project.entry-points."parallax.task_extensions"]
 official-bu-bench = "parallax.official_suites:BU_POLICY_EXTENSION"
 official-online-mind2web = "parallax.official_suites:MIND2WEB_POLICY_EXTENSION"
+official-terminal-bench-2 = "parallax.harbor_tasks:TB2_POLICY_EXTENSION"
+official-tau2 = "parallax.official_suites:TAU2_POLICY_EXTENSION"
 
 [dependency-groups]
 # What a task's command checks import when trusted verify runs them on the host (`web_isolation=flags`):

@@ -2,7 +2,8 @@
 
 Parallax exposes two public browser benchmarks as task sources. Each source downloads its pinned dataset
 on first use, verifies the SHA-256 digest, and keeps the bytes under the user cache. The source task is
-world-less: any harness with `BrowserEvidence` can run it.
+world-less: any harness with `BrowserEvidence` can run it. Two further world-less sources,
+`terminal-bench-2` and `tau2`, follow the same fetch-and-pin pattern with their own graders below.
 
 ## Setup
 
@@ -51,6 +52,55 @@ The JSON dataset is pinned to revision `eacad896a84dc5b65e29b0b06e4699ab0544d701
 `7dedf381531d423dc0fc48d21dc1d425655dd75f38b10211a880fa09102f257f`, and Git blob
 `e8a5e5a99f2be9eae14f4e4259bd5af562f80da9`. Its judge checkout is pinned to
 `b422075b059f0bba670ddda168444eb1d326aa45`.
+
+## Terminal-Bench 2
+
+The source id is `terminal-bench-2` and its policy is `terminal-bench-2-upstream-v1`.
+
+```sh
+uv run parallax run terminal-bench-2 --harness <harness> --model provider/model --repeats 1
+```
+
+Harbor task directories are imported by `parallax/harbor_tasks.py` as world-less records, because they
+have no `[metadata.parallax]` table for the directory loader. The pinned archive of
+[harbor-framework/terminal-bench-2](https://github.com/harbor-framework/terminal-bench-2) at commit
+`2fd12b88aafdd04a52c298e3940bcb189f9766d6` (89 tasks) is fetched on first use, verified against a
+per-file SHA-256 manifest (`efcb17d74def636fc67695b6a2bfb4a6b65945c2e52e5e0eff05e2f28cf839b3`), and
+kept in the user cache. Multi-step tasks are rejected by the importer rather than truncated; the
+pinned set is single-step.
+
+Grading is structured, not answer-text matching: the task's own pinned `tests/test.sh` runs in the
+task environment and writes a reward, and reward 1 is a pass. A harness that keeps the agent's
+container live reports that reward in its trial metadata (shared mode). A box harness instead gets a
+fresh `--network none` container built from the task image over its final workspace snapshot, with
+the pinned `tests/` mounted at `/tests`. Tasks whose tests read live container state outside the
+workspace are snapshot-unsafe and score NA for box harnesses rather than failing silently. The
+oracle for a task is its pinned `solution/solve.sh`, run in the container before the verifier. Tasks
+run with the image, network mode, CPU and memory their `task.toml` declares; no credential enters
+the container.
+
+## tau2
+
+The source id is `tau2` and its policy is `tau2-upstream-v1`.
+
+```sh
+export PARALLAX_OFFICIAL_TAU2_ROOT=/path/to/tau2-bench
+uv run parallax run tau2 --harness <harness> --model provider/model --repeats 1
+```
+
+The source covers the text `airline`, `retail` and `telecom` domains (base splits: 50, 114 and 114
+tasks) from [sierra-research/tau2-bench](https://github.com/sierra-research/tau2-bench) at commit
+`768f3d8fe8528b4f32a5096f9ed008ae50f48ead`. Each domain's `tasks.json`, `split_tasks.json` and policy
+file are fetched at run time and verified by the SHA-256 digests recorded in `THIRD_PARTY.md`.
+
+Parallax has no LLM user simulator, so the harness drives the multi-turn loop: it receives the
+domain policy and task goal as its first turn, runs the pinned simulator internally, and returns one
+trial whose metadata carries `{transcript, tool_calls, final_db_state}`. Grading sends that evidence
+through `parallax/tau2_bridge.py` to the pinned checkout, which calls upstream
+`evaluate_simulation` with `EvaluationType.ALL`; no database, action or communication comparison is
+reimplemented in Parallax. The bridge scores communicate info with upstream's substring scorer so
+grading makes no second LLM judge call. Simulator (user-model) spend is metered by the harness and
+kept in trial metadata: it never enters the trial's usage or the grade's priced calls.
 
 ## live-web
 
