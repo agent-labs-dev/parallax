@@ -1113,6 +1113,7 @@ class TrialExecution:
             finally:
                 await self.keep_recording(box)
                 await box.close()
+            self.record_tb2_storage()
             return await self.graded(started, None, await self.meter_report())
         finally:
             if self.task_container is not None:
@@ -1144,6 +1145,7 @@ class TrialExecution:
             finally:
                 await self.keep_recording(box)
                 await box.close()
+            self.record_tb2_storage()
             return await self.graded(started, None, await self.meter_report())
         finally:
             if embedded is not None:
@@ -1195,6 +1197,12 @@ class TrialExecution:
 
     def trial_id(self) -> str:
         return trial_name(self.plan)
+
+    def record_tb2_storage(self) -> None:
+        """Expose Harbor's declared storage limit and Parallax's unenforced status in trial details."""
+        storage_mb = self.task.data.get("storage_mb")
+        if self.task_container is not None and storage_mb is not None:
+            self.t.details.update({"storage_mb": storage_mb, "storage_enforced": False})
 
     async def drive(self, harness: Harness, box: Box, token: str | None, control: ControlClient | None) -> None:
         """`token` and `control` are None for a world-less task."""
@@ -1387,15 +1395,22 @@ class TrialExecution:
             if log.errors + runtime.tool_errors >= runtime.max_errors:
                 termination = "too_many_errors"
                 break
+            if runtime.step_count >= runtime.max_steps:
+                termination = "max_steps"
+                break
             index += 1
             user_text = next((str(m.get("content") or "") for m in reversed(transcript) if m.get("role") == "user"), "")
             while len(self.t.answers) < index:
                 self.t.answers.append("")
             text = f"{policy_prompt}\n\nCustomer: {user_text}" if index == 1 else user_text
+            runtime.agent_step()
             delivered = await self.deliver(harness, index, text, False, ())
             new_entries = log.entries[seen_tools:]
             seen_tools = len(log.entries)
             if new_entries:
+                # A harness turn may hide the resumed agent message after a tool result. The
+                # bridge counted the tool hop; count that resumed agent hop here as upstream does.
+                runtime.agent_step()
                 transcript.append({
                     "role": "assistant", "content": None,
                     "tool_calls": [
@@ -1418,7 +1433,7 @@ class TrialExecution:
                 transcript.append({"role": "assistant", "content": answer})
             if not delivered:
                 termination = "agent_error"
-            elif index >= runtime.max_steps:
+            elif runtime.step_count >= runtime.max_steps:
                 termination = "max_steps"
             if log.errors + runtime.tool_errors >= runtime.max_errors:
                 termination = "too_many_errors"

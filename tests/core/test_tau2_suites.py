@@ -2,6 +2,7 @@ import json
 import os
 import subprocess
 from pathlib import Path
+from typing import Any, cast
 
 import httpx
 import pytest
@@ -546,14 +547,22 @@ class _FakeTau2Runtime:
     max_steps = 200
     max_errors = 10
     tool_errors = 0
+    step_count = 0
 
     async def start(self, *, domain, task):
+        self.step_count = 0
+        self.tool_errors = 0
         return self.tools
 
     async def call_tool(self, name, arguments, call_id):
+        self.step_count += 1
         return {"content": '{"task_id": "task_2", "status": "pending"}', "error": False, "id": call_id}
 
+    def agent_step(self):
+        self.step_count += 1
+
     async def user_turn(self, *, first, assistant=""):
+        self.step_count += 1
         if first:
             return {"messages": [{"role": "user", "content": "Create a task called Important Meeting."}], "stop": False}
         return {"messages": [{"role": "user", "content": "Thanks. ###STOP###"}], "stop": True}
@@ -756,3 +765,93 @@ async def test_tau2_runner_loop_records_transcript_and_simulator_cost(tmp_path, 
     (row,) = runner.read_results(out / "results.jsonl")
     assert row.metrics["simulator_cost_usd"] == 0.25  # simulator cost, out of harness usage
     assert all(u.cost_usd != 0.25 for u in row.usage)
+
+
+@pytest.mark.asyncio
+async def test_tau2_runner_max_steps_counts_agent_and_tool_hops(tmp_path, monkeypatch):
+    import parallax.runner as runner
+    from parallax.harnesses.oracle import ORACLE_INFO
+    from parallax.models import Isolation, TurnOutput, TurnStatus
+    from parallax.world.client import WorldClient
+
+    class ShortRuntime(_FakeTau2Runtime):
+        max_steps = 3
+
+    full_task = {"id": "create_task_1", "user_scenario": {"instructions": "Create a task"}}
+    record = TaskRecord(
+        id="tau2-mock-short", version=1, area=Area.SAAS, summary="tau2 mock", prompt="Mock policy.",
+        grading=official.TAU2_POLICY, requires=frozenset({Capability.MCP, Capability.MULTI_TURN}),
+        maturity="regression", provenance=Provenance.CONVERTED,
+        data={"domain": "mock", "upstream_task_id": "create_task_1", "policy_ref": "policy.md@pin",
+              "task": full_task, "task_digest": official.tau2_task_digest(full_task)},
+    )  # fmt: skip
+    task = task_from_record(official.TAU2, record)
+
+    class ScriptedHarness:
+        info = ORACLE_INFO.model_copy(update={"name": "scripted-tau2-short"})
+
+        async def start(self, trial, box):
+            self._trial = trial
+
+        async def turn(self, t):
+            async with WorldClient(self._trial.mcp.url, "tau2") as client:
+                await client.call("create_task", {"user_id": "user_1", "title": "Important Meeting"})
+            return TurnOutput(status=TurnStatus.COMPLETED, answer="Created the task.", session_id=None)
+
+        async def stop(self):
+            return None
+
+        async def version(self, box):
+            return "scripted-1"
+
+    monkeypatch.setattr(runner, "load_harness", lambda name: ScriptedHarness())
+    monkeypatch.setattr(runner.TrialExecution, "_make_tau2_runtime", lambda self: ShortRuntime())
+    out = tmp_path / "run-tau2-short"
+    await runner.run_async(
+        [task],
+        ["scripted-tau2-short"],
+        [None],
+        runner.RunOptions(out=out, isolation=Isolation.HOST, quiet=True, retry_invalid=0),
+    )
+    trajectory = json.loads(next(out.glob("trials/**/trajectory.json")).read_text())
+    assert trajectory["extra"]["tau2_recorded"]["termination_reason"] == "max_steps"
+
+
+@pytest.mark.parametrize(("delivered", "answer"), [(True, "###STOP###"), (False, "")])
+@pytest.mark.asyncio
+async def test_tau2_too_many_errors_overrides_agent_result(delivered, answer):
+    import types
+
+    import parallax.runner as runner
+    from parallax.runner import Transcript
+    from parallax.tau2_runtime import Tau2ToolLog
+
+    class Runtime:
+        max_steps = 200
+        max_errors = 1
+        simulator_cost_usd = None
+        tool_errors = 0
+        step_count = 0
+
+        def agent_step(self):
+            self.step_count += 1
+
+        async def user_turn(self, *, first, assistant=""):
+            self.step_count += 1
+            return {"messages": [{"role": "user", "content": "Continue"}], "stop": False}
+
+    runtime = Runtime()
+    trial = cast(Any, object.__new__(runner.TrialExecution))
+    trial.task = types.SimpleNamespace(turns=[types.SimpleNamespace(text="Policy")])
+    trial.t = Transcript(answers=[""])
+    trial._tau2_runtime = runtime
+    trial._tau2_log = Tau2ToolLog(cast(Any, runtime))
+
+    async def deliver(_harness, _index, _text, _new_session, _attached):
+        runtime.tool_errors = 1
+        trial.t.answers[0] = answer
+        return delivered
+
+    trial.deliver = deliver
+    await trial.tau2_loop(cast(Any, None))
+    assert trial.tau2_recorded["termination_reason"] == "too_many_errors"

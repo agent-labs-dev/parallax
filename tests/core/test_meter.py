@@ -143,6 +143,26 @@ async def test_unknown_price_is_none_not_zero(meter: httpx.AsyncBaseTransport) -
     assert report.unpriced_requests == 1
 
 
+async def test_unknown_price_does_not_lock_out_a_budgeted_trial(meter: httpx.AsyncBaseTransport) -> None:
+    control = MeterClient("http://meter", ADMIN, transport=meter)
+    await control.register(KEY, budget_usd=0.000001)
+    ep = llm_endpoint("http://meter", KEY, "http://meter")
+    async with httpx.AsyncClient(transport=meter) as c:
+        unknown = await c.post(
+            f"{ep.openai_base_url}/chat/completions", json={"model": "nobody/unreal-model-9", "messages": []}
+        )
+        priced = await c.post(f"{ep.openai_base_url}/chat/completions", json={"model": "openai/gpt-4o", "messages": []})
+        second_priced = await c.post(
+            f"{ep.openai_base_url}/chat/completions", json={"model": "openai/gpt-4o", "messages": []}
+        )
+    assert unknown.status_code == 200
+    assert priced.status_code == 200
+    assert second_priced.status_code == 429
+    report = await control.report(KEY)
+    assert report.unpriced_requests == 1
+    assert {u.model: u.cost_usd for u in report.usage}["nobody/unreal-model-9"] is None
+
+
 async def test_unknown_trial_key_and_upstream_errors(meter: httpx.AsyncBaseTransport) -> None:
     control = await register(meter)
     async with httpx.AsyncClient(transport=meter) as c:
@@ -188,6 +208,21 @@ async def test_trial_credential_expires(meter: httpx.AsyncBaseTransport, monkeyp
             f"{ep.openai_base_url}/chat/completions", json={"model": "openai/gpt-4o", "messages": []}
         )
     assert expired.status_code == 401
+
+
+async def test_trial_registration_rejects_non_object_json(meter: httpx.AsyncBaseTransport) -> None:
+    async with httpx.AsyncClient(transport=meter) as c:
+        for key, body in (("bad-json", b"not-json"), ("null-body", b"null"), ("array-body", b"[]")):
+            response = await c.put(
+                f"http://meter/_meter/{ADMIN}/{key}",
+                content=body,
+                headers={"content-type": "application/json"},
+            )
+            assert response.status_code == 400
+
+
+def test_default_trial_ttl_covers_tb2_install_and_turn_timeout() -> None:
+    assert meter_module.TRIAL_CREDENTIAL_TTL_S > 900 + 7200
 
 
 async def test_streaming_chat_completions_request_usage(

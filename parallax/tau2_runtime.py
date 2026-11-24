@@ -54,6 +54,7 @@ class Tau2BridgeRuntime:
         self.max_steps: int | None = None
         self.max_errors: int | None = None
         self.tool_errors = 0
+        self.step_count = 0
 
     async def _request(self, payload: dict[str, Any]) -> dict[str, Any]:
         process = self._process
@@ -70,6 +71,8 @@ class Tau2BridgeRuntime:
         return result
 
     async def start(self, *, domain: str, task: JsonObject) -> list[dict[str, Any]]:
+        self.step_count = 0
+        self.tool_errors = 0
         command = (str(self._python), "-B", str(Path(__file__).with_name("tau2_bridge.py")))
         env = {
             "PATH": os.environ.get("PATH", ""),
@@ -97,16 +100,25 @@ class Tau2BridgeRuntime:
         self.tools = list(result.get("tools") or [])
         self.max_steps = int(result["max_steps"])
         self.max_errors = int(result["max_errors"])
+        self.step_count = int(result.get("step_count", 0))
         return self.tools
 
     async def call_tool(self, name: str, arguments: dict[str, Any], call_id: str) -> dict[str, Any]:
-        return await self._request({"op": "tool", "name": name, "arguments": arguments, "id": call_id})
+        result = await self._request({"op": "tool", "name": name, "arguments": arguments, "id": call_id})
+        self.step_count = int(result.get("step_count", self.step_count))
+        self.tool_errors = int(result.get("tool_errors", self.tool_errors))
+        return result
+
+    def agent_step(self) -> None:
+        """Count the agent hop that is driven outside the bridge subprocess."""
+        self.step_count += 1
 
     async def user_turn(self, *, first: bool, assistant: str = "") -> dict[str, Any]:
         result = await self._request({"op": "user", "first": first, "assistant": assistant})
         cost = result.get("simulator_cost_usd")
         self.simulator_cost_usd = float(cost) if isinstance(cost, (int, float)) else self.simulator_cost_usd
         self.tool_errors = int(result.get("tool_errors", self.tool_errors))
+        self.step_count = int(result.get("step_count", self.step_count))
         return result
 
     async def close(self) -> None:

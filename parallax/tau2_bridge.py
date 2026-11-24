@@ -281,6 +281,7 @@ class _ServeSession:
         )
         self.simulator_cost = 0.0
         self.tool_errors = 0
+        self.step_count = 0
 
     def tools(self) -> list[dict[str, Any]]:
         import importlib
@@ -298,7 +299,16 @@ class _ServeSession:
             arguments=dict(request.get("arguments") or {}), requestor="assistant",
         )  # fmt: skip
         response = self.environment.get_response(call)
-        return {"content": response.content, "error": bool(response.error), "id": response.id}
+        self.step_count += 1
+        if response.error:
+            self.tool_errors += 1
+        return {
+            "content": response.content,
+            "error": bool(response.error),
+            "id": response.id,
+            "tool_errors": self.tool_errors,
+            "step_count": self.step_count,
+        }
 
     def _user_once(self, incoming: Any) -> tuple[Any, list[dict[str, Any]]]:
         """One simulator generation, executing any user tool calls it makes on the way."""
@@ -337,12 +347,14 @@ class _ServeSession:
         else:
             incoming = self._message.AssistantMessage(role="assistant", content=str(request.get("assistant") or ""))
         message, extra = self._user_once(incoming)
+        self.step_count += 1
         return {
             "messages": [*extra, message.model_dump(mode="json")],
             "stop": bool(self.simulator.is_stop(message)),
             "cost_usd": getattr(message, "cost", None),
             "simulator_cost_usd": self.simulator_cost,
             "tool_errors": self.tool_errors,
+            "step_count": self.step_count,
             "max_steps": self._max_steps,
             "max_errors": self._max_errors,
         }
@@ -373,6 +385,8 @@ def _serve(first: dict[str, Any]) -> None:
                         "policy": session.environment.get_policy(),
                         "max_steps": session._max_steps,
                         "max_errors": session._max_errors,
+                        "step_count": session.step_count,
+                        "tool_errors": session.tool_errors,
                     }
                 )
             elif op == "tool" and session is not None:

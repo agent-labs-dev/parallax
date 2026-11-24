@@ -180,7 +180,9 @@ SEARCHING_MODELS = frozenset({
 TOOL_TYPE_VERSION = re.compile(r"_\d{8}$")
 # How long a report waits for streams whose client hung up to finish (see `pump`).
 STREAM_DRAIN_WAIT_S = 120.0
-TRIAL_CREDENTIAL_TTL_S = 2 * 60 * 60
+# A trial key is revoked when the trial ends. This crash-safe upper bound covers the longest
+# built-in install plus TB2 turn timeout without expiring while the trial is still running.
+TRIAL_CREDENTIAL_TTL_S = 24 * 60 * 60
 
 
 class MeterError(StrEnum):
@@ -272,9 +274,8 @@ class TrialMeter:
             unobserved_requests=self.unobserved_requests,
         )
 
-    def spent_usd(self) -> float | None:
-        if self.unpriced_requests:
-            return None
+    def spent_usd(self) -> float:
+        """Settled priced spend; unknown-priced requests remain visible in the report."""
         return math.fsum(t.cost_usd for t in self.models.values())
 
     def closed(self) -> bool:
@@ -601,9 +602,11 @@ def app(
                 if key in trials:
                     return JSONResponse({"error": "trial key already registered"}, status_code=409)
                 try:
-                    body = parse_json(await request.body()) or {}
-                    budget = body.get("budget_usd") if isinstance(body, dict) else None
-                    ttl = body.get("ttl_s") if isinstance(body, dict) else None
+                    body = parse_json(await request.body())
+                    if not isinstance(body, dict):
+                        raise ValueError("request body must be a JSON object")
+                    budget = body.get("budget_usd")
+                    ttl = body.get("ttl_s")
                     if budget is not None and (
                         isinstance(budget, bool)
                         or not isinstance(budget, int | float)

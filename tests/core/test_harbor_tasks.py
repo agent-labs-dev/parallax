@@ -100,6 +100,7 @@ def test_terminal_bench_tasks_from_directory_build_frozen_records(tmp_path):
         "cpus",
         "memory_mb",
         "storage_mb",
+        "storage_enforced",
         "pids_limit",
         "verifier_timeout_s",
         "agent_timeout_s",
@@ -107,6 +108,7 @@ def test_terminal_bench_tasks_from_directory_build_frozen_records(tmp_path):
     }
     assert record.data["upstream_id"] == "example-task"
     assert record.data["network_mode"] == "no-network"
+    assert record.data["storage_enforced"] is False
 
 
 def test_parse_task_dir_preserves_storage_limit(tmp_path):
@@ -139,7 +141,10 @@ def test_tb2_cli_manifests_pin_node_and_package_tarball(name, package, version, 
         (Path(__file__).parents[2] / "parallax" / "harnesses" / "manifests" / f"{name}.toml").read_text()
     )
     install = manifest["tb2_install"]
-    assert "nvm install 22.14.0" in install
+    assert "nvm" not in install
+    assert "node_name=node-v$node_version-linux-x64.tar.xz" in install
+    assert "SHASUMS256.txt" in install
+    assert "69b09dba5c8dcb05c4e4273a4340db1005abeafe3927efda2bc5b249e80437ec" in install
     assert package in install
     assert integrity in install
     assert 'npm install -g "$package"' in install
@@ -147,26 +152,8 @@ def test_tb2_cli_manifests_pin_node_and_package_tarball(name, package, version, 
 
 
 @pytest.mark.asyncio
-async def test_storage_limit_is_added_only_for_supported_overlay2(monkeypatch):
-    calls = []
-
-    async def fake_docker(*argv, timeout=None):
-        calls.append(argv)
-        return 0, '[["Backing Filesystem","xfs"]]', ""
-
-    monkeypatch.setattr(harbor, "_docker", fake_docker)
-    assert await harbor._storage_args(10240) == ["--storage-opt", "size=10240m"]
-    assert calls == [("info", "--format", "{{json .DriverStatus}}")]
-
-
-@pytest.mark.asyncio
-async def test_storage_limit_refuses_overlay2_on_btrfs(monkeypatch):
-    async def fake_docker(*argv, timeout=None):
-        return 0, '[["Backing Filesystem","btrfs"]]', ""
-
-    monkeypatch.setattr(harbor, "_docker", fake_docker)
-    with pytest.raises(harbor.HarborTaskError, match="storage_mb=10240.*btrfs"):
-        await harbor._storage_args(10240)
+async def test_storage_limit_is_recorded_but_not_enforced_on_any_docker_filesystem():
+    assert await harbor._storage_args(10240) == []
 
 
 def _tb2_request(product, fixture: str = "tiny-task", tmp_path: Path | None = None, task_container: str | None = None):

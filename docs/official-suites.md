@@ -96,19 +96,20 @@ or written to disk. The manifest's rendered config files are written inside the 
 do not, so they (and any non-manifest harness without `live_container`, such as Nebula) score
 NA on terminal-bench-2 until they declare a TB2 path.
 
-`storage_mb` is enforced with Docker `--storage-opt size=<N>m` only when the daemon reports a
-supported overlay2 backing filesystem. If the driver cannot enforce the limit, Parallax refuses
-the task as infrastructure before starting an uncapped container. This host uses overlay2 over
-btrfs, and Docker rejects that storage option, so a pinned TB2 task with `storage_mb` is refused
-here rather than run without its limit.
+`storage_mb` is recorded in the task and trial metadata, but the official Harbor Docker runner
+does not enforce it. Parallax therefore does not reject a task on btrfs or another backing
+filesystem, and records `storage_enforced: false` rather than claiming a limit that the runner
+did not apply.
 
 Metered TB2 trials require both `--budget USD` and `--reserve USD`. The reservation becomes the
 hard per-trial meter cap. The task container receives only the meter key rendered by the
 manifest's declared `env` entries on each `docker exec`; provider credentials remain in the
 meter service and never enter the task container. The key is revoked when the trial ends and
-also expires after its short fallback TTL. The built-in Node agents pin Node `22.14.0` and verify
-the SHA-512 integrity of the exact CLI tarball before install; its platform package is an exact
-versioned optional dependency of that tarball.
+also expires after a 24 hour crash-safe fallback TTL, which covers the built-in install and the
+7200 second turn timeout. The meter cap is checked against settled priced spend when each request
+starts. Requests already in flight are not cancelled, so their settled costs may overshoot the
+cap. The built-in Node agents download the official Node `22.14.0` tarball and verify its
+`SHASUMS256.txt` entry before install, then verify the exact CLI tarball before install.
 
 The harness turn is bounded by the task's own agent timeout (`agent.timeout_sec`, recorded in
 the task data), matching upstream Harbor: `Trial._run_agent_phase` wraps the agent in a timeout
@@ -143,7 +144,7 @@ the agent's copies. Task images named by mutable tag are pinned by digest: the i
 the registry digest resolved for the pinned set in `PINNED_IMAGE_DIGESTS`, and grading refuses
 a container whose image digest differs.
 
-The container is named, limited by the task's `--cpus`, `--memory`, `storage_mb` and
+The container is named, limited by the task's `--cpus`, `--memory` and
 `--pids-limit` (512 by default), and started with Docker's default capability set, as upstream
 Harbor uses, plus
 `no-new-privileges`: dropping all capabilities breaks `apt-get` in most TB2 test scripts, while
@@ -216,6 +217,9 @@ out of the harness's usage. The runner records the transcript itself, from its t
 tool log and the turns it drove. The transcript is the full upstream message list: every
 assistant tool call is followed, in order, by its `ToolMessage`, and tool-call arguments are
 objects, as upstream's `ToolCall` model requires (a string form is rejected).
+The step limit follows upstream `step_count`, including user, agent and tool hops, rather than
+counting only completed agent turns. Upstream termination precedence is preserved: max steps is
+checked before too many errors, and too many errors can replace an agent stop or agent error.
 `termination_reason` is required with no default and takes upstream's `TerminationReason`
 values. There is no bare tool-call list and no final database state: the evaluator replays the
 transcript itself. Invalid evidence is unjudged with the reason. The grader evaluates only this

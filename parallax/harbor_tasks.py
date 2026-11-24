@@ -330,6 +330,7 @@ def _record(spec: HarborTaskSpec, task_dir: Path, used: set[str]) -> TaskRecord:
         "cpus": spec.cpus,
         "memory_mb": spec.memory_mb,
         "storage_mb": spec.storage_mb,
+        "storage_enforced": False,
         "pids_limit": spec.pids_limit,
         "verifier_timeout_s": spec.verifier_timeout_s,
         "agent_timeout_s": spec.agent_timeout_s,
@@ -598,25 +599,8 @@ def task_container_name() -> str:
 
 
 async def _storage_args(storage_mb: int | None) -> list[str]:
-    """Return Docker's storage limit option, or refuse unsupported drivers."""
-    if storage_mb is None:
-        return []
-    code, out, err = await _docker("info", "--format", "{{json .DriverStatus}}")
-    if code != 0:
-        raise HarborTaskError(f"cannot determine Docker storage support: {err.strip()[-300:]}")
-    try:
-        status = dict(json.loads(out))
-        driver = status.get("Backing Filesystem")
-    except (ValueError, TypeError):
-        raise HarborTaskError("cannot determine Docker storage support: invalid driver status") from None
-    # Docker documents overlay2 size limits only with XFS project quotas. Btrfs and
-    # other overlay2 backing filesystems reject --storage-opt size at container start.
-    if driver != "xfs":
-        raise HarborTaskError(
-            f"infrastructure: task requests storage_mb={storage_mb}, but Docker overlay2 "
-            f"requires an XFS backing filesystem with project quotas (found {driver!r})"
-        )
-    return ["--storage-opt", f"size={storage_mb}m"]
+    """Harbor's official Docker runner records storage_mb but does not enforce it."""
+    return []
 
 
 def task_container_argv(
