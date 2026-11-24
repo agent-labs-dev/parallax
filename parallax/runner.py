@@ -50,6 +50,7 @@ from parallax.box import (
     trusted_verify,
     web_isolation_for,
 )
+from parallax.egress import NO_PROXY
 from parallax.harnesses.base import (
     RAW_OUTPUT_CHARS,
     HarnessError,
@@ -615,10 +616,9 @@ class Services:
             return {}
         if self.egress_internal is None:
             raise BoxError("a harness-launched desktop task needs the sidecar's egress proxy, which this run lacks")
-        no_proxy = "sidecar,localhost,127.0.0.1"
         return {
             "HTTPS_PROXY": self.egress_internal, "https_proxy": self.egress_internal,
-            "NO_PROXY": no_proxy, "no_proxy": no_proxy,
+            "NO_PROXY": NO_PROXY, "no_proxy": NO_PROXY,
         }  # fmt: skip
 
     def meter_for_box(self, box_isolation: Isolation) -> str:

@@ -36,6 +36,7 @@ from typing import Any, Literal, cast
 import httpx
 from pydantic import BaseModel, JsonValue
 
+from parallax.egress import NO_PROXY
 from parallax.extensions import GradeRequest, GradingPolicy, TaskExtension
 from parallax.judging import JudgePolicy
 from parallax.models import (
@@ -635,7 +636,7 @@ def task_container_argv(
         for name in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"):
             argv += ["--env", f"{name}={egress_proxy}"]
         for name in ("NO_PROXY", "no_proxy"):
-            argv += ["--env", f"{name}=localhost,127.0.0.1"]
+            argv += ["--env", f"{name}={NO_PROXY}"]
     # `public` uses Docker's default bridge.
     return [*argv, ref, "sh", "-c", "while true; do sleep 3600; done"]
 

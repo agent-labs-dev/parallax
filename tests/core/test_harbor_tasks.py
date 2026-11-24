@@ -59,8 +59,8 @@ def test_tb2_container_argv_uses_the_run_network_for_no_network_tasks():
     assert "none" not in restricted
     assert "parallax.net=px-run" in restricted
     assert "HTTPS_PROXY=http://sidecar:7803" in restricted
-    assert "NO_PROXY=localhost,127.0.0.1" in restricted
-    assert not any(value.endswith("NO_PROXY=sidecar,localhost,127.0.0.1") for value in restricted)
+    # The metered CLIs call http://sidecar:7802 directly; the proxy refuses plain HTTP.
+    assert "NO_PROXY=sidecar,localhost,127.0.0.1" in restricted
 
     public = harbor.task_container_argv(spec.model_copy(update={"network_mode": "public"}), "example/x:1", "container")
     assert "--network" not in public

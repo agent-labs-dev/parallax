@@ -18,6 +18,9 @@ ALLOWED_HOSTS = ("openrouter.ai",)
 ALLOWED_PORT = 443
 HEADER_LIMIT = 16 * 1024
 CONNECT_TIMEOUT_S = 15.0
+# What a proxied container reaches directly: the run's own sidecar (the meter is plain HTTP on it, which
+# this proxy refuses) and loopback.
+NO_PROXY = "sidecar,localhost,127.0.0.1"
 
 
 def allowed(host: str, port: int, allowed_hosts: tuple[str, ...] = ALLOWED_HOSTS) -> bool:
