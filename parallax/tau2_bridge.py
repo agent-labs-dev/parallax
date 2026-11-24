@@ -328,7 +328,7 @@ class _ServeSession:
             self.tool_errors += sum(1 for result in results if result.error)
             for result in results:
                 result_message = result.model_dump(mode="json")
-                result_message.update({"tau2_actor": "env", "tau2_batch": batch})
+                result_message.update({"tau2_actor": "env", "tau2_batch": batch, "requestor": "user"})
                 extra.append(result_message)
             # Upstream counts one environment step for this whole batch, not one step per
             # result. A follow-up simulator message, if any, is the next user step.

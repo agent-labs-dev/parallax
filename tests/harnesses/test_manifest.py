@@ -402,3 +402,12 @@ def test_declaring_desktop_needs_a_config_that_gives_the_harness_the_desktop(fak
     assert any("desktop_content" in p for p in manifest_problems(bare, "fake"))
     given = bare.model_copy(update={"config": (DESKTOP_CONFIG,)})
     assert not any("desktop_content" in p for p in manifest_problems(given, "fake"))
+
+
+@pytest.mark.parametrize("name", ["claude-code", "codex"])
+def test_a_fixed_meter_wire_must_match_the_base_url_the_cli_is_pointed_at(name: str) -> None:
+    raw = tomllib.loads(manifest_path(name).read_text())
+    assert ManifestSpec.model_validate(raw).info.meter_wire in {"openai", "anthropic"}
+    raw["info"]["meter_wire"] = "anthropic" if raw["info"]["meter_wire"] == "openai" else "openai"
+    with pytest.raises(ValueError, match="meter_wire"):
+        ManifestSpec.model_validate(raw)

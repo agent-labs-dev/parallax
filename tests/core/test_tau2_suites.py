@@ -674,6 +674,7 @@ class _ScriptedLoopRuntime:
                         "id": "u1",
                         "content": "looked up",
                         "error": False,
+                        "requestor": "user",
                         "tau2_actor": "env",
                         "tau2_batch": 2,
                     },
@@ -1042,3 +1043,11 @@ async def test_tau2_too_many_errors_overrides_agent_result(delivered, answer):
     trial.deliver = deliver
     await trial.tau2_loop(cast(Any, None))
     assert trial.tau2_recorded["termination_reason"] == "too_many_errors"
+
+
+def test_an_env_batch_without_a_requestor_is_refused_not_guessed() -> None:
+    from parallax.runner import tau2_requestor
+
+    assert tau2_requestor({"tau2_batch": 1, "requestor": "user"}) == "user"
+    with pytest.raises(ValueError, match="no requestor"):
+        tau2_requestor({"tau2_batch": 1})

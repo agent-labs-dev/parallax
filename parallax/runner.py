@@ -25,7 +25,7 @@ from collections.abc import AsyncGenerator, Awaitable, Coroutine, Generator, Map
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol, assert_never, cast, runtime_checkable
+from typing import TYPE_CHECKING, Any, Literal, Protocol, assert_never, cast, runtime_checkable
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
@@ -182,6 +182,14 @@ _MIN_SECRET_LEN = 8  # shorter env values ("1", "yes") would redact ordinary wor
 _UNSAFE_PATH = re.compile(r"[^A-Za-z0-9._-]+")
 _DATE_SUFFIX = re.compile(r"-(?:\d{8}|\d{4}-\d{2}-\d{2})$")
 REDACTED = "[REDACTED]"
+
+
+def tau2_requestor(message: dict[str, Any]) -> Literal["assistant", "user"]:
+    """Who asked for an env batch; agent and user batch ids are separate sequences."""
+    requestor = message.get("requestor")
+    if requestor == "assistant" or requestor == "user":
+        return requestor
+    raise ValueError(f"tau2 env message for batch {message.get('tau2_batch')!r} has no requestor: {requestor!r}")
 
 
 class RunOptions(Model):
@@ -1496,8 +1504,7 @@ class TrialExecution:
                 actor = message.get("tau2_actor")
                 batch = message.get("tau2_batch")
                 if actor == "env" and isinstance(batch, int) and batch > 0:
-                    requestor = message.get("requestor")
-                    key = (str(requestor) if requestor in {"assistant", "user"} else "assistant", batch)
+                    key = (tau2_requestor(message), batch)
                     batch_error_counts[key] = batch_error_counts.get(key, 0) + int(bool(message.get("error")))
             events: list[Tau2Event] = []
             emitted_batches: set[tuple[str, int]] = set()
@@ -1507,8 +1514,7 @@ class TrialExecution:
                     actor = {"user": "user", "tool": "env"}.get(str(message.get("role")), "agent")
                 batch = message.get("tau2_batch")
                 if actor == "env" and isinstance(batch, int) and batch > 0:
-                    requestor = message.get("requestor")
-                    key = (str(requestor) if requestor in {"assistant", "user"} else "assistant", batch)
+                    key = (tau2_requestor(message), batch)
                     if key in emitted_batches:
                         continue
                     emitted_batches.add(key)

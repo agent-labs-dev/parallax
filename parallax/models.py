@@ -13,7 +13,7 @@ import re
 from datetime import date
 from enum import StrEnum
 from pathlib import Path
-from typing import Annotated, Literal, TypeVar
+from typing import Annotated, Literal, TypeVar, assert_never
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, JsonValue, PlainSerializer, model_validator
 
@@ -1044,6 +1044,25 @@ class ManifestSpec(Model):
     tb2_artifacts: tuple[Tb2Artifact, ...] = ()
     tb2_argv_first: tuple[str, ...] = ()
     tb2_argv_next: tuple[str, ...] = ()
+
+    @model_validator(mode="after")
+    def _meter_wire_matches_base_url(self) -> ManifestSpec:
+        """A fixed meter wire must be the only meter base URL the manifest points its CLI at."""
+        match self.info.meter_wire:
+            case "model":
+                return self
+            case "openai":
+                wanted, other = "{meter_openai}", "{meter_anthropic}"
+            case "anthropic":
+                wanted, other = "{meter_anthropic}", "{meter_openai}"
+            case unreachable:
+                assert_never(unreachable)
+        rendered = self.model_dump_json(exclude={"info", "status_note"})
+        if wanted not in rendered or other in rendered:
+            raise ValueError(
+                f"{self.info.name}: meter_wire={self.info.meter_wire!r} needs {wanted} and no {other} in its manifest"
+            )
+        return self
 
 
 # ---------------------------------------------------------------------------
