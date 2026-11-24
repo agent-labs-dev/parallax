@@ -114,6 +114,9 @@ class Capability(StrEnum):
     TERMINAL = "terminal"
     # Operates a web browser on live sites; a task requiring it runs on no seeded world.
     BROWSER = "browser"
+    # Keeps a task container live after the agent stops and reports its handle, so the grader can
+    # run the task's verifier in that container. A harness without it is NA on such tasks.
+    LIVE_CONTAINER = "live_container"
     # Receives a task's site login through a protected binding that the model cannot inspect.
     CREDENTIALS = "credentials"
     # Is told which irreversible actions a task authorizes and stops before any other one, reporting it. A task needs it

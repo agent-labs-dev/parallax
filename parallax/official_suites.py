@@ -17,11 +17,11 @@ import tempfile
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, cast
 from urllib.parse import urlparse
 
 import httpx
-from pydantic import BaseModel, JsonValue
+from pydantic import BaseModel, Field, JsonValue, model_validator
 
 from parallax.browser_evidence import BrowserEvidence, reported
 from parallax.extensions import GradeRequest, GradingPolicy, TaskExtension
@@ -71,6 +71,80 @@ TAU2_FILE_SHA256 = {
     ("telecom", "main_policy.md"): "95943844a0cf11fdf0e2842b483b81d9f9338aa53235712ed131db075d086ed7",
 }
 TAU2_EXPECTED_BASE = {"airline": 50, "retail": 114, "telecom": 114}
+# Upstream benchmark defaults at the pin (`tau2.config`): the semantic communicate judge and
+# the NL-assertion judge. The bridge uses upstream's own defaults; these name them for identity.
+TAU2_COMMUNICATE_JUDGE_MODEL = "gpt-5.5"
+TAU2_NL_JUDGE_MODEL = "gpt-5.4-mini-2026-03-17"
+
+TerminationReason = Literal[
+    "user_stop",
+    "agent_stop",
+    "max_steps",
+    "timeout",
+    "too_many_errors",
+    "agent_error",
+    "user_error",
+    "infrastructure_error",
+    "context_window_exceeded",
+    "unexpected_error",
+]
+
+
+class Tau2ToolCall(Model):
+    id: str = ""
+    name: str
+    # Upstream `tau2.data_model.message.ToolCall.arguments` is a dict; a string form is rejected.
+    arguments: dict[str, JsonValue] = {}
+    requestor: Literal["assistant", "user"] = "assistant"
+
+
+class Tau2Message(Model):
+    model_config = {"extra": "allow", "frozen": True}
+
+    role: Literal["system", "user", "assistant", "tool"]
+    content: str | None = None
+    tool_calls: tuple[Tau2ToolCall, ...] | None = None
+    id: str | None = None
+    requestor: Literal["assistant", "user"] = "assistant"
+    error: bool = False
+
+
+class Tau2Evidence(Model):
+    """The harness's tau2 trial evidence: the full upstream transcript and how it ended.
+
+    Every assistant tool call must be followed, in order, by its `ToolMessage`(s); the
+    evaluator replays those calls itself, so no separate tool-call list or final database
+    state is accepted. `termination_reason` is required, with no default.
+    """
+
+    transcript: tuple[Tau2Message, ...] = Field(min_length=1)
+    termination_reason: TerminationReason
+
+    @model_validator(mode="after")
+    def _tool_calls_are_followed_by_tool_messages(self) -> Tau2Evidence:
+        messages = self.transcript
+        for index, message in enumerate(messages):
+            if message.role != "assistant" or not message.tool_calls:
+                continue
+            following = messages[index + 1 : index + 1 + len(message.tool_calls)]
+            if len(following) != len(message.tool_calls) or any(m.role != "tool" for m in following):
+                raise ValueError(
+                    f"transcript[{index}]: assistant tool calls must each be followed by their ToolMessage, in order"
+                )
+            for call, tool_message in zip(message.tool_calls, following, strict=True):
+                if call.id and tool_message.id not in (None, call.id):
+                    raise ValueError(
+                        f"transcript[{index}]: ToolMessage id {tool_message.id!r} does not match tool call {call.id!r}"
+                    )
+        return self
+
+
+def parse_tau2_evidence(product: JsonObject | None) -> Tau2Evidence:
+    """Validate `trial_metadata["tau2"]`; raises ValueError with the reason when it cannot grade."""
+    raw = (product or {}).get("tau2")
+    if not isinstance(raw, dict):
+        raise ValueError("harness reported no tau2 evidence")
+    return Tau2Evidence.model_validate(raw)
 
 
 @dataclass(frozen=True)
@@ -624,12 +698,29 @@ def _tau2_root() -> tuple[Path, Path]:
     return root, python.expanduser().absolute()
 
 
-async def _tau2_bridge(_req: GradeRequest, payload: dict[str, JsonValue]) -> dict[str, Any]:
+def _tau2_judge_env(req: GradeRequest) -> dict[str, str]:
+    """Only the judge's endpoint and key cross into the bridge, through an explicit allowlist.
+
+    Tau2's semantic communicate and NL-assertion judges call LiteLLM, which reads the
+    OpenAI-compatible endpoint from these names. Simulator keys never enter the bridge.
+    """
+    config = req.judge_config
+    base_url = config.base_url if config is not None else os.environ.get("PARALLAX_JUDGE_BASE_URL", "")
+    api_key = config.api_key if config is not None else os.environ.get("PARALLAX_JUDGE_API_KEY", "")
+    env: dict[str, str] = {}
+    if base_url:
+        env["OPENAI_BASE_URL"] = base_url
+    if api_key:
+        env["OPENAI_API_KEY"] = api_key
+    return env
+
+
+async def _tau2_bridge(req: GradeRequest, payload: dict[str, JsonValue]) -> dict[str, Any]:
     root, python = _tau2_root()
     payload = {**payload, "root": str(root)}
     command = (str(python), "-B", str(Path(__file__).with_name("tau2_bridge.py")))
     env = {"PATH": os.environ.get("PATH", ""), "LANG": os.environ.get("LANG", "C.UTF-8"),
-           "LC_ALL": os.environ.get("LC_ALL", "C.UTF-8")}  # fmt: skip
+           "LC_ALL": os.environ.get("LC_ALL", "C.UTF-8"), **_tau2_judge_env(req)}  # fmt: skip
     process = await asyncio.create_subprocess_exec(
         *command, cwd=root, env=env, stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
@@ -647,41 +738,76 @@ async def _tau2_bridge(_req: GradeRequest, payload: dict[str, JsonValue]) -> dic
     return cast(dict[str, Any], result)
 
 
+def _tau2_judgment(req: GradeRequest, payload: Mapping[str, JsonValue], result: Mapping[str, Any]) -> Judgment | None:
+    """The bridge's judge calls as a priced judgment; None when the evaluator made none."""
+    calls = result.get("calls")
+    if not isinstance(calls, list) or not calls:
+        return None
+    passed, reason = result.get("passed"), result.get("reason")
+    decisions = (
+        {"upstream": Decision(passed=passed, source="llm", reason=reason)}
+        if isinstance(passed, bool) and isinstance(reason, str)
+        else {}
+    )
+    return Judgment(
+        policy=TAU2_POLICY,
+        identity=f"{TAU2_POLICY}:{TAU2}:evaluator-{TAU2_UPSTREAM_COMMIT}",
+        state_sha256=hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest(),
+        questions={"upstream": "The pinned upstream tau2 evaluator decides the task."},
+        decisions=decisions,
+        fallback_calls=tuple(
+            FallbackCall.model_validate({**call, "attempt": index})
+            for index, call in enumerate(calls)
+            if isinstance(call, dict)
+        ),
+    )
+
+
 async def _grade_tau2(req: GradeRequest) -> Graded:
     interruption = req.execution.get("error")
     if isinstance(interruption, str) and interruption.startswith("environment interruption: "):
         return _tau2_unjudged(req.task, interruption)
-    product = req.product or {}
-    evidence = product.get("tau2")
-    if not isinstance(evidence, dict) or not evidence.get("transcript"):
-        return _tau2_unjudged(req.task, "missing evidence: harness reported no tau2 transcript")
+    try:
+        evidence = parse_tau2_evidence(req.product)
+    except ValueError as exc:
+        return _tau2_unjudged(req.task, f"missing evidence: invalid tau2 evidence: {exc}")
     data = req.task.data
-    # Simulator calls are deliberately not forwarded and never priced here: they are the user
-    # simulator's spend, kept in trial metadata, not in the harness's TurnOutput.usage.
+    # Simulator spend is the harness's own metadata: it is not forwarded and never priced here.
     payload: dict[str, JsonValue] = {
         "operation": "evaluate",
         "suite": TAU2,
         "commit": TAU2_UPSTREAM_COMMIT,
         "domain": str(data.get("domain", "")),
         "task_id": str(data.get("upstream_task_id", "")),
-        "transcript": evidence.get("transcript"),
-        "tool_calls": cast(JsonValue, evidence.get("tool_calls") or []),
-        "final_db_state": evidence.get("final_db_state"),
+        "transcript": cast(JsonValue, evidence.model_dump(mode="json")["transcript"]),
+        "termination_reason": evidence.termination_reason,
     }
     try:
         result = await _tau2_bridge(req, payload)
     except (OfficialSuiteError, OSError, ValueError) as exc:
-        return _tau2_unjudged(req.task, f"missing evidence: upstream tau2 evaluator unavailable: {exc}")
+        # The bridge may have reached the judge before failing, so its cost is unknown, not zero.
+        return _tau2_unjudged(req.task, f"missing evidence: upstream tau2 evaluator unavailable: {exc}").model_copy(
+            update={"unpriced_calls": 1}
+        )
+    judgment = _tau2_judgment(req, payload, result)
+    judgments, unpriced = ((judgment,), 0) if judgment is not None else ((), 0)
+    spend = {"judgments": judgments, "unpriced_calls": unpriced}
     if not isinstance(result.get("score"), (int, float)) or not isinstance(result.get("passed"), bool):
-        return _tau2_unjudged(req.task, "missing evidence: upstream tau2 evaluator returned no valid score")
+        return _tau2_unjudged(req.task, "missing evidence: upstream tau2 evaluator returned no valid score").model_copy(
+            update=spend
+        )
     score = float(result["score"])
     if not 0 <= score <= 1:
-        return _tau2_unjudged(req.task, "missing evidence: upstream tau2 evaluator returned an out-of-range score")
+        return _tau2_unjudged(
+            req.task, "missing evidence: upstream tau2 evaluator returned an out-of-range score"
+        ).model_copy(update=spend)
     detail = f"upstream tau2 reward={score:.6g}; revision={TAU2_UPSTREAM_COMMIT}"
     return Graded(
         checks=tuple(_result(check, bool(result["passed"]), detail) for check in _tau2_checks(req.task)),
         judge_identity=f"{TAU2_POLICY}:{TAU2}:evaluator-{TAU2_UPSTREAM_COMMIT}",
         score=score,
+        judgments=judgments,
+        unpriced_calls=unpriced,
     )
 
 
@@ -693,7 +819,7 @@ TAU2_POLICY_OBJECT = GradingPolicy(
     judge=JudgePolicy(
         name=f"{TAU2_POLICY}:{TAU2_UPSTREAM_COMMIT}",
         questions={"upstream": "The pinned upstream tau2 evaluator decides the task."},
-        evidence_form=f"tau2 transcript, tool calls and final database state, pinned revision {TAU2_UPSTREAM_COMMIT}",
+        evidence_form=f"tau2 full transcript and termination_reason, pinned revision {TAU2_UPSTREAM_COMMIT}",
     ),
     identity=lambda: f"{TAU2_POLICY}:{TAU2}:evaluator-{TAU2_UPSTREAM_COMMIT}",
 )

@@ -1,13 +1,14 @@
 """Small process boundary for the pinned upstream tau2-bench evaluator.
 
 Run as a script by the pinned tau2 checkout's own Python, like `official_bridge.py`. It imports that
-checkout and calls upstream `evaluate_simulation` with `EvaluationType.ALL`; no database, action or
-communication comparison is reimplemented here. The harness reports
-`{transcript, tool_calls, final_db_state}` as trial evidence; the transcript is authoritative, and a
-bare `tool_calls` list is only used to synthesise assistant tool-call messages when the transcript
-carries none. Simulator (user-model) usage never enters this bridge's result as agent cost: the
-simulation is built with no agent/user cost, and any simulator calls the harness made stay in trial
-metadata, outside `TurnOutput.usage`.
+checkout and calls upstream `evaluate_simulation` with `EvaluationType.ALL`, upstream's default
+SEMANTIC communicate scoring and its NL-assertion evaluator (both with upstream's pinned judge
+models); no database, action or communication comparison is reimplemented here. The harness reports
+`{transcript, termination_reason}` as trial evidence: the full upstream message transcript, whose
+assistant tool calls are each followed by their ToolMessage, and an explicit termination reason.
+The evaluator replays the transcript itself. Simulator (user-model) usage never enters this bridge:
+the simulation is built with no agent/user cost, and every judge call the evaluator makes is
+returned in `calls` with its usage, priced when upstream reported a cost and unpriced otherwise.
 """
 
 from __future__ import annotations
@@ -16,8 +17,22 @@ import contextlib
 import json
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
+
+TERMINATION_REASONS = {
+    "user_stop",
+    "agent_stop",
+    "max_steps",
+    "timeout",
+    "too_many_errors",
+    "agent_error",
+    "user_error",
+    "infrastructure_error",
+    "context_window_exceeded",
+    "unexpected_error",
+}
 
 
 def _root(request: dict[str, Any]) -> Path:
@@ -41,34 +56,77 @@ def _root(request: dict[str, Any]) -> Path:
 
 
 def _messages(request: dict[str, Any]) -> list[dict[str, Any]]:
-    """Evidence messages as plain dicts, in tau2 message shape, synthesising tool calls if needed."""
-    transcript = request.get("transcript") or []
+    """Evidence messages as plain dicts, validated against the upstream transcript contract."""
+    if request.get("tool_calls"):
+        raise RuntimeError("bare tool_calls evidence is not accepted; tool calls belong in the transcript")
+    if "termination_reason" not in request:
+        raise RuntimeError("termination_reason is required")
+    if request["termination_reason"] not in TERMINATION_REASONS:
+        raise RuntimeError(f"unknown termination_reason {request['termination_reason']!r}")
+    transcript = request.get("transcript")
+    if not isinstance(transcript, list) or not transcript:
+        raise RuntimeError("transcript must be a non-empty list of tau2 messages")
     messages: list[dict[str, Any]] = []
     for entry in transcript:
         if not isinstance(entry, dict) or entry.get("role") not in {"system", "user", "assistant", "tool"}:
             raise RuntimeError("transcript entries must be tau2 messages with a role")
-        messages.append(dict(entry))
-    tool_calls = request.get("tool_calls") or []
-    already = any(isinstance(m.get("tool_calls"), list) and m["tool_calls"] for m in messages)
-    if tool_calls and not already:
-        for call in tool_calls:
+        for call in entry.get("tool_calls") or []:
             if not isinstance(call, dict) or not call.get("name"):
                 raise RuntimeError("tool_calls entries must name the tool called")
-            messages.append(
+            if not isinstance(call.get("arguments", {}), dict):
+                raise RuntimeError("tool call arguments must be an object, not a string")
+        messages.append(dict(entry))
+    for index, message in enumerate(messages):
+        calls = message.get("tool_calls") if message.get("role") == "assistant" else None
+        if not calls:
+            continue
+        following = messages[index + 1 : index + 1 + len(calls)]
+        if len(following) != len(calls) or any(m.get("role") != "tool" for m in following):
+            raise RuntimeError("assistant tool calls must each be followed by their ToolMessage, in order")
+        for call, tool_message in zip(calls, following, strict=True):
+            if call.get("id") and tool_message.get("id") not in (None, call["id"]):
+                raise RuntimeError("ToolMessage id does not match its tool call")
+    return messages
+
+
+def _judge_calls() -> tuple[list[dict[str, Any]], Any]:
+    """Wrap the evaluator modules' `generate` so every judge call's usage is returned.
+
+    Returns the live `calls` list and a restore callable. Each entry carries the model the
+    upstream evaluator pinned, token usage when it reported any, and its cost (None, never
+    dropped, when upstream reported none).
+    """
+    import importlib
+
+    calls: list[dict[str, Any]] = []
+    patched: list[tuple[Any, Any]] = []
+    for module_name in ("tau2.evaluator.evaluator_communicate", "tau2.evaluator.evaluator_nl_assertions"):
+        module = importlib.import_module(module_name)
+        original = module.generate
+
+        def recording(*args: Any, _original: Any = original, **kwargs: Any) -> Any:
+            started = time.monotonic()
+            reply = _original(*args, **kwargs)
+            usage = getattr(reply, "usage", None) or {}
+            calls.append(
                 {
-                    "role": "assistant",
-                    "content": None,
-                    "tool_calls": [
-                        {
-                            "id": str(call.get("id") or ""),
-                            "name": str(call["name"]),
-                            "arguments": dict(call.get("arguments") or {}),
-                            "requestor": "assistant",
-                        }
-                    ],
+                    "model": str(kwargs.get("model") or getattr(reply, "model", "") or "unknown"),
+                    "input_tokens": usage.get("prompt_tokens"),
+                    "output_tokens": usage.get("completion_tokens"),
+                    "cost_usd": getattr(reply, "cost", None),
+                    "latency_ms": int((time.monotonic() - started) * 1000),
                 }
             )
-    return messages
+            return reply
+
+        patched.append((module, original))
+        module.__dict__["generate"] = recording
+
+    def restore() -> None:
+        for module, original in patched:
+            module.__dict__["generate"] = original
+
+    return calls, restore
 
 
 def _evaluate(request: dict[str, Any]) -> dict[str, Any]:
@@ -100,29 +158,32 @@ def _evaluate(request: dict[str, Any]) -> dict[str, Any]:
         start_time=str(request.get("start_time") or "1970-01-01T00:00:00"),
         end_time=str(request.get("end_time") or "1970-01-01T00:00:00"),
         duration=float(request.get("duration") or 0),
-        termination_reason=str(request.get("termination_reason") or "agent_stop"),
+        termination_reason=simulation_module.TerminationReason(str(request["termination_reason"])),
         messages=messages,
         agent_cost=None,  # simulator and agent cost stay out of the upstream reward path
         user_cost=None,
-        info={"final_db_state": request.get("final_db_state")},
     )
-    # Substring communicate scoring keeps the bridge free of a second LLM judge call; upstream still
-    # decides ENV, ACTION and (when in the task's reward basis) COMMUNICATE under EvaluationType.ALL.
-    reward = evaluator.evaluate_simulation(
-        simulation=simulation,
-        task=task,
-        evaluation_type=evaluator.EvaluationType.ALL,
-        solo_mode=False,
-        domain=domain,
-        communicate_scoring=scoring_module.CommunicateScoring(scorer=scoring_module.CommunicateScorer.SUBSTRING),
-    )
+    calls, restore = _judge_calls()
+    try:
+        reward = evaluator.evaluate_simulation(
+            simulation=simulation,
+            task=task,
+            evaluation_type=evaluator.EvaluationType.ALL,
+            solo_mode=False,
+            domain=domain,
+            # Upstream's default: SEMANTIC communicate scoring with its pinned judge model
+            # (gpt-5.5 at this pin), and the NL-assertion evaluator under EvaluationType.ALL.
+            communicate_scoring=scoring_module.CommunicateScoring(),
+        )
+    finally:
+        restore()
     score = float(reward.reward)
     return {
         "passed": score == 1.0,
         "score": score,
         "reward": score,
         "reason": json.dumps(reward.model_dump(mode="json"), ensure_ascii=False, sort_keys=True),
-        "calls": [],
+        "calls": calls,
     }
 
 

@@ -33,7 +33,8 @@ def null_info(mode: NullMode) -> HarnessInfo:
         kind=HarnessKind.CONTROL,
         # Every general capability, so ordinary tasks are never NA for a null control. Protected site logins and
         # authorization prompts are harness-specific and must not be claimed by a control.
-        capabilities=frozenset(Capability) - {Capability.CREDENTIALS, Capability.AUTHORIZATION},
+        capabilities=frozenset(Capability)
+        - {Capability.CREDENTIALS, Capability.AUTHORIZATION, Capability.LIVE_CONTAINER},
         pins_model=False,
         cost_source=CostSource.NONE,
         isolation=Isolation.HOST,

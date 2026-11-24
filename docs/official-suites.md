@@ -69,15 +69,37 @@ per-file SHA-256 manifest (`efcb17d74def636fc67695b6a2bfb4a6b65945c2e52e5e0eff05
 kept in the user cache. Multi-step tasks are rejected by the importer rather than truncated; the
 pinned set is single-step.
 
-Grading is structured, not answer-text matching: the task's own pinned `tests/test.sh` runs in the
-task environment and writes a reward, and reward 1 is a pass. A harness that keeps the agent's
-container live reports that reward in its trial metadata (shared mode). A box harness instead gets a
-fresh `--network none` container built from the task image over its final workspace snapshot, with
-the pinned `tests/` mounted at `/tests`. Tasks whose tests read live container state outside the
-workspace are snapshot-unsafe and score NA for box harnesses rather than failing silently. The
-oracle for a task is its pinned `solution/solve.sh`, run in the container before the verifier. Tasks
-run with the image, network mode, CPU and memory their `task.toml` declares; no credential enters
-the container.
+Grading is structured, not answer-text matching. The task record requires the `live_container`
+capability: a graded harness keeps the agent's task container live and reports only its handle as
+`trial_metadata["terminal_bench"]["container"]`. A harness that does not declare that capability
+scores NA before the run, never a graded 0. The grader, never the harness, runs the verifier: it
+re-checks the record's `tests_digest` against the pinned `tests/` in its digest-checked cache,
+copies those tests into the live container, and runs `tests/test.sh` there (directly, as upstream
+Harbor does) with the container's existing network, which follows the task's `[environment]`.
+A harness-reported reward is never trusted and is ignored.
+
+Reward comes only from the verifier's reward file, `/logs/verifier/reward.json` or
+`/logs/verifier/reward.txt`, as upstream Harbor defines them; reward 1 is a pass. A missing or
+unparsable reward file is a failed check that says so, never a stdout fallback, and the copy and
+test exit codes are recorded in the check detail either way. Task images named by mutable tag are
+pinned by digest: the importer records the registry digest resolved for the pinned set in
+`PINNED_IMAGE_DIGESTS`, and grading refuses a live container whose image digest differs.
+
+Any container Parallax itself starts (the oracle and null conformance paths) is named, limited by
+the task's `--cpus`, `--memory` and `--pids-limit` (512 by default), started with
+`--cap-drop ALL` and `no-new-privileges` (no pinned task declares a capability it needs), and
+removed by name on success, failure and timeout. `oracle_conformance` runs the pinned
+`solution/solve.sh` in a fresh task container and then the verifier, and must pass;
+`null_conformance` runs only the verifier and must fail. No credential enters the container.
+
+Tests: `tests/core/test_harbor_tasks.py` runs the real verifier in Docker against a tiny alpine
+fixture (pass, fail, missing reward file, timeout cleanup, oracle and null), and
+`tests/core/test_tau2_suites.py` runs the real bridge against a pinned tau2 checkout on the `mock`
+domain (`agent_stop` passes, `max_steps` scores 0) plus pure evidence-validation tests. CI's test
+shards run on GitHub's ubuntu runners, where the Docker-marked tests run when a daemon answers
+(they skip with that reason otherwise); the tau2 bridge tests skip in CI, which provides no pinned
+tau2 checkout, network judge or checkout venv, and run wherever `PARALLAX_OFFICIAL_TAU2_ROOT`
+points at one.
 
 ## tau2
 
@@ -95,12 +117,23 @@ file are fetched at run time and verified by the SHA-256 digests recorded in `TH
 
 Parallax has no LLM user simulator, so the harness drives the multi-turn loop: it receives the
 domain policy and task goal as its first turn, runs the pinned simulator internally, and returns one
-trial whose metadata carries `{transcript, tool_calls, final_db_state}`. Grading sends that evidence
-through `parallax/tau2_bridge.py` to the pinned checkout, which calls upstream
-`evaluate_simulation` with `EvaluationType.ALL`; no database, action or communication comparison is
-reimplemented in Parallax. The bridge scores communicate info with upstream's substring scorer so
-grading makes no second LLM judge call. Simulator (user-model) spend is metered by the harness and
-kept in trial metadata: it never enters the trial's usage or the grade's priced calls.
+trial whose metadata carries `{transcript, termination_reason}`. The transcript is the full upstream
+message list: every assistant tool call is followed, in order, by its `ToolMessage`, and tool-call
+arguments are objects, as upstream's `ToolCall` model requires (a string form is rejected).
+`termination_reason` is required with no default and takes upstream's `TerminationReason` values.
+There is no bare tool-call list and no final database state: the evaluator replays the transcript
+itself. Invalid evidence is unjudged with the reason.
+
+Grading sends that evidence through `parallax/tau2_bridge.py` to the pinned checkout, which calls
+upstream `evaluate_simulation` with `EvaluationType.ALL`, upstream's default SEMANTIC communicate
+scoring and its NL-assertion evaluator, with the judge models upstream pins (`gpt-5.5` for
+communicate info, `gpt-5.4-mini-2026-03-17` for NL assertions at this revision); no database,
+action or communication comparison is reimplemented in Parallax. Only the judge's endpoint and key
+reach the bridge, through an explicit env allowlist (`OPENAI_BASE_URL`, `OPENAI_API_KEY`, from the
+run's judge config). Every judge call the evaluator makes comes back in the bridge's `calls` and is
+recorded on the grade as a priced call, or unpriced when upstream reported no cost, never dropped;
+a bridge that fails after reaching the judge counts one unpriced call. Simulator (user-model) spend
+stays in the harness's trial metadata: it never enters the trial's usage or the grade's calls.
 
 ## live-web
 
