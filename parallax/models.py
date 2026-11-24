@@ -793,7 +793,9 @@ class HarnessInfo(Model):
     web_disabled_by: Literal["flag", "config", "none"] = "none"
     # The metering wire selected by a manifest. `model` selects the wire from the model provider;
     # the explicit values cover manifests whose CLI always speaks one vendor wire.
-    meter_wire: Literal["model", "openai", "anthropic"] = "model"
+    meter_wire: Literal["model", "openai", "anthropic"] = Field(
+        default="model", exclude_if=lambda wire: wire == "model"
+    )
     source_url: str = ""
     # HTTPS hosts a harness needs to reach directly through the run's egress proxy, such as a
     # product API or a CLI distribution host. The proxy still starts with its model endpoints.
