@@ -182,11 +182,9 @@ def test_controls_declare_live_container_and_records_carry_agent_timeout():
     assert spec.agent_timeout_s == 60
 
 
-def _leftover_containers() -> list[str]:
-    out = subprocess.run(
-        ["docker", "ps", "-aq", "--filter", "name=parallax-tb2"], capture_output=True, text=True, check=False
-    ).stdout.split()
-    return out
+def _container_exists(name: str) -> bool:
+    # Tests run in parallel xdist workers, so assert on this test's own container by name.
+    return subprocess.run(["docker", "inspect", name], capture_output=True, check=False).returncode == 0
 
 
 @pytest.mark.docker
@@ -209,7 +207,7 @@ async def test_tb2_verifier_pass_and_fail_in_live_container(tmp_path):
     finally:
         await harbor.remove_container(container)
         await request.client.aclose()
-    assert container not in _leftover_containers()
+    assert not _container_exists(container)
 
 
 @pytest.mark.docker
@@ -237,6 +235,7 @@ async def test_tb2_oracle_solution_passes_and_null_fails_through_the_owned_conta
     # removes it. Null runs no solution in its container and must fail.
     request = _tb2_request(None, tmp_path=tmp_path)
     container = await harbor.start_task_container(request.task.data)
+    started = [container]
     try:
         code, detail = await harbor.run_solution(container, request.task.data)
         assert code == 0, detail
@@ -246,6 +245,7 @@ async def test_tb2_oracle_solution_passes_and_null_fails_through_the_owned_conta
     finally:
         await harbor.remove_container(container)
     container = await harbor.start_task_container(request.task.data)
+    started.append(container)
     try:
         graded = await harbor._grade(_tb2_request(None, tmp_path=tmp_path, task_container=container))
         assert graded.checks[0].passed is False
@@ -253,7 +253,7 @@ async def test_tb2_oracle_solution_passes_and_null_fails_through_the_owned_conta
     finally:
         await harbor.remove_container(container)
         await request.client.aclose()
-    assert _leftover_containers() == []
+    assert not any(_container_exists(name) for name in started)
 
 
 @pytest.mark.docker
@@ -304,7 +304,7 @@ async def test_tb2_verifier_timeout_is_an_agent_failure_and_container_removed(tm
     finally:
         await harbor.remove_container(container)
         await request.client.aclose()
-    assert _leftover_containers() == []
+    assert not _container_exists(container)
 
 
 def _labelled_containers(run_id: str) -> list[str]:

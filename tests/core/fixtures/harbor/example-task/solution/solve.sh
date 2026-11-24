@@ -1,2 +1,2 @@
 #!/bin/bash
-echo done > /app/answer.txt
+echo "done" > /app/answer.txt
