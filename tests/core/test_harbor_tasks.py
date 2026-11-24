@@ -604,14 +604,12 @@ async def test_tb2_agent_timeout_still_verifies_and_scores_the_reward(tmp_path, 
     monkeypatch.setattr(runner, "load_harness", lambda name: HangingHarness())
     task = _tiny_task(tmp_path / "hang", agent_timeout_s=1)
     out = tmp_path / "run-hang"
-    import time
-
-    started = time.monotonic()
     await runner.run_async(
         [task], ["oracle"], [None], runner.RunOptions(out=out, isolation=Isolation.DOCKER, quiet=True, retry_invalid=0)
     )
-    assert time.monotonic() - started < 25
     (row,) = runner.read_results(out / "results.jsonl")
+    # The agent phase, not the run's wall time (which includes the run's sidecar start), is bounded.
+    assert row.agent_ms is not None and row.agent_ms < 10_000
     assert row.status is not None and row.status.value == "timeout"
     assert row.verdict is Verdict.PASS  # the verifier ran on what the agent left, and it passed
     assert row.score == 1.0

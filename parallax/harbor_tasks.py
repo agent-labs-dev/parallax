@@ -526,8 +526,9 @@ async def run_verifier(container: str, data: JsonObject) -> dict[str, JsonValue]
     await _check_container_image(container, spec)
     timeout = spec.verifier_timeout_s
     # Restart kills every process the agent left (a self-respawning reward writer included)
-    # while keeping the filesystem and Docker network policy the agent worked under.
-    code, _out, err = await _docker("restart", container)
+    # while keeping the filesystem and Docker network policy the agent worked under. `-t 0`
+    # sends SIGKILL at once: a stop grace only waits on a PID 1 that ignores SIGTERM.
+    code, _out, err = await _docker("restart", "-t", "0", container)
     if code != 0:
         return _infra(f"restarting the task container failed (exit {code}): {err.strip()[-300:]}", copy_exit=code)
     code, _out, err = await _docker(
