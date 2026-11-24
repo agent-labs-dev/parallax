@@ -156,6 +156,34 @@ async def test_new_session_starts_fresh(box: HostBox, fake_spec: ManifestSpec) -
     assert fresh.session_id != first.session_id
 
 
+async def test_tb2_exec_uses_manifest_env_allowlist(box: HostBox, fake_spec: ManifestSpec) -> None:
+    spec = fake_spec.model_copy(
+        update={
+            "tb2_argv_first": (sys.executable, "-c", "print('done')"),
+            "info": info().model_copy(update={"capabilities": frozenset({Capability.LIVE_CONTAINER})}),
+        }
+    )
+    harness = ManifestHarness(spec)
+    trial = make_trial(box).model_copy(
+        update={"task_container": "owned-container", "env": {"PARALLAX_WORLD_TOKEN": "secret"}}
+    )
+    harness._trial = trial
+    calls: list[dict[str, str]] = []
+
+    async def fake_write(_target: str, _data: bytes) -> None:
+        return None
+
+    async def fake_exec(_argv: list[str], *, stdin=None, env=None, timeout=900.0):
+        calls.append(dict(env or {}))
+        return 0, json.dumps({"argv": [], "stdin": ""}), "session_id: s1\n"
+
+    harness._write_container_file = fake_write  # type: ignore[method-assign]
+    harness._exec_container = fake_exec  # type: ignore[method-assign]
+    await harness.turn(TurnInput(index=1, text="hi", new_session=False))
+    assert calls[-1] == {"PARALLAX_METER_KEY": "px-key"}
+    assert "PARALLAX_WORLD_TOKEN" not in calls[-1]
+
+
 async def test_config_rendered_into_home(box: HostBox, fake_spec: ManifestSpec) -> None:
     harness = ManifestHarness(fake_spec)
     await harness.start(make_trial(box), box)

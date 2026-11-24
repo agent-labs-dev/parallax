@@ -156,6 +156,40 @@ async def test_unknown_trial_key_and_upstream_errors(meter: httpx.AsyncBaseTrans
     assert report.upstream_errors == 1 and report.usage == ()
 
 
+async def test_trial_credential_is_budget_capped_and_revocable(meter: httpx.AsyncBaseTransport) -> None:
+    control = MeterClient("http://meter", ADMIN, transport=meter)
+    await control.register(KEY, budget_usd=0.000001)
+    ep = llm_endpoint("http://meter", KEY, "http://meter")
+    async with httpx.AsyncClient(transport=meter) as c:
+        first = await c.post(f"{ep.openai_base_url}/chat/completions", json={"model": "openai/gpt-4o", "messages": []})
+        blocked = await c.post(
+            f"{ep.openai_base_url}/chat/completions", json={"model": "openai/gpt-4o", "messages": []}
+        )
+    assert first.status_code == 200
+    assert blocked.status_code == 429
+    assert blocked.json()["error"]["code"] == "budget_exceeded"
+    await control.revoke(KEY)
+    async with httpx.AsyncClient(transport=meter) as c:
+        revoked = await c.post(
+            f"{ep.openai_base_url}/chat/completions", json={"model": "openai/gpt-4o", "messages": []}
+        )
+    assert revoked.status_code == 401
+
+
+async def test_trial_credential_expires(meter: httpx.AsyncBaseTransport, monkeypatch: pytest.MonkeyPatch) -> None:
+    now = 1000.0
+    monkeypatch.setattr(meter_module.time, "time", lambda: now)
+    control = MeterClient("http://meter", ADMIN, transport=meter)
+    await control.register(KEY, ttl_s=1)
+    monkeypatch.setattr(meter_module.time, "time", lambda: now + 2)
+    ep = llm_endpoint("http://meter", KEY, "http://meter")
+    async with httpx.AsyncClient(transport=meter) as c:
+        expired = await c.post(
+            f"{ep.openai_base_url}/chat/completions", json={"model": "openai/gpt-4o", "messages": []}
+        )
+    assert expired.status_code == 401
+
+
 async def test_streaming_chat_completions_request_usage(
     meter: httpx.AsyncBaseTransport, seen: list[httpx.Request]
 ) -> None:

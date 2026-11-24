@@ -246,6 +246,8 @@ class _ServeSession:
         message_module = importlib.import_module("tau2.data_model.message")
         user_module = importlib.import_module("tau2.user.user_simulator")
         config_module = importlib.import_module("tau2.config")
+        self._max_steps = int(config_module.DEFAULT_MAX_STEPS)
+        self._max_errors = int(config_module.DEFAULT_MAX_ERRORS)
 
         self._message = message_module
         domain = str(request["domain"])
@@ -261,20 +263,24 @@ class _ServeSession:
             message_history=list(initial.message_history) if initial and initial.message_history else [],
         )
         scenario = self.task.user_scenario
-        instructions = getattr(scenario, "instructions", None)
-        if not isinstance(instructions, str):
-            instructions = json.dumps(instructions, ensure_ascii=False) if instructions is not None else None
+        instructions = str(scenario)
         tools = None
         try:
             tools = self.environment.get_user_tools()
         except ValueError:
             tools = None
         model = str(request.get("simulator_model") or config_module.DEFAULT_LLM_USER)
-        self.simulator = user_module.UserSimulator(llm=model, instructions=instructions, tools=tools)
+        self.simulator = user_module.UserSimulator(
+            llm=model,
+            instructions=instructions,
+            tools=tools,
+            llm_args=dict(config_module.DEFAULT_LLM_ARGS_USER),
+        )
         self.user_state = self.simulator.get_init_state(
             message_history=[m for m in (initial.message_history if initial and initial.message_history else [])]
         )
         self.simulator_cost = 0.0
+        self.tool_errors = 0
 
     def tools(self) -> list[dict[str, Any]]:
         import importlib
@@ -303,6 +309,7 @@ class _ServeSession:
         while message.is_tool_call():
             extra.append(message.model_dump(mode="json"))
             results = [self.environment.get_response(call) for call in message.tool_calls or []]
+            self.tool_errors += sum(1 for result in results if result.error)
             extra.extend(r.model_dump(mode="json") for r in results)
             incoming = (
                 results[0]
@@ -335,6 +342,9 @@ class _ServeSession:
             "stop": bool(self.simulator.is_stop(message)),
             "cost_usd": getattr(message, "cost", None),
             "simulator_cost_usd": self.simulator_cost,
+            "tool_errors": self.tool_errors,
+            "max_steps": self._max_steps,
+            "max_errors": self._max_errors,
         }
 
 
@@ -356,7 +366,15 @@ def _serve(first: dict[str, Any]) -> None:
             op = request.get("op")
             if op == "start":
                 session = _ServeSession(request)
-                reply({"ok": True, "tools": session.tools(), "policy": session.environment.get_policy()})
+                reply(
+                    {
+                        "ok": True,
+                        "tools": session.tools(),
+                        "policy": session.environment.get_policy(),
+                        "max_steps": session._max_steps,
+                        "max_errors": session._max_errors,
+                    }
+                )
             elif op == "tool" and session is not None:
                 reply({"ok": True, **session.tool(request)})
             elif op == "user" and session is not None:

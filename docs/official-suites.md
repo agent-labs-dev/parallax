@@ -96,6 +96,20 @@ or written to disk. The manifest's rendered config files are written inside the 
 do not, so they (and any non-manifest harness without `live_container`, such as Nebula) score
 NA on terminal-bench-2 until they declare a TB2 path.
 
+`storage_mb` is enforced with Docker `--storage-opt size=<N>m` only when the daemon reports a
+supported overlay2 backing filesystem. If the driver cannot enforce the limit, Parallax refuses
+the task as infrastructure before starting an uncapped container. This host uses overlay2 over
+btrfs, and Docker rejects that storage option, so a pinned TB2 task with `storage_mb` is refused
+here rather than run without its limit.
+
+Metered TB2 trials require both `--budget USD` and `--reserve USD`. The reservation becomes the
+hard per-trial meter cap. The task container receives only the meter key rendered by the
+manifest's declared `env` entries on each `docker exec`; provider credentials remain in the
+meter service and never enter the task container. The key is revoked when the trial ends and
+also expires after its short fallback TTL. The built-in Node agents pin Node `22.14.0` and verify
+the SHA-512 integrity of the exact CLI tarball before install; its platform package is an exact
+versioned optional dependency of that tarball.
+
 The harness turn is bounded by the task's own agent timeout (`agent.timeout_sec`, recorded in
 the task data), matching upstream Harbor: `Trial._run_agent_phase` wraps the agent in a timeout
 and raises `AgentTimeoutError`, whose upstream error policy still grades with a valid reward
@@ -129,8 +143,9 @@ the agent's copies. Task images named by mutable tag are pinned by digest: the i
 the registry digest resolved for the pinned set in `PINNED_IMAGE_DIGESTS`, and grading refuses
 a container whose image digest differs.
 
-The container is named, limited by the task's `--cpus`, `--memory` and `--pids-limit` (512 by
-default), and started with Docker's default capability set, as upstream Harbor uses, plus
+The container is named, limited by the task's `--cpus`, `--memory`, `storage_mb` and
+`--pids-limit` (512 by default), and started with Docker's default capability set, as upstream
+Harbor uses, plus
 `no-new-privileges`: dropping all capabilities breaks `apt-get` in most TB2 test scripts, while
 `no-new-privileges` alone was verified to keep `apt-get` working on a Debian image. The oracle
 and null controls run through this same path: the oracle runs the pinned `solution/solve.sh`

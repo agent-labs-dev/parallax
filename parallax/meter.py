@@ -23,6 +23,7 @@ import os
 import re
 import secrets
 import sys
+import time
 from collections.abc import AsyncGenerator, AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
@@ -179,6 +180,7 @@ SEARCHING_MODELS = frozenset({
 TOOL_TYPE_VERSION = re.compile(r"_\d{8}$")
 # How long a report waits for streams whose client hung up to finish (see `pump`).
 STREAM_DRAIN_WAIT_S = 120.0
+TRIAL_CREDENTIAL_TTL_S = 2 * 60 * 60
 
 
 class MeterError(StrEnum):
@@ -188,6 +190,7 @@ class MeterError(StrEnum):
     UNREADABLE_REQUEST = "unreadable_request"
     UPSTREAM_DISABLED = "upstream_disabled"
     UPSTREAM_UNREACHABLE = "upstream_unreachable"
+    BUDGET_EXCEEDED = "budget_exceeded"
 
     @property
     def anthropic_type(self) -> str:
@@ -200,6 +203,8 @@ class MeterError(StrEnum):
                 return "invalid_request_error"
             case MeterError.UPSTREAM_DISABLED | MeterError.UPSTREAM_UNREACHABLE:
                 return "api_error"
+            case MeterError.BUDGET_EXCEEDED:
+                return "rate_limit_error"
             case _:
                 assert_never(self)
 
@@ -246,6 +251,8 @@ class ModelTally:
 
 @dataclass
 class TrialMeter:
+    budget_usd: float | None = None
+    expires_at: float | None = None
     models: dict[str, ModelTally] = field(default_factory=dict)
     upstream_errors: int = 0
     unpriced_requests: int = 0
@@ -264,6 +271,18 @@ class TrialMeter:
             unpriced_requests=self.unpriced_requests,
             unobserved_requests=self.unobserved_requests,
         )
+
+    def spent_usd(self) -> float | None:
+        if self.unpriced_requests:
+            return None
+        return math.fsum(t.cost_usd for t in self.models.values())
+
+    def closed(self) -> bool:
+        return self.expires_at is not None and time.time() >= self.expires_at
+
+    def over_budget(self) -> bool:
+        spent = self.spent_usd()
+        return self.budget_usd is not None and (spent is None or spent >= self.budget_usd)
 
 
 @dataclass(frozen=True)
@@ -581,7 +600,27 @@ def app(
             case "PUT":
                 if key in trials:
                     return JSONResponse({"error": "trial key already registered"}, status_code=409)
-                trials[key] = TrialMeter()
+                try:
+                    body = parse_json(await request.body()) or {}
+                    budget = body.get("budget_usd") if isinstance(body, dict) else None
+                    ttl = body.get("ttl_s") if isinstance(body, dict) else None
+                    if budget is not None and (
+                        isinstance(budget, bool)
+                        or not isinstance(budget, int | float)
+                        or not math.isfinite(budget)
+                        or budget <= 0
+                    ):
+                        raise ValueError("budget_usd must be a positive finite number")
+                    if ttl is not None and (
+                        isinstance(ttl, bool) or not isinstance(ttl, int | float) or not math.isfinite(ttl) or ttl <= 0
+                    ):
+                        raise ValueError("ttl_s must be a positive finite number")
+                except (TypeError, ValueError) as exc:
+                    return JSONResponse({"error": str(exc)}, status_code=400)
+                trials[key] = TrialMeter(
+                    budget_usd=float(budget) if budget is not None else None,
+                    expires_at=time.time() + float(ttl or TRIAL_CREDENTIAL_TTL_S),
+                )
                 return Response(status_code=204)
             case "GET":
                 trial = trials.get(key)
@@ -589,13 +628,19 @@ def app(
                     return JSONResponse({"error": "unknown trial key"}, status_code=404)
                 await settle(trial)
                 return Response(trial.report().model_dump_json(), media_type="application/json")
+            case "DELETE":
+                if trials.pop(key, None) is None:
+                    return JSONResponse({"error": "unknown trial key"}, status_code=404)
+                return Response(status_code=204)
             case other:
                 return Response(f"method {other} not allowed", status_code=405)
 
     async def proxy(wire: Wire, request: Request) -> Response:
         trial = trials.get(str(request.path_params["trial_key"]))
-        if trial is None:
+        if trial is None or trial.closed():
             return wire_error(wire, 401, MeterError.INVALID_TRIAL_KEY, "parallax meter: unknown trial key")
+        if trial.over_budget():
+            return wire_error(wire, 429, MeterError.BUDGET_EXCEEDED, "parallax meter: trial budget exhausted")
         upstream = upstreams[wire]
         if upstream.api_key is None:
             return wire_error(
@@ -610,8 +655,10 @@ def app(
         known = RELAY_HOSTS.get(host)
         wire = known.wire if known is not None else Wire.OPENAI
         trial = trials.get(str(request.path_params["trial_key"]))
-        if trial is None:
+        if trial is None or trial.closed():
             return wire_error(wire, 401, MeterError.INVALID_TRIAL_KEY, "parallax meter: unknown trial key")
+        if trial.over_budget():
+            return wire_error(wire, 429, MeterError.BUDGET_EXCEEDED, "parallax meter: trial budget exhausted")
         full = str(request.path_params["path"]).strip("/")
         if known is None or not full.startswith(f"{known.prefix}/"):
             logger.warning("meter: refused a relay to %s/%s: not a known provider API", host, full)
@@ -753,7 +800,7 @@ def app(
     return Starlette(
         routes=[
             Route("/_health", health, methods=["GET"]),
-            Route("/_meter/{admin}/{trial_key}", control, methods=["GET", "PUT"]),
+            Route("/_meter/{admin}/{trial_key}", control, methods=["DELETE", "GET", "PUT"]),
             Route("/{trial_key}/relay/{host}/{path:path}", relay_proxy, methods=["GET", "POST"]),
             *(
                 Route(
@@ -1021,12 +1068,20 @@ class MeterClient:
         self.base = f"{meter_url.rstrip('/')}/_meter/{admin_token}"
         self.transport = transport
 
-    async def register(self, trial_key: str) -> None:
-        """Opens the trial's tally. The meter records spend and never refuses it: the product under
-        test owns its own limits."""
+    async def register(
+        self, trial_key: str, *, budget_usd: float | None = None, ttl_s: float = TRIAL_CREDENTIAL_TTL_S
+    ) -> None:
+        """Mint a short-lived, proxy-only credential with an optional hard spend cap."""
         async with httpx.AsyncClient(transport=self.transport, timeout=10.0) as c:
-            r = await c.put(f"{self.base}/{trial_key}")
+            r = await c.put(f"{self.base}/{trial_key}", json={"budget_usd": budget_usd, "ttl_s": ttl_s})
             r.raise_for_status()
+
+    async def revoke(self, trial_key: str) -> None:
+        """Revoke a trial credential immediately; its TTL remains the crash-safe fallback."""
+        async with httpx.AsyncClient(transport=self.transport, timeout=10.0) as c:
+            r = await c.delete(f"{self.base}/{trial_key}")
+            if r.status_code != 404:
+                r.raise_for_status()
 
     async def report(self, trial_key: str) -> MeterReport:
         """Raises httpx.HTTPError when the meter is unreachable; the runner grades that INVALID."""

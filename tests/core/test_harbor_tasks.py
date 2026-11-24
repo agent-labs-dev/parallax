@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import shutil
 import subprocess
+import tomllib
 from pathlib import Path
 
 import httpx
@@ -66,6 +67,7 @@ def test_terminal_bench_tasks_from_directory_build_frozen_records(tmp_path):
         "network_mode",
         "cpus",
         "memory_mb",
+        "storage_mb",
         "pids_limit",
         "verifier_timeout_s",
         "agent_timeout_s",
@@ -73,6 +75,66 @@ def test_terminal_bench_tasks_from_directory_build_frozen_records(tmp_path):
     }
     assert record.data["upstream_id"] == "example-task"
     assert record.data["network_mode"] == "no-network"
+
+
+def test_parse_task_dir_preserves_storage_limit(tmp_path):
+    task_dir = tmp_path / "example-task"
+    shutil.copytree(FIXTURES / "example-task", task_dir)
+    text = (task_dir / "task.toml").read_text()
+    (task_dir / "task.toml").write_text(text.replace("[environment]\n", "[environment]\nstorage_mb = 123\n"))
+    assert harbor.parse_task_dir(task_dir).storage_mb == 123
+
+
+@pytest.mark.parametrize(
+    ("name", "package", "version", "integrity"),
+    [
+        (
+            "claude-code",
+            "claude-code-2.1.325.tgz",
+            "2.1.325",
+            "OUxCb0sx734zJh9zGTP9oF01gZ44DCGFaw7hgD4byepjRRGyvHzgUOwC7dlCgVIljV6CiEVDjq+anY3GUvKFQw==",
+        ),
+        (
+            "codex",
+            "codex-0.169.0.tgz",
+            "0.169.0",
+            "KhzYlkKPxoNssR8CEm45IjqnFWn7UtlF4CiD3tOJPea51xBs7MaHy0UQG9GSbCqk6Lrjn5QdJDV0QD1/FgWlGw==",
+        ),
+    ],
+)
+def test_tb2_cli_manifests_pin_node_and_package_tarball(name, package, version, integrity):
+    manifest = tomllib.loads(
+        (Path(__file__).parents[2] / "parallax" / "harnesses" / "manifests" / f"{name}.toml").read_text()
+    )
+    install = manifest["tb2_install"]
+    assert "nvm install 22.14.0" in install
+    assert package in install
+    assert integrity in install
+    assert 'npm install -g "$package"' in install
+    assert f"@{version}" in manifest["info"]["install"]
+
+
+@pytest.mark.asyncio
+async def test_storage_limit_is_added_only_for_supported_overlay2(monkeypatch):
+    calls = []
+
+    async def fake_docker(*argv, timeout=None):
+        calls.append(argv)
+        return 0, '[["Backing Filesystem","xfs"]]', ""
+
+    monkeypatch.setattr(harbor, "_docker", fake_docker)
+    assert await harbor._storage_args(10240) == ["--storage-opt", "size=10240m"]
+    assert calls == [("info", "--format", "{{json .DriverStatus}}")]
+
+
+@pytest.mark.asyncio
+async def test_storage_limit_refuses_overlay2_on_btrfs(monkeypatch):
+    async def fake_docker(*argv, timeout=None):
+        return 0, '[["Backing Filesystem","btrfs"]]', ""
+
+    monkeypatch.setattr(harbor, "_docker", fake_docker)
+    with pytest.raises(harbor.HarborTaskError, match="storage_mb=10240.*btrfs"):
+        await harbor._storage_args(10240)
 
 
 def _tb2_request(product, fixture: str = "tiny-task", tmp_path: Path | None = None, task_container: str | None = None):
@@ -411,7 +473,7 @@ async def test_tb2_debian_verifier_runs_apt_get(tmp_path):
 def test_builtin_manifest_tb2_declarations():
     from parallax.harnesses.manifest import load_manifest, manifest_path
 
-    for name, pinned in (("codex", "@openai/codex@0.169.0"), ("claude-code", "@anthropic-ai/claude-code@2.1.325")):
+    for name, pinned in (("codex", "codex-0.169.0.tgz"), ("claude-code", "claude-code-2.1.325.tgz")):
         spec = load_manifest(manifest_path(name))
         assert Capability.LIVE_CONTAINER in spec.info.capabilities
         assert spec.tb2_argv_first and spec.tb2_argv_next

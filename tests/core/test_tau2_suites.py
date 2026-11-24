@@ -534,6 +534,9 @@ async def test_tau2_bridge_failed_judge_call_is_captured_in_the_side_file_only(m
 class _FakeTau2Runtime:
     tools = [{"name": "create_task", "description": "create", "parameters": {"type": "object", "properties": {}}}]
     simulator_cost_usd = 0.25
+    max_steps = 200
+    max_errors = 10
+    tool_errors = 0
 
     async def start(self, *, domain, task):
         return self.tools
@@ -572,11 +575,12 @@ async def test_tau2_serve_runtime_on_mock_domain_with_scripted_gateway():
 
     from parallax.tau2_runtime import Tau2BridgeRuntime
 
-    calls = {"n": 0}
+    calls = {"n": 0, "temperatures": []}
 
     class Gateway(BaseHTTPRequestHandler):
         def do_POST(self):
             calls["n"] += 1
+            calls["temperatures"].append(json.loads(self.rfile.read(int(self.headers["Content-Length"]))))
             text = "Create a new task called 'Important Meeting' for user_1." if calls["n"] == 1 else "###STOP###"
             body = json.dumps(
                 {
@@ -614,8 +618,24 @@ async def test_tau2_serve_runtime_on_mock_domain_with_scripted_gateway():
     try:
         tools = await runtime.start(domain="mock", task=task)
         assert any(t["name"] == "create_task" for t in tools)
+        defaults = json.loads(
+            subprocess.run(
+                [
+                    str(python),
+                    "-c",
+                    'import json; from tau2 import config; print(json.dumps({"steps": config.DEFAULT_MAX_STEPS, "errors": config.DEFAULT_MAX_ERRORS, "temperature": config.DEFAULT_LLM_ARGS_USER["temperature"]}))',
+                ],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout
+        )
+        assert runtime.max_steps == defaults["steps"]
+        assert runtime.max_errors == defaults["errors"]
         first = await runtime.user_turn(first=True)
         assert "Important Meeting" in str(first["messages"])
+        assert calls["temperatures"][0]["temperature"] == defaults["temperature"] == 0.0
         result = await runtime.call_tool("create_task", {"user_id": "user_1", "title": "Important Meeting"}, "c1")
         assert not result["error"]
         second = await runtime.user_turn(first=False, assistant="Done, the task was created.")
@@ -623,6 +643,54 @@ async def test_tau2_serve_runtime_on_mock_domain_with_scripted_gateway():
     finally:
         await runtime.close()
         server.shutdown()  # type: ignore[attr-defined]
+
+
+@requires_tau2
+@pytest.mark.asyncio
+async def test_tau2_serve_uses_upstream_string_for_structured_scenario(monkeypatch):
+    """A real pinned task with a structured scenario must boot the upstream user simulator."""
+    from http.server import BaseHTTPRequestHandler
+
+    requests: list[dict] = []
+
+    class Gateway(BaseHTTPRequestHandler):
+        def do_POST(self):
+            requests.append(json.loads(self.rfile.read(int(self.headers["Content-Length"]))))
+            body = json.dumps(
+                {
+                    "id": "x",
+                    "object": "chat.completion",
+                    "model": official.TAU2_SIMULATOR_MODEL,
+                    "choices": [
+                        {"index": 0, "message": {"role": "assistant", "content": "###STOP###"}, "finish_reason": "stop"}
+                    ],
+                    "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+                }
+            ).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    base_url, server = _gateway(Gateway)
+    root, python = _tau2_checkout()  # type: ignore[misc]
+    task = json.loads((root / "data/tau2/domains/airline/tasks.json").read_text())[0]
+    runtime = __import__("parallax.tau2_runtime", fromlist=["Tau2BridgeRuntime"]).Tau2BridgeRuntime(
+        root=root, python=python, commit=official.TAU2_UPSTREAM_COMMIT, base_url=base_url, api_key="test"
+    )
+    try:
+        await runtime.start(domain="airline", task=task)
+        await runtime.user_turn(first=True)
+    finally:
+        await runtime.close()
+        server.shutdown()  # type: ignore[attr-defined]
+    assert requests
+    contents = [str(message.get("content")) for message in requests[0]["messages"]]
+    assert any("Reason for call:" in content for content in contents)
 
 
 @pytest.mark.asyncio

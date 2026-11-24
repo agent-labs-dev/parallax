@@ -13,10 +13,10 @@ argv_next = ["claude", "-p", "--output-format", "stream-json", "--verbose", "--m
   "--setting-sources", "project", "--permission-mode", "bypassPermissions",
   "--disallowedTools", "WebSearch,WebFetch"]
 # TB2 (Harbor-style, agents/installed/claude_code.py at the pin): install as root in the owned
-# task container (Node 22 via nvm where no node exists, pinned CLI 2.1.325 as above), then run
+# task container (Node 22.14.0 via nvm, pinned CLI 2.1.325 as above), then run
 # inside it via docker exec with the manifest env passed per exec. No MCP config in the task
 # container: TB2 tasks mount no world. {workspace} is /app, {home} is /root in that container.
-tb2_install = "set -e; if ! command -v npm >/dev/null 2>&1; then if command -v apt-get >/dev/null 2>&1; then apt-get update && apt-get install -y curl ca-certificates; fi; curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash; export NVM_DIR=\"$HOME/.nvm\"; . \"$NVM_DIR/nvm.sh\"; nvm install 22; fi; export NVM_DIR=\"${NVM_DIR:-$HOME/.nvm}\"; if [ -s \"$NVM_DIR/nvm.sh\" ]; then . \"$NVM_DIR/nvm.sh\"; fi; npm install -g @anthropic-ai/claude-code@2.1.325 --allow-scripts=@anthropic-ai/claude-code; ln -sf \"$(command -v claude)\" /usr/local/bin/claude; if command -v node >/dev/null 2>&1; then ln -sf \"$(command -v node)\" /usr/local/bin/node; fi; claude --version"
+tb2_install = "set -e; if command -v apt-get >/dev/null 2>&1 && { ! command -v curl >/dev/null 2>&1 || ! command -v openssl >/dev/null 2>&1; }; then apt-get update && apt-get install -y curl ca-certificates openssl; fi; export NVM_DIR=\"$HOME/.nvm\"; if [ ! -s \"$NVM_DIR/nvm.sh\" ]; then curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash; fi; . \"$NVM_DIR/nvm.sh\"; nvm install 22.14.0; nvm use 22.14.0; test \"$(node --version)\" = v22.14.0; package=/tmp/claude-code-2.1.325.tgz; curl -fsSL https://registry.npmjs.org/@anthropic-ai/claude-code/-/claude-code-2.1.325.tgz -o \"$package\"; digest=$(openssl dgst -sha512 -binary \"$package\" | openssl base64 -A); test \"$digest\" = 'OUxCb0sx734zJh9zGTP9oF01gZ44DCGFaw7hgD4byepjRRGyvHzgUOwC7dlCgVIljV6CiEVDjq+anY3GUvKFQw=='; npm install -g \"$package\" --allow-scripts=@anthropic-ai/claude-code; rm -f \"$package\"; ln -sf \"$(command -v claude)\" /usr/local/bin/claude; ln -sf \"$(command -v node)\" /usr/local/bin/node; claude --version"
 tb2_argv_first = ["claude", "-p", "--output-format", "stream-json", "--verbose", "--model", "{model_name}",
   "--session-id", "{session}", "--setting-sources", "project", "--permission-mode", "bypassPermissions",
   "--disallowedTools", "WebSearch,WebFetch"]
@@ -30,7 +30,7 @@ kind = "open"
 capabilities = ["mcp", "workspace", "shell", "desktop", "multi_turn", "memory", "live_container"]
 pins_model = true
 cost_source = "metered"
-install = "npm i -g @anthropic-ai/claude-code --allow-scripts=@anthropic-ai/claude-code"
+install = "npm i -g @anthropic-ai/claude-code@2.1.325 --allow-scripts=@anthropic-ai/claude-code"
 version_cmd = ["claude", "--version"]
 web_disabled_by = "flag"
 source_url = "https://github.com/anthropics/claude-code"

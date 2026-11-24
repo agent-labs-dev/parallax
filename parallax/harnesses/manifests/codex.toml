@@ -10,9 +10,9 @@ argv_first = ["codex", "exec", "--json", "--skip-git-repo-check", "--dangerously
 argv_next = ["codex", "exec", "-C", "{workspace}", "resume", "--json", "--skip-git-repo-check",
   "--dangerously-bypass-approvals-and-sandbox", "-m", "{model_name}", "{session}", "-"]
 # TB2 (Harbor-style, agents/installed/codex.py at the pin): install as root in the owned task
-# container (Node 22 via nvm where no node exists, pinned CLI 0.169.0 as above), then run inside
+# container (Node 22.14.0 via nvm, pinned CLI 0.169.0 as above), then run inside
 # it via docker exec with the manifest env passed per exec. {workspace} is /app in that container.
-tb2_install = "set -e; if ! command -v npm >/dev/null 2>&1; then if command -v apt-get >/dev/null 2>&1; then apt-get update && apt-get install -y curl ca-certificates; fi; curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash; export NVM_DIR=\"$HOME/.nvm\"; . \"$NVM_DIR/nvm.sh\"; nvm install 22; fi; export NVM_DIR=\"${NVM_DIR:-$HOME/.nvm}\"; if [ -s \"$NVM_DIR/nvm.sh\" ]; then . \"$NVM_DIR/nvm.sh\"; fi; npm install -g @openai/codex@0.169.0; ln -sf \"$(command -v codex)\" /usr/local/bin/codex; if command -v node >/dev/null 2>&1; then ln -sf \"$(command -v node)\" /usr/local/bin/node; fi; codex --version"
+tb2_install = "set -e; if command -v apt-get >/dev/null 2>&1 && { ! command -v curl >/dev/null 2>&1 || ! command -v openssl >/dev/null 2>&1; }; then apt-get update && apt-get install -y curl ca-certificates openssl; fi; export NVM_DIR=\"$HOME/.nvm\"; if [ ! -s \"$NVM_DIR/nvm.sh\" ]; then curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash; fi; . \"$NVM_DIR/nvm.sh\"; nvm install 22.14.0; nvm use 22.14.0; test \"$(node --version)\" = v22.14.0; package=/tmp/codex-0.169.0.tgz; curl -fsSL https://registry.npmjs.org/@openai/codex/-/codex-0.169.0.tgz -o \"$package\"; digest=$(openssl dgst -sha512 -binary \"$package\" | openssl base64 -A); test \"$digest\" = 'KhzYlkKPxoNssR8CEm45IjqnFWn7UtlF4CiD3tOJPea51xBs7MaHy0UQG9GSbCqk6Lrjn5QdJDV0QD1/FgWlGw=='; npm install -g \"$package\"; rm -f \"$package\"; ln -sf \"$(command -v codex)\" /usr/local/bin/codex; ln -sf \"$(command -v node)\" /usr/local/bin/node; codex --version"
 tb2_argv_first = ["codex", "exec", "--json", "--skip-git-repo-check", "--dangerously-bypass-approvals-and-sandbox",
   "-m", "{model_name}", "-C", "{workspace}", "-"]
 tb2_argv_next = ["codex", "exec", "-C", "{workspace}", "resume", "--json", "--skip-git-repo-check",
@@ -27,7 +27,7 @@ kind = "open"
 capabilities = ["mcp", "workspace", "shell", "multi_turn", "live_container"]
 pins_model = true
 cost_source = "metered"
-install = "npm i -g @openai/codex"
+install = "npm i -g @openai/codex@0.169.0"
 version_cmd = ["codex", "--version"]
 web_disabled_by = "config"
 source_url = "https://github.com/openai/codex"

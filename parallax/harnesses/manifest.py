@@ -396,7 +396,7 @@ class ManifestHarness(SubprocessHarness):
             values["session"] = self.session_id
         templates = self.spec.tb2_argv_next if self.in_session and self.spec.tb2_argv_next else self.spec.tb2_argv_first
         argv = [render(a, values) for a in templates]
-        env = {**self.trial.env, **{k: render(v, self.tb2_values()) for k, v in self.spec.env.items()}}
+        env = {k: render(v, self.tb2_values()) for k, v in self.spec.env.items()}
         code, out, err = await self._exec_container(argv, stdin=self.stdin(t), env=env, timeout=7200.0)
         self.stderr_tail = err[-STDERR_TAIL_CHARS:]
         self.output_tail.add(f"=== turn {t.index} exit {code} ===\n--- stdout ---\n{out}\n--- stderr ---\n{err}\n")

@@ -507,7 +507,7 @@ def test_every_box_image_runs_the_harness_install_line_as_the_manifest_wrote_it(
 def test_the_claude_code_install_allows_only_its_own_package_scripts() -> None:
     # npm 12 blocks install scripts by default; claude-code's postinstall places its native binary.
     install = harness_from_manifest("claude-code").info.install
-    assert install == "npm i -g @anthropic-ai/claude-code --allow-scripts=@anthropic-ai/claude-code"
+    assert install == "npm i -g @anthropic-ai/claude-code@2.1.325 --allow-scripts=@anthropic-ai/claude-code"
 
 
 async def test_hyprland_boxes_take_the_one_display_in_turn(monkeypatch: pytest.MonkeyPatch) -> None:

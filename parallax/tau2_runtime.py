@@ -29,8 +29,6 @@ from starlette.types import Receive, Scope, Send
 
 from parallax.models import JsonObject
 
-TAU2_MAX_TURNS = 100  # upstream Orchestrator max_steps default, counted in agent turns here
-TAU2_MAX_ERRORS = 10  # upstream Orchestrator max_errors default
 AGENT_STOP = "###STOP###"
 
 
@@ -53,6 +51,9 @@ class Tau2BridgeRuntime:
         self._process: asyncio.subprocess.Process | None = None
         self.simulator_cost_usd: float | None = None
         self.tools: list[dict[str, Any]] = []
+        self.max_steps: int | None = None
+        self.max_errors: int | None = None
+        self.tool_errors = 0
 
     async def _request(self, payload: dict[str, Any]) -> dict[str, Any]:
         process = self._process
@@ -94,6 +95,8 @@ class Tau2BridgeRuntime:
             {"op": "start", "domain": domain, "task": task, "simulator_model": self._simulator_model}
         )
         self.tools = list(result.get("tools") or [])
+        self.max_steps = int(result["max_steps"])
+        self.max_errors = int(result["max_errors"])
         return self.tools
 
     async def call_tool(self, name: str, arguments: dict[str, Any], call_id: str) -> dict[str, Any]:
@@ -103,6 +106,7 @@ class Tau2BridgeRuntime:
         result = await self._request({"op": "user", "first": first, "assistant": assistant})
         cost = result.get("simulator_cost_usd")
         self.simulator_cost_usd = float(cost) if isinstance(cost, (int, float)) else self.simulator_cost_usd
+        self.tool_errors = int(result.get("tool_errors", self.tool_errors))
         return result
 
     async def close(self) -> None:

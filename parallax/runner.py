@@ -138,7 +138,6 @@ from parallax.world.server import WorldServer
 logger = logging.getLogger(__name__)
 
 TOKEN_ENV = "PARALLAX_WORLD_TOKEN"
-METER_KEY_ENV = "PARALLAX_METER_KEY"
 RESULTS = "results.jsonl"
 BUDGET_JOURNAL = "budget.jsonl"
 INVALID_EXIT_SHARE = 0.10
@@ -1000,49 +999,52 @@ class TrialExecution:
         self.assets = TrialAssets(self.dir)
 
     async def run(self) -> TrialRun:
-        started = time.monotonic()
-        evidence: Evidence | None = None
-        meter: MeterReport | None = None
-        harness = await self.prepare()
-        if harness is None:
-            return TrialRun(self.finish(started, None), None)
-        if self.task.seed is None:
-            return await self.run_worldless(started, harness)
         try:
-            token, control_token = await self.s.svc.register(self.task)
-        except (WorldError, ControlError, httpx.HTTPError, OSError, ValueError) as exc:
-            self.invalid.append(f"world registration failed: {str(exc) or type(exc).__name__}")
-            await self.stop_unstarted(harness)
-            return TrialRun(self.finish(started, None), None)
-        self.secrets += [token, control_token]
-        async with self.s.svc.control(control_token) as control:
-            try:
-                box = await open_box(self.task, self.plan.harness.info, self.box_iso, self.s.svc.network)
-            except (BoxError, HarnessError, OSError) as exc:
-                self.t.status, self.t.error = TrajectoryStatus.BOOT_ERROR, f"box: {exc}"
-                await self.stop_unstarted(harness)
-                await self.unregister(control)
+            started = time.monotonic()
+            evidence: Evidence | None = None
+            meter: MeterReport | None = None
+            harness = await self.prepare()
+            if harness is None:
                 return TrialRun(self.finish(started, None), None)
+            if self.task.seed is None:
+                return await self.run_worldless(started, harness)
             try:
-                await self.drive(harness, box, token, control)
-                workspace = await self.snapshot(box)
-            finally:
-                await self.keep_recording(box)
-                await box.close()
-            world = await self.world_evidence(control)
-            meter = await self.meter_report()
-            await self.unregister(control)
-        if world is not None:
-            verify = await self.verify(workspace)
-            evidence = Evidence(
-                delivered_turns=tuple(self.t.delivered_turns),
-                answers=tuple(self.t.answers), finals=turn_finals(self.t.answers, self.t.steps),
-                world=world, workspace=workspace,
-                turn_workspaces=self.turns_after(workspace),
-                seed_files=seed_dir(self.task) if seed_dir(self.task).is_dir() else None,
-                verify=verify, persona_tz=self.task.world.user.timezone, approvals=tuple(self.t.approvals),
-            )  # fmt: skip
-        return await self.graded(started, evidence, meter)
+                token, control_token = await self.s.svc.register(self.task)
+            except (WorldError, ControlError, httpx.HTTPError, OSError, ValueError) as exc:
+                self.invalid.append(f"world registration failed: {str(exc) or type(exc).__name__}")
+                await self.stop_unstarted(harness)
+                return TrialRun(self.finish(started, None), None)
+            self.secrets += [token, control_token]
+            async with self.s.svc.control(control_token) as control:
+                try:
+                    box = await open_box(self.task, self.plan.harness.info, self.box_iso, self.s.svc.network)
+                except (BoxError, HarnessError, OSError) as exc:
+                    self.t.status, self.t.error = TrajectoryStatus.BOOT_ERROR, f"box: {exc}"
+                    await self.stop_unstarted(harness)
+                    await self.unregister(control)
+                    return TrialRun(self.finish(started, None), None)
+                try:
+                    await self.drive(harness, box, token, control)
+                    workspace = await self.snapshot(box)
+                finally:
+                    await self.keep_recording(box)
+                    await box.close()
+                world = await self.world_evidence(control)
+                meter = await self.meter_report()
+                await self.unregister(control)
+            if world is not None:
+                verify = await self.verify(workspace)
+                evidence = Evidence(
+                    delivered_turns=tuple(self.t.delivered_turns),
+                    answers=tuple(self.t.answers), finals=turn_finals(self.t.answers, self.t.steps),
+                    world=world, workspace=workspace,
+                    turn_workspaces=self.turns_after(workspace),
+                    seed_files=seed_dir(self.task) if seed_dir(self.task).is_dir() else None,
+                    verify=verify, persona_tz=self.task.world.user.timezone, approvals=tuple(self.t.approvals),
+                )  # fmt: skip
+            return await self.graded(started, evidence, meter)
+        finally:
+            await finish_uncancelled(self.revoke_meter())
 
     async def run_worldless(self, started: float, harness: Harness) -> TrialRun:
         """A task with no world: no world is registered or mounted, and its policy grades what the harness reported."""
@@ -1231,12 +1233,14 @@ class TrialExecution:
         env |= credentials
         llm = None
         if hp.info.cost_source is CostSource.METERED:
+            if self.task_container is not None and self.s.budget is None:
+                raise HarnessError("metered TB2 trials require --budget and --reserve for a hard spend cap")
             self.meter_key = new_trial_key()
             self.secrets.append(self.meter_key)
-            await self.s.svc.meter_client().register(self.meter_key)
+            budget_usd = self.s.budget.reservation if self.s.budget is not None else None
+            await self.s.svc.meter_client().register(self.meter_key, budget_usd=budget_usd)
             svc = self.s.svc
             llm = llm_endpoint(svc.meter_for_box(box_isolation(box)), self.meter_key, svc.meter_for_box(Isolation.HOST))
-            env[METER_KEY_ENV] = self.meter_key
         mcp = self.tau2_mcp  # a tau2 trial's tool server, served by parallax for this trial
         if token is not None:
             url = self.s.svc.mcp_url(
@@ -1317,7 +1321,7 @@ class TrialExecution:
         The transcript is recorded here, from the tool server's log and the turns themselves;
         nothing the harness reports about the simulation is graded.
         """
-        from parallax.tau2_runtime import AGENT_STOP, TAU2_MAX_ERRORS, TAU2_MAX_TURNS, Tau2RuntimeError
+        from parallax.tau2_runtime import AGENT_STOP, Tau2RuntimeError
 
         runtime, log = self._tau2_runtime, self._tau2_log
         if runtime is None or log is None:
@@ -1347,10 +1351,12 @@ class TrialExecution:
         index = 0
         seen_tools = 0
         while termination is None:
-            index += 1
-            if index > TAU2_MAX_TURNS:
-                termination = "max_steps"
+            if runtime.max_steps is None or runtime.max_errors is None:
+                raise Tau2RuntimeError("tau2 runtime did not provide upstream limits")
+            if log.errors + runtime.tool_errors >= runtime.max_errors:
+                termination = "too_many_errors"
                 break
+            index += 1
             user_text = next((str(m.get("content") or "") for m in reversed(transcript) if m.get("role") == "user"), "")
             while len(self.t.answers) < index:
                 self.t.answers.append("")
@@ -1381,19 +1387,22 @@ class TrialExecution:
                 transcript.append({"role": "assistant", "content": answer})
             if not delivered:
                 termination = "agent_error"
-            elif AGENT_STOP in answer:
-                termination = "agent_stop"
-            elif log.errors > TAU2_MAX_ERRORS:
+            elif index >= runtime.max_steps:
+                termination = "max_steps"
+            if log.errors + runtime.tool_errors >= runtime.max_errors:
                 termination = "too_many_errors"
-            else:
-                try:
-                    nxt = await runtime.user_turn(first=False, assistant=answer)
-                except Tau2RuntimeError:
-                    termination = "user_error"
+            elif termination is None:
+                if AGENT_STOP in answer:
+                    termination = "agent_stop"
                 else:
-                    transcript += cleaned(nxt.get("messages"))
-                    if nxt.get("stop"):
-                        termination = "user_stop"
+                    try:
+                        nxt = await runtime.user_turn(first=False, assistant=answer)
+                    except Tau2RuntimeError:
+                        termination = "user_error"
+                    else:
+                        transcript += cleaned(nxt.get("messages"))
+                        if nxt.get("stop"):
+                            termination = "user_stop"
         if runtime.simulator_cost_usd is not None:
             self.t.metrics["simulator_cost_usd"] = runtime.simulator_cost_usd
         self.tau2_recorded = cast(
@@ -1542,6 +1551,15 @@ class TrialExecution:
             self.invalid.append(f"meter unreachable: {exc}")
             return None
         return report
+
+    async def revoke_meter(self) -> None:
+        if self.meter_key is None:
+            return
+        key, self.meter_key = self.meter_key, None
+        try:
+            await self.s.svc.meter_client().revoke(key)
+        except (httpx.HTTPError, OSError) as exc:
+            logger.warning("meter credential revocation failed: %s", exc)
 
     async def verify(self, workspace: Path | None) -> dict[str, CommandOutcome]:
         commands = [c for c in self.task.checks.checks if isinstance(c, CommandCheck)]
