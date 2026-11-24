@@ -851,6 +851,16 @@ def trial_web_isolation(info: HarnessInfo, isolation: Isolation) -> WebIsolation
     return web
 
 
+TAU2_DOCKER_BOX = (
+    "a docker box cannot reach the tau2 tool server the runner serves on loopback; run with --isolation host"
+)
+
+
+def tau2_unreachable(task: Task, info: HarnessInfo, run_isolation: Isolation) -> bool:
+    """The tau2 tool server runs in the runner process on loopback; a docker box's only way out is the sidecar."""
+    return task.grading == "tau2-upstream-v1" and harness_isolation(info, run_isolation) is Isolation.DOCKER
+
+
 def box_isolation(box: Box) -> Isolation:
     """Where the box's processes run: a device box is a container serving a remote harness."""
     return box.isolation
@@ -936,6 +946,8 @@ class Session:
             )
         if hp.unavailable is not None:
             return TrialRun(self.unrun(plan, invalid=f"harness unavailable: {hp.unavailable}"), None)
+        if tau2_unreachable(task, hp.info, self.svc.isolation):
+            return TrialRun(self.unrun(plan, invalid=TAU2_DOCKER_BOX), None)
         kind = box_kind(task.meta.requires, hp.info, harness_isolation(hp.info, self.svc.isolation))
         if kind in hp.unavailable_boxes:
             return TrialRun(self.unrun(plan, invalid=f"{kind} box unavailable: {hp.unavailable_boxes[kind]}"), None)

@@ -919,3 +919,14 @@ def test_docker_harness_probes_the_desktop_image_separately() -> None:
         BoxKind.HOST,
         BoxKind.DESKTOP,
     }
+
+
+def test_tau2_refuses_a_docker_box_that_cannot_reach_its_tool_server():
+    tau2 = load_task(TASKS / "mini-mail").model_copy(update={"grading": "tau2-upstream-v1"})
+    docker = INFO.model_copy(update={"isolation": Isolation.DOCKER})
+    remote = INFO.model_copy(update={"isolation": Isolation.REMOTE})
+
+    assert runner.tau2_unreachable(tau2, docker, Isolation.DOCKER)
+    assert not runner.tau2_unreachable(tau2, docker, Isolation.HOST)
+    assert not runner.tau2_unreachable(tau2, remote, Isolation.DOCKER)  # a device box reaches it as a remote product
+    assert not runner.tau2_unreachable(load_task(TASKS / "mini-mail"), docker, Isolation.DOCKER)

@@ -197,6 +197,10 @@ export PARALLAX_OFFICIAL_TAU2_ROOT=/path/to/tau2-bench
 uv run parallax run tau2 --harness <harness> --model provider/model --repeats 1
 ```
 
+The runner serves the tau2 tool server on its own loopback, so a harness that would run in a docker
+box needs `--isolation host`; under docker isolation its trials are invalid before they start. A
+remote harness reaches the tool server the way it reaches any world.
+
 The source covers the text `airline`, `retail` and `telecom` domains (base splits: 50, 114 and 114
 tasks) from [sierra-research/tau2-bench](https://github.com/sierra-research/tau2-bench) at commit
 `768f3d8fe8528b4f32a5096f9ed008ae50f48ead`. Each domain's `tasks.json`, `split_tasks.json` and policy
