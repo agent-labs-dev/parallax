@@ -78,6 +78,9 @@ TAU2_EXPECTED_BASE = {"airline": 50, "retail": 114, "telecom": 114}
 # these ids, validated by the preflight in `_grade_tau2` before any bridge process starts.
 TAU2_COMMUNICATE_JUDGE_MODEL = "gpt-5.5"
 TAU2_NL_JUDGE_MODEL = "gpt-5.4-mini-2026-03-17"
+# The user simulator's model: upstream's default at the pin (`tau2.config.DEFAULT_LLM_USER`),
+# run by parallax through the configured gateway; its cost is simulator cost, never harness usage.
+TAU2_SIMULATOR_MODEL = "gpt-4.1-2025-04-14"
 TAU2_BRIDGE_TIMEOUT_S = 900.0
 
 
@@ -101,11 +104,12 @@ class Tau2Message(Model):
 
 
 class Tau2Evidence(Model):
-    """The harness's tau2 trial evidence: the full upstream transcript and how it ended.
+    """Parallax's own recorded tau2 trial evidence: the full upstream transcript and how it ended.
 
-    Every assistant tool call must be followed, in order, by its `ToolMessage`(s); the
-    evaluator replays those calls itself, so no separate tool-call list or final database
-    state is accepted. `termination_reason` is required, with no default.
+    The runner records it from its tool server's log and the turns it drove; harness-reported
+    evidence is never graded. Every assistant tool call must be followed, in order, by its
+    `ToolMessage`(s); the evaluator replays those calls itself, so no separate tool-call list
+    or final database state is accepted. `termination_reason` is required, with no default.
     """
 
     transcript: tuple[Tau2Message, ...] = Field(min_length=1)
@@ -130,12 +134,30 @@ class Tau2Evidence(Model):
         return self
 
 
-def parse_tau2_evidence(product: JsonObject | None) -> Tau2Evidence:
-    """Validate `trial_metadata["tau2"]`; raises ValueError with the reason when it cannot grade."""
-    raw = (product or {}).get("tau2")
-    if not isinstance(raw, dict):
-        raise ValueError("harness reported no tau2 evidence")
-    return Tau2Evidence.model_validate(raw)
+def parse_tau2_evidence(recorded: JsonObject | None) -> Tau2Evidence:
+    """Validate the transcript parallax itself recorded (`GradeRequest.runner_recorded`).
+
+    Harness-reported evidence is never accepted here: only the runner's own record grades.
+    Raises ValueError with the reason when it cannot grade.
+    """
+    if not isinstance(recorded, dict):
+        raise ValueError("parallax recorded no tau2 transcript for this trial")
+    return Tau2Evidence.model_validate(recorded)
+
+
+def tau2_task_digest(task: JsonObject) -> str:
+    """SHA-256 over the canonical JSON of a full pinned tau2 task, as stored in `TaskRecord.data`."""
+    return hashlib.sha256(json.dumps(task, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def tau2_task_from_data(data: JsonObject) -> JsonObject:
+    """The full pinned task JSON from a tau2 record's data, digest-checked; raises on mismatch."""
+    task = data.get("task")
+    if not isinstance(task, dict):
+        raise OfficialSuiteError("tau2 task data carries no full pinned task JSON")
+    if data.get("task_digest") != tau2_task_digest(task):
+        raise OfficialSuiteError("tau2 task JSON failed its digest check")
+    return task
 
 
 @dataclass(frozen=True)
@@ -383,7 +405,12 @@ def _tau2_json(domain: str, name: str) -> Any:
 
 
 def tau2_tasks() -> Iterable[TaskRecord]:
-    """One world-less record per (domain, base-split task id); the harness drives the simulator loop."""
+    """One world-less record per (domain, base-split task id); parallax drives the simulator loop.
+
+    Each record carries the full pinned task JSON (`data["task"]`, digest-checked in
+    `data["task_digest"]`) so the runner can build the simulator from the task's own scenario.
+    The scenario never enters the prompt, which carries only the domain policy, as upstream.
+    """
     records: list[TaskRecord] = []
     used: set[str] = set()
     for domain in TAU2_DOMAINS:
@@ -403,6 +430,7 @@ def tau2_tasks() -> Iterable[TaskRecord]:
                 "customer will describe their request over several turns; use the domain tools and follow "
                 "the policy above."
             )
+            full_task = cast(JsonObject, by_id[upstream_id])
             records.append(
                 TaskRecord(
                     id=_task_id(TAU2, f"{domain}-{upstream_id}", len(records), used),
@@ -414,7 +442,13 @@ def tau2_tasks() -> Iterable[TaskRecord]:
                     requires=frozenset({Capability.MCP, Capability.MULTI_TURN}),
                     maturity="regression",
                     provenance=Provenance.CONVERTED,
-                    data={"domain": domain, "upstream_task_id": upstream_id, "policy_ref": policy_ref},
+                    data={
+                        "domain": domain,
+                        "upstream_task_id": upstream_id,
+                        "policy_ref": policy_ref,
+                        "task": full_task,
+                        "task_digest": tau2_task_digest(full_task),
+                    },
                 )
             )
     return records
@@ -810,9 +844,10 @@ def _tau2_judgment(req: GradeRequest, payload: Mapping[str, JsonValue], result: 
     )
 
 
-# One gateway probe per run: keyed by gateway and both judge ids, so every later grade in the
-# run reuses the first result instead of re-querying (or re-refusing) per trial.
-_TAU2_PREFLIGHT_CACHE: dict[tuple[str, str, str], str | None] = {}
+# Successful gateway probes are cached per process: keyed by gateway, the key's SHA-256
+# fingerprint prefix (never the key itself) and both judge ids. Failures are not cached, so a
+# later process (or a retry after a transient gateway failure) probes again.
+_TAU2_PREFLIGHT_CACHE: dict[tuple[str, str, str, str], str | None] = {}
 
 
 async def _tau2_gateway_models(base_url: str, api_key: str) -> set[str]:
@@ -827,12 +862,18 @@ async def _tau2_gateway_models(base_url: str, api_key: str) -> set[str]:
     return {str(row["id"]) for row in rows if isinstance(row, dict) and row.get("id")}
 
 
-async def _tau2_preflight(req: GradeRequest) -> str | None:
-    """Query the judge gateway's model list once per run and refuse when either judge id is missing.
+def _key_fingerprint(api_key: str) -> str:
+    """The cache-key fingerprint of a gateway key: a SHA-256 prefix, never the key itself."""
+    return hashlib.sha256(api_key.encode()).hexdigest()[:16]
 
-    The probe result is cached per run (keyed by gateway and both judge ids); a missing judge
-    endpoint or key, an unreachable gateway and a missing checkout each refuse before any bridge
-    process or judge spend starts.
+
+async def _tau2_preflight(req: GradeRequest) -> str | None:
+    """Query the judge gateway's model list and refuse when either judge id is missing.
+
+    A successful probe is cached per process, keyed by gateway, key fingerprint (see
+    `_key_fingerprint`) and both judge ids; failures are not cached. A missing judge endpoint
+    or key, an unreachable gateway and a missing checkout each refuse before any bridge process
+    or judge spend starts.
     """
     env = _tau2_judge_env(req)
     if not env.get("OPENAI_BASE_URL") or not env.get("OPENAI_API_KEY"):
@@ -841,7 +882,12 @@ async def _tau2_preflight(req: GradeRequest) -> str | None:
         _tau2_root()
     except OfficialSuiteError as exc:
         return str(exc)
-    key = (env["OPENAI_BASE_URL"], TAU2_COMMUNICATE_JUDGE_MODEL, TAU2_NL_JUDGE_MODEL)
+    key = (
+        env["OPENAI_BASE_URL"],
+        _key_fingerprint(env["OPENAI_API_KEY"]),
+        TAU2_COMMUNICATE_JUDGE_MODEL,
+        TAU2_NL_JUDGE_MODEL,
+    )
     if key in _TAU2_PREFLIGHT_CACHE:
         return _TAU2_PREFLIGHT_CACHE[key]
     result: str | None
@@ -850,9 +896,10 @@ async def _tau2_preflight(req: GradeRequest) -> str | None:
     except (httpx.HTTPError, OSError, ValueError, OfficialSuiteError) as exc:
         result = f"tau2 judge gateway model list could not be read ({type(exc).__name__})"
     else:
-        missing = [model for model in key[1:] if model not in offered]
+        missing = [model for model in (TAU2_COMMUNICATE_JUDGE_MODEL, TAU2_NL_JUDGE_MODEL) if model not in offered]
         result = f"tau2 judge model(s) not offered by the configured gateway: {', '.join(missing)}" if missing else None
-    _TAU2_PREFLIGHT_CACHE[key] = result
+    if result is None:  # failures are not cached: a later grade probes the gateway again
+        _TAU2_PREFLIGHT_CACHE[key] = result
     return result
 
 
@@ -861,13 +908,17 @@ async def _grade_tau2(req: GradeRequest) -> Graded:
     if isinstance(interruption, str) and interruption.startswith("environment interruption: "):
         return _tau2_unjudged(req.task, interruption)
     try:
-        evidence = parse_tau2_evidence(req.product)
+        evidence = parse_tau2_evidence(req.runner_recorded)
     except ValueError as exc:
         return _tau2_unjudged(req.task, f"missing evidence: invalid tau2 evidence: {exc}")
     if (preflight := await _tau2_preflight(req)) is not None:
         return _tau2_unjudged(req.task, f"missing evidence: tau2 judge preflight failed: {preflight}")
     data = req.task.data
-    # Simulator spend is the harness's own metadata: it is not forwarded and never priced here.
+    try:
+        tau2_task_from_data(data)  # the recorded trial must belong to the digest-checked pinned task
+    except OfficialSuiteError as exc:
+        return _tau2_unjudged(req.task, f"missing evidence: {exc}")
+    # Simulator spend is parallax's own record: it is not forwarded and never priced here.
     payload: dict[str, JsonValue] = {
         "operation": "evaluate",
         "suite": TAU2,

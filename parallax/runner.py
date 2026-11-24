@@ -20,11 +20,12 @@ import signal
 import socket
 import sys
 import time
+import uuid
 from collections.abc import AsyncGenerator, Awaitable, Coroutine, Generator, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import Protocol, assert_never, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, assert_never, cast, runtime_checkable
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -123,6 +124,10 @@ from parallax.task import (
     rebind_persona,
     rebind_value,
 )
+
+if TYPE_CHECKING:
+    from parallax.tau2_runtime import Tau2BridgeRuntime, Tau2ToolLog
+
 from parallax.track.live import LiveFeed
 from parallax.track.live import label as live_label
 from parallax.track.rows import is_validity_control
@@ -832,7 +837,7 @@ class Session:
     ) -> None:
         self.svc = svc
         self.run_dir = run_dir
-        self.run_id = run_id or run_dir.name  # labels every task container this run starts
+        self.run_id = run_id or uuid.uuid4().hex  # labels every task container this run starts
         self.videos = videos
         self.panel = panel
         self.judge_config = judge_config
@@ -987,6 +992,10 @@ class TrialExecution:
         self.last_turn = 0
         self.raw_output = ""
         self.product: JsonObject | None = None  # the harness's `trial_metadata`, for a grading policy
+        self.tau2_recorded: JsonObject | None = None  # parallax-recorded tau2 transcript, never harness-reported
+        self.tau2_mcp: McpEndpoint | None = None  # the trial's tau2 tool server, parallax-served
+        self._tau2_runtime: Tau2BridgeRuntime | None = None  # the trial's tau2 serve process
+        self._tau2_log: Tau2ToolLog | None = None  # its tool log
         self.task_container: str | None = None  # parallax-owned task container, removed after grading
         self.assets = TrialAssets(self.dir)
 
@@ -1064,6 +1073,8 @@ class TrialExecution:
                     await self.stop_unstarted(harness)
                     await box.close()
                     return TrialRun(self.finish(started, None), None)
+            if self.task.grading == "tau2-upstream-v1":
+                return await self.run_tau2_worldless(started, harness, box)
             try:
                 await self.drive(harness, box, None, None)
             finally:
@@ -1075,6 +1086,37 @@ class TrialExecution:
                 from parallax.harbor_tasks import remove_container
 
                 await remove_container(self.task_container)
+
+    async def run_tau2_worldless(self, started: float, harness: Harness, box: Box) -> TrialRun:
+        """A tau2 trial: parallax starts the tool server and simulator, then drives the loop."""
+        from parallax.official_suites import OfficialSuiteError, tau2_task_from_data
+        from parallax.tau2_runtime import Tau2RuntimeError, Tau2ToolLog, tau2_mcp_app
+
+        embedded = None
+        try:
+            try:
+                task_json = tau2_task_from_data(self.task.data)
+                self._tau2_runtime = self._make_tau2_runtime()
+                await self._tau2_runtime.start(domain=str(self.task.data.get("domain", "")), task=task_json)
+            except (OfficialSuiteError, Tau2RuntimeError, OSError, ValueError) as exc:
+                self.t.status, self.t.error = TrajectoryStatus.BOOT_ERROR, f"tau2 runtime: {exc}"
+                await self.stop_unstarted(harness)
+                await box.close()
+                return TrialRun(self.finish(started, None), None)
+            self._tau2_log = Tau2ToolLog(self._tau2_runtime)
+            embedded = await serve_embedded(tau2_mcp_app(self._tau2_log), "127.0.0.1")
+            self.tau2_mcp = McpEndpoint(url=f"http://127.0.0.1:{embedded.port}/mcp", stdio=())
+            try:
+                await self.drive(harness, box, None, None)
+            finally:
+                await self.keep_recording(box)
+                await box.close()
+            return await self.graded(started, None, await self.meter_report())
+        finally:
+            if embedded is not None:
+                await embedded.stop()
+            if self._tau2_runtime is not None:
+                await self._tau2_runtime.close()
 
     async def keep_recording(self, box: Box) -> None:
         """A desktop trial's video of its display, as `desktop.mp4` in its trial directory or the run's `videos`."""
@@ -1138,7 +1180,10 @@ class TrialExecution:
                 return
             self.t.boot_ms = int((time.monotonic() - boot_start) * 1000)
             try:
-                await self.conversation(harness, box, control)
+                if self.tau2_mcp is not None:
+                    await self.tau2_loop(harness)
+                else:
+                    await self.conversation(harness, box, control)
             except (ControlError, httpx.HTTPError) as exc:
                 self.invalid.append(f"world control failed mid-trial: {exc}")
         finally:
@@ -1192,7 +1237,7 @@ class TrialExecution:
             svc = self.s.svc
             llm = llm_endpoint(svc.meter_for_box(box_isolation(box)), self.meter_key, svc.meter_for_box(Isolation.HOST))
             env[METER_KEY_ENV] = self.meter_key
-        mcp = None
+        mcp = self.tau2_mcp  # a tau2 trial's tool server, served by parallax for this trial
         if token is not None:
             url = self.s.svc.mcp_url(
                 hp.info.isolation, box_isolation(box), uses_world=Capability.MCP in self.task.meta.requires
@@ -1252,6 +1297,110 @@ class TrialExecution:
             if not await self.deliver(harness, index, text, True, ()):
                 return
 
+    def _make_tau2_runtime(self):  # noqa: ANN202 - the bridge runtime type, imported lazily
+        """The per-trial tau2 serve process: pinned checkout, simulator through the configured gateway."""
+        from parallax.official_suites import TAU2_SIMULATOR_MODEL, TAU2_UPSTREAM_COMMIT, _tau2_root
+        from parallax.tau2_runtime import Tau2BridgeRuntime
+
+        root, python = _tau2_root()
+        config = self.s.judge_config
+        base_url = config.base_url if config is not None else os.environ.get("PARALLAX_JUDGE_BASE_URL", "")
+        api_key = config.api_key if config is not None else os.environ.get("PARALLAX_JUDGE_API_KEY", "")
+        return Tau2BridgeRuntime(
+            root=root, python=python, commit=TAU2_UPSTREAM_COMMIT, base_url=base_url, api_key=api_key,
+            simulator_model=TAU2_SIMULATOR_MODEL,
+        )  # fmt: skip
+
+    async def tau2_loop(self, harness: Harness) -> None:
+        """Drive simulator -> harness turns until an upstream termination condition.
+
+        The transcript is recorded here, from the tool server's log and the turns themselves;
+        nothing the harness reports about the simulation is graded.
+        """
+        from parallax.tau2_runtime import AGENT_STOP, TAU2_MAX_ERRORS, TAU2_MAX_TURNS, Tau2RuntimeError
+
+        runtime, log = self._tau2_runtime, self._tau2_log
+        if runtime is None or log is None:
+            raise ValueError("tau2 loop without its runtime")
+        transcript: list[JsonObject] = []
+
+        def cleaned(messages: object) -> list[JsonObject]:
+            out: list[JsonObject] = []
+            for message in messages if isinstance(messages, list) else []:
+                if not isinstance(message, dict):
+                    continue
+                kept = {
+                    k: message[k] for k in ("role", "content", "tool_calls", "id", "requestor", "error") if k in message
+                }
+                out.append(kept)  # fmt: skip
+            return out
+
+        termination: str | None = None
+        try:
+            first = await runtime.user_turn(first=True)
+        except Tau2RuntimeError:
+            first, termination = {"messages": []}, "user_error"
+        transcript += cleaned(first.get("messages"))
+        if first.get("stop"):
+            termination = "user_stop"
+        policy_prompt = self.task.turns[0].text if self.task.turns else ""
+        index = 0
+        seen_tools = 0
+        while termination is None:
+            index += 1
+            if index > TAU2_MAX_TURNS:
+                termination = "max_steps"
+                break
+            user_text = next((str(m.get("content") or "") for m in reversed(transcript) if m.get("role") == "user"), "")
+            while len(self.t.answers) < index:
+                self.t.answers.append("")
+            text = f"{policy_prompt}\n\nCustomer: {user_text}" if index == 1 else user_text
+            delivered = await self.deliver(harness, index, text, False, ())
+            new_entries = log.entries[seen_tools:]
+            seen_tools = len(log.entries)
+            if new_entries:
+                transcript.append({
+                    "role": "assistant", "content": None,
+                    "tool_calls": [
+                        {"id": e["id"], "name": e["name"], "arguments": e["arguments"], "requestor": "assistant"}
+                        for e in new_entries
+                    ],
+                })  # fmt: skip
+                transcript += [
+                    {
+                        "role": "tool",
+                        "id": e["id"],
+                        "content": e["content"],
+                        "requestor": "assistant",
+                        "error": e["error"],
+                    }
+                    for e in new_entries
+                ]
+            answer = self.t.answers[index - 1] if index - 1 < len(self.t.answers) else ""
+            if answer:
+                transcript.append({"role": "assistant", "content": answer})
+            if not delivered:
+                termination = "agent_error"
+            elif AGENT_STOP in answer:
+                termination = "agent_stop"
+            elif log.errors > TAU2_MAX_ERRORS:
+                termination = "too_many_errors"
+            else:
+                try:
+                    nxt = await runtime.user_turn(first=False, assistant=answer)
+                except Tau2RuntimeError:
+                    termination = "user_error"
+                else:
+                    transcript += cleaned(nxt.get("messages"))
+                    if nxt.get("stop"):
+                        termination = "user_stop"
+        if runtime.simulator_cost_usd is not None:
+            self.t.metrics["simulator_cost_usd"] = runtime.simulator_cost_usd
+        self.tau2_recorded = cast(
+            JsonObject, {"transcript": transcript, "termination_reason": termination or "agent_error"}
+        )
+        self.t.extra["tau2_recorded"] = self.tau2_recorded
+
     def fire_patch(self, name: str) -> WorldPatch:
         """A fire's patch, read from the task directory, under the trial's persona (`rebind_persona`)."""
         patch = load_patch(self.task.path, name)
@@ -1273,6 +1422,19 @@ class TrialExecution:
         lines = "\n".join(f"Attached: {r}" for r in rels)
         return f"{text.rstrip()}\n\n{lines}\n", tuple(rels)
 
+    def agent_timeout_s(self) -> float | None:
+        """The task's own agent timeout for a live-container (TB2) trial, else None.
+
+        Upstream Harbor bounds the agent phase by the task's `agent.timeout_sec`
+        (`Trial._run_agent_phase` wraps the agent in `asyncio.wait_for`); on timeout it raises
+        `AgentTimeoutError`, whose error policy still grades (`should_grade`, `has_valid_reward`),
+        so the verifier runs on whatever the agent left and the reward stands.
+        """
+        if Capability.LIVE_CONTAINER not in self.task.meta.requires:
+            return None
+        value = self.task.data.get("agent_timeout_s")
+        return float(value) if isinstance(value, (int, float)) and float(value) > 0 else None
+
     async def deliver(
         self,
         harness: Harness,
@@ -1286,6 +1448,8 @@ class TrialExecution:
     ) -> bool:
         """One turn, waited on until the harness returns or `--turn-timeout` passes (none by default:
         the product under test owns its limits). False ends the trial (a non-completed turn)."""
+        limits = [limit for limit in (self.s.turn_timeout_s, self.agent_timeout_s()) if limit is not None]
+        effective_timeout = min(limits) if limits else None
         t_in = TurnInput(
             index=index,
             text=text,
@@ -1293,19 +1457,19 @@ class TrialExecution:
             attachments=attached,
             origin=origin,
             approval=approval,
-            deadline_s=self.s.turn_timeout_s,
+            deadline_s=effective_timeout,
         )
         self.t.delivered_turns.append(t_in)
         submitted = time.monotonic()
         out: TurnOutput | None = None
-        deadline = asyncio.timeout(self.s.turn_timeout_s)
+        deadline = asyncio.timeout(effective_timeout)
         try:
             async with deadline:
                 out = await harness.turn(t_in)
         except Exception as exc:  # an adapter crash mid-turn is the harness's failure, not the eval's
             self.t.status, self.t.error = TrajectoryStatus.HARNESS_ERROR, f"turn {index}: {type(exc).__name__}: {exc}"
             if deadline.expired():  # status and error then come from the TIMEOUT turn, below
-                error = f"turn {index}: still running after {self.s.turn_timeout_s:.0f}s, killed"
+                error = f"turn {index}: still running after {effective_timeout or 0:.0f}s, killed"
                 out = TurnOutput(status=TurnStatus.TIMEOUT, answer="", session_id=None, error=error)
         # Every turn's time counts toward agent_ms, a failed one's included.
         measured = int((time.monotonic() - submitted) * 1000)
@@ -1416,9 +1580,20 @@ class TrialExecution:
                 product=self.product,
                 answers=self.t.answers,
                 task_container=self.task_container,
+                runner_recorded=self.tau2_recorded,
             )
             record_grade(self.dir / "judgments.jsonl", self.task, g)
             execution_valid = g.execution_valid
+            if (
+                execution_valid is None
+                and self.task_container is not None
+                and self.t.status is TrajectoryStatus.TIMEOUT
+                and g.checks
+                and all(c.passed is not None for c in g.checks)
+            ):
+                # Harbor's AgentTimeoutError policy still grades with a valid reward, so a
+                # timed-out TB2 agent is scored by the verifier, not invalidated.
+                execution_valid = True
             checks, same_family, judged_under, judged_score = g.checks, g.same_family, g.judge_identity, g.score
             costs = [j.cost() for j in g.judgments]
             unpriced = g.unpriced_calls + sum(n for _, n in costs)
@@ -1686,11 +1861,11 @@ def live_session(out: Path) -> str:
 
 
 def manifest_for(
-    opts: RunOptions, plans: Sequence[TrialPlan], harnesses: Sequence[HarnessPlan], session: str
+    opts: RunOptions, plans: Sequence[TrialPlan], harnesses: Sequence[HarnessPlan], session: str, run_id: str
 ) -> RunManifest:
     tasks = {p.task.id: p.task.hash for p in plans}
     return RunManifest(
-        run_id=opts.out.name, live_session=session, created_at=datetime.now(UTC), parallax_version=__version__,
+        run_id=run_id, live_session=session, created_at=datetime.now(UTC), parallax_version=__version__,
         harnesses=tuple(h.info for h in harnesses),
         models=tuple(dict.fromkeys(p.model for p in plans)), tasks=tuple(sorted(tasks.items())),
         repeats=opts.repeats, judge=opts.judge, isolation=opts.isolation, selection=opts.selection,
@@ -1720,9 +1895,13 @@ async def run_async(
         plans_h = [await plan_harness(h, chosen, opts.isolation, svc.network) for h in harnesses]
         plans = only_pairs(plan_trials(chosen, plans_h, models, opts), opts.pairs)
         opts.out.mkdir(parents=True, exist_ok=True)  # only now: a run interrupted in setup leaves no husk
+        # A fresh uuid per run (never the output basename, which two runs can share): it labels
+        # every task container this run starts, is recorded in manifest.json, and cleanup sweeps
+        # only containers carrying this uuid, so a same-named run's containers are untouched.
+        run_uuid = uuid.uuid4().hex
         feed_session = live_session(opts.out)
         (opts.out / "manifest.json").write_text(
-            manifest_for(opts, plans, plans_h, feed_session).model_dump_json(indent=2)
+            manifest_for(opts, plans, plans_h, feed_session, run_uuid).model_dump_json(indent=2)
         )
         prov = provenance.collect(opts.out, opts.provenance_extra)
         provenance.write(opts.out, prov)
@@ -1735,9 +1914,7 @@ async def run_async(
             budget = CampaignBudget(opts.budget_usd, opts.reserve_usd, journal)
         elif journal.is_file():
             budget = CampaignBudget.from_journal(journal)
-        session = Session(
-            svc, opts.out, panel, judge_config, opts.turn_timeout_s, budget, opts.videos, run_id=opts.out.name
-        )
+        session = Session(svc, opts.out, panel, judge_config, opts.turn_timeout_s, budget, opts.videos, run_id=run_uuid)
         session.live = LiveFeed.open(feed_session)
         if session.live is not None:
             session.live.run_started(

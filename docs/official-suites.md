@@ -72,16 +72,39 @@ pinned set is single-step.
 Grading is structured, not answer-text matching. Parallax owns the task container: for each
 trial of a task requiring `live_container`, the runner generates the container name and records
 it on the trial before `docker run` (labelled `parallax.trial=<trial id>` and
-`parallax.run=<run id>`), pulls the pinned image explicitly (`docker pull` of the digest ref,
+`parallax.run=<run uuid>`), pulls the pinned image explicitly (`docker pull` of the digest ref,
 bounded by `IMAGE_PULL_TIMEOUT_S` at 1800 s, then `docker run -d` on the short timeout), hands
 its handle to the harness as the typed `Trial.task_container` field (a manifest harness reads
 it as `{task_container}`), and removes it after grading on every path, including a failed start
-and a cancelled trial (the removal is shielded, so a second cancellation cannot strand it). At
-run start and exit the runner sweeps containers carrying that run's `parallax.run` label, and
-only that label, which clears up after a crashed run. A harness with `LIVE_CONTAINER` acts
-inside that container; one without it scores NA before the run, never a graded 0. The grader
-uses only the handle parallax recorded, never a harness-reported name, and a harness-reported
-reward is never trusted. The grader, never the harness, runs the verifier: it re-checks the
+and a cancelled trial (the removal is shielded, so a second cancellation cannot strand it). The
+run uuid is a fresh uuid per run, recorded in the run's `manifest.json` as `run_id`, never the
+output basename (which two runs can share); at run start and exit the runner sweeps containers
+carrying only that run's `parallax.run` label, so cleanup cannot remove another run's live
+container. A harness with `LIVE_CONTAINER` acts inside that container; one without it scores
+NA before the run, never a graded 0.
+
+For manifest (CLI agent) harnesses this follows upstream Harbor's installed agents
+(`agents/installed/*` in laude-institute/harbor): a manifest may declare a TB2 install step
+(`tb2_install`, a script run as root inside the owned task container once per trial, at the
+CLI version the manifest already pins) and TB2 agent commands (`tb2_argv_first`/`tb2_argv_next`),
+which then run inside that container via `docker exec` as root, with credentials passed per
+exec as env rendered from the manifest's existing `env` allowlist, never baked into the image
+or written to disk. The manifest's rendered config files are written inside the container
+(`home:` under `/root`, `workspace:` under `/app`). Manifests that declare this get
+`live_container`. The built-in `codex` (pinned `@openai/codex@0.169.0`) and `claude-code`
+(pinned `@anthropic-ai/claude-code@2.1.325`) manifests declare it; `hermes` and `openclaw`
+do not, so they (and any non-manifest harness without `live_container`, such as Nebula) score
+NA on terminal-bench-2 until they declare a TB2 path.
+
+The harness turn is bounded by the task's own agent timeout (`agent.timeout_sec`, recorded in
+the task data), matching upstream Harbor: `Trial._run_agent_phase` wraps the agent in a timeout
+and raises `AgentTimeoutError`, whose upstream error policy still grades with a valid reward
+(`should_grade`, `has_valid_reward`). A timed-out TB2 trial therefore still runs the verifier
+on whatever the agent left in the container, and the trial is recorded with its timeout status
+and the verifier's reward (pass or fail), not invalidated.
+
+The grader uses only the handle parallax recorded, never a harness-reported name, and a
+harness-reported reward is never trusted. The grader, never the harness, runs the verifier: it re-checks the
 record's `tests_digest` against the pinned `tests/` in its digest-checked cache, restarts the
 owned container (killing every process the agent left, a self-respawning reward writer
 included, while keeping its filesystem), then as root removes `/tests` and `/logs/verifier`
@@ -118,13 +141,19 @@ Tests: `tests/core/test_harbor_tasks.py` runs the real verifier in Docker agains
 fixtures (pass, fail, missing reward file, forged tests and a self-respawning background reward
 writer, verifier timeout as an agent failure, timeout cleanup) plus a Debian fixture whose
 `test.sh` runs `apt-get` (skipped without network), pure digest-pinning tests for
-`_image_ref`/`_check_container_image`, and a Docker-marked runner test (the oracle control
+`_image_ref`/`_check_container_image`, a Docker-marked fixture-manifest test (a shell-command
+"agent" solving the tiny task through the TB2 install and `docker exec` path), a Docker-marked
+agent-timeout test (a harness that solves then hangs past the task's agent timeout still
+verifies and scores the reward), and a Docker-marked runner test (the oracle control
 passes and the null control fails on the tiny fixture through the runner, a start failure from
-a bad digest cleans up its box and leaves no labelled container, and a cancelled trial leaves
+a bad digest cleans up its box and leaves no container labelled with the run's uuid, and a cancelled trial leaves
 none), and `tests/core/test_tau2_suites.py` runs the real bridge against a pinned tau2 checkout
 on the `mock` domain (`agent_stop` passes, `max_steps` scores 0, a tiny bridge timeout kills
-the process group, a failed judge call is captured in the side file) plus pure
-evidence-validation and preflight tests. CI's test shards run on GitHub's ubuntu runners, where
+the process group, a failed judge call is captured in the side file, and the serve runtime
+drives tools and the simulator against a scripted gateway) plus pure
+evidence-validation and preflight tests, and a Docker/network-free runner-loop test with a
+scripted harness and a scripted runtime stand-in (upstream exposes no scripted simulator, so
+the real-simulator loop is covered only by the skip-gated checkout test). CI's test shards run on GitHub's ubuntu runners, where
 the Docker-marked tests run when a daemon answers (they skip with that reason otherwise); the
 tau2 bridge tests skip in CI, which provides no pinned tau2 checkout, network judge or checkout
 venv, and run wherever `PARALLAX_OFFICIAL_TAU2_ROOT` points at one.
@@ -143,23 +172,36 @@ tasks) from [sierra-research/tau2-bench](https://github.com/sierra-research/tau2
 `768f3d8fe8528b4f32a5096f9ed008ae50f48ead`. Each domain's `tasks.json`, `split_tasks.json` and policy
 file are fetched at run time and verified by the SHA-256 digests recorded in `THIRD_PARTY.md`.
 
-Parallax has no LLM user simulator, so the harness drives the multi-turn loop: it receives the
-domain policy and task goal as its first turn, runs the pinned simulator internally, and returns one
-trial whose metadata carries `{transcript, termination_reason}`. The transcript is the full upstream
-message list: every assistant tool call is followed, in order, by its `ToolMessage`, and tool-call
-arguments are objects, as upstream's `ToolCall` model requires (a string form is rejected).
-`termination_reason` is required with no default and takes upstream's `TerminationReason` values.
-There is no bare tool-call list and no final database state: the evaluator replays the transcript
-itself. Invalid evidence is unjudged with the reason.
+Parallax owns the tau2 trial the way it owns the TB2 container. Each record carries the full
+pinned task JSON (`data["task"]`, digest-checked against `data["task_digest"]`), from which the
+runner builds the simulation; the task's scenario never enters the agent prompt, which carries
+only the domain policy, as upstream. Per trial, parallax runs (in the pinned tau2 environment,
+as a serve-mode subprocess like the grading bridge) the domain tool server as the trial's world
+MCP server and the upstream user simulator with the task's own scenario, then drives the
+multi-turn loop itself: simulator message, harness `turn()`, and so on until an upstream
+termination condition (the simulator's stop token, `max_steps`, `too_many_errors`, an agent
+stop, or an agent or user error). The simulator model is pinned to the upstream default at this
+revision (`gpt-4.1-2025-04-14`, `tau2.config.DEFAULT_LLM_USER`) and runs through the configured
+gateway; its cost is recorded as simulator cost (`simulator_cost_usd` in the trial's metrics),
+out of the harness's usage. The runner records the transcript itself, from its tool server's
+tool log and the turns it drove. The transcript is the full upstream message list: every
+assistant tool call is followed, in order, by its `ToolMessage`, and tool-call arguments are
+objects, as upstream's `ToolCall` model requires (a string form is rejected).
+`termination_reason` is required with no default and takes upstream's `TerminationReason`
+values. There is no bare tool-call list and no final database state: the evaluator replays the
+transcript itself. Invalid evidence is unjudged with the reason. The grader evaluates only this
+parallax-recorded transcript and termination reason (`GradeRequest.runner_recorded`);
+harness-reported tau2 evidence is never graded, and that reporting path is deleted.
 
-Grading sends that evidence through `parallax/tau2_bridge.py` to the pinned checkout, which calls
+Grading sends that record through `parallax/tau2_bridge.py` to the pinned checkout, which calls
 upstream `evaluate_simulation` with `EvaluationType.ALL`, upstream's default SEMANTIC communicate
 scoring and its NL-assertion evaluator; no database, action or communication comparison is
 reimplemented in Parallax. Both judges run through the run's configured Parallax judge gateway
 under the ids `gpt-5.5` (communicate info) and `gpt-5.4-mini-2026-03-17` (NL assertions), the
-upstream pins at this revision. Once per run, a preflight queries the configured gateway's model
-list and refuses to start grading if either judge id is missing (the result is cached for the
-run), so a bad judge configuration fails before any bridge process or judge spend starts. Only
+upstream pins at this revision. A preflight queries the configured gateway's model
+list and refuses to start grading if either judge id is missing; a successful probe is cached
+per process, keyed by gateway, the key's SHA-256 fingerprint prefix (never the key itself) and
+both judge ids, and failures are not cached, so a bad judge configuration fails before any bridge process or judge spend starts. Only
 the judge's endpoint and key reach the bridge, through an explicit env allowlist
 (`OPENAI_BASE_URL`, `OPENAI_API_KEY`, from the run's judge config). The bridge subprocess is
 bounded by a timeout and its process group is killed on timeout or cancellation. Every judge
@@ -169,8 +211,8 @@ failed judge call records only its exception class and HTTP status, never the ex
 message, and the calls made before a bridge failure still price the grade, while a bridge
 failure with no recorded calls records zero calls, not one unpriced call. Bridge stderr reaches
 a grade only as the exception class plus a fixed reason, never raw text. Simulator (user-model)
-spend stays in the harness's trial metadata: it never enters the trial's usage or the grade's
-calls.
+spend is recorded by parallax as simulator cost in the trial's metrics: it never enters the
+trial's usage or the grade's calls.
 
 ## live-web
 

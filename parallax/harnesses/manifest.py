@@ -7,8 +7,10 @@ some configs key maps by model id). Substitution is typed and never passes throu
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
+import shlex
 import tomllib
 from collections.abc import Mapping
 from pathlib import Path
@@ -17,9 +19,18 @@ from typing import Literal, assert_never
 import yaml
 from pydantic import JsonValue, ValidationError
 
-from parallax.harnesses.base import SubprocessHarness, config_hash, credential_env_problems
+from parallax.harnesses.base import STDERR_TAIL_CHARS, SubprocessHarness, config_hash, credential_env_problems
 from parallax.harnesses.parsers import PARSERS
-from parallax.models import Capability, ConfigFile, JsonObject, ManifestSpec, Trial, TurnInput, TurnOutput
+from parallax.models import (
+    Capability,
+    ConfigFile,
+    JsonObject,
+    ManifestSpec,
+    Trial,
+    TurnInput,
+    TurnOutput,
+    TurnStatus,
+)
 from parallax.protocols import BoxHandle, Harness
 
 MANIFEST_DIR = Path(__file__).parent / "manifests"
@@ -68,9 +79,16 @@ def manifest_problems(spec: ManifestSpec, stem: str) -> list[str]:
     if not spec.info.version_cmd:
         problems.append("info.version_cmd is required")
     problems.extend(credential_env_problems(spec.info))
-    for text in (*spec.argv_first, *spec.argv_next, *spec.env.values(), *config_strings(spec.config)):
+    for text in (
+        *spec.argv_first, *spec.argv_next, *spec.tb2_argv_first, *spec.tb2_argv_next,
+        spec.tb2_install, *spec.env.values(), *config_strings(spec.config),
+    ):  # fmt: skip
         problems.extend(f"unknown placeholder {{{p}}}" for p in _PLACEHOLDER.findall(text) if p not in PLACEHOLDERS)
     problems.extend(cli_problems(spec))
+    if bool(spec.tb2_argv_first) != (Capability.LIVE_CONTAINER in spec.info.capabilities):
+        problems.append("live_container capability and tb2_argv_first must be declared together")
+    if spec.tb2_argv_next and not spec.tb2_argv_first:
+        problems.append("tb2_argv_next needs tb2_argv_first")
     if Capability.DESKTOP in spec.info.capabilities and not any(f.desktop_content for f in spec.config):
         problems.append("desktop is declared but no config file gives the harness the desktop (desktop_content)")
     return problems
@@ -281,8 +299,114 @@ class ManifestHarness(SubprocessHarness):
     def config_hash(self) -> str:
         return config_hash(self.spec)
 
+    @property
+    def tb2_container(self) -> str | None:
+        """The owned task container when this trial runs in TB2 mode, else None."""
+        if self._trial is None or not self.spec.tb2_argv_first:
+            return None
+        return self._trial.task_container
+
+    def tb2_values(self) -> dict[str, str]:
+        """Placeholder values inside the task container: `/app` is its workdir, `/root` its home."""
+        return {**trial_values(self.trial), "workspace": "/app", "home": "/root"}
+
+    async def _exec_container(
+        self,
+        argv: list[str],
+        *,
+        stdin: bytes | None = None,
+        env: Mapping[str, str] | None = None,
+        timeout: float = 900.0,
+    ) -> tuple[int | None, str, str]:
+        container = self.tb2_container
+        if container is None:
+            raise ManifestError(f"{self.spec.info.name}: no task container for this trial")
+        docker = ["docker", "exec", "-i", "-u", "0"]
+        for key, value in (env or {}).items():  # credentials travel per exec as env, never to disk
+            docker += ["-e", f"{key}={value}"]
+        docker += [container, *argv]
+        process = await asyncio.create_subprocess_exec(
+            *docker, stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        )
+        try:
+            out, err = await asyncio.wait_for(process.communicate(stdin), timeout=timeout)
+        except BaseException:
+            process.kill()
+            await process.wait()
+            raise
+        return process.returncode, out.decode(errors="replace"), err.decode(errors="replace")
+
+    async def _write_container_file(self, target: str, data: bytes) -> None:
+        script = f"mkdir -p {shlex.quote(str(Path(target).parent))} && cat > {shlex.quote(target)}"
+        code, _out, err = await self._exec_container(["sh", "-c", script], stdin=data)
+        if code != 0:
+            raise ManifestError(
+                f"{self.spec.info.name}: writing {target} in the task container failed: {err.strip()[-300:]}"
+            )
+
     async def write_config(self, trial: Trial) -> None:
-        await write_configs(self.spec.config, trial, self.box)
+        if self.tb2_container is None:
+            await write_configs(self.spec.config, trial, self.box)
+            return
+        # Harbor-style setup: the declared install script runs as root in the owned container,
+        # then the rendered config files are written inside it (home: -> /root, workspace: -> /app).
+        if self.spec.tb2_install.strip():
+            code, _out, err = await self._exec_container(["sh", "-c", self.spec.tb2_install])
+            if code != 0:
+                raise ManifestError(
+                    f"{self.spec.info.name}: tb2 install failed in the task container (exit {code}): {err.strip()[-300:]}"
+                )
+        values = self.tb2_values()
+        for f in self.spec.config:
+            world = Capability.MCP in trial.requires or not f.requires_mcp
+            desktop = Capability.DESKTOP in trial.requires and f.desktop_content is not None
+            if not (world or desktop):
+                continue
+            content = render_json(f.content, values) if world else {}
+            if not isinstance(content, dict):
+                raise ManifestError(f"{f.path}: content must render to an object")
+            if Capability.MCP in trial.requires and f.mcp_content is not None:
+                mcp_content = render_json(f.mcp_content, values)
+                if not isinstance(mcp_content, dict):
+                    raise ManifestError(f"{f.path}: mcp_content must render to an object")
+                content = {**content, **mcp_content}
+            if desktop:
+                desktop_content = render_json(f.desktop_content, values)
+                if not isinstance(desktop_content, dict):
+                    raise ManifestError(f"{f.path}: desktop_content must render to an object")
+                content = merged(content, desktop_content)
+            root, _sep, rel = f.path.partition(":")
+            base = "/root" if root == "home" else "/app"
+            await self._write_container_file(f"{base}/{rel}", dump_config(f.format, content))
+
+    async def turn(self, t: TurnInput) -> TurnOutput:
+        if self.tb2_container is None:
+            return await super().turn(t)
+        if t.new_session and self.in_session:
+            self.new_session()
+        if self.in_session and self.session_id is None:
+            return TurnOutput(
+                status=TurnStatus.HARNESS_ERROR, answer="", session_id=None,
+                error="previous turn reported no session id, so this turn cannot continue it",
+            )  # fmt: skip
+        prompt_file = f"/tmp/parallax-turn-{t.index:02d}.md"
+        await self._write_container_file(prompt_file, t.text.encode())
+        values = {**self.tb2_values(), "prompt": t.text, "prompt_file": prompt_file}
+        if self.session_id is not None:
+            values["session"] = self.session_id
+        templates = self.spec.tb2_argv_next if self.in_session and self.spec.tb2_argv_next else self.spec.tb2_argv_first
+        argv = [render(a, values) for a in templates]
+        env = {**self.trial.env, **{k: render(v, self.tb2_values()) for k, v in self.spec.env.items()}}
+        code, out, err = await self._exec_container(argv, stdin=self.stdin(t), env=env, timeout=7200.0)
+        self.stderr_tail = err[-STDERR_TAIL_CHARS:]
+        self.output_tail.add(f"=== turn {t.index} exit {code} ===\n--- stdout ---\n{out}\n--- stderr ---\n{err}\n")
+        self.in_session = True
+        parsed = self.stamp(self.parse(out, err), t.index)
+        self.session_id = parsed.session_id or self.session_id
+        if code != 0 and parsed.status is TurnStatus.COMPLETED:
+            last = err.strip().splitlines()[-1:] or ["no stderr"]
+            return parsed.model_copy(update={"status": TurnStatus.HARNESS_ERROR, "error": f"exit {code}: {last[0]}"})
+        return parsed
 
     def turn_values(self, turn: TurnInput, session_id: str | None, prompt_file: Path) -> dict[str, str]:
         values = {**trial_values(self.trial), "prompt": turn.text, "prompt_file": str(prompt_file)}

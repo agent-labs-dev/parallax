@@ -12,11 +12,22 @@ argv_next = ["claude", "-p", "--output-format", "stream-json", "--verbose", "--m
   "--resume", "{session}", "--mcp-config", "{home}/mcp.json", "--strict-mcp-config",
   "--setting-sources", "project", "--permission-mode", "bypassPermissions",
   "--disallowedTools", "WebSearch,WebFetch"]
+# TB2 (Harbor-style, agents/installed/claude_code.py at the pin): install as root in the owned
+# task container (Node 22 via nvm where no node exists, pinned CLI 2.1.325 as above), then run
+# inside it via docker exec with the manifest env passed per exec. No MCP config in the task
+# container: TB2 tasks mount no world. {workspace} is /app, {home} is /root in that container.
+tb2_install = "set -e; if ! command -v npm >/dev/null 2>&1; then if command -v apt-get >/dev/null 2>&1; then apt-get update && apt-get install -y curl ca-certificates; fi; curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash; export NVM_DIR=\"$HOME/.nvm\"; . \"$NVM_DIR/nvm.sh\"; nvm install 22; fi; export NVM_DIR=\"${NVM_DIR:-$HOME/.nvm}\"; if [ -s \"$NVM_DIR/nvm.sh\" ]; then . \"$NVM_DIR/nvm.sh\"; fi; npm install -g @anthropic-ai/claude-code@2.1.325 --allow-scripts=@anthropic-ai/claude-code; ln -sf \"$(command -v claude)\" /usr/local/bin/claude; if command -v node >/dev/null 2>&1; then ln -sf \"$(command -v node)\" /usr/local/bin/node; fi; claude --version"
+tb2_argv_first = ["claude", "-p", "--output-format", "stream-json", "--verbose", "--model", "{model_name}",
+  "--session-id", "{session}", "--setting-sources", "project", "--permission-mode", "bypassPermissions",
+  "--disallowedTools", "WebSearch,WebFetch"]
+tb2_argv_next = ["claude", "-p", "--output-format", "stream-json", "--verbose", "--model", "{model_name}",
+  "--resume", "{session}", "--setting-sources", "project", "--permission-mode", "bypassPermissions",
+  "--disallowedTools", "WebSearch,WebFetch"]
 
 [info]
 name = "claude-code"
 kind = "open"
-capabilities = ["mcp", "workspace", "shell", "desktop", "multi_turn", "memory"]
+capabilities = ["mcp", "workspace", "shell", "desktop", "multi_turn", "memory", "live_container"]
 pins_model = true
 cost_source = "metered"
 install = "npm i -g @anthropic-ai/claude-code --allow-scripts=@anthropic-ai/claude-code"

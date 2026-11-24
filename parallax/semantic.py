@@ -221,6 +221,7 @@ async def grade_checks(
     product: JsonObject | None = None,
     answers: Sequence[str] = (),
     task_container: str | None = None,
+    runner_recorded: JsonObject | None = None,
 ) -> Graded:
     """Grade one trial. `ev` is None for a world-less task, which only its policy's own `grade` can judge; `answers`
     (the turns' answers) are read only by such a policy, since world evidence carries its own."""
@@ -236,7 +237,7 @@ async def grade_checks(
                 extensions.GradeRequest(
                     task=task, evidence=ev, answers=tuple(answers) if ev is None else ev.answers, product=product,
                     execution=execution or {}, harness_model=harness_model, panel=panel, judge_config=config,
-                    client=own, task_container=task_container,
+                    client=own, task_container=task_container, runner_recorded=runner_recorded,
                 )
             )  # fmt: skip
         finally:

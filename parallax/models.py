@@ -1019,6 +1019,14 @@ class ManifestSpec(Model):
     env: dict[str, str] = {}
     config: tuple[ConfigFile, ...] = ()
     status_note: str = ""  # e.g. "binary not installed in reference env: unverified"
+    # TB2 (live-container) mode, Harbor-style: `tb2_install` runs as root inside the owned task
+    # container once per trial, then the agent command (`tb2_argv_first`/`tb2_argv_next`) runs
+    # inside that container via `docker exec`, with credentials passed per exec from `env`
+    # (the manifest's env allowlist), never baked into the image or written to disk. Declaring
+    # these grants `live_container`; a manifest without them is NA on TB2 tasks.
+    tb2_install: str = ""
+    tb2_argv_first: tuple[str, ...] = ()
+    tb2_argv_next: tuple[str, ...] = ()
 
 
 # ---------------------------------------------------------------------------

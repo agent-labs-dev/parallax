@@ -412,9 +412,13 @@ async def test_runs_sharing_a_directory_name_get_their_own_live_session(
 
     assert len(set(sessions)) == 2
     assert all(s.startswith("r-") for s in sessions)
+    run_ids = []
     for parent, session in zip(("a", "b"), sessions, strict=True):
         manifest = RunManifest.model_validate_json((tmp_path / parent / "r" / "manifest.json").read_text())
-        assert (manifest.run_id, manifest.live_session) == ("r", session)
+        assert manifest.live_session == session
+        assert manifest.run_id != "r"  # a fresh uuid per run, never the shared output basename
+        run_ids.append(manifest.run_id)
+    assert len(set(run_ids)) == 2
 
 
 async def test_a_resumed_run_keeps_its_live_session(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

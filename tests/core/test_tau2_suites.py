@@ -60,12 +60,16 @@ def test_tau2_records_carry_only_frozen_data_keys(monkeypatch):
     assert [r.id for r in records] == ["tau2-airline-0", "tau2-retail-7", "tau2-telecom-t-1"]
     for record in records:
         assert record.grading == "tau2-upstream-v1"
-        assert set(record.data) == {"domain", "upstream_task_id", "policy_ref"}
+        assert set(record.data) == {"domain", "upstream_task_id", "policy_ref", "task", "task_digest"}
+        assert record.data["task_digest"] == official.tau2_task_digest(record.data["task"])
+        assert official.tau2_task_from_data(record.data) == record.data["task"]
         assert record.data["policy_ref"].endswith(f"@{official.TAU2_UPSTREAM_COMMIT}")
     assert "Be helpful." in records[0].prompt
+    assert "Cancel my flight" not in records[0].prompt  # the scenario never enters the agent prompt
 
 
-def _tau2_request(product, *, domain: str = "airline", task_id: str = "0"):
+def _tau2_request(recorded, *, domain: str = "airline", task_id: str = "0"):
+    full_task = {"id": task_id, "user_scenario": {"instructions": "scenario"}}
     record = TaskRecord(
         id="tau2-airline-0",
         version=1,
@@ -76,19 +80,26 @@ def _tau2_request(product, *, domain: str = "airline", task_id: str = "0"):
         requires=frozenset({Capability.MCP, Capability.MULTI_TURN}),
         maturity="regression",
         provenance=Provenance.CONVERTED,
-        data={"domain": domain, "upstream_task_id": task_id, "policy_ref": "policy.md@pin"},
+        data={
+            "domain": domain,
+            "upstream_task_id": task_id,
+            "policy_ref": "policy.md@pin",
+            "task": full_task,
+            "task_digest": official.tau2_task_digest(full_task),
+        },
     )
     task = task_from_record(official.TAU2, record)
     return GradeRequest(
         task=task,
         evidence=None,
         answers=("done",),
-        product=product,
+        product=None,
         execution={},
         harness_model=None,
         panel=JudgePanel(models=("configured/model",)),
         judge_config=JudgeConfig(base_url="https://judge.invalid/v1", api_key="test"),
         client=httpx.AsyncClient(),
+        runner_recorded=recorded,
     )
 
 
@@ -97,37 +108,35 @@ def _tau2_request(product, *, domain: str = "airline", task_id: str = "0"):
 
 def test_tau2_evidence_requires_termination_reason_with_no_default():
     with pytest.raises(ValueError, match="termination_reason"):
-        official.parse_tau2_evidence({"tau2": {"transcript": TRANSCRIPT}})
-    evidence = official.parse_tau2_evidence({"tau2": {"transcript": TRANSCRIPT, "termination_reason": "agent_stop"}})
+        official.parse_tau2_evidence({"transcript": TRANSCRIPT})
+    evidence = official.parse_tau2_evidence({"transcript": TRANSCRIPT, "termination_reason": "agent_stop"})
     assert evidence.termination_reason == "agent_stop"
 
 
 def test_tau2_evidence_rejects_unknown_termination_reason():
     with pytest.raises(ValueError):
-        official.parse_tau2_evidence({"tau2": {"transcript": TRANSCRIPT, "termination_reason": "finished"}})
+        official.parse_tau2_evidence({"transcript": TRANSCRIPT, "termination_reason": "finished"})
 
 
 def test_tau2_evidence_rejects_tool_call_without_following_tool_message():
     transcript = [TRANSCRIPT[0], TRANSCRIPT[1], {"role": "assistant", "content": "done"}]
     with pytest.raises(ValueError, match="ToolMessage"):
-        official.parse_tau2_evidence({"tau2": {"transcript": transcript, "termination_reason": "agent_stop"}})
+        official.parse_tau2_evidence({"transcript": transcript, "termination_reason": "agent_stop"})
 
 
 def test_tau2_evidence_rejects_string_tool_arguments():
     transcript = json.loads(json.dumps(TRANSCRIPT))
     transcript[1]["tool_calls"][0]["arguments"] = '{"user_id": "user_1"}'
     with pytest.raises(ValueError):
-        official.parse_tau2_evidence({"tau2": {"transcript": transcript, "termination_reason": "agent_stop"}})
+        official.parse_tau2_evidence({"transcript": transcript, "termination_reason": "agent_stop"})
 
 
 def test_tau2_evidence_rejects_bare_tool_calls_and_final_db_state():
     with pytest.raises(ValueError):
-        official.parse_tau2_evidence(
-            {"tau2": {"transcript": TRANSCRIPT, "termination_reason": "agent_stop", "tool_calls": []}}
-        )
+        official.parse_tau2_evidence({"transcript": TRANSCRIPT, "termination_reason": "agent_stop", "tool_calls": []})
     with pytest.raises(ValueError):
         official.parse_tau2_evidence(
-            {"tau2": {"transcript": TRANSCRIPT, "termination_reason": "agent_stop", "final_db_state": {}}}
+            {"transcript": TRANSCRIPT, "termination_reason": "agent_stop", "final_db_state": {}}
         )
 
 
@@ -168,7 +177,7 @@ def test_tau2_judge_calls_become_a_priced_judgment():
 
 @pytest.mark.asyncio
 async def test_tau2_grade_without_valid_evidence_is_unjudged():
-    request = _tau2_request({"tau2": {"transcript": TRANSCRIPT}})
+    request = _tau2_request({"transcript": TRANSCRIPT})
     graded = await official._grade_tau2(request)
     await request.client.aclose()
     assert graded.checks[0].passed is None
@@ -252,7 +261,7 @@ async def test_tau2_preflight_queries_gateway_once_and_refuses_missing_judge(mon
         server.shutdown()
     assert first is not None and official.TAU2_NL_JUDGE_MODEL in first
     assert second == first
-    assert seen == ["/v1/models"]  # cached per run: the gateway is queried once
+    assert seen == ["/v1/models", "/v1/models"]  # failures are not cached: the gateway is probed again
 
 
 # --- real pinned checkout, `mock` domain (skipped where unavailable) ------
@@ -302,7 +311,7 @@ async def test_tau2_bridge_agent_stop_passes_and_max_steps_scores_zero(monkeypat
     monkeypatch.setenv("PARALLAX_OFFICIAL_TAU2_ROOT", str(root))
     config = JudgeConfig(base_url=base_url, api_key="test")
     try:
-        product = {"tau2": {"transcript": TRANSCRIPT, "termination_reason": "agent_stop"}}
+        product = {"transcript": TRANSCRIPT, "termination_reason": "agent_stop"}
         request = dataclasses.replace(
             _tau2_request(product, domain="mock", task_id="create_task_1_with_env_assertions"), judge_config=config
         )
@@ -313,7 +322,7 @@ async def test_tau2_bridge_agent_stop_passes_and_max_steps_scores_zero(monkeypat
         # No communicate or NL judge was in this task's reward basis, so no judge calls are priced.
         assert graded.judgments == ()
 
-        product = {"tau2": {"transcript": TRANSCRIPT, "termination_reason": "max_steps"}}
+        product = {"transcript": TRANSCRIPT, "termination_reason": "max_steps"}
         request = dataclasses.replace(
             _tau2_request(product, domain="mock", task_id="create_task_1_with_env_assertions"), judge_config=config
         )
@@ -457,7 +466,7 @@ async def test_tau2_grade_bridge_failure_records_calls_and_no_unpriced_stand_in(
     monkeypatch.setenv("PARALLAX_OFFICIAL_TAU2_ROOT", str(root))
     import dataclasses
 
-    product = {"tau2": {"transcript": _nl_payload()["transcript"], "termination_reason": "agent_stop"}}
+    product = {"transcript": _nl_payload()["transcript"], "termination_reason": "agent_stop"}
     request = dataclasses.replace(
         _tau2_request(product, domain="mock", task_id="update_task_with_initialization_data"),
         judge_config=JudgeConfig(base_url=base_url, api_key="test"),
@@ -514,3 +523,159 @@ async def test_tau2_bridge_failed_judge_call_is_captured_in_the_side_file_only(m
     assert recorded["cost_usd"] is None
     assert marker not in str(recorded.get("error"))
     assert "400" in str(recorded.get("error")) or recorded.get("error")
+
+
+# --- parallax-owned loop (scripted harness, fake runtime; no docker/network) ---
+
+# Upstream exposes no scripted user simulator (DummyUser raises), so the loop test stands in
+# a scripted runtime at parallax's own seam; the real-checkout path stays skip-gated below.
+
+
+class _FakeTau2Runtime:
+    tools = [{"name": "create_task", "description": "create", "parameters": {"type": "object", "properties": {}}}]
+    simulator_cost_usd = 0.25
+
+    async def start(self, *, domain, task):
+        return self.tools
+
+    async def call_tool(self, name, arguments, call_id):
+        return {"content": '{"task_id": "task_2", "status": "pending"}', "error": False, "id": call_id}
+
+    async def user_turn(self, *, first, assistant=""):
+        if first:
+            return {"messages": [{"role": "user", "content": "Create a task called Important Meeting."}], "stop": False}
+        return {"messages": [{"role": "user", "content": "Thanks. ###STOP###"}], "stop": True}
+
+    async def close(self):
+        return None
+
+
+@pytest.mark.asyncio
+async def test_tau2_grade_never_uses_harness_reported_evidence():
+    import dataclasses
+
+    forged = dataclasses.replace(
+        _tau2_request(None), product={"tau2": {"transcript": TRANSCRIPT, "termination_reason": "agent_stop"}}
+    )
+    graded = await official._grade_tau2(forged)
+    await forged.client.aclose()
+    assert graded.checks[0].passed is None
+    assert "parallax recorded no tau2 transcript" in graded.checks[0].detail
+
+
+@requires_tau2
+@pytest.mark.asyncio
+async def test_tau2_serve_runtime_on_mock_domain_with_scripted_gateway():
+    # Real pinned checkout, `mock` domain: a scripted OpenAI-compatible gateway stands in for
+    # the simulator's model (upstream exposes no scripted simulator), so no paid call is made.
+    from http.server import BaseHTTPRequestHandler
+
+    from parallax.tau2_runtime import Tau2BridgeRuntime
+
+    calls = {"n": 0}
+
+    class Gateway(BaseHTTPRequestHandler):
+        def do_POST(self):
+            calls["n"] += 1
+            text = "Create a new task called 'Important Meeting' for user_1." if calls["n"] == 1 else "###STOP###"
+            body = json.dumps(
+                {
+                    "id": "x",
+                    "object": "chat.completion",
+                    "model": official.TAU2_SIMULATOR_MODEL,
+                    "choices": [
+                        {"index": 0, "message": {"role": "assistant", "content": text}, "finish_reason": "stop"}
+                    ],
+                    "usage": {"prompt_tokens": 5, "completion_tokens": 3, "total_tokens": 8},
+                }
+            ).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    base_url, server = _gateway(Gateway)
+    root, python = _tau2_checkout()  # type: ignore[misc]
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True, check=True
+    ).stdout.strip()
+    if head != official.TAU2_UPSTREAM_COMMIT:
+        server.shutdown()  # type: ignore[attr-defined]
+        pytest.skip(f"tau2 checkout at {head[:8]}, not the pinned {official.TAU2_UPSTREAM_COMMIT[:8]}")
+    runtime = Tau2BridgeRuntime(
+        root=root, python=python, commit=official.TAU2_UPSTREAM_COMMIT, base_url=base_url, api_key="test"
+    )
+    mock_tasks = json.loads((root / "data/tau2/domains/mock/tasks.json").read_text())
+    task = next(t for t in mock_tasks if t["id"] == "create_task_1")
+    try:
+        tools = await runtime.start(domain="mock", task=task)
+        assert any(t["name"] == "create_task" for t in tools)
+        first = await runtime.user_turn(first=True)
+        assert "Important Meeting" in str(first["messages"])
+        result = await runtime.call_tool("create_task", {"user_id": "user_1", "title": "Important Meeting"}, "c1")
+        assert not result["error"]
+        second = await runtime.user_turn(first=False, assistant="Done, the task was created.")
+        assert second["stop"] is True
+    finally:
+        await runtime.close()
+        server.shutdown()  # type: ignore[attr-defined]
+
+
+@pytest.mark.asyncio
+async def test_tau2_runner_loop_records_transcript_and_simulator_cost(tmp_path, monkeypatch):
+    import parallax.runner as runner
+    from parallax.harnesses.oracle import ORACLE_INFO
+    from parallax.models import Isolation, TurnOutput, TurnStatus
+    from parallax.world.client import WorldClient
+
+    full_task = {"id": "create_task_1", "user_scenario": {"instructions": "Create a task called Important Meeting"}}
+    record = TaskRecord(
+        id="tau2-mock-1", version=1, area=Area.SAAS, summary="tau2 mock", prompt="Mock policy. Be helpful.",
+        grading=official.TAU2_POLICY, requires=frozenset({Capability.MCP, Capability.MULTI_TURN}),
+        maturity="regression", provenance=Provenance.CONVERTED,
+        data={"domain": "mock", "upstream_task_id": "create_task_1", "policy_ref": "policy.md@pin",
+              "task": full_task, "task_digest": official.tau2_task_digest(full_task)},
+    )  # fmt: skip
+    task = task_from_record(official.TAU2, record)
+
+    class ScriptedHarness:
+        info = ORACLE_INFO.model_copy(update={"name": "scripted-tau2"})
+
+        async def start(self, trial, box):
+            self._trial = trial
+
+        async def turn(self, t):
+            async with WorldClient(self._trial.mcp.url, "tau2") as client:
+                ok, _value = await client.call("create_task", {"user_id": "user_1", "title": "Important Meeting"})
+            assert ok
+            return TurnOutput(status=TurnStatus.COMPLETED, answer="Created the task.", session_id=None)
+
+        async def stop(self):
+            return None
+
+        async def version(self, box):
+            return "scripted-1"
+
+    monkeypatch.setattr(runner, "load_harness", lambda name: ScriptedHarness())
+    monkeypatch.setattr(runner.TrialExecution, "_make_tau2_runtime", lambda self: _FakeTau2Runtime())
+    out = tmp_path / "run-tau2"
+    await runner.run_async(
+        [task],
+        ["scripted-tau2"],
+        [None],
+        runner.RunOptions(out=out, isolation=Isolation.HOST, quiet=True, retry_invalid=0),
+    )
+    trajectories = list(out.glob("trials/**/trajectory.json"))
+    assert trajectories, "no trial trajectory written"
+    trajectory = json.loads(trajectories[0].read_text())
+    recorded = trajectory["extra"]["tau2_recorded"]
+    assert recorded["termination_reason"] == "user_stop"
+    assert [m["role"] for m in recorded["transcript"]] == ["user", "assistant", "tool", "assistant", "user"]
+    assert recorded["transcript"][1]["tool_calls"][0]["name"] == "create_task"
+    (row,) = runner.read_results(out / "results.jsonl")
+    assert row.metrics["simulator_cost_usd"] == 0.25  # simulator cost, out of harness usage
+    assert all(u.cost_usd != 0.25 for u in row.usage)

@@ -3,10 +3,12 @@
 Run as a script by the pinned tau2 checkout's own Python, like `official_bridge.py`. It imports that
 checkout and calls upstream `evaluate_simulation` with `EvaluationType.ALL`, upstream's default
 SEMANTIC communicate scoring and its NL-assertion evaluator (both with upstream's pinned judge
-models); no database, action or communication comparison is reimplemented here. The harness reports
-`{transcript, termination_reason}` as trial evidence: the full upstream message transcript, whose
+models); no database, action or communication comparison is reimplemented here. Parallax records
+`{transcript, termination_reason}` itself (the runner's tool log and turns) and passes it as
+evidence: the full upstream message transcript, whose
 assistant tool calls are each followed by their ToolMessage, and an explicit termination reason.
-The evaluator replays the transcript itself. Simulator (user-model) usage never enters this bridge:
+The evaluator replays the transcript itself. In serve mode this same script holds one trial's
+domain environment and upstream user simulator for parallax to drive. Simulator (user-model) usage never enters this bridge:
 the simulation is built with no agent/user cost, and every judge call the evaluator makes is
 recorded as it happens in the request's `calls_file` (the one judge-call channel), priced when
 upstream reported a cost and unpriced otherwise, including a call that fails; a failed call
@@ -228,16 +230,161 @@ def _evaluate(request: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+class _ServeSession:
+    """One trial's world: the domain environment plus the upstream user simulator.
+
+    Parallax drives it over JSON lines (`start`, `tool`, `user`, `close`): the environment is
+    the trial's tool server, and the simulator speaks from the task's own scenario, which never
+    leaves this process. Simulator cost is returned per message, never as agent cost.
+    """
+
+    def __init__(self, request: dict[str, Any]) -> None:
+        import importlib
+
+        registry_module = importlib.import_module("tau2.registry")
+        task_module = importlib.import_module("tau2.data_model.tasks")
+        message_module = importlib.import_module("tau2.data_model.message")
+        user_module = importlib.import_module("tau2.user.user_simulator")
+        config_module = importlib.import_module("tau2.config")
+
+        self._message = message_module
+        domain = str(request["domain"])
+        task_data = request.get("task")
+        if not isinstance(task_data, dict):
+            raise RuntimeError("serve start needs the full pinned task JSON")
+        self.task = task_module.Task.model_validate(task_data)
+        self.environment = registry_module.registry.get_env_constructor(domain)()
+        initial = self.task.initial_state
+        self.environment.set_state(
+            initialization_data=initial.initialization_data if initial else None,
+            initialization_actions=initial.initialization_actions if initial else None,
+            message_history=list(initial.message_history) if initial and initial.message_history else [],
+        )
+        scenario = self.task.user_scenario
+        instructions = getattr(scenario, "instructions", None)
+        if not isinstance(instructions, str):
+            instructions = json.dumps(instructions, ensure_ascii=False) if instructions is not None else None
+        tools = None
+        try:
+            tools = self.environment.get_user_tools()
+        except ValueError:
+            tools = None
+        model = str(request.get("simulator_model") or config_module.DEFAULT_LLM_USER)
+        self.simulator = user_module.UserSimulator(llm=model, instructions=instructions, tools=tools)
+        self.user_state = self.simulator.get_init_state(
+            message_history=[m for m in (initial.message_history if initial and initial.message_history else [])]
+        )
+        self.simulator_cost = 0.0
+
+    def tools(self) -> list[dict[str, Any]]:
+        import importlib
+
+        get_tool_signatures = importlib.import_module("tau2.environment.toolkit").get_tool_signatures
+        signatures = get_tool_signatures(self.environment.tools) if self.environment.tools else {}
+        return [
+            {"name": sig.name, "description": sig.doc, "parameters": sig.params or {"type": "object", "properties": {}}}
+            for sig in signatures.values()
+        ]
+
+    def tool(self, request: dict[str, Any]) -> dict[str, Any]:
+        call = self._message.ToolCall(
+            id=str(request.get("id") or "call"), name=str(request["name"]),
+            arguments=dict(request.get("arguments") or {}), requestor="assistant",
+        )  # fmt: skip
+        response = self.environment.get_response(call)
+        return {"content": response.content, "error": bool(response.error), "id": response.id}
+
+    def _user_once(self, incoming: Any) -> tuple[Any, list[dict[str, Any]]]:
+        """One simulator generation, executing any user tool calls it makes on the way."""
+        extra: list[dict[str, Any]] = []
+        message, self.user_state = self.simulator.generate_next_message(incoming, self.user_state)
+        if getattr(message, "cost", None):
+            self.simulator_cost += float(message.cost)
+        while message.is_tool_call():
+            extra.append(message.model_dump(mode="json"))
+            results = [self.environment.get_response(call) for call in message.tool_calls or []]
+            extra.extend(r.model_dump(mode="json") for r in results)
+            incoming = (
+                results[0]
+                if len(results) == 1
+                else self._message.MultiToolMessage(tool_messages=results)
+                if hasattr(self._message, "MultiToolMessage")
+                else results[-1]
+            )
+            message, self.user_state = self.simulator.generate_next_message(incoming, self.user_state)
+            if getattr(message, "cost", None):
+                self.simulator_cost += float(message.cost)
+        return message, extra
+
+    def user(self, request: dict[str, Any]) -> dict[str, Any]:
+        if request.get("first"):
+            try:
+                import importlib
+
+                greeting = importlib.import_module("tau2.orchestrator.orchestrator").DEFAULT_FIRST_AGENT_MESSAGE
+            except Exception:
+                greeting = self._message.AssistantMessage(role="assistant", content="Hi! How can I help you today?")
+            if self.task.agent_opener is not None:
+                greeting = self._message.AssistantMessage(role="assistant", content=self.task.agent_opener)
+            incoming = greeting
+        else:
+            incoming = self._message.AssistantMessage(role="assistant", content=str(request.get("assistant") or ""))
+        message, extra = self._user_once(incoming)
+        return {
+            "messages": [*extra, message.model_dump(mode="json")],
+            "stop": bool(self.simulator.is_stop(message)),
+            "cost_usd": getattr(message, "cost", None),
+            "simulator_cost_usd": self.simulator_cost,
+        }
+
+
+def _serve(first: dict[str, Any]) -> None:
+    """JSON-lines trial server: one JSON object per line in, one per line out."""
+    session: _ServeSession | None = None
+    stream_out = sys.stdout
+
+    def reply(payload: dict[str, Any]) -> None:
+        stream_out.write(json.dumps(payload) + "\n")
+        stream_out.flush()
+
+    reply({"ok": True})
+    for line in sys.stdin:
+        if not line.strip():
+            continue
+        try:
+            request = json.loads(line)
+            op = request.get("op")
+            if op == "start":
+                session = _ServeSession(request)
+                reply({"ok": True, "tools": session.tools(), "policy": session.environment.get_policy()})
+            elif op == "tool" and session is not None:
+                reply({"ok": True, **session.tool(request)})
+            elif op == "user" and session is not None:
+                reply({"ok": True, **session.user(request)})
+            elif op == "close":
+                reply({"ok": True})
+                return
+            else:
+                reply({"ok": False, "error": f"unknown or out-of-order op {op!r}"})
+        except BaseException as exc:  # the session survives a failed call; parallax records it
+            reply({"ok": False, "error": type(exc).__name__})
+
+
 def failure(exc: BaseException) -> str:
     """What stderr may carry about a failed bridge: the exception class only, never its message."""
     return type(exc).__name__
 
 
 def main() -> None:
-    request = json.load(sys.stdin)
+    first_line = sys.stdin.readline()
+    request = json.loads(first_line)
     if not isinstance(request, dict):
         raise RuntimeError("bridge request must be an object")
     _root(request)
+    if request.get("operation") == "serve":
+        # Serve speaks JSON lines on stdout; upstream logging goes to stderr.
+        _serve(request)
+        return
     if request.get("operation") != "evaluate" or request.get("suite") != "tau2":
         raise RuntimeError("unsupported bridge operation")
     with contextlib.redirect_stdout(sys.stderr):

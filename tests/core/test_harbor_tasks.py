@@ -317,6 +317,13 @@ def _labelled_containers(run_id: str) -> list[str]:
     return out
 
 
+def _run_label(out_dir: Path) -> str:
+    """The fresh run uuid recorded in the run's manifest, never its output basename."""
+    import json as _json
+
+    return _json.loads((out_dir / "manifest.json").read_text())["run_id"]
+
+
 def _tiny_task(tmp_path: Path, **data_overrides):
     root = tmp_path / "tb2"
     root.mkdir(parents=True, exist_ok=True)
@@ -346,7 +353,8 @@ async def test_tb2_runner_oracle_passes_null_fails_and_start_failure_and_cancel_
     rows = {(r.harness): r for r in read_results(out / "results.jsonl")}
     assert rows["oracle"].verdict is Verdict.PASS and rows["oracle"].score == 1.0
     assert rows["null-claim"].verdict is Verdict.FAIL and rows["null-claim"].score == 0.0
-    assert _labelled_containers(out.name) == []
+    assert _run_label(out) != out.name
+    assert _labelled_containers(_run_label(out)) == []
 
     # A start failure (a digest the pinned tests refuse) cleans up the box it opened and
     # leaves no labelled container behind.
@@ -357,7 +365,7 @@ async def test_tb2_runner_oracle_passes_null_fails_and_start_failure_and_cancel_
     )
     (row,) = read_results(out / "results.jsonl")
     assert row.verdict is Verdict.INVALID
-    assert _labelled_containers(out.name) == []
+    assert _labelled_containers(_run_label(out)) == []
 
     # A cancelled trial leaves no labelled container either.
     task = _tiny_task(tmp_path / "cancel")
@@ -369,17 +377,17 @@ async def test_tb2_runner_oracle_passes_null_fails_and_start_failure_and_cancel_
     )
     try:
         for _ in range(600):
-            if _labelled_containers(out.name) or run.done():
+            if (out / "manifest.json").is_file() and _labelled_containers(_run_label(out)) or run.done():
                 break
             await asyncio.sleep(0.05)
-        assert _labelled_containers(out.name), "the trial never started its labelled container"
+        assert _labelled_containers(_run_label(out)), "the trial never started its labelled container"
         run.cancel()
         with pytest.raises(asyncio.CancelledError):
             await run
     finally:
         if not run.done():
             run.cancel()
-    assert _labelled_containers(out.name) == []
+    assert _labelled_containers(_run_label(out)) == []
 
 
 @pytest.mark.docker
@@ -398,3 +406,109 @@ async def test_tb2_debian_verifier_runs_apt_get(tmp_path):
     finally:
         await harbor.remove_container(container)
         await request.client.aclose()
+
+
+def test_builtin_manifest_tb2_declarations():
+    from parallax.harnesses.manifest import load_manifest, manifest_path
+
+    for name, pinned in (("codex", "@openai/codex@0.169.0"), ("claude-code", "@anthropic-ai/claude-code@2.1.325")):
+        spec = load_manifest(manifest_path(name))
+        assert Capability.LIVE_CONTAINER in spec.info.capabilities
+        assert spec.tb2_argv_first and spec.tb2_argv_next
+        assert pinned in spec.tb2_install
+    for name in ("hermes", "openclaw"):
+        spec = load_manifest(manifest_path(name))
+        assert Capability.LIVE_CONTAINER not in spec.info.capabilities
+        assert not spec.tb2_argv_first
+
+
+@pytest.mark.docker
+@pytest.mark.asyncio
+async def test_tb2_fixture_manifest_agent_solves_tiny_task_through_docker_exec(tmp_path):
+    # A fixture manifest whose "agent" is a shell command: its install step runs as root in
+    # the owned container and its agent command runs there via docker exec, solving the task.
+    from datetime import UTC, datetime
+
+    from parallax.harnesses.manifest import ManifestHarness, load_manifest
+    from parallax.models import Trial, TurnInput
+
+    manifest = tmp_path / "fixture-agent.toml"
+    manifest.write_text(
+        'protocol = "cli"\nparser = "plain_text"\nsession = "from_output"\nstdin = "none"\n'
+        'argv_first = ["sh", "-c", "true"]\n'
+        'tb2_install = "mkdir -p /app && echo installed > /app/installed.txt"\n'
+        'tb2_argv_first = ["sh", "-c", "mkdir -p /app; echo done > /app/answer.txt; echo solved"]\n'
+        '[info]\nname = "fixture-agent"\nkind = "open"\ncapabilities = ["shell", "live_container"]\n'
+        'pins_model = false\ncost_source = "none"\nversion_cmd = ["sh", "--version"]\n'
+    )
+    harness = ManifestHarness(load_manifest(manifest))
+    request = _tb2_request(None, tmp_path=tmp_path)
+    container = await harbor.start_task_container(request.task.data)
+    try:
+        trial = Trial(
+            trial_id="t", task_id=request.task.id, model=None, mcp=None,
+            workspace=tmp_path, home=tmp_path, llm=None, env={}, user=None,
+            now=datetime.now(UTC), requires=frozenset({Capability.LIVE_CONTAINER}),
+            task_container=container,
+        )  # fmt: skip
+
+        class _Box:
+            workspace = tmp_path
+            home = tmp_path
+
+            async def write_file(self, path, data):
+                raise AssertionError("TB2 mode must not write config through the box")
+
+        await harness.start(trial, _Box())  # type: ignore[arg-type]
+        out = await harness.turn(TurnInput(index=1, text="solve it", new_session=False))
+        assert out.status.value == "completed"
+        graded = await harbor._grade(_tb2_request(None, tmp_path=tmp_path, task_container=container))
+        assert graded.checks[0].passed is True
+        assert graded.score == 1.0
+    finally:
+        await harbor.remove_container(container)
+        await request.client.aclose()
+    assert not _container_exists(container)
+
+
+@pytest.mark.docker
+@pytest.mark.asyncio
+async def test_tb2_agent_timeout_still_verifies_and_scores_the_reward(tmp_path, monkeypatch):
+    # Upstream Harbor: an agent timeout still grades with a valid reward. This harness writes
+    # the answer inside the container, then hangs past the task's 1s agent timeout.
+    import parallax.runner as runner
+    from parallax.harnesses.oracle import ORACLE_INFO
+    from parallax.models import Isolation, TurnOutput, TurnStatus, Verdict
+
+    class HangingHarness:
+        info = ORACLE_INFO
+
+        async def start(self, trial, box):
+            self._container = trial.task_container
+
+        async def turn(self, t):
+            await harbor._docker("exec", self._container, "sh", "-c", "mkdir -p /app; echo done > /app/answer.txt")
+            await asyncio.sleep(30)
+            return TurnOutput(status=TurnStatus.COMPLETED, answer="late", session_id=None)
+
+        async def stop(self):
+            return None
+
+        async def version(self, box):
+            return "hanging-1"
+
+    monkeypatch.setattr(runner, "load_harness", lambda name: HangingHarness())
+    task = _tiny_task(tmp_path / "hang", agent_timeout_s=1)
+    out = tmp_path / "run-hang"
+    import time
+
+    started = time.monotonic()
+    await runner.run_async(
+        [task], ["oracle"], [None], runner.RunOptions(out=out, isolation=Isolation.HOST, quiet=True, retry_invalid=0)
+    )
+    assert time.monotonic() - started < 25
+    (row,) = runner.read_results(out / "results.jsonl")
+    assert row.status is not None and row.status.value == "timeout"
+    assert row.verdict is Verdict.PASS  # the verifier ran on what the agent left, and it passed
+    assert row.score == 1.0
+    assert _labelled_containers(_run_label(out)) == []
