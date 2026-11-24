@@ -791,6 +791,9 @@ class HarnessInfo(Model):
     install: str = ""  # RUN line for box.Dockerfile
     version_cmd: tuple[str, ...] = ()
     web_disabled_by: Literal["flag", "config", "none"] = "none"
+    # The metering wire selected by a manifest. `model` selects the wire from the model provider;
+    # the explicit values cover manifests whose CLI always speaks one vendor wire.
+    meter_wire: Literal["model", "openai", "anthropic"] = "model"
     source_url: str = ""
     # HTTPS hosts a harness needs to reach directly through the run's egress proxy, such as a
     # product API or a CLI distribution host. The proxy still starts with its model endpoints.
@@ -1037,6 +1040,7 @@ class ManifestSpec(Model):
     # (the manifest's env allowlist), never baked into the image or written to disk. Declaring
     # these grants `live_container`; a manifest without them is NA on TB2 tasks.
     tb2_install: str = ""
+    tb2_prerequisites: tuple[str, ...] = ()
     tb2_artifacts: tuple[Tb2Artifact, ...] = ()
     tb2_argv_first: tuple[str, ...] = ()
     tb2_argv_next: tuple[str, ...] = ()

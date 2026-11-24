@@ -205,24 +205,31 @@ async def sweep_orphan_device_boxes() -> None:
 
 
 async def sweep_orphan_trial_networks() -> None:
-    """Remove no-network trial networks left after their run's sidecar disappeared."""
+    """Remove trial networks whose creating runner process is no longer alive."""
     rows = await docker("network", "ls", "--filter", "label=parallax.trial", "--format", "{{.Name}}")
     for network in rows.splitlines():
         try:
-            details = json.loads(await docker("network", "inspect", "--format", "{{json .Containers}}", network))
+            details = json.loads(await docker("network", "inspect", "--format", "{{json .}}", network))
         except (BoxError, json.JSONDecodeError) as exc:
             logger.warning("inspecting trial network %s failed: %s", network, exc)
             continue
-        names = (
-            {
-                str(container.get("Name"))
-                for container in details.values()
-                if isinstance(container, dict) and container.get("Name")
-            }
-            if isinstance(details, dict)
-            else set()
-        )
-        if any(name.startswith("px-") and name.endswith("-sidecar") for name in names):
+        labels = details.get("Labels") if isinstance(details, dict) else None
+        owner_pid = labels.get("parallax.owner-pid") if isinstance(labels, dict) else None
+        try:
+            pid = int(owner_pid) if isinstance(owner_pid, str) else 0
+        except ValueError:
+            pid = 0
+        if pid <= 0:
+            logger.warning("keeping trial network %s without a valid owner pid", network)
+            continue
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            pass
+        except OSError:
+            logger.warning("keeping trial network %s with live owner pid %s", network, pid)
+            continue
+        else:
             continue
         logger.warning("removing orphan trial network %s", network)
         with contextlib.suppress(BoxError):
@@ -1041,10 +1048,12 @@ class Sidecar:
         )
         self.network: str | None = None
         self.container: str | None = None
+        self.run_id: str | None = None
 
     async def up(self, run_id: str) -> SidecarUrls:
         net = f"px-{run_id}"
         name = f"{net}-sidecar"
+        self.run_id = run_id
         await sweep_orphan_trial_networks()
         image = await build_base_image()
         self.network = net
@@ -1124,7 +1133,18 @@ class Sidecar:
         if self.container is None:
             raise BoxError("sidecar is not running")
         net = f"px-trial-{secrets.token_hex(8)}"
-        await docker("network", "create", "--internal", "--label", f"parallax.trial={trial_id}", net)
+        await docker(
+            "network",
+            "create",
+            "--internal",
+            "--label",
+            f"parallax.trial={trial_id}",
+            "--label",
+            f"parallax.run={self.run_id or 'unknown'}",
+            "--label",
+            f"parallax.owner-pid={os.getpid()}",
+            net,
+        )
         try:
             await docker("network", "connect", "--alias", "sidecar", net, self.container)
         except BaseException:

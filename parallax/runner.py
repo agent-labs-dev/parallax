@@ -59,6 +59,7 @@ from parallax.harnesses.base import (
     load_harness,
     native_credentials,
 )
+from parallax.harnesses.manifest import wire_model_name
 from parallax.harnesses.parsers import turn_answer
 from parallax.judge import JudgeConfig, JudgePanel, config_from_env, panel_from_env
 from parallax.meter import (
@@ -933,9 +934,9 @@ class Session:
         if self.budget is None:
             return await self.execute(plan)
         if hp.info.cost_source is CostSource.METERED and plan.model is not None:
-            wire = trial_wire(plan.model, hp.name)
+            wire = trial_wire(plan.model, hp.info.meter_wire)
             upstream_url = upstreams_from_env(os.environ)[wire].base_url
-            if not model_price_known(plan.model, upstream_url):
+            if not model_price_known(wire_model_name(plan.model), upstream_url):
                 return TrialRun(
                     self.unrun(
                         plan,
@@ -1368,8 +1369,8 @@ class TrialExecution:
             await self.s.svc.meter_client().register(
                 self.meter_key,
                 budget_usd=budget_usd,
-                model=self.plan.model,
-                wire=trial_wire(self.plan.model or "", self.plan.harness.name) if self.plan.model else None,
+                model=wire_model_name(self.plan.model) if self.plan.model else None,
+                wire=trial_wire(self.plan.model, self.plan.harness.info.meter_wire) if self.plan.model else None,
             )
             svc = self.s.svc
             llm = llm_endpoint(svc.meter_for_box(box_isolation(box)), self.meter_key, svc.meter_for_box(Isolation.HOST))
@@ -1495,7 +1496,8 @@ class TrialExecution:
                 actor = message.get("tau2_actor")
                 batch = message.get("tau2_batch")
                 if actor == "env" and isinstance(batch, int) and batch > 0:
-                    key = (str(actor), batch)
+                    requestor = message.get("requestor")
+                    key = (str(requestor) if requestor in {"assistant", "user"} else "assistant", batch)
                     batch_error_counts[key] = batch_error_counts.get(key, 0) + int(bool(message.get("error")))
             events: list[Tau2Event] = []
             emitted_batches: set[tuple[str, int]] = set()
@@ -1505,7 +1507,8 @@ class TrialExecution:
                     actor = {"user": "user", "tool": "env"}.get(str(message.get("role")), "agent")
                 batch = message.get("tau2_batch")
                 if actor == "env" and isinstance(batch, int) and batch > 0:
-                    key = (str(actor), batch)
+                    requestor = message.get("requestor")
+                    key = (str(requestor) if requestor in {"assistant", "user"} else "assistant", batch)
                     if key in emitted_batches:
                         continue
                     emitted_batches.add(key)

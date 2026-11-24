@@ -25,6 +25,7 @@ from parallax.harnesses.base import (
 from parallax.harnesses.manifest import (
     ManifestError,
     ManifestHarness,
+    ManifestPrerequisiteError,
     dump_config,
     load_manifest,
     manifest_names,
@@ -229,6 +230,27 @@ async def test_tb2_install_copies_host_verified_artifacts_before_install(
     assert order[:3] == [("fetch", "node.tar.xz"), ("copy", "node.tar.xz"), ("install", "install-artifacts")]
 
 
+async def test_tb2_missing_prerequisite_is_typed_and_names_the_tool(box: HostBox, fake_spec: ManifestSpec) -> None:
+    spec = fake_spec.model_copy(
+        update={
+            "tb2_prerequisites": ("ldd",),
+            "tb2_argv_first": ("sh", "-c", "true"),
+            "info": info().model_copy(update={"capabilities": frozenset({Capability.LIVE_CONTAINER})}),
+        }
+    )
+    harness = ManifestHarness(spec)
+    trial = make_trial(box).model_copy(update={"task_container": "owned-container"})
+    harness._trial = trial
+
+    async def missing(*_argv: object, **_kwargs: object) -> tuple[int, str, str]:
+        return 1, "", ""
+
+    harness._exec_container = missing  # type: ignore[method-assign]
+    with pytest.raises(ManifestPrerequisiteError, match="ldd") as raised:
+        await harness.write_config(trial)
+    assert raised.value.tool == "ldd"
+
+
 @pytest.mark.asyncio
 async def test_artifact_fetch_uses_distinct_temps_for_concurrent_downloads(
     box: HostBox, fake_spec: ManifestSpec, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -274,7 +296,14 @@ def test_tb2_install_names_every_declared_platform_artifact_and_no_container_has
     assert "sha256sum" not in spec.tb2_install
     assert "openssl" not in spec.tb2_install
     assert "base64" not in spec.tb2_install
-    assert "missing prerequisite:" in spec.tb2_install
+    assert spec.tb2_prerequisites == ("tar", "xz", "ln")
+    assert "missing prerequisite:" not in spec.tb2_install
+    assert "ldd" not in spec.tb2_prerequisites
+
+
+@pytest.mark.parametrize(("name", "wire"), [("codex", "openai"), ("claude-code", "anthropic")])
+def test_single_wire_manifests_declare_their_meter_wire(name: str, wire: str) -> None:
+    assert load_manifest(manifest_path(name)).info.meter_wire == wire
 
 
 async def test_config_rendered_into_home(box: HostBox, fake_spec: ManifestSpec) -> None:

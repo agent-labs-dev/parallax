@@ -172,20 +172,78 @@ async def test_budget_admission_refuses_unpriced_model_before_reserve(
             raise AssertionError("budget.settle must not be called")
 
     task = load_task(TASKS / "mini-mail")
+    for model, upstream, wire_model in (
+        ("openai/unpriced", "PARALLAX_UPSTREAM_OPENAI", "unpriced"),
+        ("anthropic/unpriced", "PARALLAX_UPSTREAM_ANTHROPIC", "unpriced"),
+    ):
+        plan = runner.TrialPlan(
+            task=task,
+            harness=runner.HarnessPlan("h", INFO, "1", "config"),
+            model=model,
+            repeat=0,
+            key=f"mini-mail:h:{model}:0",
+        )
+        seen: list[tuple[str, str]] = []
+        monkeypatch.setenv(upstream, "https://actual-upstream.test/v1")
+        monkeypatch.setattr(
+            runner,
+            "model_price_known",
+            lambda requested, url, seen=seen: seen.append((requested, url)) or False,
+        )
+        session = runner.Session(SimpleNamespace(isolation=Isolation.HOST), tmp_path, None, None, budget=Budget())
+        result = await session.trial(plan)
+        assert seen == [(wire_model, "https://actual-upstream.test/v1")]
+        assert "no known price" in (result.result.invalid_reason or "")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("model", "wire"),
+    [("openai/gpt-4o", "openai"), ("anthropic/claude-sonnet-4-5", "anthropic")],
+)
+async def test_trial_registration_uses_manifest_wire_model_name(tmp_path: Path, model: str, wire: str) -> None:
+    from types import SimpleNamespace
+
+    class Meter:
+        def __init__(self) -> None:
+            self.kwargs: dict[str, object] = {}
+
+        async def register(self, _key: str, **kwargs: object) -> None:
+            self.kwargs = kwargs
+
+    task = load_task(TASKS / "mini-mail")
+    info = INFO.model_copy(update={"meter_wire": "model"})
     plan = runner.TrialPlan(
         task=task,
-        harness=runner.HarnessPlan("h", INFO, "1", "config"),
-        model="openai/unpriced",
+        harness=runner.HarnessPlan("h", info, "1", "config"),
+        model=model,
         repeat=0,
-        key="mini-mail:h:openai-unpriced:0",
+        key=f"mini-mail:h:{model}:0",
     )
-    seen_urls: list[str] = []
-    monkeypatch.setenv("PARALLAX_UPSTREAM_OPENAI", "https://actual-upstream.test/v1")
-    monkeypatch.setattr(runner, "model_price_known", lambda _model, url: seen_urls.append(url) or False)
-    session = runner.Session(SimpleNamespace(isolation=Isolation.HOST), tmp_path, None, None, budget=Budget())
-    result = await session.trial(plan)
-    assert seen_urls == ["https://actual-upstream.test/v1"]
-    assert "no known price" in (result.result.invalid_reason or "")
+    meter = Meter()
+    svc = SimpleNamespace(
+        meter_client=lambda: meter,
+        meter_for_box=lambda _isolation: "http://meter",
+        egress_env=lambda _task, _isolation: {},
+    )
+    execution = object.__new__(runner.TrialExecution)
+    execution.s = SimpleNamespace(svc=svc, budget=SimpleNamespace(reservation=0.1))
+    execution.plan = plan
+    execution.task = task
+    execution.task_container = None
+    execution.tau2_token = None
+    execution.tau2_mcp = None
+    execution.secrets = []
+    execution.assets = None
+    execution.box_iso = Isolation.HOST
+    execution.trial_id = lambda: "trial-1"
+
+    box = SimpleNamespace(isolation=Isolation.HOST, workspace=tmp_path / "workspace", home=tmp_path / "home")
+    box.workspace.mkdir()
+    box.home.mkdir()
+    await execution.trial_input(box, None)
+    assert meter.kwargs["model"] == model.partition("/")[2]
+    assert meter.kwargs["wire"].value == wire
 
 
 @pytest.mark.asyncio

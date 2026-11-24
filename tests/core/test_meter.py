@@ -19,6 +19,7 @@ from parallax.meter import (
     llm_endpoint,
     price,
     record,
+    trial_wire,
 )
 from parallax.models import CostSource
 from pydantic import SecretStr
@@ -174,6 +175,21 @@ async def test_budgeted_forward_rejects_an_unpriced_request_before_upstream(
     assert unknown.status_code == 400
     assert unknown.json()["error"]["code"] == "unpriced_model"
     assert seen == []
+
+
+async def test_budgeted_free_model_listing_does_not_require_a_model(meter: httpx.AsyncBaseTransport) -> None:
+    control = MeterClient("http://meter", ADMIN, transport=meter)
+    await control.register(KEY, budget_usd=0.000001)
+    ep = llm_endpoint("http://meter", KEY, "http://meter")
+    async with httpx.AsyncClient(transport=meter) as c:
+        response = await c.get(f"{ep.openai_base_url}/models")
+    assert response.status_code == 200
+
+
+def test_trial_wire_uses_manifest_declaration_or_model_provider() -> None:
+    assert trial_wire("openai/gpt-4o", "anthropic") is Wire.ANTHROPIC
+    assert trial_wire("anthropic/claude-sonnet-4-5", "openai") is Wire.OPENAI
+    assert trial_wire("anthropic/claude-sonnet-4-5") is Wire.ANTHROPIC
 
 
 def test_missing_usage_on_priced_model_uses_a_conservative_bound() -> None:

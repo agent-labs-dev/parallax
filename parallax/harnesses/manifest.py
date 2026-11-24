@@ -54,6 +54,14 @@ class ManifestError(ValueError):
     """A manifest that cannot be run as written: an authoring bug, never a harness failure."""
 
 
+class ManifestPrerequisiteError(ManifestError):
+    """A live-container manifest names a tool that the task container does not provide."""
+
+    def __init__(self, manifest: str, tool: str) -> None:
+        self.tool = tool
+        super().__init__(f"{manifest}: missing prerequisite tool {tool}")
+
+
 # ---------------------------------------------------------------------------
 # loading and validation
 # ---------------------------------------------------------------------------
@@ -152,10 +160,10 @@ def trial_values(trial: Trial) -> dict[str, str]:
         if trial.mcp.token_env in trial.env:
             values["world_token"] = trial.env[trial.mcp.token_env]
     if trial.model is not None:
-        provider, sep, name = trial.model.partition("/")
+        provider, sep, _name = trial.model.partition("/")
         values["model"] = trial.model
         if sep:
-            values["model_provider"], values["model_name"] = provider, name
+            values["model_provider"], values["model_name"] = provider, wire_model_name(trial.model)
     if trial.task_container is not None:
         values["task_container"] = trial.task_container
     if trial.llm is not None:
@@ -163,6 +171,12 @@ def trial_values(trial: Trial) -> dict[str, str]:
         values["meter_anthropic"] = trial.llm.anthropic_base_url
         values["meter_key"] = trial.llm.api_key
     return values
+
+
+def wire_model_name(model: str) -> str:
+    """Return the model identifier sent on a provider wire by `{model_name}`."""
+    provider, separator, name = model.partition("/")
+    return name if separator and provider and name else model
 
 
 def render(template: str, values: Mapping[str, str]) -> str:
@@ -414,6 +428,12 @@ class ManifestHarness(SubprocessHarness):
             return
         # Harbor-style setup: the declared install script runs as root in the owned container,
         # then the rendered config files are written inside it (home: -> /root, workspace: -> /app).
+        for tool in self.spec.tb2_prerequisites:
+            code, _out, _err = await self._exec_container(
+                ["sh", "-c", f"command -v {shlex.quote(tool)} >/dev/null"], timeout=30.0
+            )
+            if code != 0:
+                raise ManifestPrerequisiteError(self.spec.info.name, tool)
         for artifact in self.spec.tb2_artifacts:
             await self._copy_artifact(await self._fetch_artifact(artifact), artifact.name)
         if self.spec.tb2_install.strip():

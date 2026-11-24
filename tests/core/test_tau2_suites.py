@@ -634,7 +634,7 @@ class _ScriptedLoopRuntime:
     async def user_turn(self, *, first, assistant="", remaining_steps=None):
         self.remaining.append(remaining_steps)
         if first:
-            if self.mode == "user-tools":
+            if self.mode in {"user-tools", "mixed-tools"}:
                 return {
                     "messages": [
                         {
@@ -643,16 +643,18 @@ class _ScriptedLoopRuntime:
                             "tool_calls": [{"id": "u1", "name": "lookup", "arguments": {}}],
                             "tau2_actor": "user",
                             "tau2_batch": 1,
+                            "requestor": "user",
                         },
                         {
                             "role": "tool",
                             "id": "u1",
                             "content": "looked up",
-                            "error": False,
+                            "error": self.mode == "mixed-tools",
                             "tau2_actor": "env",
                             "tau2_batch": 1,
+                            "requestor": "user",
                         },
-                        {"role": "user", "content": "Now answer", "tau2_actor": "user"},
+                        {"role": "user", "content": "Now answer", "tau2_actor": "user", "requestor": "user"},
                     ],
                     "stop": False,
                 }
@@ -685,7 +687,7 @@ class _ScriptedLoopRuntime:
 
         self.calls += 1
         await asyncio.sleep(0)
-        return {"content": name, "error": False, "id": call_id}
+        return {"content": name, "error": self.mode == "mixed-tools", "id": call_id}
 
 
 async def _run_scripted_loop(mode: str, *, max_steps: int = 20):
@@ -711,6 +713,8 @@ async def _run_scripted_loop(mode: str, *, max_steps: int = 20):
                 await trial._tau2_log.call(name, {})
         elif mode == "parallel":
             await asyncio.gather(*(trial._tau2_log.call(name, {}) for name in ("one", "two", "three")))
+        elif mode == "mixed-tools":
+            await trial._tau2_log.call("agent-lookup", {})
         trial.t.answers[index - 1] = "done"
         return True
 
@@ -725,6 +729,16 @@ async def test_tau2_loop_counts_tool_batches(mode: str, want_remaining: int) -> 
     runtime, trial, delivered = await _run_scripted_loop(mode)
     assert delivered == 1
     assert runtime.remaining == [20, want_remaining]
+    assert trial.tau2_recorded["termination_reason"] == "user_stop"
+
+
+@pytest.mark.asyncio
+async def test_tau2_loop_separates_agent_and_user_batches_with_same_id() -> None:
+    runtime, trial, delivered = await _run_scripted_loop("mixed-tools")
+    assert delivered == 1
+    assert runtime.remaining == [20, 14]
+    transcript = cast(list[dict[str, object]], trial.tau2_recorded["transcript"])
+    assert sum(bool(message.get("error")) for message in transcript) == 2
     assert trial.tau2_recorded["termination_reason"] == "user_stop"
 
 

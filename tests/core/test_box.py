@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import json
 import os
 import secrets
 import signal
@@ -306,10 +307,17 @@ async def test_orphan_trial_network_sweep_keeps_live_sidecar_networks(monkeypatc
         if args[:3] == ("network", "ls", "--filter"):
             return "orphan\nlive\n"
         if args[:2] == ("network", "inspect"):
-            return "{}" if args[-1] == "orphan" else '{"id": {"Name": "px-run-sidecar"}}'
+            owner = "100" if args[-1] == "orphan" else "101"
+            return json.dumps({"Labels": {"parallax.owner-pid": owner}, "Containers": {}})
         return ""
 
     monkeypatch.setattr(boxes, "docker", fake_docker)
+
+    def fake_kill(pid: int, _signal: int) -> None:
+        if pid == 100:
+            raise ProcessLookupError(pid)
+
+    monkeypatch.setattr(boxes.os, "kill", fake_kill)
     await boxes.sweep_orphan_trial_networks()
     assert ("network", "rm", "orphan") in calls
     assert ("network", "rm", "live") not in calls

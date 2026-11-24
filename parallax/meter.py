@@ -544,11 +544,12 @@ def model_price_known(model: str, upstream_url: str, catalog: Provider | None = 
     return price(Observed(model, 1, 1, 0, 0, 0), upstream_url, catalog) is not None
 
 
-def trial_wire(model: str, harness: str) -> Wire:
-    """The meter wire selected by the built-in harness configuration for a trial."""
-    if harness == "claude-code" or model.partition("/")[0] == "anthropic":
-        return Wire.ANTHROPIC
-    return Wire.OPENAI
+def trial_wire(model: str, meter_wire: str = "model") -> Wire:
+    """The meter wire selected by a manifest declaration, or by its model provider."""
+    if meter_wire in {Wire.OPENAI.value, Wire.ANTHROPIC.value}:
+        return Wire(meter_wire)
+    provider = model.partition("/")[0]
+    return Wire.ANTHROPIC if provider == Wire.ANTHROPIC.value else Wire.OPENAI
 
 
 def unpriced_budget_usd(trial: TrialMeter, acc: UsageAccumulator, upstream_url: str, catalog: Provider | None) -> float:
@@ -828,8 +829,10 @@ def app(
                 MeterError.ENDPOINT_NOT_ALLOWED,
                 "parallax meter: background responses cannot be metered; send the request without background",
             )
-        if trial.budget_usd is not None and (
-            request_model is None or price(Observed(request_model, 1, 1, 0, 0, 0), base_url, catalog) is None
+        if (
+            endpoint is not Endpoint.FREE
+            and trial.budget_usd is not None
+            and (request_model is None or price(Observed(request_model, 1, 1, 0, 0, 0), base_url, catalog) is None)
         ):
             return wire_error(
                 wire,
