@@ -1092,6 +1092,28 @@ class Sidecar:
         out = await docker("port", self.container, f"{port}/tcp")
         return int(out.strip().splitlines()[0].rpartition(":")[2])
 
+    async def trial_network(self, trial_id: str) -> str:
+        """Create a private internal network for one no-network task container."""
+        if self.container is None:
+            raise BoxError("sidecar is not running")
+        net = f"px-trial-{secrets.token_hex(8)}"
+        await docker("network", "create", "--internal", "--label", f"parallax.trial={trial_id}", net)
+        try:
+            await docker("network", "connect", "--alias", "sidecar", net, self.container)
+        except BaseException:
+            with contextlib.suppress(BoxError):
+                await docker("network", "rm", net)
+            raise
+        return net
+
+    async def remove_trial_network(self, net: str) -> None:
+        """Disconnect the sidecar and remove one no-network trial network."""
+        if self.container is not None:
+            with contextlib.suppress(BoxError):
+                await docker("network", "disconnect", self.container, net)
+        with contextlib.suppress(BoxError):
+            await docker("network", "rm", net)
+
     async def down(self) -> None:
         """Removes every container on the run network (boxes included), then the network."""
         if self.network is None:

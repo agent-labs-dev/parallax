@@ -18,7 +18,7 @@ from parallax.task import load_task
 from parallax.world.client import ControlClient, ControlError, WorldClient, admin_register
 from parallax.world.core import World
 from parallax.world.server import WorldServer
-from parallax.world.service import Service, tool
+from parallax.world.service import Service, ToolSpec, tool
 from pydantic import BaseModel, JsonValue
 from starlette.applications import Starlette
 
@@ -152,6 +152,26 @@ async def _test_tokens_isolate_worlds(server: WorldServer, app: Starlette) -> No
         for headers in ({"Authorization": "Bearer wrong"}, {}):
             response = await raw.post(URL, headers=headers, json={"jsonrpc": "2.0", "id": 1, "method": "ping"})
             assert response.status_code == 401
+
+
+async def test_registered_backend_requires_bearer_and_proves_identity() -> None:
+    class Backend:
+        async def list_tools(self) -> tuple[ToolSpec, ...]:
+            return ()
+
+        async def call(self, tool: str, args: dict) -> tuple[bool, JsonValue]:
+            return True, {"tool": tool, "args": args}
+
+    server = WorldServer()
+    async with running(server) as app:
+        token, control_token, nonce = server.register_backend(Backend())
+        assert control_token
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app)) as raw:
+            missing = await raw.get(f"{BASE}/_identity")
+            wrong = await raw.get(f"{BASE}/_identity", headers={"Authorization": "Bearer wrong"})
+            identity = await raw.get(f"{BASE}/_identity", headers={"Authorization": f"Bearer {token}"})
+        assert missing.status_code == wrong.status_code == 401
+        assert identity.status_code == 200 and identity.json() == {"nonce": nonce}
 
 
 async def test_control_position_stamps_calls() -> None:

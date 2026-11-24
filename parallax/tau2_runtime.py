@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import secrets
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -28,6 +29,7 @@ from starlette.routing import Route
 from starlette.types import Receive, Scope, Send
 
 from parallax.models import JsonObject
+from parallax.world.service import ToolSpec
 
 AGENT_STOP = "###STOP###"
 
@@ -54,7 +56,6 @@ class Tau2BridgeRuntime:
         self.max_steps: int | None = None
         self.max_errors: int | None = None
         self.tool_errors = 0
-        self.step_count = 0
 
     async def _request(self, payload: dict[str, Any]) -> dict[str, Any]:
         process = self._process
@@ -71,7 +72,6 @@ class Tau2BridgeRuntime:
         return result
 
     async def start(self, *, domain: str, task: JsonObject) -> list[dict[str, Any]]:
-        self.step_count = 0
         self.tool_errors = 0
         command = (str(self._python), "-B", str(Path(__file__).with_name("tau2_bridge.py")))
         env = {
@@ -100,25 +100,22 @@ class Tau2BridgeRuntime:
         self.tools = list(result.get("tools") or [])
         self.max_steps = int(result["max_steps"])
         self.max_errors = int(result["max_errors"])
-        self.step_count = int(result.get("step_count", 0))
         return self.tools
 
     async def call_tool(self, name: str, arguments: dict[str, Any], call_id: str) -> dict[str, Any]:
         result = await self._request({"op": "tool", "name": name, "arguments": arguments, "id": call_id})
-        self.step_count = int(result.get("step_count", self.step_count))
         self.tool_errors = int(result.get("tool_errors", self.tool_errors))
         return result
 
-    def agent_step(self) -> None:
-        """Count the agent hop that is driven outside the bridge subprocess."""
-        self.step_count += 1
-
-    async def user_turn(self, *, first: bool, assistant: str = "") -> dict[str, Any]:
-        result = await self._request({"op": "user", "first": first, "assistant": assistant})
+    async def user_turn(
+        self, *, first: bool, assistant: str = "", remaining_steps: int | None = None
+    ) -> dict[str, Any]:
+        result = await self._request(
+            {"op": "user", "first": first, "assistant": assistant, "remaining_steps": remaining_steps}
+        )
         cost = result.get("simulator_cost_usd")
         self.simulator_cost_usd = float(cost) if isinstance(cost, (int, float)) else self.simulator_cost_usd
         self.tool_errors = int(result.get("tool_errors", self.tool_errors))
-        self.step_count = int(result.get("step_count", self.step_count))
         return result
 
     async def close(self) -> None:
@@ -146,24 +143,65 @@ class Tau2ToolLog:
     def __init__(self, runtime: Tau2BridgeRuntime) -> None:
         self.runtime = runtime
         self.entries: list[JsonObject] = []
-        self.errors = 0
         self._counter = 0
+        self._batch_counter = 0
+        self._active_batch: int | None = None
+        self._active_calls = 0
 
     async def call(self, name: str, arguments: dict[str, Any]) -> tuple[str, bool]:
         self._counter += 1
         call_id = f"call-{self._counter}"
+        if self._active_calls == 0:
+            self._batch_counter += 1
+            self._active_batch = self._batch_counter
+        batch = self._active_batch
+        self._active_calls += 1
         try:
             result = await self.runtime.call_tool(name, arguments, call_id)
             content, error = str(result.get("content") or ""), bool(result.get("error"))
         except Tau2RuntimeError as exc:
             content, error = f"Error: {exc}", True
-        if error:
-            self.errors += 1
-        self.entries.append({"id": call_id, "name": name, "arguments": arguments, "content": content, "error": error})
+        finally:
+            self._active_calls -= 1
+            if self._active_calls == 0:
+                self._active_batch = None
+        self.entries.append(
+            {
+                "id": call_id,
+                "name": name,
+                "arguments": arguments,
+                "content": content,
+                "error": error,
+                "batch": batch,
+            }
+        )
         return content, error
 
 
-def tau2_mcp_app(log: Tau2ToolLog) -> Starlette:
+class Tau2Backend:
+    """Expose one tau2 tool log through the shared world-server auth boundary."""
+
+    def __init__(self, log: Tau2ToolLog) -> None:
+        self.log = log
+
+    async def list_tools(self) -> tuple[ToolSpec, ...]:
+        return tuple(
+            ToolSpec(
+                name=str(tool["name"]),
+                description=str(tool.get("description") or tool["name"]),
+                input_schema=dict(tool.get("parameters") or {"type": "object", "properties": {}}),
+                mutates=True,
+                additive=False,
+            )
+            for tool in self.log.runtime.tools
+        )
+
+    async def call(self, tool: str, args: JsonObject) -> tuple[bool, str]:
+        content, error = await self.log.call(tool, dict(args))
+        return not error, content
+
+
+def tau2_mcp_app(log: Tau2ToolLog, *, token: str | None = None, nonce: str | None = None) -> Starlette:
     """The trial's world MCP server: the domain tools, served by parallax on localhost."""
 
     async def on_list_tools(_ctx: Any, _params: Any) -> types.ListToolsResult:
@@ -197,4 +235,25 @@ def tau2_mcp_app(log: Tau2ToolLog) -> Starlette:
     async def not_found(_request: Request) -> JSONResponse:
         return JSONResponse({"error": "tau2 tool server"}, status_code=404)
 
-    return Starlette(routes=[Route("/mcp", endpoint=Endpoint()), Route("/", endpoint=not_found)], lifespan=lifespan)
+    async def identity(request: Request) -> JSONResponse:
+        expected = f"Bearer {token}" if token is not None else None
+        if expected is None or request.headers.get("authorization") != expected:
+            return JSONResponse({"error": "unknown or missing bearer token"}, status_code=401)
+        return JSONResponse({"nonce": nonce})
+
+    async def authenticated(scope: Scope, receive: Receive, send: Send) -> None:
+        expected = f"Bearer {token}" if token is not None else None
+        request = Request(scope)
+        if expected is None or not secrets.compare_digest(request.headers.get("authorization", ""), expected):
+            await JSONResponse({"error": "unknown or missing bearer token"}, status_code=401)(scope, receive, send)
+            return
+        await Endpoint()(scope, receive, send)
+
+    return Starlette(
+        routes=[
+            Route("/_identity", endpoint=identity, methods=["GET"]),
+            Route("/mcp", endpoint=authenticated),
+            Route("/", endpoint=not_found),
+        ],
+        lifespan=lifespan,
+    )

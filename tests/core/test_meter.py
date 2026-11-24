@@ -8,7 +8,7 @@ import json
 import httpx
 import parallax.meter as meter_module
 import pytest
-from parallax.meter import MeterClient, Upstream, Wire, app, llm_endpoint
+from parallax.meter import MeterClient, TrialMeter, Upstream, UsageAccumulator, Wire, app, llm_endpoint, record
 from parallax.models import CostSource
 from pydantic import SecretStr
 
@@ -156,11 +156,19 @@ async def test_unknown_price_does_not_lock_out_a_budgeted_trial(meter: httpx.Asy
             f"{ep.openai_base_url}/chat/completions", json={"model": "openai/gpt-4o", "messages": []}
         )
     assert unknown.status_code == 200
-    assert priced.status_code == 200
+    assert priced.status_code == 429
     assert second_priced.status_code == 429
     report = await control.report(KEY)
     assert report.unpriced_requests == 1
     assert {u.model: u.cost_usd for u in report.usage}["nobody/unreal-model-9"] is None
+
+
+def test_missing_usage_on_priced_model_charges_the_trial_cap() -> None:
+    trial = TrialMeter(budget_usd=0.000001)
+    record(trial, UsageAccumulator(Wire.OPENAI, "openai/gpt-4o"), "https://openrouter.ai/api/v1")
+    assert trial.unpriced_requests == 1
+    assert trial.spent_usd() == 0.000001
+    assert trial.over_budget()
 
 
 async def test_unknown_trial_key_and_upstream_errors(meter: httpx.AsyncBaseTransport) -> None:

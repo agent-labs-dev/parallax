@@ -59,6 +59,8 @@ def test_tb2_container_argv_uses_the_run_network_for_no_network_tasks():
     assert "none" not in restricted
     assert "parallax.net=px-run" in restricted
     assert "HTTPS_PROXY=http://sidecar:7803" in restricted
+    assert "NO_PROXY=localhost,127.0.0.1" in restricted
+    assert not any(value.endswith("NO_PROXY=sidecar,localhost,127.0.0.1") for value in restricted)
 
     public = harbor.task_container_argv(spec.model_copy(update={"network_mode": "public"}), "example/x:1", "container")
     assert "--network" not in public
@@ -141,13 +143,20 @@ def test_tb2_cli_manifests_pin_node_and_package_tarball(name, package, version, 
         (Path(__file__).parents[2] / "parallax" / "harnesses" / "manifests" / f"{name}.toml").read_text()
     )
     install = manifest["tb2_install"]
+    artifacts = {artifact["name"]: artifact for artifact in manifest["tb2_artifacts"]}
+    node_artifact = next(artifact for artifact in artifacts.values() if artifact["name"].startswith("node-v"))
+    package_artifact = artifacts[package]
     assert "nvm" not in install
-    assert "node_name=node-v$node_version-linux-x64.tar.xz" in install
-    assert "SHASUMS256.txt" in install
-    assert "69b09dba5c8dcb05c4e4273a4340db1005abeafe3927efda2bc5b249e80437ec" in install
-    assert package in install
-    assert integrity in install
-    assert 'npm install -g "$package"' in install
+    assert "apt-get" not in install
+    assert "curl" not in install
+    assert node_artifact.get("algorithm", "sha256") == "sha256"
+    assert node_artifact["digest"] == "69b09dba5c8dcb05c4e4273a4340db1005abeafe3927efda2bc5b249e80437ec"
+    assert package_artifact["algorithm"] == "sha512"
+    assert package_artifact["digest"] == integrity
+    assert "--offline" in install
+    assert "raw.githubusercontent.com" not in manifest["info"].get("egress_hosts", [])
+    assert "registry.npmjs.org" not in manifest["info"].get("egress_hosts", [])
+    assert "nodejs.org" not in manifest["info"].get("egress_hosts", [])
     assert f"@{version}" in manifest["info"]["install"]
 
 

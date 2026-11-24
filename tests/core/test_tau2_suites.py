@@ -210,6 +210,38 @@ def test_tau2_termination_reasons_have_one_source():
     assert "agent_stop" in TERMINATION_REASONS
 
 
+def test_tau2_progress_matches_upstream_message_hops_and_precedence():
+    from parallax.tau2_terms import Tau2Event, tau2_progress
+
+    sequential = (
+        [Tau2Event("user")]
+        + [event for _ in range(3) for event in (Tau2Event("agent", waits_for_environment=True), Tau2Event("env"))]
+        + [Tau2Event("agent")]
+    )
+    assert tau2_progress(sequential, max_steps=20, max_errors=2).step_count == 8
+
+    parallel = [Tau2Event("user"), Tau2Event("agent", waits_for_environment=True), Tau2Event("env"), Tau2Event("agent")]
+    assert tau2_progress(parallel, max_steps=20, max_errors=2).step_count == 4
+
+    user_tools = [
+        Tau2Event("user", waits_for_environment=True),
+        Tau2Event("env"),
+        Tau2Event("user", waits_for_environment=True),
+        Tau2Event("env"),
+        Tau2Event("user"),
+    ]
+    assert tau2_progress(user_tools, max_steps=20, max_errors=2).step_count == 5
+
+    stopped = tau2_progress([Tau2Event("user", stop=True)], max_steps=5, max_errors=1)
+    assert stopped.termination == "user_stop"
+    overridden = tau2_progress(
+        [Tau2Event("user", waits_for_environment=True, stop=True), Tau2Event("env", error=True)],
+        max_steps=1,
+        max_errors=1,
+    )
+    assert overridden.termination == "too_many_errors"
+
+
 def test_tau2_read_judge_calls_reads_only_the_side_file(tmp_path):
     calls_file = tmp_path / "calls.jsonl"
     calls_file.write_text('{"model": "gpt-5.5", "cost_usd": null, "latency_ms": 3}\nnot json\n')
@@ -561,7 +593,7 @@ class _FakeTau2Runtime:
     def agent_step(self):
         self.step_count += 1
 
-    async def user_turn(self, *, first, assistant=""):
+    async def user_turn(self, *, first, assistant="", remaining_steps=None):
         self.step_count += 1
         if first:
             return {"messages": [{"role": "user", "content": "Create a task called Important Meeting."}], "stop": False}
@@ -735,7 +767,7 @@ async def test_tau2_runner_loop_records_transcript_and_simulator_cost(tmp_path, 
             self._trial = trial
 
         async def turn(self, t):
-            async with WorldClient(self._trial.mcp.url, "tau2") as client:
+            async with WorldClient(self._trial.mcp.url, self._trial.env["PARALLAX_WORLD_TOKEN"]) as client:
                 ok, _value = await client.call("create_task", {"user_id": "user_1", "title": "Important Meeting"})
             assert ok
             return TurnOutput(status=TurnStatus.COMPLETED, answer="Created the task.", session_id=None)
@@ -794,7 +826,7 @@ async def test_tau2_runner_max_steps_counts_agent_and_tool_hops(tmp_path, monkey
             self._trial = trial
 
         async def turn(self, t):
-            async with WorldClient(self._trial.mcp.url, "tau2") as client:
+            async with WorldClient(self._trial.mcp.url, self._trial.env["PARALLAX_WORLD_TOKEN"]) as client:
                 await client.call("create_task", {"user_id": "user_1", "title": "Important Meeting"})
             return TurnOutput(status=TurnStatus.COMPLETED, answer="Created the task.", session_id=None)
 
@@ -836,8 +868,7 @@ async def test_tau2_too_many_errors_overrides_agent_result(delivered, answer):
         def agent_step(self):
             self.step_count += 1
 
-        async def user_turn(self, *, first, assistant=""):
-            self.step_count += 1
+        async def user_turn(self, *, first, assistant="", remaining_steps=None):
             return {"messages": [{"role": "user", "content": "Continue"}], "stop": False}
 
     runtime = Runtime()
@@ -848,7 +879,9 @@ async def test_tau2_too_many_errors_overrides_agent_result(delivered, answer):
     trial._tau2_log = Tau2ToolLog(cast(Any, runtime))
 
     async def deliver(_harness, _index, _text, _new_session, _attached):
-        runtime.tool_errors = 1
+        trial._tau2_log.entries.append(
+            {"id": "error", "name": "tool", "arguments": {}, "content": "error", "error": True, "batch": 1}
+        )
         trial.t.answers[0] = answer
         return delivered
 

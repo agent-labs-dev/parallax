@@ -258,6 +258,7 @@ class TrialMeter:
     models: dict[str, ModelTally] = field(default_factory=dict)
     upstream_errors: int = 0
     unpriced_requests: int = 0
+    conservative_spend_usd: float = 0.0
     served: dict[str, None] = field(default_factory=dict)  # ordered set of response-named models
     unobserved_requests: int = 0
     # Upstream streams still being read, whether or not their client is still there (see `pump`),
@@ -275,15 +276,19 @@ class TrialMeter:
         )
 
     def spent_usd(self) -> float:
-        """Settled priced spend; unknown-priced requests remain visible in the report."""
-        return math.fsum(t.cost_usd for t in self.models.values())
+        """Priced spend plus the full trial cap for any unpriced response.
+
+        A budgeted trial therefore fails closed. Charging its whole cap is conservative because
+        the provider may have billed any amount that the response failed to expose.
+        """
+        return math.fsum((*[t.cost_usd for t in self.models.values()], self.conservative_spend_usd))
 
     def closed(self) -> bool:
         return self.expires_at is not None and time.time() >= self.expires_at
 
     def over_budget(self) -> bool:
         spent = self.spent_usd()
-        return self.budget_usd is not None and (spent is None or spent >= self.budget_usd)
+        return self.budget_usd is not None and spent >= self.budget_usd
 
 
 @dataclass(frozen=True)
@@ -511,12 +516,19 @@ def price(observed: Observed, upstream_url: str, catalog: Provider | None = None
         return None
 
 
+def model_price_known(model: str, upstream_url: str) -> bool:
+    """Whether a budgeted trial can be admitted with a known price for its requested model."""
+    return price(Observed(model, 1, 1, 0, 0, 0), upstream_url) is not None
+
+
 def record_unpriced(trial: TrialMeter, acc: UsageAccumulator) -> str:
     trial.unpriced_requests += 1
     model = acc.model or "unknown"
     tally = trial.models.setdefault(model, ModelTally())
     tally.requests += 1
     tally.unpriced = True
+    if trial.budget_usd is not None:
+        trial.conservative_spend_usd = trial.budget_usd
     return model
 
 
@@ -541,6 +553,8 @@ def record(trial: TrialMeter, acc: UsageAccumulator, upstream_url: str, catalog:
     if cost is None:
         trial.unpriced_requests += 1
         tally.unpriced = True
+        if trial.budget_usd is not None:
+            trial.conservative_spend_usd = trial.budget_usd
     else:
         tally.cost_usd += cost
 

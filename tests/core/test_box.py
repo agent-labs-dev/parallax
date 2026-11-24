@@ -277,6 +277,27 @@ def test_sidecar_allowlist_composes_harness_hosts_with_model_hosts() -> None:
     assert not egress.allowed("example.com", 443, sidecar.allowed_hosts)
 
 
+async def test_sidecar_trial_network_is_private_and_removed(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[tuple[str, ...]] = []
+
+    async def fake_docker(*args: str, **kwargs: object) -> str:
+        calls.append(args)
+        return ""
+
+    monkeypatch.setattr(boxes, "docker", fake_docker)
+    sidecar = Sidecar("world", "meter")
+    sidecar.container = "run-sidecar"
+    network = await sidecar.trial_network("trial-1")
+    assert network.startswith("px-trial-")
+    assert calls[0][:3] == ("network", "create", "--internal")
+    assert calls[1] == ("network", "connect", "--alias", "sidecar", network, "run-sidecar")
+    await sidecar.remove_trial_network(network)
+    assert calls[-2:] == [
+        ("network", "disconnect", "run-sidecar", network),
+        ("network", "rm", network),
+    ]
+
+
 def remote_info(remote_box: RemoteBox) -> HarnessInfo:
     return HarnessInfo(
         name="remote", kind=next(iter(HarnessKind)), capabilities=frozenset(), pins_model=True,

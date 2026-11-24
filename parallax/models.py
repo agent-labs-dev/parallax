@@ -1003,6 +1003,15 @@ class ConfigFile(Model):
     desktop_content: JsonObject | None = None
 
 
+class Tb2Artifact(Model):
+    """A host-fetched, checksum-verified file copied into a live task container."""
+
+    name: str
+    url: str
+    algorithm: Literal["sha256", "sha512"] = "sha256"
+    digest: str
+
+
 class ManifestSpec(Model):
     """harnesses/manifests/<name>.toml
 
@@ -1028,6 +1037,7 @@ class ManifestSpec(Model):
     # (the manifest's env allowlist), never baked into the image or written to disk. Declaring
     # these grants `live_container`; a manifest without them is NA on TB2 tasks.
     tb2_install: str = ""
+    tb2_artifacts: tuple[Tb2Artifact, ...] = ()
     tb2_argv_first: tuple[str, ...] = ()
     tb2_argv_next: tuple[str, ...] = ()
 

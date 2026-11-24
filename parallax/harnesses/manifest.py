@@ -8,7 +8,10 @@ some configs key maps by model id). Substitution is typed and never passes throu
 from __future__ import annotations
 
 import asyncio
+import base64
+import hashlib
 import json
+import os
 import re
 import shlex
 import tomllib
@@ -16,6 +19,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Literal, assert_never
 
+import httpx
 import yaml
 from pydantic import JsonValue, ValidationError
 
@@ -26,6 +30,7 @@ from parallax.models import (
     ConfigFile,
     JsonObject,
     ManifestSpec,
+    Tb2Artifact,
     Trial,
     TurnInput,
     TurnOutput,
@@ -344,12 +349,68 @@ class ManifestHarness(SubprocessHarness):
                 f"{self.spec.info.name}: writing {target} in the task container failed: {err.strip()[-300:]}"
             )
 
+    @staticmethod
+    def _artifact_cache() -> Path:
+        return Path.home() / ".cache" / "agent-scratch" / "harness-scoreboard" / "tb2-artifacts"
+
+    @staticmethod
+    def _digest(path: Path, artifact: Tb2Artifact) -> str:
+        digest = hashlib.new(artifact.algorithm)
+        with path.open("rb") as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(chunk)
+        value = digest.digest()
+        return (
+            base64.b64encode(value).decode()
+            if artifact.algorithm == "sha512" and not all(c in "0123456789abcdef" for c in artifact.digest.lower())
+            else digest.hexdigest()
+        )
+
+    async def _fetch_artifact(self, artifact: Tb2Artifact) -> Path:
+        cache = self._artifact_cache()
+        cache.mkdir(parents=True, exist_ok=True)
+        target = cache / artifact.name
+        if target.is_file() and self._digest(target, artifact) == artifact.digest:
+            return target
+        try:
+            response = await asyncio.to_thread(httpx.get, artifact.url, timeout=120.0, follow_redirects=True)
+            response.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise ManifestError(f"{self.spec.info.name}: artifact {artifact.name} download failed: {exc}") from exc
+        temporary = target.with_suffix(target.suffix + ".tmp")
+        temporary.write_bytes(response.content)
+        if self._digest(temporary, artifact) != artifact.digest:
+            temporary.unlink(missing_ok=True)
+            raise ManifestError(
+                f"{self.spec.info.name}: artifact {artifact.name} failed {artifact.algorithm} verification"
+            )
+        os.replace(temporary, target)
+        return target
+
+    async def _copy_artifact(self, source: Path, name: str) -> None:
+        container = self.tb2_container
+        if container is None:
+            raise ManifestError(f"{self.spec.info.name}: no task container for artifact copy")
+        process = await asyncio.create_subprocess_exec(
+            "docker",
+            "cp",
+            str(source),
+            f"{container}:/tmp/{name}",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        _out, err = await process.communicate()
+        if process.returncode != 0:
+            raise ManifestError(f"{self.spec.info.name}: copying artifact {name} failed: {err.decode()[-300:]}")
+
     async def write_config(self, trial: Trial) -> None:
         if self.tb2_container is None:
             await write_configs(self.spec.config, trial, self.box)
             return
         # Harbor-style setup: the declared install script runs as root in the owned container,
         # then the rendered config files are written inside it (home: -> /root, workspace: -> /app).
+        for artifact in self.spec.tb2_artifacts:
+            await self._copy_artifact(await self._fetch_artifact(artifact), artifact.name)
         if self.spec.tb2_install.strip():
             code, _out, err = await self._exec_container(["sh", "-c", self.spec.tb2_install])
             if code != 0:

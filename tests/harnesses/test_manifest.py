@@ -40,6 +40,7 @@ from parallax.models import (
     McpEndpoint,
     ParserId,
     Persona,
+    Tb2Artifact,
     Trial,
     TurnInput,
     TurnStatus,
@@ -182,6 +183,45 @@ async def test_tb2_exec_uses_manifest_env_allowlist(box: HostBox, fake_spec: Man
     await harness.turn(TurnInput(index=1, text="hi", new_session=False))
     assert calls[-1] == {"PARALLAX_METER_KEY": "px-key"}
     assert "PARALLAX_WORLD_TOKEN" not in calls[-1]
+
+
+async def test_tb2_install_copies_host_verified_artifacts_before_install(
+    box: HostBox, fake_spec: ManifestSpec, tmp_path: Path
+) -> None:
+    artifact = Tb2Artifact(name="node.tar.xz", url="https://node.invalid/node.tar.xz", digest="0" * 64)
+    spec = fake_spec.model_copy(
+        update={
+            "tb2_install": "install-artifacts",
+            "tb2_artifacts": (artifact,),
+            "tb2_argv_first": ("sh", "-c", "true"),
+            "info": info().model_copy(update={"capabilities": frozenset({Capability.LIVE_CONTAINER})}),
+        }
+    )
+    harness = ManifestHarness(spec)
+    trial = make_trial(box).model_copy(update={"task_container": "owned-container"})
+    harness._trial = trial
+    order: list[tuple[str, str]] = []
+
+    async def fake_fetch(_artifact: Tb2Artifact) -> Path:
+        order.append(("fetch", _artifact.name))
+        return tmp_path / _artifact.name
+
+    async def fake_copy(_source: Path, name: str) -> None:
+        order.append(("copy", name))
+
+    async def fake_exec(argv: list[str], **_kwargs: object) -> tuple[int, str, str]:
+        order.append(("install", argv[2]))
+        return 0, "", ""
+
+    async def fake_write(_target: str, _data: bytes) -> None:
+        return None
+
+    harness._fetch_artifact = fake_fetch  # type: ignore[method-assign]
+    harness._copy_artifact = fake_copy  # type: ignore[method-assign]
+    harness._exec_container = fake_exec  # type: ignore[method-assign]
+    harness._write_container_file = fake_write  # type: ignore[method-assign]
+    await harness.write_config(trial)
+    assert order[:3] == [("fetch", "node.tar.xz"), ("copy", "node.tar.xz"), ("install", "install-artifacts")]
 
 
 async def test_config_rendered_into_home(box: HostBox, fake_spec: ManifestSpec) -> None:

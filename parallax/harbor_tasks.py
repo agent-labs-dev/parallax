@@ -634,9 +634,14 @@ def task_container_argv(
         for name in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"):
             argv += ["--env", f"{name}={egress_proxy}"]
         for name in ("NO_PROXY", "no_proxy"):
-            argv += ["--env", f"{name}=sidecar,localhost,127.0.0.1"]
+            argv += ["--env", f"{name}=localhost,127.0.0.1"]
     # `public` uses Docker's default bridge.
     return [*argv, ref, "sh", "-c", "while true; do sleep 3600; done"]
+
+
+def task_network_mode(data: JsonObject) -> Literal["no-network", "public"]:
+    """Return the declared Harbor network policy for runner-owned setup."""
+    return _spec_from_data(data).network_mode
 
 
 async def start_task_container(
@@ -870,6 +875,7 @@ __all__ = [
     "run_solution",
     "run_verifier",
     "task_container_argv",
+    "task_network_mode",
     "start_task_container",
     "sweep_run_containers",
     "task_container_name",
