@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 import re
+import signal
 import tempfile
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
@@ -42,6 +43,7 @@ from parallax.models import (
     TaskRecord,
 )
 from parallax.semantic import Graded
+from parallax.tau2_terms import TerminationReason
 
 BU_BENCH = "bu-bench"
 ONLINE_MIND2WEB = "online-mind2web"
@@ -72,22 +74,11 @@ TAU2_FILE_SHA256 = {
 }
 TAU2_EXPECTED_BASE = {"airline": 50, "retail": 114, "telecom": 114}
 # Upstream benchmark defaults at the pin (`tau2.config`): the semantic communicate judge and
-# the NL-assertion judge. The bridge uses upstream's own defaults; these name them for identity.
+# the NL-assertion judge. The bridge routes both through the configured judge gateway under
+# these ids, validated by the preflight in `_grade_tau2` before any bridge process starts.
 TAU2_COMMUNICATE_JUDGE_MODEL = "gpt-5.5"
 TAU2_NL_JUDGE_MODEL = "gpt-5.4-mini-2026-03-17"
-
-TerminationReason = Literal[
-    "user_stop",
-    "agent_stop",
-    "max_steps",
-    "timeout",
-    "too_many_errors",
-    "agent_error",
-    "user_error",
-    "infrastructure_error",
-    "context_window_exceeded",
-    "unexpected_error",
-]
+TAU2_BRIDGE_TIMEOUT_S = 900.0
 
 
 class Tau2ToolCall(Model):
@@ -715,27 +706,84 @@ def _tau2_judge_env(req: GradeRequest) -> dict[str, str]:
     return env
 
 
+def _read_judge_calls(calls_file: Path, error_text: str) -> list[dict[str, Any]]:
+    """Judge calls recorded as they happened: the side-channel file, else the stderr JSON lines."""
+    calls: list[dict[str, Any]] = []
+    if calls_file.is_file():
+        for line in calls_file.read_text(encoding="utf-8").splitlines():
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(entry, dict):
+                calls.append(entry)
+    if calls:
+        return calls
+    from parallax.tau2_bridge import JUDGE_CALL_PREFIX
+
+    for line in error_text.splitlines():
+        if line.startswith(JUDGE_CALL_PREFIX):
+            try:
+                entry = json.loads(line[len(JUDGE_CALL_PREFIX) :])
+            except json.JSONDecodeError:
+                continue
+            if isinstance(entry, dict):
+                calls.append(entry)
+    return calls
+
+
 async def _tau2_bridge(req: GradeRequest, payload: dict[str, JsonValue]) -> dict[str, Any]:
+    """Run the bridge bounded by `TAU2_BRIDGE_TIMEOUT_S`; its process group is killed on timeout
+    or cancellation. Judge calls recorded before a failure come back in `calls` either way, and a
+    failed bridge returns `{"error": ..., "calls": [...]}` instead of raising."""
     root, python = _tau2_root()
-    payload = {**payload, "root": str(root)}
     command = (str(python), "-B", str(Path(__file__).with_name("tau2_bridge.py")))
     env = {"PATH": os.environ.get("PATH", ""), "LANG": os.environ.get("LANG", "C.UTF-8"),
            "LC_ALL": os.environ.get("LC_ALL", "C.UTF-8"), **_tau2_judge_env(req)}  # fmt: skip
-    process = await asyncio.create_subprocess_exec(
-        *command, cwd=root, env=env, stdin=asyncio.subprocess.PIPE,
-        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-    )  # fmt: skip
-    output, error = await process.communicate(json.dumps(payload).encode())
-    if process.returncode != 0:
-        message = error.decode(errors="replace").strip().splitlines()[-1:] or ["tau2 bridge failed"]
-        raise OfficialSuiteError(message[0])
-    try:
-        result = json.loads(output)
-    except json.JSONDecodeError as exc:
-        raise OfficialSuiteError("tau2 bridge returned invalid JSON") from exc
-    if not isinstance(result, dict):
-        raise OfficialSuiteError("tau2 bridge returned a non-object")
-    return cast(dict[str, Any], result)
+    with tempfile.TemporaryDirectory(prefix="parallax-tau2-") as directory:
+        calls_file = Path(directory) / "judge-calls.jsonl"
+        payload = {**payload, "root": str(root), "calls_file": str(calls_file)}
+        process = await asyncio.create_subprocess_exec(
+            *command, cwd=root, env=env, stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, start_new_session=True,
+        )  # fmt: skip
+        timed_out = False
+        output, error = b"", b""
+        try:
+            output, error = await asyncio.wait_for(
+                process.communicate(json.dumps(payload).encode()), timeout=TAU2_BRIDGE_TIMEOUT_S
+            )
+        except TimeoutError:
+            timed_out = True
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError):
+                process.kill()
+            await process.wait()
+        except BaseException:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError):
+                process.kill()
+            await process.wait()
+            raise
+        error_text = error.decode(errors="replace")
+        if timed_out:
+            return {
+                "error": f"tau2 bridge timed out after {TAU2_BRIDGE_TIMEOUT_S:.0f}s",
+                "calls": _read_judge_calls(calls_file, error_text),
+            }
+        calls = _read_judge_calls(calls_file, error_text)
+        if process.returncode != 0:
+            message = error_text.strip().splitlines()[-1:] or ["tau2 bridge failed"]
+            return {"error": message[0], "calls": calls}
+        try:
+            result = json.loads(output)
+        except json.JSONDecodeError as exc:
+            return {"error": f"tau2 bridge returned invalid JSON: {exc}", "calls": calls}
+        if not isinstance(result, dict):
+            return {"error": "tau2 bridge returned a non-object", "calls": calls}
+        return {**cast(dict[str, Any], result), "calls": calls or result.get("calls", [])}
 
 
 def _tau2_judgment(req: GradeRequest, payload: Mapping[str, JsonValue], result: Mapping[str, Any]) -> Judgment | None:
@@ -763,6 +811,17 @@ def _tau2_judgment(req: GradeRequest, payload: Mapping[str, JsonValue], result: 
     )
 
 
+def _tau2_preflight(req: GradeRequest) -> str | None:
+    """Validate the judge gateway and its model ids before any bridge process (or judge spend) starts."""
+    if not _tau2_judge_env(req):
+        return "tau2 judge gateway is not configured (judge endpoint and key are required)"
+    try:
+        _tau2_root()
+    except OfficialSuiteError as exc:
+        return str(exc)
+    return None
+
+
 async def _grade_tau2(req: GradeRequest) -> Graded:
     interruption = req.execution.get("error")
     if isinstance(interruption, str) and interruption.startswith("environment interruption: "):
@@ -771,6 +830,8 @@ async def _grade_tau2(req: GradeRequest) -> Graded:
         evidence = parse_tau2_evidence(req.product)
     except ValueError as exc:
         return _tau2_unjudged(req.task, f"missing evidence: invalid tau2 evidence: {exc}")
+    if (preflight := _tau2_preflight(req)) is not None:
+        return _tau2_unjudged(req.task, f"missing evidence: tau2 judge preflight failed: {preflight}")
     data = req.task.data
     # Simulator spend is the harness's own metadata: it is not forwarded and never priced here.
     payload: dict[str, JsonValue] = {
@@ -781,6 +842,7 @@ async def _grade_tau2(req: GradeRequest) -> Graded:
         "task_id": str(data.get("upstream_task_id", "")),
         "transcript": cast(JsonValue, evidence.model_dump(mode="json")["transcript"]),
         "termination_reason": evidence.termination_reason,
+        "judge_models": {"communicate": TAU2_COMMUNICATE_JUDGE_MODEL, "nl": TAU2_NL_JUDGE_MODEL},
     }
     try:
         result = await _tau2_bridge(req, payload)
@@ -789,9 +851,21 @@ async def _grade_tau2(req: GradeRequest) -> Graded:
         return _tau2_unjudged(req.task, f"missing evidence: upstream tau2 evaluator unavailable: {exc}").model_copy(
             update={"unpriced_calls": 1}
         )
+    if isinstance(result.get("error"), str):
+        # Judge calls recorded before the failure still price the grade; with none recorded the
+        # bridge may have reached the judge, so one unpriced call stands for the unknown spend.
+        judgment = _tau2_judgment(req, payload, result)
+        spend = (
+            {"judgments": (judgment,), "unpriced_calls": 0}
+            if judgment is not None
+            else {"judgments": (), "unpriced_calls": 1}
+        )
+        return _tau2_unjudged(
+            req.task, f"missing evidence: upstream tau2 evaluator unavailable: {result['error']}"
+        ).model_copy(update=spend)
     judgment = _tau2_judgment(req, payload, result)
-    judgments, unpriced = ((judgment,), 0) if judgment is not None else ((), 0)
-    spend = {"judgments": judgments, "unpriced_calls": unpriced}
+    judgments = (judgment,) if judgment is not None else ()
+    spend = {"judgments": judgments, "unpriced_calls": 0}
     if not isinstance(result.get("score"), (int, float)) or not isinstance(result.get("passed"), bool):
         return _tau2_unjudged(req.task, "missing evidence: upstream tau2 evaluator returned no valid score").model_copy(
             update=spend
@@ -807,7 +881,7 @@ async def _grade_tau2(req: GradeRequest) -> Graded:
         judge_identity=f"{TAU2_POLICY}:{TAU2}:evaluator-{TAU2_UPSTREAM_COMMIT}",
         score=score,
         judgments=judgments,
-        unpriced_calls=unpriced,
+        unpriced_calls=0,
     )
 
 

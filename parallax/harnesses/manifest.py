@@ -27,6 +27,7 @@ MANIFEST_DIR = Path(__file__).parent / "manifests"
 PLACEHOLDERS = frozenset({
     "model", "model_provider", "model_name", "prompt", "prompt_file", "session", "workspace", "home",
     "world_url", "world_token", "world_token_env", "meter_openai", "meter_anthropic", "meter_key",
+    "task_container",
 })  # fmt: skip
 _PLACEHOLDER = re.compile(r"\{([A-Za-z_][A-Za-z0-9_]*)\}")
 _BARE_KEY = re.compile(r"^[A-Za-z0-9_-]+$")
@@ -131,6 +132,8 @@ def trial_values(trial: Trial) -> dict[str, str]:
         values["model"] = trial.model
         if sep:
             values["model_provider"], values["model_name"] = provider, name
+    if trial.task_container is not None:
+        values["task_container"] = trial.task_container
     if trial.llm is not None:
         values["meter_openai"] = trial.llm.openai_base_url
         values["meter_anthropic"] = trial.llm.anthropic_base_url

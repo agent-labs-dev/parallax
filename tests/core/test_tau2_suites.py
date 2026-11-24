@@ -175,6 +175,56 @@ async def test_tau2_grade_without_valid_evidence_is_unjudged():
     assert "termination_reason" in graded.checks[0].detail
 
 
+def test_tau2_judge_env_is_an_allowlist(monkeypatch):
+    monkeypatch.setenv("PARALLAX_JUDGE_BASE_URL", "https://gateway.invalid/v1")
+    monkeypatch.setenv("PARALLAX_JUDGE_API_KEY", "judge-key")
+    monkeypatch.setenv("OPENAI_API_KEY", "simulator-key-must-not-leak")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "simulator-key-must-not-leak")
+    env = official._tau2_judge_env(_tau2_request(None))
+    assert env == {"OPENAI_BASE_URL": "https://judge.invalid/v1", "OPENAI_API_KEY": "test"}
+
+
+def test_tau2_termination_reasons_have_one_source():
+    from parallax.tau2_terms import TERMINATION_REASONS
+
+    assert TERMINATION_REASONS == tau2_bridge.TERMINATION_REASONS
+    assert "agent_stop" in TERMINATION_REASONS
+
+
+def test_tau2_read_judge_calls_from_file_and_stderr(tmp_path):
+    calls_file = tmp_path / "calls.jsonl"
+    calls_file.write_text('{"model": "gpt-5.5", "cost_usd": null, "latency_ms": 3}\nnot json\n')
+    assert official._read_judge_calls(calls_file, "") == [{"model": "gpt-5.5", "cost_usd": None, "latency_ms": 3}]
+    line = tau2_bridge.JUDGE_CALL_PREFIX + '{"model": "gpt-5.5", "cost_usd": 0.5, "latency_ms": 2}'
+    assert official._read_judge_calls(tmp_path / "missing.jsonl", line) == [
+        {"model": "gpt-5.5", "cost_usd": 0.5, "latency_ms": 2}
+    ]
+
+
+@pytest.mark.asyncio
+async def test_tau2_bridge_failure_still_records_judge_calls(monkeypatch, tmp_path):
+    root = tmp_path / "tau2"
+    (root / ".venv" / "bin").mkdir(parents=True)
+    (root / ".venv" / "bin" / "python").touch()
+    monkeypatch.setenv("PARALLAX_OFFICIAL_TAU2_ROOT", str(root))
+    failed_call = {
+        "model": official.TAU2_COMMUNICATE_JUDGE_MODEL, "input_tokens": None, "output_tokens": None,
+        "cost_usd": None, "latency_ms": 4, "error": "RuntimeError: judge down",
+    }  # fmt: skip
+
+    async def fake_bridge(req, payload):
+        return {"error": "RuntimeError: judge down", "calls": [failed_call]}
+
+    monkeypatch.setattr(official, "_tau2_bridge", fake_bridge)
+    request = _tau2_request({"tau2": {"transcript": TRANSCRIPT, "termination_reason": "agent_stop"}})
+    graded = await official._grade_tau2(request)
+    await request.client.aclose()
+    assert graded.checks[0].passed is None
+    assert len(graded.judgments) == 1
+    assert graded.judgments[0].fallback_calls[0].cost_usd is None
+    assert graded.judgments[0].cost() == (0.0, 1)  # the failed call is recorded unpriced, never dropped
+
+
 # --- real pinned checkout, `mock` domain (skipped where unavailable) ------
 
 

@@ -69,31 +69,45 @@ per-file SHA-256 manifest (`efcb17d74def636fc67695b6a2bfb4a6b65945c2e52e5e0eff05
 kept in the user cache. Multi-step tasks are rejected by the importer rather than truncated; the
 pinned set is single-step.
 
-Grading is structured, not answer-text matching. The task record requires the `live_container`
-capability: a graded harness keeps the agent's task container live and reports only its handle as
-`trial_metadata["terminal_bench"]["container"]`. A harness that does not declare that capability
-scores NA before the run, never a graded 0. The grader, never the harness, runs the verifier: it
+Grading is structured, not answer-text matching. Parallax owns the task container: for each
+trial of a task requiring `live_container`, the runner starts one container from the task image,
+hands its handle to the harness as the typed `Trial.task_container` field (a manifest harness
+reads it as `{task_container}`), and removes it after grading on every path. A harness with
+`LIVE_CONTAINER` acts inside that container; one without it scores NA before the run, never a
+graded 0. The grader uses only the handle parallax recorded, never a harness-reported name, and
+a harness-reported reward is never trusted. The grader, never the harness, runs the verifier: it
 re-checks the record's `tests_digest` against the pinned `tests/` in its digest-checked cache,
-copies those tests into the live container, and runs `tests/test.sh` there (directly, as upstream
-Harbor does) with the container's existing network, which follows the task's `[environment]`.
-A harness-reported reward is never trusted and is ignored.
+then, as root, kills every process in the container except PID 1 and the verifier exec itself,
+removes `/tests` and `/logs/verifier` wholesale, copies the pinned tests in, and runs
+`tests/test.sh` there (directly, as upstream Harbor does) with the container's existing network,
+which follows the task's `[environment]`.
 
 Reward comes only from the verifier's reward file, `/logs/verifier/reward.json` or
-`/logs/verifier/reward.txt`, as upstream Harbor defines them; reward 1 is a pass. A missing or
-unparsable reward file is a failed check that says so, never a stdout fallback, and the copy and
-test exit codes are recorded in the check detail either way. Task images named by mutable tag are
-pinned by digest: the importer records the registry digest resolved for the pinned set in
-`PINNED_IMAGE_DIGESTS`, and grading refuses a live container whose image digest differs.
+`/logs/verifier/reward.txt`, as upstream Harbor defines them; reward 1 is a pass. The reward file
+is read whatever the test exit was, including a timeout kill; a timeout is reported only when no
+reward was written and the timeout killed the test. A verifier infrastructure failure (a failed
+copy or setup, before the test ran) is unjudged, while a missing or unparsable reward file after
+the test ran is a failed check, never a stdout fallback, and the copy and test exit codes are
+recorded in the check detail either way. Residual risk: the agent ran in the container and could
+have altered system Python or site-packages that the pinned tests import, the same exposure as
+upstream Harbor; the pinned tests themselves, once copied in, cannot be the agent's copies. Task
+images named by mutable tag are pinned by digest: the importer records the registry digest
+resolved for the pinned set in `PINNED_IMAGE_DIGESTS`, and grading refuses a container whose
+image digest differs.
 
-Any container Parallax itself starts (the oracle and null conformance paths) is named, limited by
-the task's `--cpus`, `--memory` and `--pids-limit` (512 by default), started with
-`--cap-drop ALL` and `no-new-privileges` (no pinned task declares a capability it needs), and
-removed by name on success, failure and timeout. `oracle_conformance` runs the pinned
-`solution/solve.sh` in a fresh task container and then the verifier, and must pass;
-`null_conformance` runs only the verifier and must fail. No credential enters the container.
+The container is named, limited by the task's `--cpus`, `--memory` and `--pids-limit` (512 by
+default), and started with Docker's default capability set, as upstream Harbor uses, plus
+`no-new-privileges`: dropping all capabilities breaks `apt-get` in most TB2 test scripts, while
+`no-new-privileges` alone was verified to keep `apt-get` working on a Debian image. The oracle
+and null controls run through this same path: the oracle runs the pinned `solution/solve.sh`
+(as root, bounded by the task's agent timeout) in the runner-owned container and must pass, the
+null control runs nothing and the verifier alone must fail. No credential enters the container.
 
-Tests: `tests/core/test_harbor_tasks.py` runs the real verifier in Docker against a tiny alpine
-fixture (pass, fail, missing reward file, timeout cleanup, oracle and null), and
+Tests: `tests/core/test_harbor_tasks.py` runs the real verifier in Docker against tiny alpine
+fixtures (pass, fail, missing reward file, forged tests and a background reward writer, a reward
+written before a timeout kill, timeout cleanup, oracle and null through the owned container)
+plus a Debian fixture whose `test.sh` runs `apt-get` (skipped without network), and pure
+digest-pinning tests for `_image_ref`/`_check_container_image`, and
 `tests/core/test_tau2_suites.py` runs the real bridge against a pinned tau2 checkout on the `mock`
 domain (`agent_stop` passes, `max_steps` scores 0) plus pure evidence-validation tests. CI's test
 shards run on GitHub's ubuntu runners, where the Docker-marked tests run when a daemon answers
@@ -126,14 +140,20 @@ itself. Invalid evidence is unjudged with the reason.
 
 Grading sends that evidence through `parallax/tau2_bridge.py` to the pinned checkout, which calls
 upstream `evaluate_simulation` with `EvaluationType.ALL`, upstream's default SEMANTIC communicate
-scoring and its NL-assertion evaluator, with the judge models upstream pins (`gpt-5.5` for
-communicate info, `gpt-5.4-mini-2026-03-17` for NL assertions at this revision); no database,
-action or communication comparison is reimplemented in Parallax. Only the judge's endpoint and key
-reach the bridge, through an explicit env allowlist (`OPENAI_BASE_URL`, `OPENAI_API_KEY`, from the
-run's judge config). Every judge call the evaluator makes comes back in the bridge's `calls` and is
-recorded on the grade as a priced call, or unpriced when upstream reported no cost, never dropped;
-a bridge that fails after reaching the judge counts one unpriced call. Simulator (user-model) spend
-stays in the harness's trial metadata: it never enters the trial's usage or the grade's calls.
+scoring and its NL-assertion evaluator; no database, action or communication comparison is
+reimplemented in Parallax. Both judges run through the run's configured Parallax judge gateway
+under the ids `gpt-5.5` (communicate info) and `gpt-5.4-mini-2026-03-17` (NL assertions), the
+upstream pins at this revision, and a preflight validates the gateway and those ids before any
+bridge process starts, so a bad judge configuration fails before judge spend instead of after it.
+Only the judge's endpoint and key reach the bridge, through an explicit env allowlist
+(`OPENAI_BASE_URL`, `OPENAI_API_KEY`, from the run's judge config). The bridge subprocess is
+bounded by a timeout and its process group is killed on timeout or cancellation. Every judge call
+the evaluator makes is recorded as it happens (a side-channel file and structured stderr lines)
+and recorded on the grade as a priced call, or unpriced when upstream reported no cost, never
+dropped: a failed judge call is recorded unpriced and the calls made before a bridge failure still
+price the grade, while a bridge that fails with no recorded call counts one unpriced call.
+Simulator (user-model) spend stays in the harness's trial metadata: it never enters the trial's
+usage or the grade's calls.
 
 ## live-web
 

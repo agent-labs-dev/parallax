@@ -67,6 +67,9 @@ class GradeRequest:
     panel: JudgePanel | None
     judge_config: JudgeConfig | None
     client: httpx.AsyncClient
+    # The task container parallax started and recorded for this trial, never a harness-reported
+    # name; None when the task needed none.
+    task_container: str | None = None
 
 
 @dataclass(frozen=True)

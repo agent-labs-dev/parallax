@@ -8,7 +8,10 @@ models); no database, action or communication comparison is reimplemented here. 
 assistant tool calls are each followed by their ToolMessage, and an explicit termination reason.
 The evaluator replays the transcript itself. Simulator (user-model) usage never enters this bridge:
 the simulation is built with no agent/user cost, and every judge call the evaluator makes is
-returned in `calls` with its usage, priced when upstream reported a cost and unpriced otherwise.
+recorded as it happens - in `calls`, as a `PARALLAX_JUDGE_CALL` JSON line on stderr, and in the
+request's `calls_file` when one is given - priced when upstream reported a cost and unpriced
+otherwise, including a call that fails. Termination reasons come from `tau2_terms.py`, the
+single source this bridge and `parallax.official_suites.Tau2Evidence` both validate against.
 """
 
 from __future__ import annotations
@@ -21,18 +24,23 @@ import time
 from pathlib import Path
 from typing import Any
 
-TERMINATION_REASONS = {
-    "user_stop",
-    "agent_stop",
-    "max_steps",
-    "timeout",
-    "too_many_errors",
-    "agent_error",
-    "user_error",
-    "infrastructure_error",
-    "context_window_exceeded",
-    "unexpected_error",
-}
+
+def _load_terms() -> tuple[str, ...]:
+    """The shared termination reasons from `tau2_terms.py` beside this file, loaded by path:
+    this bridge runs under the pinned checkout's Python, where parallax is not installed."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("tau2_terms", Path(__file__).with_name("tau2_terms.py"))
+    if spec is None or spec.loader is None:
+        raise RuntimeError("tau2_terms.py cannot be loaded")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return tuple(module.TERMINATION_REASONS)
+
+
+TERMINATION_REASONS = _load_terms()
+_TERMINATION_SET = frozenset(TERMINATION_REASONS)
+JUDGE_CALL_PREFIX = "PARALLAX_JUDGE_CALL "
 
 
 def _root(request: dict[str, Any]) -> Path:
@@ -61,7 +69,7 @@ def _messages(request: dict[str, Any]) -> list[dict[str, Any]]:
         raise RuntimeError("bare tool_calls evidence is not accepted; tool calls belong in the transcript")
     if "termination_reason" not in request:
         raise RuntimeError("termination_reason is required")
-    if request["termination_reason"] not in TERMINATION_REASONS:
+    if request["termination_reason"] not in _TERMINATION_SET:
         raise RuntimeError(f"unknown termination_reason {request['termination_reason']!r}")
     transcript = request.get("transcript")
     if not isinstance(transcript, list) or not transcript:
@@ -89,16 +97,23 @@ def _messages(request: dict[str, Any]) -> list[dict[str, Any]]:
     return messages
 
 
-def _judge_calls() -> tuple[list[dict[str, Any]], Any]:
-    """Wrap the evaluator modules' `generate` so every judge call's usage is returned.
+def _emit_call(calls: list[dict[str, Any]], calls_file: str | None, entry: dict[str, Any]) -> None:
+    calls.append(entry)
+    print(JUDGE_CALL_PREFIX + json.dumps(entry), file=sys.stderr, flush=True)
+    if calls_file:
+        with Path(calls_file).open("a", encoding="utf-8") as stream:
+            stream.write(json.dumps(entry) + "\n")
 
-    Returns the live `calls` list and a restore callable. Each entry carries the model the
-    upstream evaluator pinned, token usage when it reported any, and its cost (None, never
-    dropped, when upstream reported none).
+
+def _judge_calls(calls: list[dict[str, Any]], calls_file: str | None = None) -> Any:
+    """Wrap the evaluator modules' `generate` so every judge call is recorded as it happens.
+
+    Returns a restore callable. Each entry carries the model called, token usage when the reply
+    reported any, and its cost (None, never dropped, when upstream reported none); a call that
+    raises is recorded unpriced with its error and then re-raised.
     """
     import importlib
 
-    calls: list[dict[str, Any]] = []
     patched: list[tuple[Any, Any]] = []
     for module_name in ("tau2.evaluator.evaluator_communicate", "tau2.evaluator.evaluator_nl_assertions"):
         module = importlib.import_module(module_name)
@@ -106,17 +121,23 @@ def _judge_calls() -> tuple[list[dict[str, Any]], Any]:
 
         def recording(*args: Any, _original: Any = original, **kwargs: Any) -> Any:
             started = time.monotonic()
-            reply = _original(*args, **kwargs)
+            model = str(kwargs.get("model") or "unknown")
+            try:
+                reply = _original(*args, **kwargs)
+            except BaseException as exc:
+                _emit_call(calls, calls_file, {
+                    "model": model, "input_tokens": None, "output_tokens": None, "cost_usd": None,
+                    "latency_ms": int((time.monotonic() - started) * 1000), "error": f"{type(exc).__name__}: {exc}",
+                })  # fmt: skip
+                raise
             usage = getattr(reply, "usage", None) or {}
-            calls.append(
-                {
-                    "model": str(kwargs.get("model") or getattr(reply, "model", "") or "unknown"),
-                    "input_tokens": usage.get("prompt_tokens"),
-                    "output_tokens": usage.get("completion_tokens"),
-                    "cost_usd": getattr(reply, "cost", None),
-                    "latency_ms": int((time.monotonic() - started) * 1000),
-                }
-            )
+            _emit_call(calls, calls_file, {
+                "model": str(kwargs.get("model") or getattr(reply, "model", "") or "unknown"),
+                "input_tokens": usage.get("prompt_tokens"),
+                "output_tokens": usage.get("completion_tokens"),
+                "cost_usd": getattr(reply, "cost", None),
+                "latency_ms": int((time.monotonic() - started) * 1000),
+            })  # fmt: skip
             return reply
 
         patched.append((module, original))
@@ -126,7 +147,7 @@ def _judge_calls() -> tuple[list[dict[str, Any]], Any]:
         for module, original in patched:
             module.__dict__["generate"] = original
 
-    return calls, restore
+    return restore
 
 
 def _evaluate(request: dict[str, Any]) -> dict[str, Any]:
@@ -163,7 +184,17 @@ def _evaluate(request: dict[str, Any]) -> dict[str, Any]:
         agent_cost=None,  # simulator and agent cost stay out of the upstream reward path
         user_cost=None,
     )
-    calls, restore = _judge_calls()
+    calls: list[dict[str, Any]] = []
+    restore = _judge_calls(calls, str(request["calls_file"]) if request.get("calls_file") else None)
+    # Route both judges through the caller's configured gateway with the ids it validated:
+    # the communicate judge via its settings, the NL judge via the module's pinned name.
+    judge_models = request.get("judge_models") or {}
+    communicate_model = str(judge_models.get("communicate") or "")
+    nl_model = str(judge_models.get("nl") or "")
+    nl_module = importlib.import_module("tau2.evaluator.evaluator_nl_assertions")
+    pinned_nl = getattr(nl_module, "DEFAULT_LLM_NL_ASSERTIONS", None)
+    if nl_model:
+        nl_module.__dict__["DEFAULT_LLM_NL_ASSERTIONS"] = nl_model
     try:
         reward = evaluator.evaluate_simulation(
             simulation=simulation,
@@ -171,12 +202,18 @@ def _evaluate(request: dict[str, Any]) -> dict[str, Any]:
             evaluation_type=evaluator.EvaluationType.ALL,
             solo_mode=False,
             domain=domain,
-            # Upstream's default: SEMANTIC communicate scoring with its pinned judge model
-            # (gpt-5.5 at this pin), and the NL-assertion evaluator under EvaluationType.ALL.
-            communicate_scoring=scoring_module.CommunicateScoring(),
+            communicate_scoring=(
+                scoring_module.CommunicateScoring(
+                    judge=scoring_module.SemanticCommunicateSettings(model=communicate_model)
+                )
+                if communicate_model
+                else scoring_module.CommunicateScoring()
+            ),
         )
     finally:
         restore()
+        if pinned_nl is not None:
+            nl_module.__dict__["DEFAULT_LLM_NL_ASSERTIONS"] = pinned_nl
     score = float(reward.reward)
     return {
         "passed": score == 1.0,

@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import shutil
 import subprocess
@@ -67,13 +68,14 @@ def test_terminal_bench_tasks_from_directory_build_frozen_records(tmp_path):
         "memory_mb",
         "pids_limit",
         "verifier_timeout_s",
+        "agent_timeout_s",
         "tests_digest",
     }
     assert record.data["upstream_id"] == "example-task"
     assert record.data["network_mode"] == "no-network"
 
 
-def _tb2_request(product, fixture: str = "tiny-task", tmp_path: Path | None = None):
+def _tb2_request(product, fixture: str = "tiny-task", tmp_path: Path | None = None, task_container: str | None = None):
     root = (tmp_path or Path("/tmp")) / "tb2"
     root.mkdir(exist_ok=True)
     shutil.copytree(FIXTURES / fixture, root / fixture, dirs_exist_ok=True)
@@ -89,6 +91,7 @@ def _tb2_request(product, fixture: str = "tiny-task", tmp_path: Path | None = No
         panel=JudgePanel(models=("configured/model",)),
         judge_config=JudgeConfig(base_url="https://judge.invalid/v1", api_key="test"),
         client=httpx.AsyncClient(),
+        task_container=task_container,
     )
 
 
@@ -98,16 +101,86 @@ async def test_tb2_grade_without_live_container_is_unjudged(tmp_path):
     graded = await harbor._grade(request)
     await request.client.aclose()
     assert graded.checks[0].passed is None
-    assert "no live task container" in graded.checks[0].detail
+    assert "parallax started no task container" in graded.checks[0].detail
 
 
 @pytest.mark.asyncio
-async def test_tb2_grade_never_trusts_a_harness_reported_reward(tmp_path):
-    request = _tb2_request({"terminal_bench": {"reward": 1.0, "exit": 0, "mode": "shared"}}, tmp_path=tmp_path)
+async def test_tb2_grade_never_trusts_a_harness_reported_container_or_reward(tmp_path):
+    # A harness-reported container handle (the deleted terminal_bench.container evidence key)
+    # and reward are ignored: only GradeRequest.task_container, recorded by parallax, grades.
+    request = _tb2_request(
+        {"terminal_bench": {"container": "forged", "reward": 1.0, "exit": 0, "mode": "shared"}}, tmp_path=tmp_path
+    )
     graded = await harbor._grade(request)
     await request.client.aclose()
     assert graded.checks[0].passed is None
     assert graded.score is None
+    assert not hasattr(harbor, "oracle_conformance") and not hasattr(harbor, "null_conformance")
+
+
+def test_image_ref_pins_the_digest_and_check_refuses_a_mismatch(monkeypatch):
+    spec = harbor.HarborTaskSpec(
+        upstream_id="x", instruction="i", docker_image="example/x:1",
+        docker_image_digest="sha256:" + "a" * 64,
+    )  # fmt: skip
+    assert harbor._image_ref(spec) == "example/x@sha256:" + "a" * 64
+    assert harbor._image_ref(spec.model_copy(update={"docker_image_digest": None})) == "example/x:1"
+
+    async def fake_docker(*argv, timeout=None):
+        if argv[0] == "inspect":
+            return 0, "sha256:" + "b" * 64, ""
+        return 0, '["example/x@sha256:' + "b" * 64 + '"]', ""
+
+    monkeypatch.setattr(harbor, "_docker", fake_docker)
+    with pytest.raises(harbor.HarborTaskError, match="digest mismatch"):
+        asyncio.run(harbor._check_container_image("c1", spec))
+
+    async def matching_docker(*argv, timeout=None):
+        if argv[0] == "inspect":
+            return 0, "sha256:" + "a" * 64, ""
+        return 0, '["example/x@sha256:' + "a" * 64 + '"]', ""
+
+    monkeypatch.setattr(harbor, "_docker", matching_docker)
+    asyncio.run(harbor._check_container_image("c1", spec))
+
+
+@pytest.mark.asyncio
+async def test_tb2_infra_failure_is_unjudged_but_agent_failure_is_failed(tmp_path, monkeypatch):
+    async def infra(container, data):
+        return {
+            "reward": None,
+            "copy_exit": 1,
+            "test_exit": None,
+            "error": "copy failed",
+            "failure_kind": "infrastructure",
+        }
+
+    monkeypatch.setattr(harbor, "run_verifier", infra)
+    request = _tb2_request(None, tmp_path=tmp_path, task_container="parallax-owned")
+    graded = await harbor._grade(request)
+    await request.client.aclose()
+    assert graded.checks[0].passed is None
+    assert "infrastructure" in graded.checks[0].detail
+
+    async def agent(container, data):
+        return {"reward": None, "copy_exit": 0, "test_exit": 0, "error": "no reward file", "failure_kind": "agent"}
+
+    monkeypatch.setattr(harbor, "run_verifier", agent)
+    request = _tb2_request(None, tmp_path=tmp_path, task_container="parallax-owned")
+    graded = await harbor._grade(request)
+    await request.client.aclose()
+    assert graded.checks[0].passed is False
+    assert graded.score == 0.0
+
+
+def test_controls_declare_live_container_and_records_carry_agent_timeout():
+    from parallax.harnesses.null import null_info
+    from parallax.harnesses.oracle import ORACLE_INFO
+
+    assert Capability.LIVE_CONTAINER in ORACLE_INFO.capabilities
+    assert Capability.LIVE_CONTAINER in null_info("claim").capabilities
+    spec = harbor.parse_task_dir(FIXTURES / "tiny-task")
+    assert spec.agent_timeout_s == 60
 
 
 def _leftover_containers() -> list[str]:
@@ -123,15 +196,14 @@ async def test_tb2_verifier_pass_and_fail_in_live_container(tmp_path):
     request = _tb2_request(None, tmp_path=tmp_path)
     container = await harbor.start_task_container(request.task.data)
     try:
-        # No answer yet: the real verifier runs and rewards 0.
-        graded = await harbor._grade(_tb2_request({"terminal_bench": {"container": container}}, tmp_path=tmp_path))
+        graded = await harbor._grade(_tb2_request(None, tmp_path=tmp_path, task_container=container))
         assert graded.checks[0].passed is False
         assert graded.score == 0.0
         code, _out, _err = await harbor._docker(
             "exec", container, "sh", "-c", "mkdir -p /app; echo done > /app/answer.txt"
         )
         assert code == 0
-        graded = await harbor._grade(_tb2_request({"terminal_bench": {"container": container}}, tmp_path=tmp_path))
+        graded = await harbor._grade(_tb2_request(None, tmp_path=tmp_path, task_container=container))
         assert graded.checks[0].passed is True
         assert graded.score == 1.0
         assert "test_exit=0" in graded.checks[0].detail
@@ -148,7 +220,7 @@ async def test_tb2_verifier_missing_reward_file_is_a_failed_check(tmp_path):
     container = await harbor.start_task_container(request.task.data)
     try:
         graded = await harbor._grade(
-            _tb2_request({"terminal_bench": {"container": container}}, fixture="no-reward-task", tmp_path=tmp_path)
+            _tb2_request(None, fixture="no-reward-task", tmp_path=tmp_path, task_container=container)
         )
         assert graded.checks[0].passed is False
         assert graded.score == 0.0
@@ -160,28 +232,105 @@ async def test_tb2_verifier_missing_reward_file_is_a_failed_check(tmp_path):
 
 @pytest.mark.docker
 @pytest.mark.asyncio
-async def test_tb2_oracle_passes_null_fails_and_containers_are_removed(tmp_path):
-    oracle_request = _tb2_request(None, tmp_path=tmp_path)
+async def test_tb2_oracle_solution_passes_and_null_fails_through_the_owned_container(tmp_path):
+    # The runner-owned path the oracle/null controls use: parallax starts the container, the
+    # oracle runs the pinned solve.sh inside it (run_solution), the grader verifies, parallax
+    # removes it. Null runs no solution in its container and must fail.
+    request = _tb2_request(None, tmp_path=tmp_path)
+    container = await harbor.start_task_container(request.task.data)
     try:
-        oracle = await harbor.oracle_conformance(oracle_request.task.data)
-        assert oracle["passed"] is True
-        assert oracle["reward"] == 1.0
-        null = await harbor.null_conformance(oracle_request.task.data)
-        assert null["passed"] is False
-        assert null["reward"] == 0.0
+        code, detail = await harbor.run_solution(container, request.task.data)
+        assert code == 0, detail
+        graded = await harbor._grade(_tb2_request(None, tmp_path=tmp_path, task_container=container))
+        assert graded.checks[0].passed is True
+        assert graded.score == 1.0
     finally:
-        await oracle_request.client.aclose()
+        await harbor.remove_container(container)
+    container = await harbor.start_task_container(request.task.data)
+    try:
+        graded = await harbor._grade(_tb2_request(None, tmp_path=tmp_path, task_container=container))
+        assert graded.checks[0].passed is False
+        assert graded.score == 0.0
+    finally:
+        await harbor.remove_container(container)
+        await request.client.aclose()
     assert _leftover_containers() == []
+
+
+@pytest.mark.docker
+@pytest.mark.asyncio
+async def test_tb2_forged_tests_and_background_reward_writer_do_not_pass(tmp_path):
+    request = _tb2_request(None, tmp_path=tmp_path)
+    container = await harbor.start_task_container(request.task.data)
+    try:
+        # Plant a forged test suite and a background loop rewriting the reward file.
+        code, _o, _e = await harbor._docker(
+            "exec",
+            container,
+            "sh",
+            "-c",
+            "mkdir -p /tests /logs/verifier; printf '#!/bin/sh\necho 1 > /logs/verifier/reward.txt\n' > /tests/test.sh; "
+            "echo forged > /tests/conftest.py; chmod +x /tests/test.sh",
+        )
+        assert code == 0
+        code, _o, _e = await harbor._docker(
+            "exec",
+            "-d",
+            container,
+            "sh",
+            "-c",
+            "while true; do mkdir -p /logs/verifier; echo 1 > /logs/verifier/reward.txt; sleep 0.2; done",
+        )
+        assert code == 0
+        graded = await harbor._grade(_tb2_request(None, tmp_path=tmp_path, task_container=container))
+        assert graded.checks[0].passed is False
+        assert graded.score == 0.0
+    finally:
+        await harbor.remove_container(container)
+        await request.client.aclose()
+
+
+@pytest.mark.docker
+@pytest.mark.asyncio
+async def test_tb2_reward_written_before_timeout_kill_is_read(tmp_path):
+    request = _tb2_request(None, fixture="late-reward-task", tmp_path=tmp_path)
+    container = await harbor.start_task_container(request.task.data)
+    try:
+        outcome = await harbor.run_verifier(container, request.task.data)
+        assert outcome["reward"] == 1.0
+    finally:
+        await harbor.remove_container(container)
+        await request.client.aclose()
 
 
 @pytest.mark.docker
 @pytest.mark.asyncio
 async def test_tb2_verifier_timeout_is_recorded_and_container_removed(tmp_path):
     request = _tb2_request(None, fixture="slow-task", tmp_path=tmp_path)
+    container = await harbor.start_task_container(request.task.data)
     try:
-        outcome = await harbor.oracle_conformance(request.task.data)
-        assert outcome["passed"] is False
+        outcome = await harbor.run_verifier(container, request.task.data)
+        assert outcome["reward"] is None
         assert "timed out" in str(outcome["error"])
     finally:
+        await harbor.remove_container(container)
         await request.client.aclose()
     assert _leftover_containers() == []
+
+
+@pytest.mark.docker
+@pytest.mark.asyncio
+async def test_tb2_debian_verifier_runs_apt_get(tmp_path):
+    # The capability regression fixture: test.sh runs apt-get, which --cap-drop ALL broke.
+    try:
+        httpx.get("https://deb.debian.org", timeout=10).raise_for_status()
+    except httpx.HTTPError as exc:
+        pytest.skip(f"no network for the apt fixture: {exc}")
+    request = _tb2_request(None, fixture="debian-apt-task", tmp_path=tmp_path)
+    container = await harbor.start_task_container(request.task.data)
+    try:
+        outcome = await harbor.run_verifier(container, request.task.data)
+        assert outcome["reward"] == 1.0, outcome
+    finally:
+        await harbor.remove_container(container)
+        await request.client.aclose()

@@ -3,12 +3,13 @@
 Upstream tasks are Harbor task directories, not Parallax task directories, so they enter through
 `parallax.task_sources` as world-less records like the browser suites. The pinned archive is fetched
 at run time, verified against a per-file SHA-256 manifest, and kept in the user cache; no dataset
-bytes are committed. Grading is structured, not answer-text matching: the grader itself copies the
-pinned `tests/` from its digest-checked cache into the harness's still-live task container and runs
-`tests/test.sh` there, reading the reward only from the verifier reward file. A harness that cannot
-keep a task container live does not declare `live_container` and scores NA. The oracle conformance
-path runs the pinned `solution/solve.sh` in a fresh task container, then the verifier; the null path
-runs the verifier alone.
+bytes are committed. Grading is structured, not answer-text matching: parallax itself starts the
+task container for a trial (`Trial.task_container`), the harness acts inside it, and after the
+harness stops parallax kills every other process in the container, replaces `/tests` and
+`/logs/verifier` with the pinned tests, and runs `tests/test.sh` there, reading the reward only
+from the verifier reward file. Parallax removes the container after grading on every path. A
+harness that cannot act in that container does not declare `live_container` and scores NA. The
+oracle and null controls run through the same runner-owned container and grader.
 """
 
 from __future__ import annotations
@@ -16,9 +17,11 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import logging
 import math
 import os
 import re
+import signal
 import tarfile
 import tempfile
 import tomllib
@@ -54,8 +57,11 @@ TERMINAL_BENCH_COMMIT = "2fd12b88aafdd04a52c298e3940bcb189f9766d6"
 TERMINAL_BENCH_MANIFEST_SHA256 = "efcb17d74def636fc67695b6a2bfb4a6b65945c2e52e5e0eff05e2f28cf839b3"
 TERMINAL_BENCH_EXPECTED_COUNT = 89
 DEFAULT_PIDS_LIMIT = 512
+DEFAULT_DOCKER_TIMEOUT_S = 120.0
 REWARD_TEXT = "/logs/verifier/reward.txt"
 REWARD_JSON = "/logs/verifier/reward.json"
+
+logger = logging.getLogger(__name__)
 
 # Registry digests for the pinned set's mutable `alexgshaw/*:20251031` tags, resolved from
 # Docker Hub at the pinned commit. An image not listed here (a fixture, a future pin) carries
@@ -190,6 +196,7 @@ class HarborTaskSpec(Model):
     memory_mb: int = 4096
     pids_limit: int = DEFAULT_PIDS_LIMIT
     verifier_timeout_s: int = 300
+    agent_timeout_s: int = 900
     steps: tuple[str, ...] = ()
     tests_digest: str = ""
 
@@ -254,6 +261,7 @@ def parse_task_dir(task_dir: Path) -> HarborTaskSpec:
         value = raw.get(key)
         return value if isinstance(value, dict) else {}
 
+    agent = table("agent")
     task_table = table("task")
     name = str(task_table.get("name") or task_dir.name)
     upstream_id = name.rsplit("/", 1)[-1].strip() or task_dir.name
@@ -286,6 +294,7 @@ def parse_task_dir(task_dir: Path) -> HarborTaskSpec:
         memory_mb=int(environment.get("memory_mb", 4096)),
         pids_limit=int(environment.get("pids_limit", DEFAULT_PIDS_LIMIT)),
         verifier_timeout_s=int(float(verifier.get("timeout_sec", 300))),
+        agent_timeout_s=int(float(agent.get("timeout_sec", 900))),
         tests_digest=tests_digest(tests_dir),
     )
 
@@ -315,6 +324,7 @@ def _record(spec: HarborTaskSpec, task_dir: Path, used: set[str]) -> TaskRecord:
         "memory_mb": spec.memory_mb,
         "pids_limit": spec.pids_limit,
         "verifier_timeout_s": spec.verifier_timeout_s,
+        "agent_timeout_s": spec.agent_timeout_s,
         "tests_digest": spec.tests_digest,
     }
     return TaskRecord(
@@ -404,13 +414,17 @@ def terminal_bench_tasks(root: Path | None = None) -> Iterable[TaskRecord]:
 
 
 async def _docker(*argv: str, timeout: float | None = None) -> tuple[int | None, str, str]:
+    """Every docker call is bounded; on timeout or cancellation its process group is killed."""
     process = await asyncio.create_subprocess_exec(
-        "docker", *argv, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        "docker", *argv, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, start_new_session=True
     )
     try:
-        out, err = await asyncio.wait_for(process.communicate(), timeout=timeout)
-    except TimeoutError:
-        process.kill()
+        out, err = await asyncio.wait_for(process.communicate(), timeout=timeout or DEFAULT_DOCKER_TIMEOUT_S)
+    except BaseException:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            process.kill()
         await process.wait()
         raise
     return process.returncode, out.decode(errors="replace"), err.decode(errors="replace")
@@ -455,12 +469,35 @@ async def _check_container_image(container: str, spec: HarborTaskSpec) -> None:
         )
 
 
+# Before verification, as root: kill every process except PID 1 and this exec, then replace
+# /tests and /logs/verifier wholesale, so agent-planted tests or reward writers cannot survive.
+_PURGE = (
+    "for d in /proc/[0-9]*; do pid=${d#/proc/}; "
+    'case "$pid" in 1|$$) continue;; esac; kill -9 "$pid" 2>/dev/null; done; '
+    "rm -rf /tests /logs/verifier; mkdir -p /tests /logs/verifier"
+)
+
+
+def _infra(error: str, *, copy_exit: int | None = None, test_exit: int | None = None) -> dict[str, JsonValue]:
+    return {
+        "reward": None,
+        "copy_exit": copy_exit,
+        "test_exit": test_exit,
+        "error": error,
+        "failure_kind": "infrastructure",
+    }
+
+
 async def run_verifier(container: str, data: JsonObject) -> dict[str, JsonValue]:
-    """Copy the pinned `tests/` into the live container and run `tests/test.sh` there.
+    """Copy the pinned `tests/` into the parallax-owned container and run `tests/test.sh` there.
 
     Reward comes only from `/logs/verifier/reward.json` or `reward.txt` (upstream Harbor's
-    `EnvironmentPaths`). Copy and test exit codes are recorded, never swallowed; a missing or
-    unparsable reward file is a failed verifier outcome, not a pass and not a stdout guess.
+    `EnvironmentPaths`). `failure_kind` is typed: `infrastructure` (setup failed before the test
+    ran, so the trial is unjudged) versus `agent` (the test ran and wrote no usable reward, a
+    failure). The reward file is read whatever the test exit was, 124/137 included; a timeout is
+    reported only when no reward was written and our timeout killed the test. Residual risk: the
+    agent ran as root in the container and could have altered system Python or site-packages the
+    verifier imports, as under upstream Harbor; the pinned tests themselves cannot be altered.
     """
     spec = _spec_from_data(data)
     tests = Path(str(data["task_dir"])) / "tests"
@@ -469,44 +506,37 @@ async def run_verifier(container: str, data: JsonObject) -> dict[str, JsonValue]
         raise HarborTaskError(f"container {container!r} is not a live task container: {err.strip()[-300:]}")
     await _check_container_image(container, spec)
     timeout = spec.verifier_timeout_s
-    code, _out, err = await _docker(
-        "exec", container, "sh", "-c", f"rm -f {REWARD_TEXT} {REWARD_JSON}; mkdir -p /logs/verifier /tests"
-    )
+    code, _out, err = await _docker("exec", "-u", "0", container, "sh", "-c", _PURGE)
     if code != 0:
-        return {
-            "reward": None,
-            "copy_exit": code,
-            "test_exit": None,
-            "error": f"preparing /tests failed: {err.strip()[-300:]}",
-        }
+        return _infra(f"preparing /tests failed: {err.strip()[-300:]}", copy_exit=code)
     code, _out, err = await _docker("cp", f"{tests}/.", f"{container}:/tests")
     if code != 0:
-        return {
-            "reward": None,
-            "copy_exit": code,
-            "test_exit": None,
-            "error": f"copying pinned tests failed (exit {code}): {err.strip()[-300:]}",
-        }
-    # Upstream Harbor executes the test script directly (its shebang chooses the shell).
+        return _infra(f"copying pinned tests failed (exit {code}): {err.strip()[-300:]}", copy_exit=code)
+    # Upstream Harbor executes the test script directly (its shebang chooses the shell), as root.
     command = (
         f"mkdir -p /logs/verifier; chmod +x /tests/test.sh; "
         f"timeout -s KILL {timeout} /tests/test.sh > /logs/verifier/test-stdout.txt 2>&1"
     )
+    timed_out = False
     try:
-        test_exit, _out, err = await _docker("exec", container, "sh", "-c", command, timeout=timeout + 30)
+        test_exit, _out, err = await _docker("exec", "-u", "0", container, "sh", "-c", command, timeout=timeout + 30)
     except TimeoutError:
-        return {"reward": None, "copy_exit": 0, "test_exit": None, "error": f"verifier timed out after {timeout}s"}
-    if test_exit in (124, 137):
-        return {"reward": None, "copy_exit": 0, "test_exit": test_exit, "error": f"verifier timed out after {timeout}s"}
+        test_exit, timed_out = None, True
     code, out, err = await _docker(
-        "exec", container, "sh", "-c",
+        "exec", "-u", "0", container, "sh", "-c",
         f"if [ -f {REWARD_JSON} ]; then echo json; cat {REWARD_JSON}; elif [ -f {REWARD_TEXT} ]; then echo text; cat {REWARD_TEXT}; else exit 3; fi",
     )  # fmt: skip
     if code != 0:
+        if timed_out or test_exit in (124, 137):
+            return {
+                "reward": None, "copy_exit": 0, "test_exit": test_exit, "failure_kind": "agent",
+                "error": f"verifier timed out after {timeout}s and wrote no reward file (test exit {test_exit})",
+            }  # fmt: skip
         return {
             "reward": None,
             "copy_exit": 0,
             "test_exit": test_exit,
+            "failure_kind": "agent",
             "error": f"verifier wrote no reward file (test exit {test_exit})",
         }
     lines = out.splitlines()
@@ -527,12 +557,14 @@ async def run_verifier(container: str, data: JsonObject) -> dict[str, JsonValue]
             "reward": None,
             "copy_exit": 0,
             "test_exit": test_exit,
+            "failure_kind": "agent",
             "error": f"verifier reward file is unparsable: {body[:200]!r} (test exit {test_exit})",
         }
     return {
         "reward": reward,
         "copy_exit": 0,
         "test_exit": test_exit,
+        "failure_kind": None,
         "reward_file": REWARD_JSON if kind == "json" else REWARD_TEXT,
     }
 
@@ -541,11 +573,14 @@ async def start_task_container(data: JsonObject, *, name: str | None = None) -> 
     """Start one named, resource-limited task container; the caller removes it by name."""
     spec = _spec_from_data(data)
     container = name or f"parallax-tb2-{uuid.uuid4().hex[:12]}"
+    # Docker's default capability set, as upstream Harbor uses: `--cap-drop ALL` breaks apt in
+    # most TB2 test scripts (`setgroups`/`seteuid` fail). `no-new-privileges` alone was verified
+    # to keep `apt-get` working on a Debian image.
     argv = [
         "run", "-d", "--name", container,
         "--cpus", str(spec.cpus), "--memory", f"{spec.memory_mb}m",
         "--pids-limit", str(spec.pids_limit),
-        "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
+        "--security-opt", "no-new-privileges",
     ]  # fmt: skip
     if spec.network_mode == "no-network":
         argv += ["--network", "none"]
@@ -559,48 +594,27 @@ async def start_task_container(data: JsonObject, *, name: str | None = None) -> 
 
 
 async def remove_container(container: str) -> None:
-    """Remove a container parallax started, by name, on every exit path."""
-    await _docker("rm", "-f", container)
+    """Remove a container parallax started, by name, on every exit path; log a failed removal."""
+    code, _out, err = await _docker("rm", "-f", container)
+    if code != 0:
+        logger.warning("removing task container %s failed (exit %s): %s", container, code, err.strip()[-300:])
 
 
-async def _exec(container: str, command: str) -> tuple[int | None, str]:
-    code, out, err = await _docker("exec", container, "sh", "-c", command)
+async def run_solution(container: str, data: JsonObject) -> tuple[int | None, str]:
+    """Run the pinned `solution/solve.sh` in the container as root, bounded by the agent timeout.
+
+    Used by the oracle control through the same runner-owned container the grader verifies.
+    """
+    spec = _spec_from_data(data)
+    solution = Path(str(data["task_dir"])) / "solution"
+    code, _out, err = await _docker("cp", f"{solution}/.", f"{container}:/solution")
+    if code != 0:
+        return code, f"copying solution failed: {err.strip()[-300:]}"
+    code, out, err = await _docker(
+        "exec", "-u", "0", container, "sh", "-c",
+        "chmod +x /solution/solve.sh; /solution/solve.sh", timeout=float(spec.agent_timeout_s + 30),
+    )  # fmt: skip
     return code, (err or out).strip()[-300:]
-
-
-async def oracle_conformance(data: JsonObject) -> dict[str, JsonValue]:
-    """Run `solution/solve.sh` in a fresh task container, then the verifier; removed either way."""
-    container = await start_task_container(data)
-    try:
-        solution = Path(str(data["task_dir"])) / "solution"
-        code, _out, err = await _docker("cp", f"{solution}/.", f"{container}:/solution")
-        if code != 0:
-            return {"passed": False, "solve_exit": code, "error": f"copying solution failed: {err.strip()[-300:]}"}
-        solve_exit, detail = await _exec(container, "chmod +x /solution/solve.sh; /solution/solve.sh")
-        outcome = await run_verifier(container, data)
-        reward = outcome.get("reward")
-        return {
-            "passed": reward == 1.0, "reward": reward, "solve_exit": solve_exit,
-            "test_exit": outcome.get("test_exit"), "copy_exit": outcome.get("copy_exit"),
-            "error": outcome.get("error") or (detail if solve_exit not in (0, None) else None),
-        }  # fmt: skip
-    finally:
-        await remove_container(container)
-
-
-async def null_conformance(data: JsonObject) -> dict[str, JsonValue]:
-    """Run only the verifier in a fresh task container (no solution); removed either way."""
-    container = await start_task_container(data)
-    try:
-        outcome = await run_verifier(container, data)
-        reward = outcome.get("reward")
-        return {
-            "passed": reward == 1.0, "reward": reward, "solve_exit": None,
-            "test_exit": outcome.get("test_exit"), "copy_exit": outcome.get("copy_exit"),
-            "error": outcome.get("error"),
-        }  # fmt: skip
-    finally:
-        await remove_container(container)
 
 
 # ---------------------------------------------------------------------------
@@ -656,20 +670,14 @@ async def _grade(req: GradeRequest) -> Graded:
     interruption = req.execution.get("error")
     if isinstance(interruption, str) and interruption.startswith("environment interruption: "):
         return _unjudged(req.task, interruption)
-    product = req.product or {}
-    shared = product.get("terminal_bench")
-    container: str | None = None
-    if isinstance(shared, dict):
-        for key in ("container", "container_id", "container_name"):
-            value = shared.get(key)
-            if isinstance(value, str) and value:
-                container = value
-                break
-    if container is None:
+    # Only the handle parallax recorded when it started the container; a harness-reported
+    # container name in trial metadata is never trusted.
+    container = req.task_container
+    if not container:
         return _unjudged(
             req.task,
-            "missing evidence: harness reported no live task container handle "
-            "(terminal_bench.container); harnesses without live_container score NA before the run",
+            "missing evidence: parallax started no task container for this trial; "
+            "harnesses without live_container score NA before the run",
         )
     try:
         outcome = await run_verifier(container, req.task.data)
@@ -677,10 +685,15 @@ async def _grade(req: GradeRequest) -> Graded:
         return _unjudged(req.task, f"missing evidence: upstream verifier unavailable: {exc}")
     reward = outcome.get("reward")
     if not isinstance(reward, (int, float)):
-        return _failed(
-            req.task,
-            f"upstream verifier failed: {outcome.get('error')}; copy_exit={outcome.get('copy_exit')}; test_exit={outcome.get('test_exit')}",
+        detail = (
+            f"upstream verifier failed: {outcome.get('error')}; copy_exit={outcome.get('copy_exit')}; "
+            f"test_exit={outcome.get('test_exit')}"
         )
+        if outcome.get("failure_kind") == "infrastructure":
+            return _unjudged(
+                req.task, f"missing evidence: verifier infrastructure failed before the test ran: {detail}"
+            )
+        return _failed(req.task, detail)
     if not 0 <= float(reward) <= 1:
         return _unjudged(req.task, "missing evidence: upstream verifier returned an out-of-range reward")
     return _graded(req.task, float(reward), outcome)
@@ -734,11 +747,10 @@ __all__ = [
     "HarborTaskError",
     "HarborTaskSpec",
     "fetch_terminal_bench",
-    "null_conformance",
-    "oracle_conformance",
     "parse_task_dir",
     "records_from_root",
     "remove_container",
+    "run_solution",
     "run_verifier",
     "start_task_container",
     "terminal_bench_tasks",

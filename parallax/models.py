@@ -114,8 +114,9 @@ class Capability(StrEnum):
     TERMINAL = "terminal"
     # Operates a web browser on live sites; a task requiring it runs on no seeded world.
     BROWSER = "browser"
-    # Keeps a task container live after the agent stops and reports its handle, so the grader can
-    # run the task's verifier in that container. A harness without it is NA on such tasks.
+    # Acts inside the task container parallax starts for the trial (`Trial.task_container`), so
+    # the grader can run the task's verifier in that same container after the harness stops.
+    # A harness without it is NA on such tasks.
     LIVE_CONTAINER = "live_container"
     # Receives a task's site login through a protected binding that the model cannot inspect.
     CREDENTIALS = "credentials"
@@ -840,6 +841,10 @@ class Trial(Model):
     desktop_commands: tuple[tuple[str, ...], ...] = ()
     # Collector-owned binary evidence, retained below the trial directory and excluded from JSON contracts.
     assets: TrialAssets | None = Field(default=None, exclude=True, repr=False)
+    # The task container parallax started for this trial (name), for a task requiring
+    # `live_container`: the harness acts inside it, the grader verifies in it, and parallax
+    # removes it after grading. None for every other task.
+    task_container: str | None = Field(default=None, exclude_if=lambda v: v is None)
 
     @property
     def world_mcp(self) -> McpEndpoint:

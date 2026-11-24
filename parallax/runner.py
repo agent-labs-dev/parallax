@@ -985,6 +985,7 @@ class TrialExecution:
         self.last_turn = 0
         self.raw_output = ""
         self.product: JsonObject | None = None  # the harness's `trial_metadata`, for a grading policy
+        self.task_container: str | None = None  # parallax-owned task container, removed after grading
         self.assets = TrialAssets(self.dir)
 
     async def run(self) -> TrialRun:
@@ -1041,11 +1042,25 @@ class TrialExecution:
             await self.stop_unstarted(harness)
             return TrialRun(self.finish(started, None), None)
         try:
-            await self.drive(harness, box, None, None)
+            if Capability.LIVE_CONTAINER in self.task.meta.requires:
+                from parallax.harbor_tasks import HarborTaskError, start_task_container
+
+                try:
+                    self.task_container = await start_task_container(self.task.data)
+                except (HarborTaskError, OSError) as exc:
+                    self.t.status, self.t.error = TrajectoryStatus.BOOT_ERROR, f"task container: {exc}"
+                    return TrialRun(self.finish(started, None), None)
+            try:
+                await self.drive(harness, box, None, None)
+            finally:
+                await self.keep_recording(box)
+                await box.close()
+            return await self.graded(started, None, await self.meter_report())
         finally:
-            await self.keep_recording(box)
-            await box.close()
-        return await self.graded(started, None, await self.meter_report())
+            if self.task_container is not None:
+                from parallax.harbor_tasks import remove_container
+
+                await remove_container(self.task_container)
 
     async def keep_recording(self, box: Box) -> None:
         """A desktop trial's video of its display, as `desktop.mp4` in its trial directory or the run's `videos`."""
@@ -1178,6 +1193,7 @@ class TrialExecution:
             workspace=box.workspace, home=box.home, llm=llm, env=env,
             user=seed.user if seed is not None else None, now=seed.now if seed is not None else datetime.now(UTC),
             requires=self.task.meta.requires, assets=self.assets, desktop_commands=desktop_commands(self.task),
+            task_container=self.task_container,
         )  # fmt: skip
 
     async def conversation(self, harness: Harness, box: Box, control: ControlClient | None) -> None:
@@ -1385,6 +1401,7 @@ class TrialExecution:
                 },
                 product=self.product,
                 answers=self.t.answers,
+                task_container=self.task_container,
             )
             record_grade(self.dir / "judgments.jsonl", self.task, g)
             execution_valid = g.execution_valid
