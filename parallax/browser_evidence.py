@@ -76,10 +76,12 @@ _SITE_INTERRUPTION = (
     " served, an HTTP 5xx or 429, maintenance, results that never finish loading, a network error) keep the run from"
     " the outcome the task asked for? Answer false when the agent's own input, navigation or other mistake caused the"
     " problem, or when the evidence is missing or incomplete for any other reason, such as a harness that observed"
-    " nothing. Answer null when the evidence does not say which."
+    " nothing. Answer null when the evidence you were given shows no site failure, or does not say which; another"
+    " part of the run may hold it."
 )
 """Asked beside `evidence_available`, whose false answer also covers missing observations. Only this typed answer
 makes an unavailable-evidence INVALID an environment interruption, so the retry policy never reads the judge's prose."""
+SITE_FAILURE_REASON = "the judge found a transient failure on the live site"
 EVIDENCE_AVAILABLE, TASK_SATISFIED, SITE_INTERRUPTION = "evidence_available", "task_satisfied", "site_interruption"
 JUDGE = JudgePolicy(
     name="browser-evidence-v2",
@@ -291,7 +293,7 @@ def _unjudged(task: Task, detail: str) -> Graded:
 
 
 async def grade(req: GradeRequest) -> Graded:
-    """Both questions of the run's evidence. Evidence the judge finds unavailable leaves the task unjudged (INVALID),
+    """All three questions of the run's evidence. Evidence the judge finds unavailable leaves the task unjudged (INVALID),
     never a FAIL: such a run measured no agent. The availability check is advisory, so it never counts in the score."""
     task = req.task
     try:
@@ -313,8 +315,10 @@ async def grade(req: GradeRequest) -> Graded:
         gate = _result(own[TASK_SATISFIED], satisfied.passed, satisfied.reason)
     elif decisions[SITE_INTERRUPTION].passed is True:
         # The environment, not the agent, ended the run: the same INVALID, retried the same way, as a harness's own
-        # report of a site outage (`ENVIRONMENT_INTERRUPTION`), so every harness gets the same further attempts.
-        gate = _result(own[TASK_SATISFIED], None, f"{ENVIRONMENT_INTERRUPTION}{available.reason}")
+        # report of a site outage (`ENVIRONMENT_INTERRUPTION`), so every harness gets the same further attempts. The
+        # reason is fixed: the retry policy splits reasons on ";", which judge prose may contain; the prose stays in
+        # the advisory `evidence_available` detail.
+        gate = _result(own[TASK_SATISFIED], None, f"{ENVIRONMENT_INTERRUPTION}{SITE_FAILURE_REASON}")
     else:
         gate = _result(own[TASK_SATISFIED], None, f"evidence unavailable: {available.reason}")
     same = req.harness_model is not None and any(

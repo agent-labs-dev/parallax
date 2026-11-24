@@ -666,7 +666,7 @@ The built-in policy asks three questions of that evidence:
   `environment interruption: ` reason and is retried like a harness-reported outage; otherwise the unavailable
   evidence stays as it is and is not retried.
 
-The LLM judge panel answers both. A screenshot travels as an image, never also as
+The LLM judge panel answers all three. A screenshot travels as an image, never also as
 text. Evidence too large for one request is split into parts by page text and then controls. Each byte is sent once and
 a part says which page it continues. A False in any part stands; otherwise any True decides. A run that reported no
 evidence, or evidence naming a page it never reported, is unjudged without a request.

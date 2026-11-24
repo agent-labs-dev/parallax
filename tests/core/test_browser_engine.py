@@ -445,7 +445,7 @@ JUDGES = JudgePanel(models=("m/judge",))
 JUDGE_ROUTE = JudgeConfig(base_url="https://fake/v1", api_key="t")
 
 
-def panel_answering(answers: dict[str, bool | None], seen: list[JsonObject]) -> httpx.MockTransport:
+def panel_answering(answers: dict[str, bool | None], seen: list[JsonObject], why: str = "seen") -> httpx.MockTransport:
     """A judge panel that answers each question it is asked with `answers` (null when none is given, so a test names
     only the questions it cares about), recording the evidence it was sent."""
 
@@ -453,7 +453,7 @@ def panel_answering(answers: dict[str, bool | None], seen: list[JsonObject]) -> 
         body = json.loads(request.content)
         content = body["messages"][1]["content"]
         seen.append(json.loads(content if isinstance(content, str) else content[0]["text"]))
-        items = [{"q": q, "why": "seen", "yes": answers.get(q)} for q in seen[-1]["questions"]]
+        items = [{"q": q, "why": why, "yes": answers.get(q)} for q in seen[-1]["questions"]]
         return httpx.Response(200, json={"choices": [{"message": {"content": json.dumps({"items": items})}}]})
 
     return httpx.MockTransport(handle)
@@ -509,6 +509,16 @@ async def test_a_judge_found_site_failure_is_an_environment_interruption_that_is
     # The same row policy that retries a harness-reported outage reads the reason, whatever harness produced it.
     (row,) = read_results(await run_browsing(tmp_path, monkeypatch, Browsing(), retry_invalid=0) / "results.jsonl")
     assert runner.transient_invalid(row.model_copy(update={"invalid_reason": reason})) is retried
+
+
+async def test_a_judge_reason_holding_a_semicolon_does_not_hide_a_site_failure_from_the_retry_policy() -> None:
+    answers = {"evidence_available": False, "task_satisfied": None, "site_interruption": True}
+    transport = panel_answering(answers, [], why="the site returned 503; a transient outage")
+    graded = await grade({"browser": OBSERVED.model_dump(mode="json")}, transport)
+    _, reason = decide(None, [], runner.TrajectoryStatus.COMPLETED, graded.checks)
+    assert reason is not None and reason.startswith(ENVIRONMENT_INTERRUPTION)
+    row = TrialResult.model_construct(verdict=Verdict.INVALID, invalid_reason=reason)
+    assert runner.transient_invalid(row) is True
 
 
 async def test_a_site_failure_the_agent_did_not_cause_is_not_asked_about_when_the_evidence_is_available() -> None:
