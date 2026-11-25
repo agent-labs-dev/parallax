@@ -48,11 +48,11 @@ TRANSCRIPT = [
 
 
 def _files(domain: str) -> dict[str, bytes]:
-    policy = f"# {domain} policy\nBe helpful."
+    policies = {name: f"# {domain} {name}\nBe helpful." for name in official.TAU2_POLICY_FILES[domain]}
     return {
         "tasks.json": json.dumps(TASKS[domain]).encode(),
         "split_tasks.json": json.dumps(SPLITS[domain]).encode(),
-        official.TAU2_POLICY_FILES[domain]: policy.encode(),
+        **{name: text.encode() for name, text in policies.items()},
     }
 
 
@@ -68,6 +68,10 @@ def test_tau2_records_carry_only_frozen_data_keys(monkeypatch):
         assert official.tau2_task_from_data(record.data) == record.data["task"]
         assert record.data["policy_ref"].endswith(f"@{official.TAU2_UPSTREAM_COMMIT}")
     assert "Be helpful." in records[0].prompt
+    # Telecom's agent follows upstream's tech-support manual as well as its main policy.
+    assert "<main_policy>\n# telecom main_policy.md" in records[2].prompt
+    assert "<tech_support_policy>\n# telecom tech_support_manual.md" in records[2].prompt
+    assert [r.version for r in records] == [1, 1, 2]
     assert "Cancel my flight" not in records[0].prompt  # the scenario never enters the agent prompt
 
 

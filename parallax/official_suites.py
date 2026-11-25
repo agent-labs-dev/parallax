@@ -60,7 +60,15 @@ TAU2 = "tau2"
 TAU2_POLICY = "tau2-upstream-v1"
 TAU2_UPSTREAM_COMMIT = "768f3d8fe8528b4f32a5096f9ed008ae50f48ead"
 TAU2_DOMAINS = ("airline", "retail", "telecom")
-TAU2_POLICY_FILES = {"airline": "policy.md", "retail": "policy.md", "telecom": "main_policy.md"}
+# Upstream's agent policy per domain: telecom's is its main policy plus the tech-support manual, the
+# procedure the agent walks the customer through (`tau2.domains.telecom.environment.get_environment`).
+TAU2_POLICY_FILES = {
+    "airline": ("policy.md",),
+    "retail": ("policy.md",),
+    "telecom": ("main_policy.md", "tech_support_manual.md"),
+}
+# A domain's version moves when its agent prompt does, so earlier runs never pair with later ones.
+TAU2_VERSIONS = {"airline": 1, "retail": 1, "telecom": 2}
 TAU2_FILE_SHA256 = {
     ("airline", "tasks.json"): "ccd8ba737b4cc371415af70151187788f728d6108d0916e73bb4317b40542052",
     ("airline", "split_tasks.json"): "b22ced4d9a9850ac9aea31c53bdcb6d6009058140bd9acc7db37c1d36222ba8b",
@@ -71,6 +79,7 @@ TAU2_FILE_SHA256 = {
     ("telecom", "tasks.json"): "37e562e1ae3242577407e1303b1548bc64e7ea68e37d36173e6747990ceaf8a4",
     ("telecom", "split_tasks.json"): "605b488bb9a6acb3c7f4505240a855fdc8681d09aadb16a8f38b2efcfc5c3aec",
     ("telecom", "main_policy.md"): "95943844a0cf11fdf0e2842b483b81d9f9338aa53235712ed131db075d086ed7",
+    ("telecom", "tech_support_manual.md"): "015a3ee49ec8c199c5e1a059c922081937b92cf3a5ea74fedbc4357816f389ba",
 }
 TAU2_EXPECTED_BASE = {"airline": 50, "retail": 114, "telecom": 114}
 # Upstream benchmark defaults at the pin (`tau2.config`), named by their OpenRouter ids, since
@@ -383,6 +392,20 @@ def mind2web_tasks() -> Iterable[TaskRecord]:
     return _records(MIND2WEB_SPEC, fetch_dataset(MIND2WEB_SPEC, token=os.environ.get("HF_TOKEN")))
 
 
+def tau2_policy(domain: str) -> str:
+    """The agent policy upstream's environment builds for a domain, byte for byte."""
+    texts = [_fetch_tau2_file(domain, name).decode() for name in TAU2_POLICY_FILES[domain]]
+    match texts:
+        case [policy]:
+            return policy
+        case [main, tech_support]:
+            return (
+                f"<main_policy>\n{main}\n</main_policy>\n<tech_support_policy>\n{tech_support}\n</tech_support_policy>"
+            )
+        case _:
+            raise OfficialSuiteError(f"{TAU2}: {domain} names {len(texts)} policy files")
+
+
 def _fetch_tau2_file(domain: str, name: str) -> bytes:
     spec = SuiteSpec(
         source=f"{TAU2}-{domain}",
@@ -424,8 +447,9 @@ def tau2_tasks() -> Iterable[TaskRecord]:
         base = [str(task_id) for task_id in splits["base"]]
         if len(base) != TAU2_EXPECTED_BASE[domain] or any(task_id not in by_id for task_id in base):
             raise OfficialSuiteError(f"{TAU2}: {domain} base split does not match its task list")
-        policy = _fetch_tau2_file(domain, TAU2_POLICY_FILES[domain]).decode()
-        policy_ref = f"data/tau2/domains/{domain}/{TAU2_POLICY_FILES[domain]}@{TAU2_UPSTREAM_COMMIT}"
+        policy = tau2_policy(domain)
+        files = "+".join(TAU2_POLICY_FILES[domain])
+        policy_ref = f"data/tau2/domains/{domain}/{files}@{TAU2_UPSTREAM_COMMIT}"
         for upstream_id in base:
             prompt = (
                 f"{policy.strip()}\n\n---\n\nYou are the {domain} customer-service agent. A simulated "
@@ -436,7 +460,7 @@ def tau2_tasks() -> Iterable[TaskRecord]:
             records.append(
                 TaskRecord(
                     id=_task_id(TAU2, f"{domain}-{upstream_id}", len(records), used),
-                    version=1,
+                    version=TAU2_VERSIONS[domain],
                     area=Area.SAAS,
                     summary=f"{TAU2} {domain} task {upstream_id}",
                     prompt=prompt,
