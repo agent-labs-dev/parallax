@@ -85,7 +85,7 @@ def saved_evidence(task: Task, trial_dir: Path) -> Evidence:
 
 
 def opts(out: Path) -> RunOptions:
-    return RunOptions(out=out, isolation=Isolation.HOST, quiet=True)
+    return RunOptions(out=out, isolation=Isolation.HOST, quiet=True, retry_invalid=0)
 
 
 async def test_unjudged_runs_keep_evidence_without_quality_verdicts(tmp_path: Path) -> None:
@@ -590,6 +590,26 @@ def _row(tmp_path: Path, verdict: Verdict, reason: str | None) -> TrialResult:
 )
 def test_a_trial_is_retried_only_for_a_transient_execution_fault(tmp_path: Path, reason: str, want: bool) -> None:
     assert transient_invalid(_row(tmp_path, Verdict.INVALID, reason)) is want
+
+
+@pytest.mark.parametrize("status", [TrajectoryStatus.HARNESS_ERROR, TrajectoryStatus.TIMEOUT, TrajectoryStatus.OVER_BUDGET])
+def test_an_undecided_check_on_a_faulted_run_keeps_the_fault_in_the_reason_and_is_retried(
+    tmp_path: Path, status: TrajectoryStatus
+) -> None:
+    undecided = check(None).model_copy(update={"detail": "evidence unavailable: the run ended early"})
+    verdict, reason = decide(None, [], status, [undecided])
+    assert verdict is Verdict.INVALID
+    assert reason is not None
+    assert f"execution incomplete: {status.value}" in reason
+    row = _row(tmp_path, Verdict.INVALID, reason).model_copy(update={"status": status})
+    assert transient_invalid(row) is True
+    # The same reason on a run that completed is the judge's finding about its evidence, not an execution fault.
+    assert transient_invalid(row.model_copy(update={"status": TrajectoryStatus.COMPLETED})) is False
+
+
+def test_a_faulted_run_is_not_retried_when_the_harness_could_not_open(tmp_path: Path) -> None:
+    row = _row(tmp_path, Verdict.INVALID, "harness unavailable: not installed")
+    assert transient_invalid(row.model_copy(update={"status": TrajectoryStatus.HARNESS_ERROR})) is False
 
 
 def test_a_graded_verdict_is_never_retried(tmp_path: Path) -> None:
