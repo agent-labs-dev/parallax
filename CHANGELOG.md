@@ -12,7 +12,7 @@ All notable changes to Parallax are recorded here. The format follows
 
 ### Fixed
 
-- Scrubbing a task secret never rewrites the host of the task's own site (or a subdomain): a public demo credential that is also a hostname word (username `practice` on `practice.example.com`) no longer turns the host into `<secret>username</secret>.example.com`. The rest of the URL, any other host and all other text are still scrubbed.
+- Scrubbing a task secret never rewrites the host of the task's own site: a public demo credential that is also a hostname word (username `practice` on `practice.example.com`) no longer turns the host into `<secret>username</secret>.example.com`. The rest of the URL, any other host and all other text are still scrubbed.
 
 ## [2.0.0.dev56] - 2026-11-25
 

@@ -82,7 +82,9 @@ class BrowserConfig(BaseModel):
     proxy_country: str | None = "us"
 
 
-_URL = re.compile(r"(?P<scheme>https?://)(?P<authority>[^/?#\s\"'<>]*)(?P<rest>[^\s\"'<>]*)")
+# The authority holds only hostname, port and userinfo characters, so punctuation after a bare URL (a closing bracket, a
+# comma) is not part of it.
+_URL = re.compile(r"(?P<scheme>https?://)(?P<authority>[\w.~%!$&*+=:@-]*)(?P<rest>[^\s\"'<>]*)", re.IGNORECASE)
 
 
 def proxy_country_from(value: str) -> str | None:
@@ -397,10 +399,9 @@ class BrowserHarness(ABC):
 
     def _scrub_host(self, authority: str) -> str:
         """The task's own site, the one host its credentials are bound to (`allowedDomains`), is kept; any other host
-        is scrubbed like text, so a secret that appears as some other host's name still does not leave."""
-        host = urlsplit(f"//{authority}").hostname
-        own = self._start_host
-        return authority if host and own and (host == own or host.endswith(f".{own}")) else self._scrub_text(authority)
+        is scrubbed like text, so a secret that appears in another host or a subdomain still does not leave."""
+        host = authority.partition(":")[0].rstrip(".").lower()
+        return authority if host and host == self._start_host else self._scrub_text(authority)
 
     def _scrub(self, value: object) -> Any:
         if isinstance(value, str):

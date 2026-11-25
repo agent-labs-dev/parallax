@@ -1372,6 +1372,13 @@ def test_scrubbing_a_public_credential_never_rewrites_a_url_host() -> None:
     )
     tag = "<secret>username</secret>"
     assert harness._scrub("see https://practice.other.test/") == "see https://<secret>username</secret>.other.test/"
+    # Only the exact own host is kept: a subdomain, a malformed authority and punctuation after a URL behave.
+    tag = "<secret>username</secret>"
+    assert harness._scrub("https://practice.practice.expandtesting.com/") == f"https://{tag}.{tag}.expandtesting.com/"
+    assert harness._scrub("https://[practice.expandtesting.com") == f"https://[{tag}.expandtesting.com"
+    assert harness._scrub("[login](https://practice.expandtesting.com), HTTPS://practice.expandtesting.com.") == (
+        "[login](https://practice.expandtesting.com), HTTPS://practice.expandtesting.com."
+    )
     assert scrubbed["url"] == "https://practice.expandtesting.com/login"
     assert scrubbed["text"] == (
         f"Typed {tag} at https://practice.expandtesting.com/login?user={tag} and https://x.test/{tag}"
