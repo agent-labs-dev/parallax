@@ -614,3 +614,25 @@ async def test_tb2_agent_timeout_still_verifies_and_scores_the_reward(tmp_path, 
     assert row.verdict is Verdict.PASS  # the verifier ran on what the agent left, and it passed
     assert row.score == 1.0
     assert _labelled_containers(_run_label(out)) == []
+
+
+async def test_public_task_container_joins_the_run_network_for_the_meter(monkeypatch: pytest.MonkeyPatch) -> None:
+    spec = harbor.HarborTaskSpec(
+        upstream_id="public-task", instruction="Solve it", docker_image="example/task:1", network_mode="public"
+    )
+    calls: list[tuple[str, ...]] = []
+
+    async def docker(*argv: str, **kwargs: object) -> tuple[int, str, str]:
+        calls.append(argv)
+        return 0, "", ""
+
+    monkeypatch.setattr(harbor, "_spec_from_data", lambda _data: spec)
+    monkeypatch.setattr(harbor, "_docker", docker)
+    await harbor.start_task_container({}, name="task-container", network="px-run", egress_proxy="http://sidecar:7803")
+
+    run = next(c for c in calls if c[0] == "run")
+    assert "--network" not in run  # the default bridge keeps the task's internet
+    assert "parallax.net=px-run" in run
+    assert not any("PROXY" in value for value in run)
+    # `sidecar` (http://sidecar:7802, the meter) resolves only on the run network.
+    assert calls[-1] == ("network", "connect", "px-run", "task-container")

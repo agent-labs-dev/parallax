@@ -1,6 +1,8 @@
+import asyncio
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any, cast
 
@@ -1051,3 +1053,26 @@ def test_an_env_batch_without_a_requestor_is_refused_not_guessed() -> None:
     assert tau2_requestor({"tau2_batch": 1, "requestor": "user"}) == "user"
     with pytest.raises(ValueError, match="no requestor"):
         tau2_requestor({"tau2_batch": 1})
+
+
+async def test_tau2_runtime_serialises_concurrent_requests(tmp_path):
+    from parallax.tau2_runtime import Tau2BridgeRuntime
+
+    # A serve process that answers each line in order, slowly enough for two requests to overlap.
+    server = tmp_path / "serve.py"
+    server.write_text(
+        "import json, sys, time\n"
+        "for line in sys.stdin:\n"
+        "    time.sleep(0.05)\n"
+        "    print(json.dumps({'ok': True, 'echo': json.loads(line)['n']}), flush=True)\n"
+    )
+    runtime = Tau2BridgeRuntime(root=tmp_path, python=Path(sys.executable), commit="x", base_url="", api_key="")
+    runtime._process = await asyncio.create_subprocess_exec(
+        sys.executable, str(server), stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE
+    )
+    try:
+        results = await asyncio.gather(*(runtime._request({"n": n}) for n in range(4)))
+        assert [r["echo"] for r in results] == [0, 1, 2, 3]
+    finally:
+        runtime._process.kill()
+        await runtime._process.wait()

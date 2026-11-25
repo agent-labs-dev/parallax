@@ -51,6 +51,8 @@ class Tau2BridgeRuntime:
         self._api_key = api_key
         self._simulator_model = simulator_model
         self._process: asyncio.subprocess.Process | None = None
+        # One request in flight: the serve process answers on a single stdout, one line per request.
+        self._io = asyncio.Lock()
         self.simulator_cost_usd: float | None = None
         self.tools: list[dict[str, Any]] = []
         self.max_steps: int | None = None
@@ -61,9 +63,10 @@ class Tau2BridgeRuntime:
         process = self._process
         if process is None or process.stdin is None or process.stdout is None:
             raise Tau2RuntimeError("tau2 serve process is not running")
-        process.stdin.write((json.dumps(payload) + "\n").encode())
-        await process.stdin.drain()
-        line = await asyncio.wait_for(process.stdout.readline(), timeout=900.0)
+        async with self._io:
+            process.stdin.write((json.dumps(payload) + "\n").encode())
+            await process.stdin.drain()
+            line = await asyncio.wait_for(process.stdout.readline(), timeout=900.0)
         if not line:
             raise Tau2RuntimeError("tau2 serve process ended")
         result = json.loads(line)

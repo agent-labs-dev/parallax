@@ -1157,7 +1157,7 @@ class Sidecar:
         """Disconnect the sidecar and remove one no-network trial network."""
         if self.container is not None:
             with contextlib.suppress(BoxError):
-                await docker("network", "disconnect", self.container, net)
+                await docker("network", "disconnect", net, self.container)
         with contextlib.suppress(BoxError):
             await docker("network", "rm", net)
 

@@ -637,7 +637,10 @@ def task_container_argv(
             argv += ["--env", f"{name}={egress_proxy}"]
         for name in ("NO_PROXY", "no_proxy"):
             argv += ["--env", f"{name}={NO_PROXY}"]
-    # `public` uses Docker's default bridge.
+    elif network is not None:
+        # `public` keeps Docker's default bridge for the internet; the start also joins it to the run
+        # network, where `sidecar` (the meter its CLI calls) resolves. The label lets the run's sweep find it.
+        argv += ["--label", f"parallax.net={network}"]
     return [*argv, ref, "sh", "-c", "while true; do sleep 3600; done"]
 
 
@@ -678,6 +681,10 @@ async def start_task_container(
     code, out, err = await _docker(*argv)
     if code != 0:
         raise HarborTaskError(f"starting task container failed (exit {code}): {err.strip()[-300:]}")
+    if spec.network_mode == "public" and network is not None:
+        code, _out, err = await _docker("network", "connect", network, container)
+        if code != 0:
+            raise HarborTaskError(f"joining the run network failed (exit {code}): {err.strip()[-300:]}")
     return container
 
 

@@ -294,7 +294,7 @@ async def test_sidecar_trial_network_is_private_and_removed(monkeypatch: pytest.
     assert calls[1] == ("network", "connect", "--alias", "sidecar", network, "run-sidecar")
     await sidecar.remove_trial_network(network)
     assert calls[-2:] == [
-        ("network", "disconnect", "run-sidecar", network),
+        ("network", "disconnect", network, "run-sidecar"),  # docker takes NETWORK CONTAINER
         ("network", "rm", network),
     ]
 
