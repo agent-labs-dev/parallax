@@ -1,0 +1,17 @@
+schema_version = "1.1"
+
+[task]
+name = "terminal-bench/example-task"
+description = "Fixture task."
+
+[verifier]
+timeout_sec = 120.0
+
+[agent]
+timeout_sec = 300.0
+
+[environment]
+docker_image = "example/example-task:20260101"
+cpus = 2
+memory_mb = 4096
+allow_internet = false

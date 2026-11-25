@@ -20,11 +20,13 @@ import signal
 import socket
 import sys
 import time
+import uuid
 from collections.abc import AsyncGenerator, Awaitable, Coroutine, Generator, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import Protocol, assert_never, runtime_checkable
+from typing import TYPE_CHECKING, Any, Literal, Protocol, assert_never, cast, runtime_checkable
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -48,6 +50,7 @@ from parallax.box import (
     trusted_verify,
     web_isolation_for,
 )
+from parallax.egress import NO_PROXY
 from parallax.harnesses.base import (
     RAW_OUTPUT_CHARS,
     HarnessError,
@@ -57,15 +60,19 @@ from parallax.harnesses.base import (
     load_harness,
     native_credentials,
 )
+from parallax.harnesses.manifest import wire_model_name
 from parallax.harnesses.parsers import turn_answer
 from parallax.judge import JudgeConfig, JudgePanel, config_from_env, panel_from_env
 from parallax.meter import (
+    DEFAULT_UPSTREAM,
     BudgetRefused,
     CampaignBudget,
     MeterClient,
     MeterReport,
     llm_endpoint,
+    model_price_known,
     new_trial_key,
+    trial_wire,
     upstreams_from_env,
 )
 from parallax.meter import app as meter_app
@@ -123,6 +130,10 @@ from parallax.task import (
     rebind_persona,
     rebind_value,
 )
+
+if TYPE_CHECKING:
+    from parallax.tau2_runtime import Tau2BridgeRuntime, Tau2ToolLog
+
 from parallax.track.live import LiveFeed
 from parallax.track.live import label as live_label
 from parallax.track.rows import is_validity_control
@@ -133,7 +144,6 @@ from parallax.world.server import WorldServer
 logger = logging.getLogger(__name__)
 
 TOKEN_ENV = "PARALLAX_WORLD_TOKEN"
-METER_KEY_ENV = "PARALLAX_METER_KEY"
 RESULTS = "results.jsonl"
 BUDGET_JOURNAL = "budget.jsonl"
 INVALID_EXIT_SHARE = 0.10
@@ -173,6 +183,14 @@ _MIN_SECRET_LEN = 8  # shorter env values ("1", "yes") would redact ordinary wor
 _UNSAFE_PATH = re.compile(r"[^A-Za-z0-9._-]+")
 _DATE_SUFFIX = re.compile(r"-(?:\d{8}|\d{4}-\d{2}-\d{2})$")
 REDACTED = "[REDACTED]"
+
+
+def tau2_requestor(message: dict[str, Any]) -> Literal["assistant", "user"]:
+    """Who asked for an env batch; agent and user batch ids are separate sequences."""
+    requestor = message.get("requestor")
+    if requestor == "assistant" or requestor == "user":
+        return requestor
+    raise ValueError(f"tau2 env message for batch {message.get('tau2_batch')!r} has no requestor: {requestor!r}")
 
 
 class RunOptions(Model):
@@ -477,6 +495,14 @@ async def serve_embedded(app: ASGIApp, host: str, port: int = 0) -> _Embedded:
     return _Embedded(server=server, task=task, port=port)
 
 
+def world_bind_host(public_url: str | None) -> str:
+    return "0.0.0.0" if public_url else "127.0.0.1"
+
+
+def advertised_world_mcp_url(public_url: str | None, world_local: str) -> str:
+    return f"{public_url.rstrip('/')}/mcp" if public_url is not None else f"{world_local.rstrip('/')}/mcp"
+
+
 @dataclass
 class Services:
     """The run's world server and (when any harness is metered) its meter, wherever isolation puts them."""
@@ -485,6 +511,7 @@ class Services:
     public_url: str | None
     need_meter: bool
     run_id: str
+    egress_hosts: tuple[str, ...] = ()
     world_port: int | None = None
     world_admin: str = field(default_factory=lambda: secrets.token_urlsafe(32))
     meter_admin: str = field(default_factory=lambda: secrets.token_urlsafe(32))
@@ -501,7 +528,7 @@ class Services:
     async def start(self) -> None:
         match self.isolation:
             case Isolation.DOCKER:
-                self._sidecar = Sidecar(self.world_admin, self.meter_admin)
+                self._sidecar = Sidecar(self.world_admin, self.meter_admin, self.egress_hosts)
                 urls = await self._sidecar.up(self.run_id)
                 self.network = self._sidecar.network
                 self.world_local = urls.world_host.removesuffix("/mcp")
@@ -514,17 +541,22 @@ class Services:
                 assert_never(self.isolation)
 
     async def _start_embedded(self) -> None:
-        host = "0.0.0.0" if self.public_url else "127.0.0.1"
         self._server = WorldServer(admin_token=self.world_admin)
-        world = await serve_embedded(self._server.app(), host, self.world_port or 0)
+        world, _url = await self.serve_embedded_world(self._server.app(), self.world_port or 0)
         self._embedded.append(world)
         self.world_local = f"http://127.0.0.1:{world.port}"
         if self.need_meter:
             meter = await serve_embedded(meter_app(self.meter_admin, upstreams_from_env(os.environ)), "127.0.0.1")
             self._embedded.append(meter)
             self.meter_local = self.meter_internal = f"http://127.0.0.1:{meter.port}"
+
+    async def serve_embedded_world(self, app: ASGIApp, port: int = 0) -> tuple[_Embedded, str]:
+        """Serve a world app with the public bind, URL and reachability contract for this run."""
+        embedded = await serve_embedded(app, world_bind_host(self.public_url), port)
+        local = f"http://127.0.0.1:{embedded.port}"
         if self.public_url is not None:
-            await check_public_world(self.public_url, self.world_local)
+            await check_public_world(self.public_url, local)
+        return embedded, advertised_world_mcp_url(self.public_url, local)
 
     async def stop(self) -> None:
         for embedded in reversed(self._embedded):
@@ -539,6 +571,24 @@ class Services:
         # The sidecar cannot see the host's task directories, so the loaded task travels whole.
         reg = await admin_register(self.world_local, self.world_admin, task)
         return reg.token, reg.control_token
+
+    async def register_tau2(self, backend: Any) -> tuple[str, str, str, str] | None:
+        """Register a tau2 backend on the listener the public URL already reaches."""
+        if self._server is None:
+            return None
+        token, control_token, nonce = self._server.register_backend(backend)
+        try:
+            if self.public_url is not None:
+                await check_public_world(self.public_url, self.world_local, token=token, nonce=nonce)
+        except BaseException:
+            self._server.unregister(control_token)
+            raise
+        url = advertised_world_mcp_url(self.public_url, self.world_local)
+        return token, control_token, nonce, url
+
+    def unregister_backend(self, control_token: str) -> None:
+        if self._server is not None:
+            self._server.unregister(control_token)
 
     def control(self, control_token: str) -> ControlClient:
         return ControlClient(self.world_local, control_token)
@@ -566,10 +616,9 @@ class Services:
             return {}
         if self.egress_internal is None:
             raise BoxError("a harness-launched desktop task needs the sidecar's egress proxy, which this run lacks")
-        no_proxy = "sidecar,localhost,127.0.0.1"
         return {
             "HTTPS_PROXY": self.egress_internal, "https_proxy": self.egress_internal,
-            "NO_PROXY": no_proxy, "no_proxy": no_proxy,
+            "NO_PROXY": NO_PROXY, "no_proxy": NO_PROXY,
         }  # fmt: skip
 
     def meter_for_box(self, box_isolation: Isolation) -> str:
@@ -583,21 +632,44 @@ class Services:
             raise BoxError("a metered harness needs the meter, which this run did not start")
         return MeterClient(self.meter_local, self.meter_admin)
 
+    async def trial_network(self, trial_id: str) -> str:
+        if self._sidecar is None:
+            raise BoxError("no-network TB2 tasks need the Docker sidecar network")
+        return await self._sidecar.trial_network(trial_id)
+
+    async def remove_trial_network(self, network: str) -> None:
+        if self._sidecar is not None:
+            await self._sidecar.remove_trial_network(network)
+
 
 PUBLIC_WORLD_WAIT_S = 60.0  # a fresh quick tunnel's hostname can take some seconds to resolve
 
 
-async def check_public_world(public_url: str, world_local: str) -> None:
+async def check_public_world(
+    public_url: str, world_local: str, *, token: str | None = None, nonce: str | None = None
+) -> None:
     """The public URL must reach this run's world server: its `/mcp` answers exactly as the local one.
     A tunnel routed elsewhere would otherwise hand every remote trial an empty world."""
-    public = f"{public_url.rstrip('/')}/mcp"
+    path = "/_identity" if token is not None else "/mcp"
+    public = f"{public_url.rstrip('/')}{path}"
+    headers = {"Authorization": f"Bearer {token}"} if token is not None else {}
     async with httpx.AsyncClient(timeout=10.0) as http:
-        local = await http.get(f"{world_local}/mcp")
+        local = await http.get(f"{world_local}{path}", headers=headers)
         deadline = time.monotonic() + PUBLIC_WORLD_WAIT_S
         while True:
             try:
-                seen = await http.get(public)
-                if (seen.status_code, seen.content) == (local.status_code, local.content):
+                seen = await http.get(public, headers=headers)
+                same_identity = (
+                    token is not None
+                    and nonce is not None
+                    and local.status_code == 200
+                    and seen.status_code == 200
+                    and local.json().get("nonce") == nonce
+                    and seen.json().get("nonce") == nonce
+                )
+                if same_identity or (
+                    token is None and (seen.status_code, seen.content) == (local.status_code, local.content)
+                ):
                     return
                 answer = f"HTTP {seen.status_code}"
             except httpx.TransportError as exc:
@@ -609,10 +681,20 @@ async def check_public_world(public_url: str, world_local: str) -> None:
 
 @contextlib.asynccontextmanager
 async def services(
-    isolation: Isolation, public_url: str | None, need_meter: bool, run_id: str, world_port: int | None = None
+    isolation: Isolation,
+    public_url: str | None,
+    need_meter: bool,
+    run_id: str,
+    world_port: int | None = None,
+    egress_hosts: Sequence[str] = (),
 ) -> AsyncGenerator[Services]:
     svc = Services(
-        isolation=isolation, public_url=public_url, need_meter=need_meter, run_id=run_id, world_port=world_port
+        isolation=isolation,
+        public_url=public_url,
+        need_meter=need_meter,
+        run_id=run_id,
+        world_port=world_port,
+        egress_hosts=tuple(egress_hosts),
     )
     try:
         await svc.start()
@@ -769,6 +851,16 @@ def trial_web_isolation(info: HarnessInfo, isolation: Isolation) -> WebIsolation
     return web
 
 
+TAU2_DOCKER_BOX = (
+    "a docker box cannot reach the tau2 tool server the runner serves on loopback; run with --isolation host"
+)
+
+
+def tau2_unreachable(task: Task, info: HarnessInfo, run_isolation: Isolation) -> bool:
+    """The tau2 tool server runs in the runner process on loopback; a docker box's only way out is the sidecar."""
+    return task.grading == "tau2-upstream-v1" and harness_isolation(info, run_isolation) is Isolation.DOCKER
+
+
 def box_isolation(box: Box) -> Isolation:
     """Where the box's processes run: a device box is a container serving a remote harness."""
     return box.isolation
@@ -828,9 +920,11 @@ class Session:
         turn_timeout_s: float | None = None,
         budget: CampaignBudget | None = None,
         videos: Path | None = None,
+        run_id: str | None = None,
     ) -> None:
         self.svc = svc
         self.run_dir = run_dir
+        self.run_id = run_id or uuid.uuid4().hex  # labels every task container this run starts
         self.videos = videos
         self.panel = panel
         self.judge_config = judge_config
@@ -852,11 +946,24 @@ class Session:
             )
         if hp.unavailable is not None:
             return TrialRun(self.unrun(plan, invalid=f"harness unavailable: {hp.unavailable}"), None)
+        if tau2_unreachable(task, hp.info, self.svc.isolation):
+            return TrialRun(self.unrun(plan, invalid=TAU2_DOCKER_BOX), None)
         kind = box_kind(task.meta.requires, hp.info, harness_isolation(hp.info, self.svc.isolation))
         if kind in hp.unavailable_boxes:
             return TrialRun(self.unrun(plan, invalid=f"{kind} box unavailable: {hp.unavailable_boxes[kind]}"), None)
         if self.budget is None:
             return await self.execute(plan)
+        if hp.info.cost_source is CostSource.METERED and plan.model is not None:
+            wire = trial_wire(plan.model, hp.info.meter_wire)
+            upstream_url = upstreams_from_env(os.environ)[wire].base_url
+            if not model_price_known(wire_model_name(plan.model), upstream_url):
+                return TrialRun(
+                    self.unrun(
+                        plan,
+                        invalid=f"infrastructure error: no known price for budgeted model {plan.model!r}",
+                    ),
+                    None,
+                )
         try:
             hold = await self.budget.reserve(trial_name(plan))
         except BudgetRefused as exc:
@@ -985,52 +1092,63 @@ class TrialExecution:
         self.last_turn = 0
         self.raw_output = ""
         self.product: JsonObject | None = None  # the harness's `trial_metadata`, for a grading policy
+        self.tau2_recorded: JsonObject | None = None  # parallax-recorded tau2 transcript, never harness-reported
+        self.tau2_mcp: McpEndpoint | None = None  # the trial's tau2 tool server, parallax-served
+        self._tau2_runtime: Tau2BridgeRuntime | None = None  # the trial's tau2 serve process
+        self._tau2_log: Tau2ToolLog | None = None  # its tool log
+        self.tau2_token: str | None = None
+        self._tau2_backend_control: str | None = None
+        self.task_container: str | None = None  # parallax-owned task container, removed after grading
+        self.task_network: str | None = None  # per-trial network for no-network TB2 tasks
         self.assets = TrialAssets(self.dir)
 
     async def run(self) -> TrialRun:
-        started = time.monotonic()
-        evidence: Evidence | None = None
-        meter: MeterReport | None = None
-        harness = await self.prepare()
-        if harness is None:
-            return TrialRun(self.finish(started, None), None)
-        if self.task.seed is None:
-            return await self.run_worldless(started, harness)
         try:
-            token, control_token = await self.s.svc.register(self.task)
-        except (WorldError, ControlError, httpx.HTTPError, OSError, ValueError) as exc:
-            self.invalid.append(f"world registration failed: {str(exc) or type(exc).__name__}")
-            await self.stop_unstarted(harness)
-            return TrialRun(self.finish(started, None), None)
-        self.secrets += [token, control_token]
-        async with self.s.svc.control(control_token) as control:
-            try:
-                box = await open_box(self.task, self.plan.harness.info, self.box_iso, self.s.svc.network)
-            except (BoxError, HarnessError, OSError) as exc:
-                self.t.status, self.t.error = TrajectoryStatus.BOOT_ERROR, f"box: {exc}"
-                await self.stop_unstarted(harness)
-                await self.unregister(control)
+            started = time.monotonic()
+            evidence: Evidence | None = None
+            meter: MeterReport | None = None
+            harness = await self.prepare()
+            if harness is None:
                 return TrialRun(self.finish(started, None), None)
+            if self.task.seed is None:
+                return await self.run_worldless(started, harness)
             try:
-                await self.drive(harness, box, token, control)
-                workspace = await self.snapshot(box)
-            finally:
-                await self.keep_recording(box)
-                await box.close()
-            world = await self.world_evidence(control)
-            meter = await self.meter_report()
-            await self.unregister(control)
-        if world is not None:
-            verify = await self.verify(workspace)
-            evidence = Evidence(
-                delivered_turns=tuple(self.t.delivered_turns),
-                answers=tuple(self.t.answers), finals=turn_finals(self.t.answers, self.t.steps),
-                world=world, workspace=workspace,
-                turn_workspaces=self.turns_after(workspace),
-                seed_files=seed_dir(self.task) if seed_dir(self.task).is_dir() else None,
-                verify=verify, persona_tz=self.task.world.user.timezone, approvals=tuple(self.t.approvals),
-            )  # fmt: skip
-        return await self.graded(started, evidence, meter)
+                token, control_token = await self.s.svc.register(self.task)
+            except (WorldError, ControlError, httpx.HTTPError, OSError, ValueError) as exc:
+                self.invalid.append(f"world registration failed: {str(exc) or type(exc).__name__}")
+                await self.stop_unstarted(harness)
+                return TrialRun(self.finish(started, None), None)
+            self.secrets += [token, control_token]
+            async with self.s.svc.control(control_token) as control:
+                try:
+                    box = await open_box(self.task, self.plan.harness.info, self.box_iso, self.s.svc.network)
+                except (BoxError, HarnessError, OSError) as exc:
+                    self.t.status, self.t.error = TrajectoryStatus.BOOT_ERROR, f"box: {exc}"
+                    await self.stop_unstarted(harness)
+                    await self.unregister(control)
+                    return TrialRun(self.finish(started, None), None)
+                try:
+                    await self.drive(harness, box, token, control)
+                    workspace = await self.snapshot(box)
+                finally:
+                    await self.keep_recording(box)
+                    await box.close()
+                world = await self.world_evidence(control)
+                meter = await self.meter_report()
+                await self.unregister(control)
+            if world is not None:
+                verify = await self.verify(workspace)
+                evidence = Evidence(
+                    delivered_turns=tuple(self.t.delivered_turns),
+                    answers=tuple(self.t.answers), finals=turn_finals(self.t.answers, self.t.steps),
+                    world=world, workspace=workspace,
+                    turn_workspaces=self.turns_after(workspace),
+                    seed_files=seed_dir(self.task) if seed_dir(self.task).is_dir() else None,
+                    verify=verify, persona_tz=self.task.world.user.timezone, approvals=tuple(self.t.approvals),
+                )  # fmt: skip
+            return await self.graded(started, evidence, meter)
+        finally:
+            await finish_uncancelled(self.revoke_meter())
 
     async def run_worldless(self, started: float, harness: Harness) -> TrialRun:
         """A task with no world: no world is registered or mounted, and its policy grades what the harness reported."""
@@ -1040,12 +1158,108 @@ class TrialExecution:
             self.t.status, self.t.error = TrajectoryStatus.BOOT_ERROR, f"box: {exc}"
             await self.stop_unstarted(harness)
             return TrialRun(self.finish(started, None), None)
+        if Capability.LIVE_CONTAINER in self.task.meta.requires:
+            from parallax.harbor_tasks import task_container_name
+
+            # Recorded before `docker run`, so the finally below removes the container even
+            # when starting it fails or the trial is cancelled mid-start.
+            self.task_container = task_container_name()
         try:
-            await self.drive(harness, box, None, None)
+            if self.task_container is not None:
+                from parallax.harbor_tasks import HarborTaskError, start_task_container
+
+                try:
+                    from parallax.harbor_tasks import task_network_mode
+
+                    if task_network_mode(self.task.data) == "no-network":
+                        self.task_network = await self.s.svc.trial_network(self.trial_id())
+                    await start_task_container(
+                        self.task.data,
+                        name=self.task_container,
+                        trial_id=self.trial_id(),
+                        run_id=self.s.run_id,
+                        network=self.task_network or self.s.svc.network,
+                        egress_proxy=self.s.svc.egress_internal,
+                    )
+                except (HarborTaskError, OSError) as exc:
+                    # The same cleanup as every other early return: stop the unstarted
+                    # harness and close the box; the finally removes the container.
+                    self.t.status, self.t.error = TrajectoryStatus.BOOT_ERROR, f"task container: {exc}"
+                    await self.stop_unstarted(harness)
+                    await box.close()
+                    return TrialRun(self.finish(started, None), None)
+            if self.task.grading == "tau2-upstream-v1":
+                return await self.run_tau2_worldless(started, harness, box)
+            try:
+                await self.drive(harness, box, None, None)
+            finally:
+                await self.keep_recording(box)
+                await box.close()
+            self.record_tb2_storage()
+            return await self.graded(started, None, await self.meter_report())
         finally:
-            await self.keep_recording(box)
-            await box.close()
-        return await self.graded(started, None, await self.meter_report())
+            try:
+                if self.task_container is not None:
+                    from parallax.harbor_tasks import remove_container
+
+                    await remove_container(self.task_container)
+            finally:
+                if self.task_network is not None:
+                    await finish_uncancelled(self.s.svc.remove_trial_network(self.task_network))
+
+    async def run_tau2_worldless(self, started: float, harness: Harness, box: Box) -> TrialRun:
+        """A tau2 trial: parallax starts the tool server and simulator, then drives the loop."""
+        from parallax.official_suites import OfficialSuiteError, tau2_task_from_data
+        from parallax.tau2_runtime import Tau2RuntimeError, Tau2ToolLog, tau2_mcp_app
+
+        embedded = None
+        try:
+            try:
+                task_json = tau2_task_from_data(self.task.data)
+                self._tau2_runtime = self._make_tau2_runtime()
+                await self._tau2_runtime.start(domain=str(self.task.data.get("domain", "")), task=task_json)
+            except (OfficialSuiteError, Tau2RuntimeError, OSError, ValueError) as exc:
+                self.t.status, self.t.error = TrajectoryStatus.BOOT_ERROR, f"tau2 runtime: {exc}"
+                await self.stop_unstarted(harness)
+                await box.close()
+                return TrialRun(self.finish(started, None), None)
+            self._tau2_log = Tau2ToolLog(self._tau2_runtime)
+            self._tau2_backend_control: str | None = None
+            from parallax.tau2_runtime import Tau2Backend
+
+            registered = await self.s.svc.register_tau2(Tau2Backend(self._tau2_log))
+            if registered is not None:
+                token, control_token, _nonce, url = registered
+                self._tau2_backend_control = control_token
+                self.secrets.append(token)
+                self.tau2_token = token
+                self.tau2_mcp = McpEndpoint(url=url, stdio=())
+            else:
+                if self.s.svc.public_url is not None:
+                    raise BoxError("tau2 public world requires the public URL to target the shared world listener")
+                token = secrets.token_urlsafe(32)
+                nonce = secrets.token_urlsafe(32)
+                embedded, url = await self.s.svc.serve_embedded_world(
+                    tau2_mcp_app(self._tau2_log, token=token, nonce=nonce)
+                )
+                self.secrets.append(token)
+                self.tau2_token = token
+                self.tau2_mcp = McpEndpoint(url=url, stdio=())
+            try:
+                await self.drive(harness, box, None, None)
+            finally:
+                await self.keep_recording(box)
+                await box.close()
+            self.record_tb2_storage()
+            return await self.graded(started, None, await self.meter_report())
+        finally:
+            if embedded is not None:
+                await embedded.stop()
+            backend_control = self._tau2_backend_control
+            if backend_control is not None:
+                self.s.svc.unregister_backend(backend_control)
+            if self._tau2_runtime is not None:
+                await self._tau2_runtime.close()
 
     async def keep_recording(self, box: Box) -> None:
         """A desktop trial's video of its display, as `desktop.mp4` in its trial directory or the run's `videos`."""
@@ -1092,6 +1306,12 @@ class TrialExecution:
     def trial_id(self) -> str:
         return trial_name(self.plan)
 
+    def record_tb2_storage(self) -> None:
+        """Expose Harbor's declared storage limit and Parallax's unenforced status in trial details."""
+        storage_mb = self.task.data.get("storage_mb")
+        if self.task_container is not None and storage_mb is not None:
+            self.t.details.update({"storage_mb": storage_mb, "storage_enforced": False})
+
     async def drive(self, harness: Harness, box: Box, token: str | None, control: ControlClient | None) -> None:
         """`token` and `control` are None for a world-less task."""
         boot_start = time.monotonic()
@@ -1109,7 +1329,10 @@ class TrialExecution:
                 return
             self.t.boot_ms = int((time.monotonic() - boot_start) * 1000)
             try:
-                await self.conversation(harness, box, control)
+                if self.tau2_mcp is not None:
+                    await self.tau2_loop(harness)
+                else:
+                    await self.conversation(harness, box, control)
             except (ControlError, httpx.HTTPError) as exc:
                 self.invalid.append(f"world control failed mid-trial: {exc}")
         finally:
@@ -1149,6 +1372,7 @@ class TrialExecution:
     async def trial_input(self, box: Box, token: str | None) -> Trial:
         """`token` is the world's, None for a world-less task: it gets no MCP, no persona, and the wall clock."""
         hp = self.plan.harness
+        token = token or self.tau2_token
         env = {} if token is None else {TOKEN_ENV: token}
         env |= self.s.svc.egress_env(self.task, box_isolation(box))
         # Only harnesses the meter cannot route declare these; the rows are flagged unmetered.
@@ -1157,14 +1381,21 @@ class TrialExecution:
         env |= credentials
         llm = None
         if hp.info.cost_source is CostSource.METERED:
+            if self.task_container is not None and self.s.budget is None:
+                raise HarnessError("metered TB2 trials require --budget and --reserve for a hard spend cap")
             self.meter_key = new_trial_key()
             self.secrets.append(self.meter_key)
-            await self.s.svc.meter_client().register(self.meter_key)
+            budget_usd = self.s.budget.reservation if self.s.budget is not None else None
+            await self.s.svc.meter_client().register(
+                self.meter_key,
+                budget_usd=budget_usd,
+                model=wire_model_name(self.plan.model) if self.plan.model else None,
+                wire=trial_wire(self.plan.model, self.plan.harness.info.meter_wire) if self.plan.model else None,
+            )
             svc = self.s.svc
             llm = llm_endpoint(svc.meter_for_box(box_isolation(box)), self.meter_key, svc.meter_for_box(Isolation.HOST))
-            env[METER_KEY_ENV] = self.meter_key
-        mcp = None
-        if token is not None:
+        mcp = self.tau2_mcp  # a tau2 trial's tool server, served by parallax for this trial
+        if token is not None and self.tau2_mcp is None:
             url = self.s.svc.mcp_url(
                 hp.info.isolation, box_isolation(box), uses_world=Capability.MCP in self.task.meta.requires
             )
@@ -1178,6 +1409,7 @@ class TrialExecution:
             workspace=box.workspace, home=box.home, llm=llm, env=env,
             user=seed.user if seed is not None else None, now=seed.now if seed is not None else datetime.now(UTC),
             requires=self.task.meta.requires, assets=self.assets, desktop_commands=desktop_commands(self.task),
+            task_container=self.task_container,
         )  # fmt: skip
 
     async def conversation(self, harness: Harness, box: Box, control: ControlClient | None) -> None:
@@ -1222,6 +1454,181 @@ class TrialExecution:
             if not await self.deliver(harness, index, text, True, ()):
                 return
 
+    def _make_tau2_runtime(self):  # noqa: ANN202 - the bridge runtime type, imported lazily
+        """The per-trial tau2 serve process: pinned checkout, simulator through the configured gateway."""
+        from parallax.official_suites import TAU2_SIMULATOR_MODEL, TAU2_UPSTREAM_COMMIT, _tau2_root
+        from parallax.tau2_runtime import Tau2BridgeRuntime
+
+        root, python = _tau2_root()
+        config = self.s.judge_config
+        base_url = config.base_url if config is not None else os.environ.get("PARALLAX_JUDGE_BASE_URL", "")
+        api_key = config.api_key if config is not None else os.environ.get("PARALLAX_JUDGE_API_KEY", "")
+        return Tau2BridgeRuntime(
+            root=root, python=python, commit=TAU2_UPSTREAM_COMMIT, base_url=base_url, api_key=api_key,
+            simulator_model=TAU2_SIMULATOR_MODEL,
+        )  # fmt: skip
+
+    async def tau2_loop(self, harness: Harness) -> None:
+        """Drive simulator -> harness turns until an upstream termination condition.
+
+        The transcript is recorded here, from the tool server's log and the turns themselves;
+        nothing the harness reports about the simulation is graded.
+        """
+        from parallax.tau2_runtime import Tau2RuntimeError
+        from parallax.tau2_terms import Tau2Event, Tau2Progress, tau2_progress
+
+        runtime, log = self._tau2_runtime, self._tau2_log
+        if runtime is None or log is None:
+            raise ValueError("tau2 loop without its runtime")
+        transcript: list[JsonObject] = []
+
+        if runtime.max_steps is None or runtime.max_errors is None:
+            raise Tau2RuntimeError("tau2 runtime did not provide upstream limits")
+        max_steps, max_errors = runtime.max_steps, runtime.max_errors
+
+        def cleaned(messages: object, *, stop: bool = False) -> list[JsonObject]:
+            out: list[JsonObject] = []
+            for message in messages if isinstance(messages, list) else []:
+                if not isinstance(message, dict):
+                    continue
+                kept = {
+                    k: message[k]
+                    for k in (
+                        "role",
+                        "content",
+                        "tool_calls",
+                        "id",
+                        "requestor",
+                        "error",
+                        "tau2_actor",
+                        "tau2_batch",
+                    )
+                    if k in message
+                }
+                out.append(kept)  # fmt: skip
+            if stop and out:
+                out[-1]["tau2_stop"] = True
+            return out
+
+        def progress() -> Tau2Progress:
+            batch_error_counts: dict[tuple[str, int], int] = {}
+            for message in transcript:
+                actor = message.get("tau2_actor")
+                batch = message.get("tau2_batch")
+                if actor == "env" and isinstance(batch, int) and batch > 0:
+                    key = (tau2_requestor(message), batch)
+                    batch_error_counts[key] = batch_error_counts.get(key, 0) + int(bool(message.get("error")))
+            events: list[Tau2Event] = []
+            emitted_batches: set[tuple[str, int]] = set()
+            for message in transcript:
+                actor = message.get("tau2_actor")
+                if actor not in {"user", "agent", "env"}:
+                    actor = {"user": "user", "tool": "env"}.get(str(message.get("role")), "agent")
+                batch = message.get("tau2_batch")
+                if actor == "env" and isinstance(batch, int) and batch > 0:
+                    key = (tau2_requestor(message), batch)
+                    if key in emitted_batches:
+                        continue
+                    emitted_batches.add(key)
+                    error_count = batch_error_counts.get(key, 0)
+                else:
+                    error_count = int(bool(message.get("error"))) if actor == "env" else 0
+                events.append(
+                    Tau2Event(
+                        actor=cast(Any, actor),
+                        waits_for_environment=bool(message.get("tool_calls")),
+                        stop=bool(message.get("tau2_stop")),
+                        error=bool(error_count),
+                        error_count=error_count,
+                    )
+                )
+            return tau2_progress(events, max_steps, max_errors)
+
+        termination: str | None = None
+        try:
+            first = await runtime.user_turn(first=True, remaining_steps=runtime.max_steps)
+        except Tau2RuntimeError:
+            first, termination = {"messages": []}, "user_error"
+        transcript += cleaned(first.get("messages"), stop=bool(first.get("stop")))
+        if termination is None:
+            termination = progress().termination
+        policy_prompt = self.task.turns[0].text if self.task.turns else ""
+        index = 0
+        seen_tools = 0
+        while termination is None:
+            index += 1
+            user_text = next((str(m.get("content") or "") for m in reversed(transcript) if m.get("role") == "user"), "")
+            while len(self.t.answers) < index:
+                self.t.answers.append("")
+            text = f"{policy_prompt}\n\nCustomer: {user_text}" if index == 1 else user_text
+            delivered = await self.deliver(harness, index, text, False, ())
+            new_entries = log.entries[seen_tools:]
+            seen_tools = len(log.entries)
+            if new_entries:
+                by_batch: dict[int, list[JsonObject]] = {}
+                for entry in new_entries:
+                    batch_value = entry.get("batch")
+                    batch = batch_value if isinstance(batch_value, int) else 0
+                    by_batch.setdefault(batch, []).append(entry)
+                for batch, entries in by_batch.items():
+                    transcript.append({
+                        "role": "assistant", "content": None, "tau2_actor": "agent", "tau2_batch": batch,
+                        "tool_calls": [
+                            {
+                                "id": str(e["id"]),
+                                "name": str(e["name"]),
+                                "arguments": cast(JsonObject, e["arguments"]),
+                                "requestor": "assistant",
+                            }
+                            for e in entries
+                        ],
+                    })  # fmt: skip
+                    transcript += [
+                        {
+                            "role": "tool",
+                            "id": str(e["id"]),
+                            "content": str(e["content"]),
+                            "requestor": "assistant",
+                            "error": bool(e["error"]),
+                            "tau2_actor": "env",
+                            "tau2_batch": batch,
+                        }
+                        for e in entries
+                    ]
+            answer = self.t.answers[index - 1] if index - 1 < len(self.t.answers) else ""
+            if delivered:
+                transcript.append(
+                    {
+                        "role": "assistant",
+                        "content": answer,
+                        "tau2_actor": "agent",
+                        "tau2_stop": "###STOP###" in answer,
+                    }
+                )
+            current = progress()
+            termination = current.termination
+            if termination is None and not delivered:
+                termination = "agent_error"
+            if termination is None:
+                try:
+                    nxt = await runtime.user_turn(
+                        first=False, assistant=answer, remaining_steps=runtime.max_steps - current.step_count
+                    )
+                except Tau2RuntimeError:
+                    termination = "user_error"
+                else:
+                    messages = nxt.get("messages")
+                    transcript += cleaned(messages, stop=bool(nxt.get("stop")))
+                    termination = progress().termination
+                    if termination is None and not messages:
+                        termination = "max_steps" if progress().step_count >= max_steps else "user_error"
+        if runtime.simulator_cost_usd is not None:
+            self.t.metrics["simulator_cost_usd"] = runtime.simulator_cost_usd
+        self.tau2_recorded = cast(
+            JsonObject, {"transcript": transcript, "termination_reason": termination or "agent_error"}
+        )
+        self.t.extra["tau2_recorded"] = self.tau2_recorded
+
     def fire_patch(self, name: str) -> WorldPatch:
         """A fire's patch, read from the task directory, under the trial's persona (`rebind_persona`)."""
         patch = load_patch(self.task.path, name)
@@ -1243,6 +1650,19 @@ class TrialExecution:
         lines = "\n".join(f"Attached: {r}" for r in rels)
         return f"{text.rstrip()}\n\n{lines}\n", tuple(rels)
 
+    def agent_timeout_s(self) -> float | None:
+        """The task's own agent timeout for a live-container (TB2) trial, else None.
+
+        Upstream Harbor bounds the agent phase by the task's `agent.timeout_sec`
+        (`Trial._run_agent_phase` wraps the agent in `asyncio.wait_for`); on timeout it raises
+        `AgentTimeoutError`, whose error policy still grades (`should_grade`, `has_valid_reward`),
+        so the verifier runs on whatever the agent left and the reward stands.
+        """
+        if Capability.LIVE_CONTAINER not in self.task.meta.requires:
+            return None
+        value = self.task.data.get("agent_timeout_s")
+        return float(value) if isinstance(value, (int, float)) and float(value) > 0 else None
+
     async def deliver(
         self,
         harness: Harness,
@@ -1256,6 +1676,8 @@ class TrialExecution:
     ) -> bool:
         """One turn, waited on until the harness returns or `--turn-timeout` passes (none by default:
         the product under test owns its limits). False ends the trial (a non-completed turn)."""
+        limits = [limit for limit in (self.s.turn_timeout_s, self.agent_timeout_s()) if limit is not None]
+        effective_timeout = min(limits) if limits else None
         t_in = TurnInput(
             index=index,
             text=text,
@@ -1263,19 +1685,19 @@ class TrialExecution:
             attachments=attached,
             origin=origin,
             approval=approval,
-            deadline_s=self.s.turn_timeout_s,
+            deadline_s=effective_timeout,
         )
         self.t.delivered_turns.append(t_in)
         submitted = time.monotonic()
         out: TurnOutput | None = None
-        deadline = asyncio.timeout(self.s.turn_timeout_s)
+        deadline = asyncio.timeout(effective_timeout)
         try:
             async with deadline:
                 out = await harness.turn(t_in)
         except Exception as exc:  # an adapter crash mid-turn is the harness's failure, not the eval's
             self.t.status, self.t.error = TrajectoryStatus.HARNESS_ERROR, f"turn {index}: {type(exc).__name__}: {exc}"
             if deadline.expired():  # status and error then come from the TIMEOUT turn, below
-                error = f"turn {index}: still running after {self.s.turn_timeout_s:.0f}s, killed"
+                error = f"turn {index}: still running after {effective_timeout or 0:.0f}s, killed"
                 out = TurnOutput(status=TurnStatus.TIMEOUT, answer="", session_id=None, error=error)
         # Every turn's time counts toward agent_ms, a failed one's included.
         measured = int((time.monotonic() - submitted) * 1000)
@@ -1349,6 +1771,15 @@ class TrialExecution:
             return None
         return report
 
+    async def revoke_meter(self) -> None:
+        if self.meter_key is None:
+            return
+        key, self.meter_key = self.meter_key, None
+        try:
+            await self.s.svc.meter_client().revoke(key)
+        except (httpx.HTTPError, OSError) as exc:
+            logger.warning("meter credential revocation failed: %s", exc)
+
     async def verify(self, workspace: Path | None) -> dict[str, CommandOutcome]:
         commands = [c for c in self.task.checks.checks if isinstance(c, CommandCheck)]
         if not commands or workspace is None:
@@ -1385,9 +1816,21 @@ class TrialExecution:
                 },
                 product=self.product,
                 answers=self.t.answers,
+                task_container=self.task_container,
+                runner_recorded=self.tau2_recorded,
             )
             record_grade(self.dir / "judgments.jsonl", self.task, g)
             execution_valid = g.execution_valid
+            if (
+                execution_valid is None
+                and self.task_container is not None
+                and self.t.status is TrajectoryStatus.TIMEOUT
+                and g.checks
+                and all(c.passed is not None for c in g.checks)
+            ):
+                # Harbor's AgentTimeoutError policy still grades with a valid reward, so a
+                # timed-out TB2 agent is scored by the verifier, not invalidated.
+                execution_valid = True
             checks, same_family, judged_under, judged_score = g.checks, g.same_family, g.judge_identity, g.score
             costs = [j.cost() for j in g.judgments]
             unpriced = g.unpriced_calls + sum(n for _, n in costs)
@@ -1645,6 +2088,15 @@ def judge_setup(models: Sequence[str]) -> tuple[JudgePanel | None, JudgeConfig |
     return panel, config_from_env()
 
 
+def model_egress_hosts(environ: Mapping[str, str]) -> tuple[str, ...]:
+    hosts = {
+        host
+        for wire, default in DEFAULT_UPSTREAM.items()
+        if (host := urlsplit(environ.get(f"PARALLAX_UPSTREAM_{wire.upper()}") or default).hostname) is not None
+    }
+    return tuple(sorted(hosts))
+
+
 def live_session(out: Path) -> str:
     """The run directory's live feed session: the one its manifest already holds on a resume, else a new one. The
     directory name stays readable in it; the suffix keeps runs whose directories share a name apart."""
@@ -1655,11 +2107,11 @@ def live_session(out: Path) -> str:
 
 
 def manifest_for(
-    opts: RunOptions, plans: Sequence[TrialPlan], harnesses: Sequence[HarnessPlan], session: str
+    opts: RunOptions, plans: Sequence[TrialPlan], harnesses: Sequence[HarnessPlan], session: str, run_id: str
 ) -> RunManifest:
     tasks = {p.task.id: p.task.hash for p in plans}
     return RunManifest(
-        run_id=opts.out.name, live_session=session, created_at=datetime.now(UTC), parallax_version=__version__,
+        run_id=run_id, live_session=session, created_at=datetime.now(UTC), parallax_version=__version__,
         harnesses=tuple(h.info for h in harnesses),
         models=tuple(dict.fromkeys(p.model for p in plans)), tasks=tuple(sorted(tasks.items())),
         repeats=opts.repeats, judge=opts.judge, isolation=opts.isolation, selection=opts.selection,
@@ -1685,13 +2137,20 @@ async def run_async(
     opts = opts.model_copy(update={"judge": panel.models if panel else ()})
     infos = [load_harness(h).info for h in harnesses]
     need_meter = any(i.cost_source is CostSource.METERED for i in infos)
-    async with services(opts.isolation, opts.world_public_url, need_meter, opts.out.name, opts.world_port) as svc:
+    egress_hosts = (*model_egress_hosts(os.environ), *(host for info in infos for host in info.egress_hosts))
+    async with services(
+        opts.isolation, opts.world_public_url, need_meter, opts.out.name, opts.world_port, egress_hosts
+    ) as svc:
         plans_h = [await plan_harness(h, chosen, opts.isolation, svc.network) for h in harnesses]
         plans = only_pairs(plan_trials(chosen, plans_h, models, opts), opts.pairs)
         opts.out.mkdir(parents=True, exist_ok=True)  # only now: a run interrupted in setup leaves no husk
+        # A fresh uuid per run (never the output basename, which two runs can share): it labels
+        # every task container this run starts, is recorded in manifest.json, and cleanup sweeps
+        # only containers carrying this uuid, so a same-named run's containers are untouched.
+        run_uuid = uuid.uuid4().hex
         feed_session = live_session(opts.out)
         (opts.out / "manifest.json").write_text(
-            manifest_for(opts, plans, plans_h, feed_session).model_dump_json(indent=2)
+            manifest_for(opts, plans, plans_h, feed_session, run_uuid).model_dump_json(indent=2)
         )
         prov = provenance.collect(opts.out, opts.provenance_extra)
         provenance.write(opts.out, prov)
@@ -1704,7 +2163,7 @@ async def run_async(
             budget = CampaignBudget(opts.budget_usd, opts.reserve_usd, journal)
         elif journal.is_file():
             budget = CampaignBudget.from_journal(journal)
-        session = Session(svc, opts.out, panel, judge_config, opts.turn_timeout_s, budget, opts.videos)
+        session = Session(svc, opts.out, panel, judge_config, opts.turn_timeout_s, budget, opts.videos, run_id=run_uuid)
         session.live = LiveFeed.open(feed_session)
         if session.live is not None:
             session.live.run_started(
@@ -1712,10 +2171,14 @@ async def run_async(
                 labels=sorted({live_label(p.harness.name, p.model) for p in plans}), kept=sorted({p.key for p in plans} - {p.key for p in todo}),
                 planned=[p.key for p in todo],
             )  # fmt: skip
+        from parallax.harbor_tasks import sweep_run_containers
+
+        await sweep_run_containers(session.run_id)  # containers a crashed earlier run left behind
         try:
             runs = {r.result.key: r for r in await execute_all(session, todo, opts, retries_left=opts.retry_invalid)}
             await retry_transient_invalid(session, todo, runs, opts)
         finally:
+            await sweep_run_containers(session.run_id)
             if session.live is not None:
                 session.live.run_finished()
             if budget is not None:

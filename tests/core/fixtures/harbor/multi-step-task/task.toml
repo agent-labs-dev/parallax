@@ -1,0 +1,19 @@
+schema_version = "1.1"
+
+[task]
+name = "terminal-bench/multi-step-task"
+
+[verifier]
+timeout_sec = 60.0
+
+[environment]
+docker_image = "example/multi-step:20260101"
+cpus = 1
+memory_mb = 2048
+allow_internet = true
+
+[[steps]]
+name = "step-one"
+
+[[steps]]
+name = "step-two"

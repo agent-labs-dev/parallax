@@ -12,14 +12,32 @@ argv_next = ["claude", "-p", "--output-format", "stream-json", "--verbose", "--m
   "--resume", "{session}", "--mcp-config", "{home}/mcp.json", "--strict-mcp-config",
   "--setting-sources", "project", "--permission-mode", "bypassPermissions",
   "--disallowedTools", "WebSearch,WebFetch"]
+# TB2 (Harbor-style, agents/installed/claude_code.py at the pin): install as root in the owned
+# task container (Node 22.14.0 from the official checksum file, pinned CLI 2.1.325 as above), then run
+# inside it via docker exec with the manifest env passed per exec. No MCP config in the task
+# container: TB2 tasks mount no world. {workspace} is /app, {home} is /root in that container.
+tb2_install = "set -eu; node_version=22.14.0; node_name=node-v$node_version-linux-x64.tar.xz; node_archive=/tmp/$node_name; tar -xJf \"$node_archive\" -C /opt; ln -sfn /opt/node-v$node_version-linux-x64 /opt/node; export PATH=\"/opt/node/bin:$PATH\"; ln -sfn /opt/node/bin/node /usr/local/bin/node; ln -sfn /opt/node/bin/npm /usr/local/bin/npm; ln -sfn /opt/node/bin/npx /usr/local/bin/npx; test \"$(node --version)\" = v22.14.0; platform=/tmp/claude-code-2.1.325-linux-x64.tgz; package=/tmp/claude-code-2.1.325.tgz; npm install -g \"$package\" \"@anthropic-ai/claude-code-linux-x64@file:$platform\" --offline --allow-scripts=@anthropic-ai/claude-code; ln -sf \"$(command -v claude)\" /usr/local/bin/claude; claude --version"
+tb2_prerequisites = ["tar", "xz", "ln"]
+tb2_artifacts = [
+  { name = "node-v22.14.0-linux-x64.tar.xz", url = "https://nodejs.org/dist/v22.14.0/node-v22.14.0-linux-x64.tar.xz", digest = "69b09dba5c8dcb05c4e4273a4340db1005abeafe3927efda2bc5b249e80437ec" },
+  { name = "claude-code-2.1.325.tgz", url = "https://registry.npmjs.org/@anthropic-ai/claude-code/-/claude-code-2.1.325.tgz", algorithm = "sha512", digest = "OUxCb0sx734zJh9zGTP9oF01gZ44DCGFaw7hgD4byepjRRGyvHzgUOwC7dlCgVIljV6CiEVDjq+anY3GUvKFQw==" },
+  { name = "claude-code-2.1.325-linux-x64.tgz", url = "https://registry.npmjs.org/@anthropic-ai/claude-code-linux-x64/-/claude-code-linux-x64-2.1.325.tgz", algorithm = "sha512", digest = "BqZzMvP/zgLLL34S+7OzbG+cyoFp7gwWHU5koVwsyMlTAz+0zZAmbY+UkzvtN2RXxp6AcMenbYIjQJxoXfUY3w==" },
+]
+tb2_argv_first = ["claude", "-p", "--output-format", "stream-json", "--verbose", "--model", "{model_name}",
+  "--session-id", "{session}", "--setting-sources", "project", "--permission-mode", "bypassPermissions",
+  "--disallowedTools", "WebSearch,WebFetch"]
+tb2_argv_next = ["claude", "-p", "--output-format", "stream-json", "--verbose", "--model", "{model_name}",
+  "--resume", "{session}", "--setting-sources", "project", "--permission-mode", "bypassPermissions",
+  "--disallowedTools", "WebSearch,WebFetch"]
 
 [info]
 name = "claude-code"
 kind = "open"
-capabilities = ["mcp", "workspace", "shell", "desktop", "multi_turn", "memory"]
+meter_wire = "anthropic"
+capabilities = ["mcp", "workspace", "shell", "desktop", "multi_turn", "memory", "live_container"]
 pins_model = true
 cost_source = "metered"
-install = "npm i -g @anthropic-ai/claude-code --allow-scripts=@anthropic-ai/claude-code"
+install = "npm i -g @anthropic-ai/claude-code@2.1.325 --allow-scripts=@anthropic-ai/claude-code"
 version_cmd = ["claude", "--version"]
 web_disabled_by = "flag"
 source_url = "https://github.com/anthropics/claude-code"

@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
+import os
 import sys
+import threading
 import tomllib
 from datetime import UTC, datetime
 from pathlib import Path
 
+import httpx
+import parallax.harnesses.manifest as manifest_module
 import pytest
 import yaml
 from parallax.box import HostBox
@@ -20,6 +25,7 @@ from parallax.harnesses.base import (
 from parallax.harnesses.manifest import (
     ManifestError,
     ManifestHarness,
+    ManifestPrerequisiteError,
     dump_config,
     load_manifest,
     manifest_names,
@@ -40,6 +46,7 @@ from parallax.models import (
     McpEndpoint,
     ParserId,
     Persona,
+    Tb2Artifact,
     Trial,
     TurnInput,
     TurnStatus,
@@ -156,6 +163,149 @@ async def test_new_session_starts_fresh(box: HostBox, fake_spec: ManifestSpec) -
     assert fresh.session_id != first.session_id
 
 
+async def test_tb2_exec_uses_manifest_env_allowlist(box: HostBox, fake_spec: ManifestSpec) -> None:
+    spec = fake_spec.model_copy(
+        update={
+            "tb2_argv_first": (sys.executable, "-c", "print('done')"),
+            "info": info().model_copy(update={"capabilities": frozenset({Capability.LIVE_CONTAINER})}),
+        }
+    )
+    harness = ManifestHarness(spec)
+    trial = make_trial(box).model_copy(
+        update={"task_container": "owned-container", "env": {"PARALLAX_WORLD_TOKEN": "secret"}}
+    )
+    harness._trial = trial
+    calls: list[dict[str, str]] = []
+
+    async def fake_write(_target: str, _data: bytes) -> None:
+        return None
+
+    async def fake_exec(_argv: list[str], *, stdin=None, env=None, timeout=900.0):
+        calls.append(dict(env or {}))
+        return 0, json.dumps({"argv": [], "stdin": ""}), "session_id: s1\n"
+
+    harness._write_container_file = fake_write  # type: ignore[method-assign]
+    harness._exec_container = fake_exec  # type: ignore[method-assign]
+    await harness.turn(TurnInput(index=1, text="hi", new_session=False))
+    assert calls[-1] == {"PARALLAX_METER_KEY": "px-key"}
+    assert "PARALLAX_WORLD_TOKEN" not in calls[-1]
+
+
+async def test_tb2_install_copies_host_verified_artifacts_before_install(
+    box: HostBox, fake_spec: ManifestSpec, tmp_path: Path
+) -> None:
+    artifact = Tb2Artifact(name="node.tar.xz", url="https://node.invalid/node.tar.xz", digest="0" * 64)
+    spec = fake_spec.model_copy(
+        update={
+            "tb2_install": "install-artifacts",
+            "tb2_artifacts": (artifact,),
+            "tb2_argv_first": ("sh", "-c", "true"),
+            "info": info().model_copy(update={"capabilities": frozenset({Capability.LIVE_CONTAINER})}),
+        }
+    )
+    harness = ManifestHarness(spec)
+    trial = make_trial(box).model_copy(update={"task_container": "owned-container"})
+    harness._trial = trial
+    order: list[tuple[str, str]] = []
+
+    async def fake_fetch(_artifact: Tb2Artifact) -> Path:
+        order.append(("fetch", _artifact.name))
+        return tmp_path / _artifact.name
+
+    async def fake_copy(_source: Path, name: str) -> None:
+        order.append(("copy", name))
+
+    async def fake_exec(argv: list[str], **_kwargs: object) -> tuple[int, str, str]:
+        order.append(("install", argv[2]))
+        return 0, "", ""
+
+    async def fake_write(_target: str, _data: bytes) -> None:
+        return None
+
+    harness._fetch_artifact = fake_fetch  # type: ignore[method-assign]
+    harness._copy_artifact = fake_copy  # type: ignore[method-assign]
+    harness._exec_container = fake_exec  # type: ignore[method-assign]
+    harness._write_container_file = fake_write  # type: ignore[method-assign]
+    await harness.write_config(trial)
+    assert order[:3] == [("fetch", "node.tar.xz"), ("copy", "node.tar.xz"), ("install", "install-artifacts")]
+
+
+async def test_tb2_missing_prerequisite_is_typed_and_names_the_tool(box: HostBox, fake_spec: ManifestSpec) -> None:
+    spec = fake_spec.model_copy(
+        update={
+            "tb2_prerequisites": ("ldd",),
+            "tb2_argv_first": ("sh", "-c", "true"),
+            "info": info().model_copy(update={"capabilities": frozenset({Capability.LIVE_CONTAINER})}),
+        }
+    )
+    harness = ManifestHarness(spec)
+    trial = make_trial(box).model_copy(update={"task_container": "owned-container"})
+    harness._trial = trial
+
+    async def missing(*_argv: object, **_kwargs: object) -> tuple[int, str, str]:
+        return 1, "", ""
+
+    harness._exec_container = missing  # type: ignore[method-assign]
+    with pytest.raises(ManifestPrerequisiteError, match="ldd") as raised:
+        await harness.write_config(trial)
+    assert raised.value.tool == "ldd"
+
+
+@pytest.mark.asyncio
+async def test_artifact_fetch_uses_distinct_temps_for_concurrent_downloads(
+    box: HostBox, fake_spec: ManifestSpec, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    payload = b"artifact"
+    artifact = Tb2Artifact(
+        name="tool.tgz", url="https://node.invalid/tool.tgz", digest=hashlib.sha256(payload).hexdigest()
+    )
+    harness = ManifestHarness(fake_spec)
+    cache = tmp_path / "cache"
+    monkeypatch.setattr(harness, "_artifact_cache", staticmethod(lambda: cache))
+    barrier = threading.Barrier(2)
+
+    def get(url: str, **_kwargs: object) -> httpx.Response:
+        barrier.wait()
+        return httpx.Response(200, request=httpx.Request("GET", url), content=payload)
+
+    monkeypatch.setattr(
+        manifest_module.httpx,
+        "get",
+        get,
+    )
+    replacements: list[Path] = []
+    original_replace = manifest_module.os.replace
+
+    def replace(source: str | os.PathLike[str], target: str | os.PathLike[str]) -> None:
+        replacements.append(Path(source))
+        original_replace(source, target)
+
+    monkeypatch.setattr(manifest_module.os, "replace", replace)
+    first, second = await asyncio.gather(harness._fetch_artifact(artifact), harness._fetch_artifact(artifact))
+    assert first == second == cache / artifact.name
+    assert len(replacements) == 2 and replacements[0] != replacements[1]
+    assert not list(cache.glob("*.tmp"))
+
+
+@pytest.mark.parametrize("name", ("claude-code", "codex"))
+def test_tb2_install_names_every_declared_platform_artifact_and_no_container_hashing(name: str) -> None:
+    spec = load_manifest(manifest_path(name))
+    assert all(
+        artifact.name in spec.tb2_install for artifact in spec.tb2_artifacts if not artifact.name.startswith("node-v")
+    )
+    assert "sha256sum" not in spec.tb2_install
+    assert "openssl" not in spec.tb2_install
+    assert "base64" not in spec.tb2_install
+    assert spec.tb2_prerequisites == ("tar", "xz", "ln")
+    assert "missing prerequisite:" not in spec.tb2_install
+    assert "ldd" not in spec.tb2_prerequisites
+
+
+@pytest.mark.parametrize(("name", "wire"), [("codex", "openai"), ("claude-code", "anthropic")])
+def test_single_wire_manifests_declare_their_meter_wire(name: str, wire: str) -> None:
+    assert load_manifest(manifest_path(name)).info.meter_wire == wire
+
+
 async def test_config_rendered_into_home(box: HostBox, fake_spec: ManifestSpec) -> None:
     harness = ManifestHarness(fake_spec)
     await harness.start(make_trial(box), box)
@@ -252,3 +402,12 @@ def test_declaring_desktop_needs_a_config_that_gives_the_harness_the_desktop(fak
     assert any("desktop_content" in p for p in manifest_problems(bare, "fake"))
     given = bare.model_copy(update={"config": (DESKTOP_CONFIG,)})
     assert not any("desktop_content" in p for p in manifest_problems(given, "fake"))
+
+
+@pytest.mark.parametrize("name", ["claude-code", "codex"])
+def test_a_fixed_meter_wire_must_match_the_base_url_the_cli_is_pointed_at(name: str) -> None:
+    raw = tomllib.loads(manifest_path(name).read_text())
+    assert ManifestSpec.model_validate(raw).info.meter_wire in {"openai", "anthropic"}
+    raw["info"]["meter_wire"] = "anthropic" if raw["info"]["meter_wire"] == "openai" else "openai"
+    with pytest.raises(ValueError, match="meter_wire"):
+        ManifestSpec.model_validate(raw)

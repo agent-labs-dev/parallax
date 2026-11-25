@@ -7,19 +7,36 @@ some configs key maps by model id). Substitution is typed and never passes throu
 
 from __future__ import annotations
 
+import asyncio
+import base64
+import hashlib
 import json
+import os
 import re
+import shlex
+import tempfile
 import tomllib
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Literal, assert_never
 
+import httpx
 import yaml
 from pydantic import JsonValue, ValidationError
 
-from parallax.harnesses.base import SubprocessHarness, config_hash, credential_env_problems
+from parallax.harnesses.base import STDERR_TAIL_CHARS, SubprocessHarness, config_hash, credential_env_problems
 from parallax.harnesses.parsers import PARSERS
-from parallax.models import Capability, ConfigFile, JsonObject, ManifestSpec, Trial, TurnInput, TurnOutput
+from parallax.models import (
+    Capability,
+    ConfigFile,
+    JsonObject,
+    ManifestSpec,
+    Tb2Artifact,
+    Trial,
+    TurnInput,
+    TurnOutput,
+    TurnStatus,
+)
 from parallax.protocols import BoxHandle, Harness
 
 MANIFEST_DIR = Path(__file__).parent / "manifests"
@@ -27,6 +44,7 @@ MANIFEST_DIR = Path(__file__).parent / "manifests"
 PLACEHOLDERS = frozenset({
     "model", "model_provider", "model_name", "prompt", "prompt_file", "session", "workspace", "home",
     "world_url", "world_token", "world_token_env", "meter_openai", "meter_anthropic", "meter_key",
+    "task_container",
 })  # fmt: skip
 _PLACEHOLDER = re.compile(r"\{([A-Za-z_][A-Za-z0-9_]*)\}")
 _BARE_KEY = re.compile(r"^[A-Za-z0-9_-]+$")
@@ -34,6 +52,14 @@ _BARE_KEY = re.compile(r"^[A-Za-z0-9_-]+$")
 
 class ManifestError(ValueError):
     """A manifest that cannot be run as written: an authoring bug, never a harness failure."""
+
+
+class ManifestPrerequisiteError(ManifestError):
+    """A live-container manifest names a tool that the task container does not provide."""
+
+    def __init__(self, manifest: str, tool: str) -> None:
+        self.tool = tool
+        super().__init__(f"{manifest}: missing prerequisite tool {tool}")
 
 
 # ---------------------------------------------------------------------------
@@ -67,9 +93,16 @@ def manifest_problems(spec: ManifestSpec, stem: str) -> list[str]:
     if not spec.info.version_cmd:
         problems.append("info.version_cmd is required")
     problems.extend(credential_env_problems(spec.info))
-    for text in (*spec.argv_first, *spec.argv_next, *spec.env.values(), *config_strings(spec.config)):
+    for text in (
+        *spec.argv_first, *spec.argv_next, *spec.tb2_argv_first, *spec.tb2_argv_next,
+        spec.tb2_install, *spec.env.values(), *config_strings(spec.config),
+    ):  # fmt: skip
         problems.extend(f"unknown placeholder {{{p}}}" for p in _PLACEHOLDER.findall(text) if p not in PLACEHOLDERS)
     problems.extend(cli_problems(spec))
+    if bool(spec.tb2_argv_first) != (Capability.LIVE_CONTAINER in spec.info.capabilities):
+        problems.append("live_container capability and tb2_argv_first must be declared together")
+    if spec.tb2_argv_next and not spec.tb2_argv_first:
+        problems.append("tb2_argv_next needs tb2_argv_first")
     if Capability.DESKTOP in spec.info.capabilities and not any(f.desktop_content for f in spec.config):
         problems.append("desktop is declared but no config file gives the harness the desktop (desktop_content)")
     return problems
@@ -127,15 +160,23 @@ def trial_values(trial: Trial) -> dict[str, str]:
         if trial.mcp.token_env in trial.env:
             values["world_token"] = trial.env[trial.mcp.token_env]
     if trial.model is not None:
-        provider, sep, name = trial.model.partition("/")
+        provider, sep, _name = trial.model.partition("/")
         values["model"] = trial.model
         if sep:
-            values["model_provider"], values["model_name"] = provider, name
+            values["model_provider"], values["model_name"] = provider, wire_model_name(trial.model)
+    if trial.task_container is not None:
+        values["task_container"] = trial.task_container
     if trial.llm is not None:
         values["meter_openai"] = trial.llm.openai_base_url
         values["meter_anthropic"] = trial.llm.anthropic_base_url
         values["meter_key"] = trial.llm.api_key
     return values
+
+
+def wire_model_name(model: str) -> str:
+    """Return the model identifier sent on a provider wire by `{model_name}`."""
+    provider, separator, name = model.partition("/")
+    return name if separator and provider and name else model
 
 
 def render(template: str, values: Mapping[str, str]) -> str:
@@ -278,8 +319,180 @@ class ManifestHarness(SubprocessHarness):
     def config_hash(self) -> str:
         return config_hash(self.spec)
 
+    @property
+    def tb2_container(self) -> str | None:
+        """The owned task container when this trial runs in TB2 mode, else None."""
+        if self._trial is None or not self.spec.tb2_argv_first:
+            return None
+        return self._trial.task_container
+
+    def tb2_values(self) -> dict[str, str]:
+        """Placeholder values inside the task container: `/app` is its workdir, `/root` its home."""
+        return {**trial_values(self.trial), "workspace": "/app", "home": "/root"}
+
+    async def _exec_container(
+        self,
+        argv: list[str],
+        *,
+        stdin: bytes | None = None,
+        env: Mapping[str, str] | None = None,
+        timeout: float = 900.0,
+    ) -> tuple[int | None, str, str]:
+        container = self.tb2_container
+        if container is None:
+            raise ManifestError(f"{self.spec.info.name}: no task container for this trial")
+        docker = ["docker", "exec", "-i", "-u", "0"]
+        for key, value in (env or {}).items():  # credentials travel per exec as env, never to disk
+            docker += ["-e", f"{key}={value}"]
+        docker += [container, *argv]
+        process = await asyncio.create_subprocess_exec(
+            *docker, stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        )
+        try:
+            out, err = await asyncio.wait_for(process.communicate(stdin), timeout=timeout)
+        except BaseException:
+            process.kill()
+            await process.wait()
+            raise
+        return process.returncode, out.decode(errors="replace"), err.decode(errors="replace")
+
+    async def _write_container_file(self, target: str, data: bytes) -> None:
+        script = f"mkdir -p {shlex.quote(str(Path(target).parent))} && cat > {shlex.quote(target)}"
+        code, _out, err = await self._exec_container(["sh", "-c", script], stdin=data)
+        if code != 0:
+            raise ManifestError(
+                f"{self.spec.info.name}: writing {target} in the task container failed: {err.strip()[-300:]}"
+            )
+
+    @staticmethod
+    def _artifact_cache() -> Path:
+        return Path.home() / ".cache" / "agent-scratch" / "harness-scoreboard" / "tb2-artifacts"
+
+    @staticmethod
+    def _digest(path: Path, artifact: Tb2Artifact) -> str:
+        digest = hashlib.new(artifact.algorithm)
+        with path.open("rb") as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(chunk)
+        value = digest.digest()
+        return (
+            base64.b64encode(value).decode()
+            if artifact.algorithm == "sha512" and not all(c in "0123456789abcdef" for c in artifact.digest.lower())
+            else digest.hexdigest()
+        )
+
+    async def _fetch_artifact(self, artifact: Tb2Artifact) -> Path:
+        cache = self._artifact_cache()
+        cache.mkdir(parents=True, exist_ok=True)
+        target = cache / artifact.name
+        if target.is_file() and self._digest(target, artifact) == artifact.digest:
+            return target
+        try:
+            response = await asyncio.to_thread(httpx.get, artifact.url, timeout=120.0, follow_redirects=True)
+            response.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise ManifestError(f"{self.spec.info.name}: artifact {artifact.name} download failed: {exc}") from exc
+        descriptor, temporary_name = tempfile.mkstemp(dir=cache, prefix=f".{artifact.name}.", suffix=".tmp")
+        os.close(descriptor)
+        temporary = Path(temporary_name)
+        try:
+            temporary.write_bytes(response.content)
+            if self._digest(temporary, artifact) != artifact.digest:
+                raise ManifestError(
+                    f"{self.spec.info.name}: artifact {artifact.name} failed {artifact.algorithm} verification"
+                )
+            os.replace(temporary, target)
+        finally:
+            temporary.unlink(missing_ok=True)
+        return target
+
+    async def _copy_artifact(self, source: Path, name: str) -> None:
+        container = self.tb2_container
+        if container is None:
+            raise ManifestError(f"{self.spec.info.name}: no task container for artifact copy")
+        process = await asyncio.create_subprocess_exec(
+            "docker",
+            "cp",
+            str(source),
+            f"{container}:/tmp/{name}",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        _out, err = await process.communicate()
+        if process.returncode != 0:
+            raise ManifestError(f"{self.spec.info.name}: copying artifact {name} failed: {err.decode()[-300:]}")
+
     async def write_config(self, trial: Trial) -> None:
-        await write_configs(self.spec.config, trial, self.box)
+        if self.tb2_container is None:
+            await write_configs(self.spec.config, trial, self.box)
+            return
+        # Harbor-style setup: the declared install script runs as root in the owned container,
+        # then the rendered config files are written inside it (home: -> /root, workspace: -> /app).
+        for tool in self.spec.tb2_prerequisites:
+            code, _out, _err = await self._exec_container(
+                ["sh", "-c", f"command -v {shlex.quote(tool)} >/dev/null"], timeout=30.0
+            )
+            if code != 0:
+                raise ManifestPrerequisiteError(self.spec.info.name, tool)
+        for artifact in self.spec.tb2_artifacts:
+            await self._copy_artifact(await self._fetch_artifact(artifact), artifact.name)
+        if self.spec.tb2_install.strip():
+            code, _out, err = await self._exec_container(["sh", "-c", self.spec.tb2_install])
+            if code != 0:
+                raise ManifestError(
+                    f"{self.spec.info.name}: tb2 install failed in the task container (exit {code}): {err.strip()[-300:]}"
+                )
+        values = self.tb2_values()
+        for f in self.spec.config:
+            world = Capability.MCP in trial.requires or not f.requires_mcp
+            desktop = Capability.DESKTOP in trial.requires and f.desktop_content is not None
+            if not (world or desktop):
+                continue
+            content = render_json(f.content, values) if world else {}
+            if not isinstance(content, dict):
+                raise ManifestError(f"{f.path}: content must render to an object")
+            if Capability.MCP in trial.requires and f.mcp_content is not None:
+                mcp_content = render_json(f.mcp_content, values)
+                if not isinstance(mcp_content, dict):
+                    raise ManifestError(f"{f.path}: mcp_content must render to an object")
+                content = {**content, **mcp_content}
+            if desktop:
+                desktop_content = render_json(f.desktop_content, values)
+                if not isinstance(desktop_content, dict):
+                    raise ManifestError(f"{f.path}: desktop_content must render to an object")
+                content = merged(content, desktop_content)
+            root, _sep, rel = f.path.partition(":")
+            base = "/root" if root == "home" else "/app"
+            await self._write_container_file(f"{base}/{rel}", dump_config(f.format, content))
+
+    async def turn(self, t: TurnInput) -> TurnOutput:
+        if self.tb2_container is None:
+            return await super().turn(t)
+        if t.new_session and self.in_session:
+            self.new_session()
+        if self.in_session and self.session_id is None:
+            return TurnOutput(
+                status=TurnStatus.HARNESS_ERROR, answer="", session_id=None,
+                error="previous turn reported no session id, so this turn cannot continue it",
+            )  # fmt: skip
+        prompt_file = f"/tmp/parallax-turn-{t.index:02d}.md"
+        await self._write_container_file(prompt_file, t.text.encode())
+        values = {**self.tb2_values(), "prompt": t.text, "prompt_file": prompt_file}
+        if self.session_id is not None:
+            values["session"] = self.session_id
+        templates = self.spec.tb2_argv_next if self.in_session and self.spec.tb2_argv_next else self.spec.tb2_argv_first
+        argv = [render(a, values) for a in templates]
+        env = {k: render(v, self.tb2_values()) for k, v in self.spec.env.items()}
+        code, out, err = await self._exec_container(argv, stdin=self.stdin(t), env=env, timeout=7200.0)
+        self.stderr_tail = err[-STDERR_TAIL_CHARS:]
+        self.output_tail.add(f"=== turn {t.index} exit {code} ===\n--- stdout ---\n{out}\n--- stderr ---\n{err}\n")
+        self.in_session = True
+        parsed = self.stamp(self.parse(out, err), t.index)
+        self.session_id = parsed.session_id or self.session_id
+        if code != 0 and parsed.status is TurnStatus.COMPLETED:
+            last = err.strip().splitlines()[-1:] or ["no stderr"]
+            return parsed.model_copy(update={"status": TurnStatus.HARNESS_ERROR, "error": f"exit {code}: {last[0]}"})
+        return parsed
 
     def turn_values(self, turn: TurnInput, session_id: str | None, prompt_file: Path) -> dict[str, str]:
         values = {**trial_values(self.trial), "prompt": turn.text, "prompt_file": str(prompt_file)}

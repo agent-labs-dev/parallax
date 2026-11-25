@@ -8,7 +8,19 @@ import json
 import httpx
 import parallax.meter as meter_module
 import pytest
-from parallax.meter import MeterClient, Upstream, Wire, app, llm_endpoint
+from parallax.meter import (
+    MeterClient,
+    Observed,
+    TrialMeter,
+    Upstream,
+    UsageAccumulator,
+    Wire,
+    app,
+    llm_endpoint,
+    price,
+    record,
+    trial_wire,
+)
 from parallax.models import CostSource
 from pydantic import SecretStr
 
@@ -143,6 +155,73 @@ async def test_unknown_price_is_none_not_zero(meter: httpx.AsyncBaseTransport) -
     assert report.unpriced_requests == 1
 
 
+async def test_budgeted_registration_rejects_an_unpriced_model(meter: httpx.AsyncBaseTransport) -> None:
+    control = MeterClient("http://meter", ADMIN, transport=meter)
+    with pytest.raises(httpx.HTTPStatusError) as exc:
+        await control.register(KEY, budget_usd=0.000001, model="nobody/unreal-model-9", wire=Wire.OPENAI)
+    assert exc.value.response.status_code == 400
+
+
+async def test_budgeted_forward_rejects_an_unpriced_request_before_upstream(
+    meter: httpx.AsyncBaseTransport, seen: list[httpx.Request]
+) -> None:
+    control = MeterClient("http://meter", ADMIN, transport=meter)
+    await control.register(KEY, budget_usd=0.000001, model="openai/gpt-4o", wire=Wire.OPENAI)
+    ep = llm_endpoint("http://meter", KEY, "http://meter")
+    async with httpx.AsyncClient(transport=meter) as c:
+        unknown = await c.post(
+            f"{ep.openai_base_url}/chat/completions", json={"model": "nobody/unreal-model-9", "messages": []}
+        )
+    assert unknown.status_code == 400
+    assert unknown.json()["error"]["code"] == "unpriced_model"
+    assert seen == []
+
+
+async def test_budgeted_free_model_listing_does_not_require_a_model(meter: httpx.AsyncBaseTransport) -> None:
+    control = MeterClient("http://meter", ADMIN, transport=meter)
+    await control.register(KEY, budget_usd=0.000001)
+    ep = llm_endpoint("http://meter", KEY, "http://meter")
+    async with httpx.AsyncClient(transport=meter) as c:
+        response = await c.get(f"{ep.openai_base_url}/models")
+    assert response.status_code == 200
+
+
+def test_trial_wire_uses_manifest_declaration_or_model_provider() -> None:
+    assert trial_wire("openai/gpt-4o", "anthropic") is Wire.ANTHROPIC
+    assert trial_wire("anthropic/claude-sonnet-4-5", "openai") is Wire.OPENAI
+    assert trial_wire("anthropic/claude-sonnet-4-5") is Wire.ANTHROPIC
+
+
+def test_missing_usage_on_priced_model_uses_a_conservative_bound() -> None:
+    trial = TrialMeter(budget_usd=0.000001)
+    acc = UsageAccumulator(
+        Wire.OPENAI,
+        "openai/gpt-4o",
+        request={"max_tokens": 100},
+        request_bytes=2000,
+    )
+    acc.response_bytes = 3000
+    record(trial, acc, "https://openrouter.ai/api/v1")
+    assert trial.unpriced_requests == 1
+    assert trial.spent_usd() == price(Observed("openai/gpt-4o", 2000, 3000, 0, 0, 0), "https://openrouter.ai/api/v1")
+    assert trial.over_budget()
+
+
+def test_usage_with_only_total_tokens_is_unobserved() -> None:
+    acc = UsageAccumulator(Wire.OPENAI, "openai/gpt-4o")
+    acc.feed({"model": "openai/gpt-4o", "usage": {"total_tokens": 12}})
+    assert acc.observed() is None
+
+
+def test_unpriced_response_model_charges_the_full_budget() -> None:
+    trial = TrialMeter(budget_usd=0.25)
+    acc = UsageAccumulator(Wire.OPENAI, "openai/gpt-4o")
+    acc.feed({"model": "nobody/unreal-model-9", "usage": {"prompt_tokens": 1, "completion_tokens": 1}})
+    record(trial, acc, "https://openrouter.ai/api/v1")
+    assert trial.spent_usd() == 0.25
+    assert trial.report().usage[0].cost_usd is None
+
+
 async def test_unknown_trial_key_and_upstream_errors(meter: httpx.AsyncBaseTransport) -> None:
     control = await register(meter)
     async with httpx.AsyncClient(transport=meter) as c:
@@ -154,6 +233,55 @@ async def test_unknown_trial_key_and_upstream_errors(meter: httpx.AsyncBaseTrans
     assert wrong_admin.status_code == 404
     report = await control.report(KEY)
     assert report.upstream_errors == 1 and report.usage == ()
+
+
+async def test_trial_credential_is_budget_capped_and_revocable(meter: httpx.AsyncBaseTransport) -> None:
+    control = MeterClient("http://meter", ADMIN, transport=meter)
+    await control.register(KEY, budget_usd=0.000001)
+    ep = llm_endpoint("http://meter", KEY, "http://meter")
+    async with httpx.AsyncClient(transport=meter) as c:
+        first = await c.post(f"{ep.openai_base_url}/chat/completions", json={"model": "openai/gpt-4o", "messages": []})
+        blocked = await c.post(
+            f"{ep.openai_base_url}/chat/completions", json={"model": "openai/gpt-4o", "messages": []}
+        )
+    assert first.status_code == 200
+    assert blocked.status_code == 429
+    assert blocked.json()["error"]["code"] == "budget_exceeded"
+    await control.revoke(KEY)
+    async with httpx.AsyncClient(transport=meter) as c:
+        revoked = await c.post(
+            f"{ep.openai_base_url}/chat/completions", json={"model": "openai/gpt-4o", "messages": []}
+        )
+    assert revoked.status_code == 401
+
+
+async def test_trial_credential_expires(meter: httpx.AsyncBaseTransport, monkeypatch: pytest.MonkeyPatch) -> None:
+    now = 1000.0
+    monkeypatch.setattr(meter_module.time, "time", lambda: now)
+    control = MeterClient("http://meter", ADMIN, transport=meter)
+    await control.register(KEY, ttl_s=1)
+    monkeypatch.setattr(meter_module.time, "time", lambda: now + 2)
+    ep = llm_endpoint("http://meter", KEY, "http://meter")
+    async with httpx.AsyncClient(transport=meter) as c:
+        expired = await c.post(
+            f"{ep.openai_base_url}/chat/completions", json={"model": "openai/gpt-4o", "messages": []}
+        )
+    assert expired.status_code == 401
+
+
+async def test_trial_registration_rejects_non_object_json(meter: httpx.AsyncBaseTransport) -> None:
+    async with httpx.AsyncClient(transport=meter) as c:
+        for key, body in (("bad-json", b"not-json"), ("null-body", b"null"), ("array-body", b"[]")):
+            response = await c.put(
+                f"http://meter/_meter/{ADMIN}/{key}",
+                content=body,
+                headers={"content-type": "application/json"},
+            )
+            assert response.status_code == 400
+
+
+def test_default_trial_ttl_covers_tb2_install_and_turn_timeout() -> None:
+    assert meter_module.TRIAL_CREDENTIAL_TTL_S > 900 + 7200
 
 
 async def test_streaming_chat_completions_request_usage(

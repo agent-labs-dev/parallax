@@ -13,15 +13,16 @@ import hashlib
 import json
 import os
 import re
+import signal
 import tempfile
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, cast
 from urllib.parse import urlparse
 
 import httpx
-from pydantic import BaseModel, JsonValue
+from pydantic import BaseModel, Field, JsonValue, model_validator
 
 from parallax.browser_evidence import BrowserEvidence, reported
 from parallax.extensions import GradeRequest, GradingPolicy, TaskExtension
@@ -42,6 +43,7 @@ from parallax.models import (
     TaskRecord,
 )
 from parallax.semantic import Graded
+from parallax.tau2_terms import TerminationReason
 
 BU_BENCH = "bu-bench"
 ONLINE_MIND2WEB = "online-mind2web"
@@ -54,6 +56,108 @@ MIND2WEB_DATASET_REVISION = "eacad896a84dc5b65e29b0b06e4699ab0544d701"
 MIND2WEB_DATASET_SHA256 = "7dedf381531d423dc0fc48d21dc1d425655dd75f38b10211a880fa09102f257f"
 MIND2WEB_DATASET_GIT_BLOB = "e8a5e5a99f2be9eae14f4e4259bd5af562f80da9"
 BU_JUDGE_MODEL = "gpt-5.6-luna"
+TAU2 = "tau2"
+TAU2_POLICY = "tau2-upstream-v1"
+TAU2_UPSTREAM_COMMIT = "768f3d8fe8528b4f32a5096f9ed008ae50f48ead"
+TAU2_DOMAINS = ("airline", "retail", "telecom")
+TAU2_POLICY_FILES = {"airline": "policy.md", "retail": "policy.md", "telecom": "main_policy.md"}
+TAU2_FILE_SHA256 = {
+    ("airline", "tasks.json"): "ccd8ba737b4cc371415af70151187788f728d6108d0916e73bb4317b40542052",
+    ("airline", "split_tasks.json"): "b22ced4d9a9850ac9aea31c53bdcb6d6009058140bd9acc7db37c1d36222ba8b",
+    ("airline", "policy.md"): "10dc0525421521208be39cee235bba84a16e2bcba9899eb93d92cd81d2f62fc4",
+    ("retail", "tasks.json"): "8e03ebce7901bd6218e7a7dc3105faa9324091a68058f7fe61c65262868812e8",
+    ("retail", "split_tasks.json"): "ed0580ec52575b63fbf76568af42490da6ee7783ecb4aa81af46961291358f20",
+    ("retail", "policy.md"): "2c9652afbce57d6e087768d37cda64d31c53d50b3e3225cfdb791bac66466467",
+    ("telecom", "tasks.json"): "37e562e1ae3242577407e1303b1548bc64e7ea68e37d36173e6747990ceaf8a4",
+    ("telecom", "split_tasks.json"): "605b488bb9a6acb3c7f4505240a855fdc8681d09aadb16a8f38b2efcfc5c3aec",
+    ("telecom", "main_policy.md"): "95943844a0cf11fdf0e2842b483b81d9f9338aa53235712ed131db075d086ed7",
+}
+TAU2_EXPECTED_BASE = {"airline": 50, "retail": 114, "telecom": 114}
+# Upstream benchmark defaults at the pin (`tau2.config`): the semantic communicate judge and
+# the NL-assertion judge. The bridge routes both through the configured judge gateway under
+# these ids, validated by the preflight in `_grade_tau2` before any bridge process starts.
+TAU2_COMMUNICATE_JUDGE_MODEL = "gpt-5.5"
+TAU2_NL_JUDGE_MODEL = "gpt-5.4-mini-2026-03-17"
+# The user simulator's model: upstream's default at the pin (`tau2.config.DEFAULT_LLM_USER`),
+# run by parallax through the configured gateway; its cost is simulator cost, never harness usage.
+TAU2_SIMULATOR_MODEL = "gpt-4.1-2025-04-14"
+TAU2_BRIDGE_TIMEOUT_S = 900.0
+
+
+class Tau2ToolCall(Model):
+    id: str = ""
+    name: str
+    # Upstream `tau2.data_model.message.ToolCall.arguments` is a dict; a string form is rejected.
+    arguments: dict[str, JsonValue] = {}
+    requestor: Literal["assistant", "user"] = "assistant"
+
+
+class Tau2Message(Model):
+    model_config = {"extra": "allow", "frozen": True}
+
+    role: Literal["system", "user", "assistant", "tool"]
+    content: str | None = None
+    tool_calls: tuple[Tau2ToolCall, ...] | None = None
+    id: str | None = None
+    requestor: Literal["assistant", "user"] = "assistant"
+    error: bool = False
+
+
+class Tau2Evidence(Model):
+    """Parallax's own recorded tau2 trial evidence: the full upstream transcript and how it ended.
+
+    The runner records it from its tool server's log and the turns it drove; harness-reported
+    evidence is never graded. Every assistant tool call must be followed, in order, by its
+    `ToolMessage`(s); the evaluator replays those calls itself, so no separate tool-call list
+    or final database state is accepted. `termination_reason` is required, with no default.
+    """
+
+    transcript: tuple[Tau2Message, ...] = Field(min_length=1)
+    termination_reason: TerminationReason
+
+    @model_validator(mode="after")
+    def _tool_calls_are_followed_by_tool_messages(self) -> Tau2Evidence:
+        messages = self.transcript
+        for index, message in enumerate(messages):
+            if message.role != "assistant" or not message.tool_calls:
+                continue
+            following = messages[index + 1 : index + 1 + len(message.tool_calls)]
+            if len(following) != len(message.tool_calls) or any(m.role != "tool" for m in following):
+                raise ValueError(
+                    f"transcript[{index}]: assistant tool calls must each be followed by their ToolMessage, in order"
+                )
+            for call, tool_message in zip(message.tool_calls, following, strict=True):
+                if call.id and tool_message.id not in (None, call.id):
+                    raise ValueError(
+                        f"transcript[{index}]: ToolMessage id {tool_message.id!r} does not match tool call {call.id!r}"
+                    )
+        return self
+
+
+def parse_tau2_evidence(recorded: JsonObject | None) -> Tau2Evidence:
+    """Validate the transcript parallax itself recorded (`GradeRequest.runner_recorded`).
+
+    Harness-reported evidence is never accepted here: only the runner's own record grades.
+    Raises ValueError with the reason when it cannot grade.
+    """
+    if not isinstance(recorded, dict):
+        raise ValueError("parallax recorded no tau2 transcript for this trial")
+    return Tau2Evidence.model_validate(recorded)
+
+
+def tau2_task_digest(task: JsonObject) -> str:
+    """SHA-256 over the canonical JSON of a full pinned tau2 task, as stored in `TaskRecord.data`."""
+    return hashlib.sha256(json.dumps(task, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def tau2_task_from_data(data: JsonObject) -> JsonObject:
+    """The full pinned task JSON from a tau2 record's data, digest-checked; raises on mismatch."""
+    task = data.get("task")
+    if not isinstance(task, dict):
+        raise OfficialSuiteError("tau2 task data carries no full pinned task JSON")
+    if data.get("task_digest") != tau2_task_digest(task):
+        raise OfficialSuiteError("tau2 task JSON failed its digest check")
+    return task
 
 
 @dataclass(frozen=True)
@@ -275,6 +379,79 @@ def bu_tasks() -> Iterable[TaskRecord]:
 
 def mind2web_tasks() -> Iterable[TaskRecord]:
     return _records(MIND2WEB_SPEC, fetch_dataset(MIND2WEB_SPEC, token=os.environ.get("HF_TOKEN")))
+
+
+def _fetch_tau2_file(domain: str, name: str) -> bytes:
+    spec = SuiteSpec(
+        source=f"{TAU2}-{domain}",
+        policy=TAU2_POLICY,
+        upstream_commit=TAU2_UPSTREAM_COMMIT,
+        dataset_url=(
+            f"https://raw.githubusercontent.com/sierra-research/tau2-bench/{TAU2_UPSTREAM_COMMIT}"
+            f"/data/tau2/domains/{domain}/{name}"
+        ),
+        dataset_sha256=TAU2_FILE_SHA256[(domain, name)],
+        dataset_revision=TAU2_UPSTREAM_COMMIT,
+        expected_count=1,
+    )
+    return fetch_dataset(spec)
+
+
+def _tau2_json(domain: str, name: str) -> Any:
+    try:
+        return json.loads(_fetch_tau2_file(domain, name))
+    except json.JSONDecodeError as exc:
+        raise OfficialSuiteError(f"{TAU2}: {domain}/{name} is not JSON") from exc
+
+
+def tau2_tasks() -> Iterable[TaskRecord]:
+    """One world-less record per (domain, base-split task id); parallax drives the simulator loop.
+
+    Each record carries the full pinned task JSON (`data["task"]`, digest-checked in
+    `data["task_digest"]`) so the runner can build the simulator from the task's own scenario.
+    The scenario never enters the prompt, which carries only the domain policy, as upstream.
+    """
+    records: list[TaskRecord] = []
+    used: set[str] = set()
+    for domain in TAU2_DOMAINS:
+        rows = _tau2_json(domain, "tasks.json")
+        splits = _tau2_json(domain, "split_tasks.json")
+        if not isinstance(rows, list) or not isinstance(splits, dict) or not isinstance(splits.get("base"), list):
+            raise OfficialSuiteError(f"{TAU2}: {domain} dataset has no base split")
+        by_id = {str(row.get("id")): row for row in rows if isinstance(row, dict) and row.get("id") is not None}
+        base = [str(task_id) for task_id in splits["base"]]
+        if len(base) != TAU2_EXPECTED_BASE[domain] or any(task_id not in by_id for task_id in base):
+            raise OfficialSuiteError(f"{TAU2}: {domain} base split does not match its task list")
+        policy = _fetch_tau2_file(domain, TAU2_POLICY_FILES[domain]).decode()
+        policy_ref = f"data/tau2/domains/{domain}/{TAU2_POLICY_FILES[domain]}@{TAU2_UPSTREAM_COMMIT}"
+        for upstream_id in base:
+            prompt = (
+                f"{policy.strip()}\n\n---\n\nYou are the {domain} customer-service agent. A simulated "
+                "customer will describe their request over several turns; use the domain tools and follow "
+                "the policy above."
+            )
+            full_task = cast(JsonObject, by_id[upstream_id])
+            records.append(
+                TaskRecord(
+                    id=_task_id(TAU2, f"{domain}-{upstream_id}", len(records), used),
+                    version=1,
+                    area=Area.SAAS,
+                    summary=f"{TAU2} {domain} task {upstream_id}",
+                    prompt=prompt,
+                    grading=TAU2_POLICY,
+                    requires=frozenset({Capability.MCP, Capability.MULTI_TURN}),
+                    maturity="regression",
+                    provenance=Provenance.CONVERTED,
+                    data={
+                        "domain": domain,
+                        "upstream_task_id": upstream_id,
+                        "policy_ref": policy_ref,
+                        "task": full_task,
+                        "task_digest": tau2_task_digest(full_task),
+                    },
+                )
+            )
+    return records
 
 
 def _config(req: GradeRequest, spec: SuiteSpec) -> _Config:
@@ -516,6 +693,296 @@ def _policy(spec: SuiteSpec) -> GradingPolicy:
         identity=lambda: _policy_identity(spec),
     )
 
+
+def _tau2_checks(_task: Task) -> tuple[Check, ...]:
+    return (
+        RubricCheck(
+            id="upstream_evaluator",
+            kind="rubric",
+            mode=FailureMode.WRONG_OUTPUT,
+            items=("The pinned upstream tau2 evaluate_simulation accepts the completed simulation.",),
+        ),
+    )
+
+
+def _tau2_unjudged(task: Task, detail: str) -> Graded:
+    return Graded(checks=tuple(_result(check, None, detail) for check in _tau2_checks(task)))
+
+
+def _tau2_root() -> tuple[Path, Path]:
+    root_text = os.environ.get("PARALLAX_OFFICIAL_TAU2_ROOT") or os.environ.get("PARALLAX_OFFICIAL_UPSTREAM_ROOT")
+    if not root_text:
+        raise OfficialSuiteError("PARALLAX_OFFICIAL_TAU2_ROOT is required for tau2 grading")
+    root = Path(root_text).expanduser().resolve()
+    python = Path(
+        os.environ.get("PARALLAX_OFFICIAL_TAU2_PYTHON")
+        or os.environ.get("PARALLAX_OFFICIAL_UPSTREAM_PYTHON", root / ".venv" / "bin" / "python")
+    )
+    if not root.is_dir() or not python.is_file():
+        raise OfficialSuiteError("tau2 checkout and its interpreter must be configured")
+    return root, python.expanduser().absolute()
+
+
+def _tau2_judge_env(req: GradeRequest) -> dict[str, str]:
+    """Only the judge's endpoint and key cross into the bridge, through an explicit allowlist.
+
+    Tau2's semantic communicate and NL-assertion judges call LiteLLM, which reads the
+    OpenAI-compatible endpoint from these names. Simulator keys never enter the bridge.
+    """
+    config = req.judge_config
+    base_url = config.base_url if config is not None else os.environ.get("PARALLAX_JUDGE_BASE_URL", "")
+    api_key = config.api_key if config is not None else os.environ.get("PARALLAX_JUDGE_API_KEY", "")
+    env: dict[str, str] = {}
+    if base_url:
+        env["OPENAI_BASE_URL"] = base_url
+    if api_key:
+        env["OPENAI_API_KEY"] = api_key
+    return env
+
+
+def _read_judge_calls(calls_file: Path) -> list[dict[str, Any]]:
+    """Judge calls recorded as they happened, from the side file: the one judge-call channel."""
+    calls: list[dict[str, Any]] = []
+    if calls_file.is_file():
+        for line in calls_file.read_text(encoding="utf-8").splitlines():
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(entry, dict):
+                calls.append(entry)
+    return calls
+
+
+def _bridge_error(error_text: str) -> str:
+    """Grade detail for a failed bridge: the stderr exception class and a fixed reason only.
+
+    Raw bridge stderr never reaches a grade: it can carry judge responses and request detail.
+    """
+    last = error_text.strip().splitlines()[-1:][0].strip() if error_text.strip() else ""
+    label = last.split(":", 1)[0].strip()
+    if not re.fullmatch(r"[A-Za-z_][\w.]*", label or ""):
+        label = "Error"
+    return f"{label}: tau2 bridge failed"
+
+
+async def _tau2_bridge(req: GradeRequest, payload: dict[str, JsonValue]) -> dict[str, Any]:
+    """Run the bridge bounded by `TAU2_BRIDGE_TIMEOUT_S`; its process group is killed on timeout
+    or cancellation. Judge calls recorded before a failure come back in `calls` either way, and a
+    failed bridge returns `{"error": ..., "calls": [...]}` instead of raising."""
+    root, python = _tau2_root()
+    command = (str(python), "-B", str(Path(__file__).with_name("tau2_bridge.py")))
+    env = {"PATH": os.environ.get("PATH", ""), "LANG": os.environ.get("LANG", "C.UTF-8"),
+           "LC_ALL": os.environ.get("LC_ALL", "C.UTF-8"), **_tau2_judge_env(req)}  # fmt: skip
+    with tempfile.TemporaryDirectory(prefix="parallax-tau2-") as directory:
+        calls_file = Path(directory) / "judge-calls.jsonl"
+        payload = {**payload, "root": str(root), "calls_file": str(calls_file)}
+        process = await asyncio.create_subprocess_exec(
+            *command, cwd=root, env=env, stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, start_new_session=True,
+        )  # fmt: skip
+        timed_out = False
+        output, error = b"", b""
+        try:
+            output, error = await asyncio.wait_for(
+                process.communicate(json.dumps(payload).encode()), timeout=TAU2_BRIDGE_TIMEOUT_S
+            )
+        except TimeoutError:
+            timed_out = True
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError):
+                process.kill()
+            await process.wait()
+        except BaseException:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError):
+                process.kill()
+            await process.wait()
+            raise
+        error_text = error.decode(errors="replace")
+        if timed_out:
+            return {
+                "error": f"tau2 bridge timed out after {TAU2_BRIDGE_TIMEOUT_S:.0f}s",
+                "calls": _read_judge_calls(calls_file),
+            }
+        calls = _read_judge_calls(calls_file)
+        if process.returncode != 0:
+            return {"error": _bridge_error(error_text), "calls": calls}
+        try:
+            result = json.loads(output)
+        except json.JSONDecodeError:
+            return {"error": "tau2 bridge returned invalid JSON", "calls": calls}
+        if not isinstance(result, dict):
+            return {"error": "tau2 bridge returned a non-object", "calls": calls}
+        return {**cast(dict[str, Any], result), "calls": calls}
+
+
+def _tau2_judgment(req: GradeRequest, payload: Mapping[str, JsonValue], result: Mapping[str, Any]) -> Judgment | None:
+    """The bridge's judge calls as a priced judgment; None when the evaluator made none."""
+    calls = result.get("calls")
+    if not isinstance(calls, list) or not calls:
+        return None
+    passed, reason = result.get("passed"), result.get("reason")
+    decisions = (
+        {"upstream": Decision(passed=passed, source="llm", reason=reason)}
+        if isinstance(passed, bool) and isinstance(reason, str)
+        else {}
+    )
+    return Judgment(
+        policy=TAU2_POLICY,
+        identity=f"{TAU2_POLICY}:{TAU2}:evaluator-{TAU2_UPSTREAM_COMMIT}",
+        state_sha256=hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest(),
+        questions={"upstream": "The pinned upstream tau2 evaluator decides the task."},
+        decisions=decisions,
+        fallback_calls=tuple(
+            FallbackCall.model_validate({**call, "attempt": index})
+            for index, call in enumerate(calls)
+            if isinstance(call, dict)
+        ),
+    )
+
+
+# Successful gateway probes are cached per process: keyed by gateway, the key's SHA-256
+# fingerprint prefix (never the key itself) and both judge ids. Failures are not cached, so a
+# later process (or a retry after a transient gateway failure) probes again.
+_TAU2_PREFLIGHT_CACHE: dict[tuple[str, str, str, str], str | None] = {}
+
+
+async def _tau2_gateway_models(base_url: str, api_key: str) -> set[str]:
+    """The model ids the configured judge gateway offers, from its OpenAI-compatible list."""
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        response = await client.get(f"{base_url.rstrip('/')}/models", headers={"Authorization": f"Bearer {api_key}"})
+        response.raise_for_status()
+        payload = response.json()
+    rows = payload.get("data") if isinstance(payload, dict) else None
+    if not isinstance(rows, list):
+        raise OfficialSuiteError("tau2 judge gateway returned no model list")
+    return {str(row["id"]) for row in rows if isinstance(row, dict) and row.get("id")}
+
+
+def _key_fingerprint(api_key: str) -> str:
+    """The cache-key fingerprint of a gateway key: a SHA-256 prefix, never the key itself."""
+    return hashlib.sha256(api_key.encode()).hexdigest()[:16]
+
+
+async def _tau2_preflight(req: GradeRequest) -> str | None:
+    """Query the judge gateway's model list and refuse when either judge id is missing.
+
+    A successful probe is cached per process, keyed by gateway, key fingerprint (see
+    `_key_fingerprint`) and both judge ids; failures are not cached. A missing judge endpoint
+    or key, an unreachable gateway and a missing checkout each refuse before any bridge process
+    or judge spend starts.
+    """
+    env = _tau2_judge_env(req)
+    if not env.get("OPENAI_BASE_URL") or not env.get("OPENAI_API_KEY"):
+        return "tau2 judge gateway is not configured (judge endpoint and key are required)"
+    try:
+        _tau2_root()
+    except OfficialSuiteError as exc:
+        return str(exc)
+    key = (
+        env["OPENAI_BASE_URL"],
+        _key_fingerprint(env["OPENAI_API_KEY"]),
+        TAU2_COMMUNICATE_JUDGE_MODEL,
+        TAU2_NL_JUDGE_MODEL,
+    )
+    if key in _TAU2_PREFLIGHT_CACHE:
+        return _TAU2_PREFLIGHT_CACHE[key]
+    result: str | None
+    try:
+        offered = await _tau2_gateway_models(env["OPENAI_BASE_URL"], env["OPENAI_API_KEY"])
+    except (httpx.HTTPError, OSError, ValueError, OfficialSuiteError) as exc:
+        result = f"tau2 judge gateway model list could not be read ({type(exc).__name__})"
+    else:
+        missing = [model for model in (TAU2_COMMUNICATE_JUDGE_MODEL, TAU2_NL_JUDGE_MODEL) if model not in offered]
+        result = f"tau2 judge model(s) not offered by the configured gateway: {', '.join(missing)}" if missing else None
+    if result is None:  # failures are not cached: a later grade probes the gateway again
+        _TAU2_PREFLIGHT_CACHE[key] = result
+    return result
+
+
+async def _grade_tau2(req: GradeRequest) -> Graded:
+    interruption = req.execution.get("error")
+    if isinstance(interruption, str) and interruption.startswith("environment interruption: "):
+        return _tau2_unjudged(req.task, interruption)
+    try:
+        evidence = parse_tau2_evidence(req.runner_recorded)
+    except ValueError as exc:
+        return _tau2_unjudged(req.task, f"missing evidence: invalid tau2 evidence: {exc}")
+    if (preflight := await _tau2_preflight(req)) is not None:
+        return _tau2_unjudged(req.task, f"missing evidence: tau2 judge preflight failed: {preflight}")
+    data = req.task.data
+    try:
+        tau2_task_from_data(data)  # the recorded trial must belong to the digest-checked pinned task
+    except OfficialSuiteError as exc:
+        return _tau2_unjudged(req.task, f"missing evidence: {exc}")
+    # Simulator spend is parallax's own record: it is not forwarded and never priced here.
+    payload: dict[str, JsonValue] = {
+        "operation": "evaluate",
+        "suite": TAU2,
+        "commit": TAU2_UPSTREAM_COMMIT,
+        "domain": str(data.get("domain", "")),
+        "task_id": str(data.get("upstream_task_id", "")),
+        "transcript": cast(JsonValue, evidence.model_dump(mode="json")["transcript"]),
+        "termination_reason": evidence.termination_reason,
+        "judge_models": {"communicate": TAU2_COMMUNICATE_JUDGE_MODEL, "nl": TAU2_NL_JUDGE_MODEL},
+    }
+    try:
+        result = await _tau2_bridge(req, payload)
+    except (OfficialSuiteError, OSError, ValueError) as exc:
+        # No judge calls were recorded, so zero calls are recorded: no unpriced call stands in.
+        return _tau2_unjudged(req.task, f"missing evidence: upstream tau2 evaluator unavailable: {type(exc).__name__}")
+    if isinstance(result.get("error"), str):
+        # Judge calls recorded before the failure still price the grade; with none recorded,
+        # zero calls are recorded, not one unpriced call.
+        judgment = _tau2_judgment(req, payload, result)
+        spend = {"judgments": (judgment,) if judgment is not None else (), "unpriced_calls": 0}
+        return _tau2_unjudged(
+            req.task, f"missing evidence: upstream tau2 evaluator unavailable: {result['error']}"
+        ).model_copy(update=spend)
+    judgment = _tau2_judgment(req, payload, result)
+    judgments = (judgment,) if judgment is not None else ()
+    spend = {"judgments": judgments, "unpriced_calls": 0}
+    if not isinstance(result.get("score"), (int, float)) or not isinstance(result.get("passed"), bool):
+        return _tau2_unjudged(req.task, "missing evidence: upstream tau2 evaluator returned no valid score").model_copy(
+            update=spend
+        )
+    score = float(result["score"])
+    if not 0 <= score <= 1:
+        return _tau2_unjudged(
+            req.task, "missing evidence: upstream tau2 evaluator returned an out-of-range score"
+        ).model_copy(update=spend)
+    detail = f"upstream tau2 reward={score:.6g}; revision={TAU2_UPSTREAM_COMMIT}"
+    return Graded(
+        checks=tuple(_result(check, bool(result["passed"]), detail) for check in _tau2_checks(req.task)),
+        judge_identity=f"{TAU2_POLICY}:{TAU2}:evaluator-{TAU2_UPSTREAM_COMMIT}",
+        score=score,
+        judgments=judgments,
+        unpriced_calls=0,
+    )
+
+
+TAU2_POLICY_OBJECT = GradingPolicy(
+    id=TAU2_POLICY,
+    checks=_tau2_checks,
+    evidence=_no_world,
+    grade=_grade_tau2,
+    judge=JudgePolicy(
+        name=f"{TAU2_POLICY}:{TAU2_UPSTREAM_COMMIT}",
+        questions={"upstream": "The pinned upstream tau2 evaluator decides the task."},
+        evidence_form=f"tau2 full transcript and termination_reason, pinned revision {TAU2_UPSTREAM_COMMIT}",
+    ),
+    identity=lambda: f"{TAU2_POLICY}:{TAU2}:evaluator-{TAU2_UPSTREAM_COMMIT}",
+)
+
+TAU2_POLICY_EXTENSION = TaskExtension(
+    name="official-tau2",
+    model=OfficialMetadata,
+    default_services=False,
+    policy=TAU2_POLICY_OBJECT,
+)
 
 BU_POLICY_EXTENSION = TaskExtension(
     name="official-bu-bench",

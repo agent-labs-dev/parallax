@@ -153,6 +153,119 @@ INFO = HarnessInfo(name="h", kind=HarnessKind.OPEN, capabilities=frozenset(Capab
                    cost_source=CostSource.METERED, isolation=Isolation.HOST, version_cmd=("h",))  # fmt: skip
 
 
+async def test_budget_admission_refuses_unpriced_model_before_reserve(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from types import SimpleNamespace
+
+    class Budget:
+        reservation = 0.1
+
+        def __init__(self) -> None:
+            self.reserves = 0
+
+        async def reserve(self, _trial: str) -> None:
+            self.reserves += 1
+            raise AssertionError("budget.reserve must not be called")
+
+        async def settle(self, _hold: object, _spent: float | None) -> None:
+            raise AssertionError("budget.settle must not be called")
+
+    task = load_task(TASKS / "mini-mail")
+    for model, upstream, wire_model in (
+        ("openai/unpriced", "PARALLAX_UPSTREAM_OPENAI", "unpriced"),
+        ("anthropic/unpriced", "PARALLAX_UPSTREAM_ANTHROPIC", "unpriced"),
+    ):
+        plan = runner.TrialPlan(
+            task=task,
+            harness=runner.HarnessPlan("h", INFO, "1", "config"),
+            model=model,
+            repeat=0,
+            key=f"mini-mail:h:{model}:0",
+        )
+        seen: list[tuple[str, str]] = []
+        monkeypatch.setenv(upstream, "https://actual-upstream.test/v1")
+        monkeypatch.setattr(
+            runner,
+            "model_price_known",
+            lambda requested, url, seen=seen: seen.append((requested, url)) or False,
+        )
+        session = runner.Session(SimpleNamespace(isolation=Isolation.HOST), tmp_path, None, None, budget=Budget())
+        result = await session.trial(plan)
+        assert seen == [(wire_model, "https://actual-upstream.test/v1")]
+        assert "no known price" in (result.result.invalid_reason or "")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("model", "wire"),
+    [("openai/gpt-4o", "openai"), ("anthropic/claude-sonnet-4-5", "anthropic")],
+)
+async def test_trial_registration_uses_manifest_wire_model_name(tmp_path: Path, model: str, wire: str) -> None:
+    from types import SimpleNamespace
+
+    class Meter:
+        def __init__(self) -> None:
+            self.kwargs: dict[str, object] = {}
+
+        async def register(self, _key: str, **kwargs: object) -> None:
+            self.kwargs = kwargs
+
+    task = load_task(TASKS / "mini-mail")
+    info = INFO.model_copy(update={"meter_wire": "model"})
+    plan = runner.TrialPlan(
+        task=task,
+        harness=runner.HarnessPlan("h", info, "1", "config"),
+        model=model,
+        repeat=0,
+        key=f"mini-mail:h:{model}:0",
+    )
+    meter = Meter()
+    svc = SimpleNamespace(
+        meter_client=lambda: meter,
+        meter_for_box=lambda _isolation: "http://meter",
+        egress_env=lambda _task, _isolation: {},
+    )
+    execution = object.__new__(runner.TrialExecution)
+    execution.s = SimpleNamespace(svc=svc, budget=SimpleNamespace(reservation=0.1))
+    execution.plan = plan
+    execution.task = task
+    execution.task_container = None
+    execution.tau2_token = None
+    execution.tau2_mcp = None
+    execution.secrets = []
+    execution.assets = None
+    execution.box_iso = Isolation.HOST
+    execution.trial_id = lambda: "trial-1"
+
+    box = SimpleNamespace(isolation=Isolation.HOST, workspace=tmp_path / "workspace", home=tmp_path / "home")
+    box.workspace.mkdir()
+    box.home.mkdir()
+    await execution.trial_input(box, None)
+    assert meter.kwargs["model"] == model.partition("/")[2]
+    assert meter.kwargs["wire"].value == wire
+
+
+@pytest.mark.asyncio
+async def test_tau2_registration_unhooks_backend_when_public_check_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    from parallax.world.server import WorldServer
+
+    service = runner.Services(Isolation.HOST, "https://world.test", False, "run")
+    service._server = WorldServer()
+    service.world_local = "http://127.0.0.1:1234"
+    seen: list[str] = []
+
+    async def fail_check(_public: str, _local: str, *, token: str | None, nonce: str | None) -> None:
+        assert token is not None and nonce is not None
+        seen.append(token)
+        raise runner.BoxError("wrong public world")
+
+    monkeypatch.setattr(runner, "check_public_world", fail_check)
+    with pytest.raises(runner.BoxError, match="wrong public world"):
+        await service.register_tau2(object())
+    assert seen and service._server.backend_for(seen[0]) is None
+
+
 @pytest.mark.parametrize(
     ("actual", "unobserved", "flags"),
     [
@@ -806,3 +919,14 @@ def test_docker_harness_probes_the_desktop_image_separately() -> None:
         BoxKind.HOST,
         BoxKind.DESKTOP,
     }
+
+
+def test_tau2_refuses_a_docker_box_that_cannot_reach_its_tool_server():
+    tau2 = load_task(TASKS / "mini-mail").model_copy(update={"grading": "tau2-upstream-v1"})
+    docker = INFO.model_copy(update={"isolation": Isolation.DOCKER})
+    remote = INFO.model_copy(update={"isolation": Isolation.REMOTE})
+
+    assert runner.tau2_unreachable(tau2, docker, Isolation.DOCKER)
+    assert not runner.tau2_unreachable(tau2, docker, Isolation.HOST)
+    assert not runner.tau2_unreachable(tau2, remote, Isolation.DOCKER)  # a device box reaches it as a remote product
+    assert not runner.tau2_unreachable(load_task(TASKS / "mini-mail"), docker, Isolation.DOCKER)

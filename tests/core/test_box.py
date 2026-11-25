@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import json
 import os
 import secrets
 import signal
@@ -20,7 +21,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
-from parallax import __version__
+from parallax import __version__, egress
 from parallax import box as boxes
 from parallax.box import (
     PIPE_QUIET_S,
@@ -266,6 +267,62 @@ async def test_box_network_reaches_only_the_sidecar() -> None:
     assert status["http://sidecar:7802/_health"] == "200"
 
 
+def test_sidecar_allowlist_composes_harness_hosts_with_model_hosts() -> None:
+    sidecar = Sidecar(
+        secrets.token_urlsafe(16), secrets.token_urlsafe(16), egress_hosts=("api.product.example", "registry.npmjs.org")
+    )
+
+    assert sidecar.allowed_hosts == ("api.product.example", "openrouter.ai", "registry.npmjs.org")
+    assert egress.allowed("api.product.example", 443, sidecar.allowed_hosts)
+    assert egress.allowed("registry.npmjs.org", 443, sidecar.allowed_hosts)
+    assert not egress.allowed("example.com", 443, sidecar.allowed_hosts)
+
+
+async def test_sidecar_trial_network_is_private_and_removed(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[tuple[str, ...]] = []
+
+    async def fake_docker(*args: str, **kwargs: object) -> str:
+        calls.append(args)
+        return ""
+
+    monkeypatch.setattr(boxes, "docker", fake_docker)
+    sidecar = Sidecar("world", "meter")
+    sidecar.container = "run-sidecar"
+    network = await sidecar.trial_network("trial-1")
+    assert network.startswith("px-trial-")
+    assert calls[0][:3] == ("network", "create", "--internal")
+    assert calls[1] == ("network", "connect", "--alias", "sidecar", network, "run-sidecar")
+    await sidecar.remove_trial_network(network)
+    assert calls[-2:] == [
+        ("network", "disconnect", network, "run-sidecar"),  # docker takes NETWORK CONTAINER
+        ("network", "rm", network),
+    ]
+
+
+async def test_orphan_trial_network_sweep_keeps_live_sidecar_networks(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[tuple[str, ...]] = []
+
+    async def fake_docker(*args: str, **kwargs: object) -> str:
+        calls.append(args)
+        if args[:3] == ("network", "ls", "--filter"):
+            return "orphan\nlive\n"
+        if args[:2] == ("network", "inspect"):
+            owner = "100" if args[-1] == "orphan" else "101"
+            return json.dumps({"Labels": {"parallax.owner-pid": owner}, "Containers": {}})
+        return ""
+
+    monkeypatch.setattr(boxes, "docker", fake_docker)
+
+    def fake_kill(pid: int, _signal: int) -> None:
+        if pid == 100:
+            raise ProcessLookupError(pid)
+
+    monkeypatch.setattr(boxes.os, "kill", fake_kill)
+    await boxes.sweep_orphan_trial_networks()
+    assert ("network", "rm", "orphan") in calls
+    assert ("network", "rm", "live") not in calls
+
+
 def remote_info(remote_box: RemoteBox) -> HarnessInfo:
     return HarnessInfo(
         name="remote", kind=next(iter(HarnessKind)), capabilities=frozenset(), pins_model=True,
@@ -507,7 +564,7 @@ def test_every_box_image_runs_the_harness_install_line_as_the_manifest_wrote_it(
 def test_the_claude_code_install_allows_only_its_own_package_scripts() -> None:
     # npm 12 blocks install scripts by default; claude-code's postinstall places its native binary.
     install = harness_from_manifest("claude-code").info.install
-    assert install == "npm i -g @anthropic-ai/claude-code --allow-scripts=@anthropic-ai/claude-code"
+    assert install == "npm i -g @anthropic-ai/claude-code@2.1.325 --allow-scripts=@anthropic-ai/claude-code"
 
 
 async def test_hyprland_boxes_take_the_one_display_in_turn(monkeypatch: pytest.MonkeyPatch) -> None:

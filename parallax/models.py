@@ -13,7 +13,7 @@ import re
 from datetime import date
 from enum import StrEnum
 from pathlib import Path
-from typing import Annotated, Literal, TypeVar
+from typing import Annotated, Literal, TypeVar, assert_never
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, JsonValue, PlainSerializer, model_validator
 
@@ -114,6 +114,10 @@ class Capability(StrEnum):
     TERMINAL = "terminal"
     # Operates a web browser on live sites; a task requiring it runs on no seeded world.
     BROWSER = "browser"
+    # Acts inside the task container parallax starts for the trial (`Trial.task_container`), so
+    # the grader can run the task's verifier in that same container after the harness stops.
+    # A harness without it is NA on such tasks.
+    LIVE_CONTAINER = "live_container"
     # Receives a task's site login through a protected binding that the model cannot inspect.
     CREDENTIALS = "credentials"
     # Is told which irreversible actions a task authorizes and stops before any other one, reporting it. A task needs it
@@ -787,7 +791,15 @@ class HarnessInfo(Model):
     install: str = ""  # RUN line for box.Dockerfile
     version_cmd: tuple[str, ...] = ()
     web_disabled_by: Literal["flag", "config", "none"] = "none"
+    # The metering wire selected by a manifest. `model` selects the wire from the model provider;
+    # the explicit values cover manifests whose CLI always speaks one vendor wire.
+    meter_wire: Literal["model", "openai", "anthropic"] = Field(
+        default="model", exclude_if=lambda wire: wire == "model"
+    )
     source_url: str = ""
+    # HTTPS hosts a harness needs to reach directly through the run's egress proxy, such as a
+    # product API or a CLI distribution host. The proxy still starts with its model endpoints.
+    egress_hosts: tuple[str, ...] = Field(default=(), exclude_if=lambda hosts: not hosts)
     # Host env vars forwarded into the box verbatim, for a harness the meter cannot route (its
     # provider API is not one the meter speaks). Only legal when cost_source is not metered; every
     # row it produces is flagged NATIVE_CREDENTIAL, since nothing parallax-owned saw its spend.
@@ -837,6 +849,10 @@ class Trial(Model):
     desktop_commands: tuple[tuple[str, ...], ...] = ()
     # Collector-owned binary evidence, retained below the trial directory and excluded from JSON contracts.
     assets: TrialAssets | None = Field(default=None, exclude=True, repr=False)
+    # The task container parallax started for this trial (name), for a task requiring
+    # `live_container`: the harness acts inside it, the grader verifies in it, and parallax
+    # removes it after grading. None for every other task.
+    task_container: str | None = Field(default=None, exclude_if=lambda v: v is None)
 
     @property
     def world_mcp(self) -> McpEndpoint:
@@ -992,6 +1008,15 @@ class ConfigFile(Model):
     desktop_content: JsonObject | None = None
 
 
+class Tb2Artifact(Model):
+    """A host-fetched, checksum-verified file copied into a live task container."""
+
+    name: str
+    url: str
+    algorithm: Literal["sha256", "sha512"] = "sha256"
+    digest: str
+
+
 class ManifestSpec(Model):
     """harnesses/manifests/<name>.toml
 
@@ -1011,6 +1036,35 @@ class ManifestSpec(Model):
     env: dict[str, str] = {}
     config: tuple[ConfigFile, ...] = ()
     status_note: str = ""  # e.g. "binary not installed in reference env: unverified"
+    # TB2 (live-container) mode, Harbor-style: `tb2_install` runs as root inside the owned task
+    # container once per trial, then the agent command (`tb2_argv_first`/`tb2_argv_next`) runs
+    # inside that container via `docker exec`, with credentials passed per exec from `env`
+    # (the manifest's env allowlist), never baked into the image or written to disk. Declaring
+    # these grants `live_container`; a manifest without them is NA on TB2 tasks.
+    tb2_install: str = ""
+    tb2_prerequisites: tuple[str, ...] = ()
+    tb2_artifacts: tuple[Tb2Artifact, ...] = ()
+    tb2_argv_first: tuple[str, ...] = ()
+    tb2_argv_next: tuple[str, ...] = ()
+
+    @model_validator(mode="after")
+    def _meter_wire_matches_base_url(self) -> ManifestSpec:
+        """A fixed meter wire must be the only meter base URL the manifest points its CLI at."""
+        match self.info.meter_wire:
+            case "model":
+                return self
+            case "openai":
+                wanted, other = "{meter_openai}", "{meter_anthropic}"
+            case "anthropic":
+                wanted, other = "{meter_anthropic}", "{meter_openai}"
+            case unreachable:
+                assert_never(unreachable)
+        rendered = self.model_dump_json(exclude={"info", "status_note"})
+        if wanted not in rendered or other in rendered:
+            raise ValueError(
+                f"{self.info.name}: meter_wire={self.info.meter_wire!r} needs {wanted} and no {other} in its manifest"
+            )
+        return self
 
 
 # ---------------------------------------------------------------------------
