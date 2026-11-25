@@ -14,11 +14,20 @@ class FakeBrowser:
 
     def __init__(self, **kwargs: Any) -> None:
         self.kwargs = kwargs
-        self.cloud_cdp_url = "wss://cdp.test"
-        self.id = "browser-1"
-        self.live_url = "https://live.test/1"
         self.stopped = False
+        self._agent_tab = None
         FakeBrowser.instances.append(self)
+
+    def remember_tab(self) -> None:
+        self._agent_tab = "tab-2"
+
+    def _cdp(self) -> Any:
+        return lambda method: {
+            "targetInfos": [
+                {"targetId": "tab-1", "url": "https://other.test/"},
+                {"targetId": "tab-2", "url": "https://site.test/final"},
+            ]
+        }
 
     async def start(self) -> None:
         return None
@@ -29,7 +38,8 @@ class FakeBrowser:
 
 class FakeResult:
     status = "completed"
-    error = None
+    error: str | None = None
+    structured_output: Any = None
     usage = {"input": 10, "output": 3, "cache_read": 0, "cache_write": 0, "requests": 1}
     cost_usd = 0.012
 
@@ -43,7 +53,7 @@ class FakeResult:
         return True
 
 
-def fake_browser_use(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
+def fake_browser_use(monkeypatch: pytest.MonkeyPatch, result: FakeResult | None = None) -> dict[str, Any]:
     seen: dict[str, Any] = {}
     module = ModuleType("browser_use")
 
@@ -67,13 +77,27 @@ def fake_browser_use(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
                 model_response_str=lambda: "ok",
             )
             message = SimpleNamespace(kind="response", model_name="openai/gpt-6-luna", parts=[call, back])
-            return FakeResult([message])
+            outcome = result or FakeResult([])
+            outcome.messages = [message]
+            return outcome
 
     module.Agent = Agent  # type: ignore[attr-defined]
     module.Browser = FakeBrowser  # type: ignore[attr-defined]
     module.ChatOpenAI = chat_openai  # type: ignore[attr-defined]
     session = ModuleType("browser_use.repl.session")
     session.MODES = ("default", "accessibility-tree-mode")  # type: ignore[attr-defined]
+
+    class TransientError(Exception):
+        pass
+
+    TransientError.__name__ = "ModelServerError"
+    loop = ModuleType("browser_use.agent.loop")
+    loop.TRANSIENT = (TransientError,)  # type: ignore[attr-defined]
+    pydantic_ai = ModuleType("pydantic_ai")
+    pydantic_ai.StructuredDict = lambda schema: ("structured", schema)  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "pydantic_ai", pydantic_ai)
+    monkeypatch.setitem(sys.modules, "browser_use.agent", ModuleType("browser_use.agent"))
+    monkeypatch.setitem(sys.modules, "browser_use.agent.loop", loop)
     monkeypatch.setitem(sys.modules, "browser_use", module)
     monkeypatch.setitem(sys.modules, "browser_use.repl", ModuleType("browser_use.repl"))
     monkeypatch.setitem(sys.modules, "browser_use.repl.session", session)
@@ -90,9 +114,10 @@ async def test_the_worker_runs_the_luna_configuration(monkeypatch: pytest.Monkey
     await luna_worker.run(
         {
             "goal": "find it",
-            "browser_minutes": 5,
-            "proxy_country": None,
+            "cdp_url": "wss://cdp.test",
+            "timeout": 240.0,
             "sensitive_data": {"shop_password": "correct-horse"},
+            "answer_schema": {"type": "object"},
         }
     )
 
@@ -107,10 +132,13 @@ async def test_the_worker_runs_the_luna_configuration(monkeypatch: pytest.Monkey
     assert agent["mode"] == "accessibility-tree-mode"
     assert agent["judge"] is False
     assert agent["sensitive_data"] == {"shop_password": "correct-horse"}
-    assert FakeBrowser.instances[0].kwargs == {"keep_alive": True, "cloud_timeout": 5, "cloud_proxy_country_code": None}
+    assert agent["output_model_schema"] == ("structured", {"type": "object"})
+    assert seen["run"]["timeout"] == 240.0
+    assert FakeBrowser.instances[0].kwargs == {"cdp_url": "wss://cdp.test", "keep_alive": True}
     assert FakeBrowser.instances[0].stopped is True
     ready, result, stopped = emitted
-    assert ready["event"] == "ready" and ready["browser_id"] == "browser-1"
+    assert ready["event"] == "ready"
+    assert result["url"] == "https://site.test/final"
     assert result["status"] == "completed"
     assert result["answer"] == "the answer"
     assert result["successful"] is True
@@ -135,3 +163,57 @@ async def test_the_worker_reports_a_missing_openrouter_key_without_starting_a_br
     assert FakeBrowser.instances == []
     assert emitted[0]["status"] == "error"
     assert "OPENROUTER_API_KEY" in str(emitted[0]["error"])
+
+
+async def test_the_worker_answers_with_the_structured_output_when_there_is_one(monkeypatch: pytest.MonkeyPatch) -> None:
+    result = FakeResult([])
+    result.structured_output = {"version": "1.2"}
+    fake_browser_use(monkeypatch, result)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "or-key")
+    monkeypatch.setattr(sys, "stdin", io.StringIO("{}\n"))
+    emitted: list[dict[str, object]] = []
+    monkeypatch.setattr(luna_worker, "emit", emitted.append)
+
+    await luna_worker.run(
+        {"goal": "g", "cdp_url": "wss://cdp.test", "timeout": 5.0, "answer_schema": {"type": "object"}}
+    )
+
+    assert emitted[1]["answer"] == {"version": "1.2"}
+
+
+async def test_the_worker_reports_a_transient_model_failure_as_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
+    result = FakeResult([])
+    result.status, result.error = "error", "ModelServerError: upstream 503"
+    fake_browser_use(monkeypatch, result)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "or-key")
+    monkeypatch.setattr(sys, "stdin", io.StringIO("{}\n"))
+    emitted: list[dict[str, object]] = []
+    monkeypatch.setattr(luna_worker, "emit", emitted.append)
+
+    await luna_worker.run({"goal": "g", "cdp_url": "wss://cdp.test", "timeout": 5.0})
+    other = FakeResult([])
+    other.status, other.error = "error", "ValueError: bad cell"
+    fake_browser_use(monkeypatch, other)
+    monkeypatch.setattr(sys, "stdin", io.StringIO("{}\n"))
+    await luna_worker.run({"goal": "g", "cdp_url": "wss://cdp.test", "timeout": 5.0})
+
+    assert [e["status"] for e in emitted if e["event"] == "result"] == ["unavailable", "error"]
+
+
+async def test_the_worker_still_answers_when_the_daemon_stalls_reading_the_page(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import time
+
+    fake_browser_use(monkeypatch)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "or-key")
+    monkeypatch.setattr(sys, "stdin", io.StringIO("{}\n"))
+    monkeypatch.setattr(FakeBrowser, "remember_tab", lambda self: time.sleep(0.3))
+    monkeypatch.setattr(luna_worker, "URL_SECONDS", 0.05)
+    emitted: list[dict[str, object]] = []
+    monkeypatch.setattr(luna_worker, "emit", emitted.append)
+
+    await luna_worker.run({"goal": "g", "cdp_url": "wss://cdp.test", "timeout": 5.0})
+
+    assert emitted[1]["url"] is None
+    assert emitted[1]["answer"] == "the answer"

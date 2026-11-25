@@ -84,6 +84,13 @@ class BrowserConfig(BaseModel):
 
 # The authority holds only hostname, port and userinfo characters, so punctuation after a bare URL (a closing bracket, a
 # comma) is not part of it.
+BROWSER_SCREEN = (1120, 780)
+"""The screen of every hosted browser Parallax opens, so no arm browses a different viewport."""
+
+AGENT_RETURN_SECONDS = 60.0
+"""What a worker that stops itself leaves of the turn, for its result to reach the host before the turn's limit; a turn
+shorter than twice this gives the agent half of it."""
+
 _URL = re.compile(r"(?P<scheme>https?://)(?P<authority>[\w.~%!$&*+=:@-]*)(?P<rest>[^\s\"'<>]*)", re.IGNORECASE)
 
 
@@ -227,6 +234,8 @@ def _usage(raw: object, model: str | None) -> tuple[Usage, ...]:
 
 
 def _normalise_status(raw: object) -> TurnStatus:
+    if str(raw) == "timeout":
+        return TurnStatus.TIMEOUT
     return TurnStatus.COMPLETED if str(raw) in {"done", "completed", "stopped"} else TurnStatus.HARNESS_ERROR
 
 
@@ -1113,6 +1122,8 @@ class BrowserHarnessLuna(BrowserHarnessOSS):
             request["sensitive_data"] = {origin: dict(self._secret_values)}
         else:
             request["sensitive_data"] = dict(self._secret_values)
+        # The schema the judge is shown is the schema the agent answers to.
+        request["answer_schema"] = self._answer_schema
         self._details.update(
             {
                 "agent_model": luna_worker.MODEL,
@@ -1123,6 +1134,71 @@ class BrowserHarnessLuna(BrowserHarnessOSS):
             }
         )
         return request
+
+    async def execute(self, turn: TurnInput) -> dict[str, Any]:
+        """Parallax opens the cloud browser, as it does for every other arm that cannot be handed a viewport: the shared
+        screen, the explicit proxy, and the task's start page loaded before the agent clock starts. A browser that
+        cannot start, or a site that does not answer in it, is `unavailable`, so the trial retries. The worker attaches
+        over CDP and stops itself at the time the turn has left, so a run at its limit still reports its cost."""
+        toolchain_request = self._worker_request(turn)
+        browser = None
+        result: dict[str, Any] = {}
+        began = time.monotonic()
+        try:
+            async with (
+                httpx.AsyncClient() as http,
+                cloud_browser(
+                    http,
+                    screen=BROWSER_SCREEN,
+                    minutes=browser_minutes(self.seconds_left()),
+                    proxy_country=self.config.proxy_country,
+                ) as browser,
+            ):
+                self._browser_opened(browser.browser_id, browser.live_url)
+                if self._start_url is not None and (
+                    outage := await browser_site_down(browser.cdp_url, self._start_url)
+                ):
+                    raise Unavailable(outage)
+                # Opening the browser and loading the start page are setup, not agent time.
+                setup = time.monotonic() - began
+                left = self.seconds_left()
+                request = toolchain_request | {
+                    "cdp_url": browser.cdp_url,
+                    "timeout": 86_400.0 if left is None else max(1.0, left - min(AGENT_RETURN_SECONDS, left / 2)),
+                }
+                worker = JsonWorker(
+                    (*oss_python(self.pin), "-I", self.worker_file), env=self._agent_env(), cwd=self.worker_dir
+                )
+                async with worker:
+                    await worker.send(request)
+                    ready = await worker.receive("ready")
+                    self._agent_started(setup + (ready.get("open_seconds") or 0.0))
+                    result = await worker.receive("result")
+                    self._agent_finished()
+                    # Kept now, so a turn cancelled while the final page is read or the browser settles keeps it.
+                    self._record_costs(_mapping_list(result.get("cost_lines")))
+                    result["ready"] = True
+                    result["open_seconds"] = browser.open_seconds
+                    result["final_page"] = await self.observe(browser.cdp_url, url=result.get("url"))
+                    await worker.send({})
+                    stopped = await worker.receive("stopped")
+                    result["stopped"] = stopped.get("stopped", False)
+        except BaseException:
+            # The agent failed or was cancelled, but the browser it was given has settled its charges.
+            if browser is not None:
+                lines = list(browser.cost)
+                if self._turn_spending and "cost_lines" not in result:
+                    # The agent ran but never reported its model spend: that is unknown, not free, and the browser's
+                    # charges alone must not stand for the trial's whole cost.
+                    lines.append({"component": "model", "dollars": None})
+                self._record_costs(lines)
+            raise
+        # A worker that failed reports no cost: its model spend is unknown, not free.
+        model = (
+            _mapping_list(result["cost_lines"]) if "cost_lines" in result else [{"component": "model", "dollars": None}]
+        )
+        result["cost_lines"] = [*model, *browser.cost]
+        return result
 
 
 class BrowserHarnessRunner(BrowserHarness):
@@ -1154,7 +1230,7 @@ class BrowserHarnessRunner(BrowserHarness):
             async with (
                 httpx.AsyncClient() as http,
                 cloud_browser(
-                    http, screen=(1120, 780), minutes=minutes, proxy_country=self.config.proxy_country
+                    http, screen=BROWSER_SCREEN, minutes=minutes, proxy_country=self.config.proxy_country
                 ) as browser,
             ):
                 # The paid browser exists, so the attempt spends from here even if the worker never starts.
