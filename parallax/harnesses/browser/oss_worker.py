@@ -20,7 +20,9 @@ async def run(request: dict[str, object]) -> None:
         agent_type = getattr(browser_use, agent_name)
         browser_type = getattr(browser_use, browser_name)
         # The host's limit for this turn, so a browser whose stop is missed stops itself (cloud.browser_minutes).
-        browser = browser_type(keep_alive=True, cloud_timeout=request["browser_minutes"])
+        browser = browser_type(
+            keep_alive=True, cloud_timeout=request["browser_minutes"], cloud_proxy_country_code=request["proxy_country"]
+        )
         started = time.monotonic()
         await browser.start()
         emit(

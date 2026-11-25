@@ -88,7 +88,12 @@ async def test_the_worker_runs_the_luna_configuration(monkeypatch: pytest.Monkey
     monkeypatch.setattr(luna_worker, "emit", emitted.append)
 
     await luna_worker.run(
-        {"goal": "find it", "browser_minutes": 5, "sensitive_data": {"shop_password": "correct-horse"}}
+        {
+            "goal": "find it",
+            "browser_minutes": 5,
+            "proxy_country": None,
+            "sensitive_data": {"shop_password": "correct-horse"},
+        }
     )
 
     assert seen["llm"] == {
@@ -102,7 +107,7 @@ async def test_the_worker_runs_the_luna_configuration(monkeypatch: pytest.Monkey
     assert agent["mode"] == "accessibility-tree-mode"
     assert agent["judge"] is False
     assert agent["sensitive_data"] == {"shop_password": "correct-horse"}
-    assert FakeBrowser.instances[0].kwargs == {"keep_alive": True, "cloud_timeout": 5}
+    assert FakeBrowser.instances[0].kwargs == {"keep_alive": True, "cloud_timeout": 5, "cloud_proxy_country_code": None}
     assert FakeBrowser.instances[0].stopped is True
     ready, result, stopped = emitted
     assert ready["event"] == "ready" and ready["browser_id"] == "browser-1"
@@ -125,7 +130,7 @@ async def test_the_worker_reports_a_missing_openrouter_key_without_starting_a_br
     emitted: list[dict[str, object]] = []
     monkeypatch.setattr(luna_worker, "emit", emitted.append)
 
-    await luna_worker.run({"goal": "find it", "browser_minutes": 5, "sensitive_data": {}})
+    await luna_worker.run({"goal": "find it", "browser_minutes": 5, "proxy_country": None, "sensitive_data": {}})
 
     assert FakeBrowser.instances == []
     assert emitted[0]["status"] == "error"

@@ -194,3 +194,27 @@ async def test_a_browser_whose_stop_failed_stays_open_for_the_interrupt(monkeypa
     cloud.opened("browser-1", client)
     await stopped_browser_cost("browser-1", client=client)
     assert cloud._open == {"browser-1": client}
+
+
+@pytest.mark.parametrize("proxy", ["us", "de", None])
+async def test_cloud_browser_sends_the_proxy_country_explicitly(
+    monkeypatch: pytest.MonkeyPatch, proxy: str | None
+) -> None:
+    seen: dict[str, object] = {}
+
+    class Browsers:
+        async def create(self, **kwargs: object) -> SimpleNamespace:
+            seen.update(kwargs)
+            return SimpleNamespace(id="browser-1", cdp_url="ws://browser.test/devtools", live_url=None)
+
+        async def stop(self, browser_id: str) -> SimpleNamespace:
+            return SimpleNamespace(browser_cost="0.10", proxy_cost="0.00")
+
+        async def get(self, browser_id: str) -> SimpleNamespace:
+            return SimpleNamespace(status=BrowserSessionStatus.stopped, browser_cost="0.10", proxy_cost="0.00")
+
+    monkeypatch.setattr(cloud, "PROXY_SETTLE_SECONDS", 0)
+    client = SimpleNamespace(browsers=Browsers())
+    async with httpx.AsyncClient() as http, cloud.cloud_browser(http, client=client, proxy_country=proxy):
+        pass
+    assert seen["proxy_country_code"] == proxy  # present even when None: the vendor default never decides

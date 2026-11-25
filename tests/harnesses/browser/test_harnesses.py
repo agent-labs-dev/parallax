@@ -233,7 +233,11 @@ async def test_v4_event_stream_retries_visibility_and_keeps_browser_identity() -
 
     client = Client()
     result = await _run_v4(client, "find it", "provider/model", 0)
-    assert client.runs.created == {"goal": "find it", "model": "provider/model"}
+    assert client.runs.created == {
+        "goal": "find it",
+        "model": "provider/model",
+        "browser_settings": {"proxyCountryCode": "us"},
+    }
     assert client.runs.after == [None, 7]
     assert result["browser_id"] == "browser-1" and result["ready"] is True
     # The run summary has only a total; the components come from the session cost read.
@@ -933,7 +937,7 @@ async def test_a_worker_that_fails_after_its_browser_opened_keeps_the_browser_co
     )
 
     @contextlib.asynccontextmanager
-    async def paid_browser(http: object, *, screen: object, minutes: int):  # noqa: ANN202
+    async def paid_browser(http: object, *, screen: object, minutes: int, proxy_country: str | None = "us"):  # noqa: ANN202
         try:
             yield browser
         finally:
@@ -966,7 +970,7 @@ async def test_a_site_down_in_the_runners_own_browser_is_an_interruption_before_
     )
 
     @contextlib.asynccontextmanager
-    async def paid_browser(http: object, *, screen: object, minutes: int):  # noqa: ANN202
+    async def paid_browser(http: object, *, screen: object, minutes: int, proxy_country: str | None = "us"):  # noqa: ANN202
         try:
             yield browser
         finally:
@@ -1013,7 +1017,7 @@ async def test_a_browser_harness_trial_costs_its_agent_model_as_well_as_its_brow
     )
 
     @contextlib.asynccontextmanager
-    async def paid_browser(http: object, *, screen: object, minutes: int):  # noqa: ANN202
+    async def paid_browser(http: object, *, screen: object, minutes: int, proxy_country: str | None = "us"):  # noqa: ANN202
         try:
             yield browser
         finally:
@@ -1259,7 +1263,7 @@ async def test_every_cloud_arm_records_its_browser_and_live_view(monkeypatch, tm
     )
 
     @contextlib.asynccontextmanager
-    async def paid_browser(http: object, *, screen: object, minutes: int):  # noqa: ANN202
+    async def paid_browser(http: object, *, screen: object, minutes: int, proxy_country: str | None = "us"):  # noqa: ANN202
         asked.append(minutes)
         yield browser
 
@@ -1339,3 +1343,69 @@ def test_a_harness_reported_component_and_image_count_are_kept_on_usage() -> Non
     assert [(u.component, u.images) for u in _usage([{"model": "m", "component": 7, "images": None}], None)] == [
         (None, 0)
     ]
+
+
+@pytest.mark.parametrize(("value", "want"), [("us", "us"), ("DE", "de"), ("none", None), (" None ", None)])
+def test_the_proxy_country_env_names_a_country_or_no_proxy(monkeypatch, value: str, want: str | None) -> None:
+    monkeypatch.setenv("PARALLAX_BROWSER_PROXY_COUNTRY", value)
+    assert BrowserHarnessLuna().config.proxy_country == want
+
+
+def test_a_browser_use_worker_is_told_the_proxy_country(monkeypatch) -> None:
+    from parallax.models import Trial
+
+    monkeypatch.setenv("PARALLAX_BROWSER_PROXY_COUNTRY", "none")
+    harness = BrowserHarnessLuna()
+    harness._trial = Trial.model_construct(model="openai/gpt-6-luna", env={})
+    assert harness._worker_request(TurnInput(index=1, text="x", new_session=True))["proxy_country"] is None
+
+
+def test_scrubbing_a_public_credential_never_rewrites_a_url_host() -> None:
+    harness = BrowserHarnessLuna()
+    harness._secret_values = {"username": "practice"}
+    harness._start_host = "practice.expandtesting.com"
+    scrubbed = harness._scrub(
+        {
+            "url": "https://practice.expandtesting.com/login",
+            "text": "Typed practice at https://practice.expandtesting.com/login?user=practice and https://x.test/practice",
+        }
+    )
+    tag = "<secret>username</secret>"
+    assert harness._scrub("see https://practice.other.test/") == "see https://<secret>username</secret>.other.test/"
+    # Only the exact own host is kept: a subdomain, a malformed authority and punctuation after a URL behave.
+    tag = "<secret>username</secret>"
+    assert harness._scrub("https://practice.practice.expandtesting.com/") == f"https://{tag}.{tag}.expandtesting.com/"
+    assert harness._scrub("https://[practice.expandtesting.com") == f"https://[{tag}.expandtesting.com"
+    assert harness._scrub("[login](https://practice.expandtesting.com), HTTPS://practice.expandtesting.com.") == (
+        "[login](https://practice.expandtesting.com), HTTPS://practice.expandtesting.com."
+    )
+    assert scrubbed["url"] == "https://practice.expandtesting.com/login"
+    assert scrubbed["text"] == (
+        f"Typed {tag} at https://practice.expandtesting.com/login?user={tag} and https://x.test/{tag}"
+    )
+
+
+async def test_v4_sends_no_proxy_as_an_explicit_null() -> None:
+    sent: dict[str, object] = {}
+
+    class Runs:
+        async def create(self, goal: str, **kwargs: object) -> SimpleNamespace:
+            sent.update(kwargs)
+            raise RuntimeError("stop after create")
+
+    with pytest.raises(RuntimeError, match="cloud run create failed"):
+        await _run_v4(SimpleNamespace(runs=Runs()), "find it", None, 0.0, proxy_country=None)
+    assert sent["browser_settings"] == {"proxyCountryCode": None}
+
+
+async def test_v3_sends_the_proxy_country_explicitly() -> None:
+    sent: dict[str, object] = {}
+
+    class Sessions:
+        async def create(self, **kwargs: object) -> SimpleNamespace:
+            sent.update(kwargs)
+            raise RuntimeError("stop after create")
+
+    with pytest.raises(RuntimeError, match="session create failed"):
+        await _run_v3(SimpleNamespace(sessions=Sessions()), "find it", None, proxy_country=None)
+    assert sent["proxy_country_code"] is None

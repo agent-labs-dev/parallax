@@ -185,8 +185,9 @@ async def cloud_browser(
     client_factory: Callable[[], Any] | None = None,
     screen: tuple[int, int] | None = None,
     minutes: int = CLOUD_BROWSER_MINUTES,
+    proxy_country: str | None = "us",
 ) -> AsyncGenerator[Browser]:
-    """Create a hosted browser that stops itself after `minutes`, yield its CDP URL, and always stop and settle it."""
+    """Create a hosted browser that stops itself after `minutes`, yield its CDP URL, and always stop and settle it. `proxy_country` is sent whatever it is, so None is no proxy, not the vendor default."""
     owned_client = client is None
     if client is None:
         client = _client() if client_factory is None else client_factory()
@@ -197,6 +198,7 @@ async def cloud_browser(
     creation = asyncio.create_task(
         client.browsers.create(
             timeout=minutes,
+            proxy_country_code=proxy_country,
             browser_screen_width=width,
             browser_screen_height=height,
         )

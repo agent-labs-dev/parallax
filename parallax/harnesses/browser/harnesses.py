@@ -13,6 +13,7 @@ import importlib
 import json
 import logging
 import os
+import re
 import shlex
 import shutil
 import sys
@@ -77,7 +78,18 @@ class BrowserConfig(BaseModel):
     # Sent on every V4 run, so no vendor default decides an arm's limits: Browser Use caps a session at $25 and
     # runs its fast presets without a proxy unless told otherwise. The cap sits far above any run's cost.
     max_cost_usd: float = 1000.0
-    proxy_country: str = "us"
+    # The proxy country of every arm's Browser Use cloud browser, so no vendor default decides it; None is no proxy.
+    proxy_country: str | None = "us"
+
+
+# The authority holds only hostname, port and userinfo characters, so punctuation after a bare URL (a closing bracket, a
+# comma) is not part of it.
+_URL = re.compile(r"(?P<scheme>https?://)(?P<authority>[\w.~%!$&*+=:@-]*)(?P<rest>[^\s\"'<>]*)", re.IGNORECASE)
+
+
+def proxy_country_from(value: str) -> str | None:
+    """A `PARALLAX_BROWSER_PROXY_COUNTRY` value: a two-letter country code, or `none` for no proxy."""
+    return None if value.strip().lower() == "none" else value.strip().lower()
 
 
 def _info(
@@ -299,7 +311,7 @@ class BrowserHarness(ABC):
             cloud_api=os.environ.get("PARALLAX_BROWSER_CLOUD_API", "v4"),
             poll_seconds=float(os.environ.get("PARALLAX_BROWSER_POLL_SECONDS", "1")),
             max_cost_usd=float(os.environ.get("PARALLAX_BROWSER_MAX_COST_USD", "1000")),
-            proxy_country=os.environ.get("PARALLAX_BROWSER_PROXY_COUNTRY", "us"),
+            proxy_country=proxy_country_from(os.environ.get("PARALLAX_BROWSER_PROXY_COUNTRY", "us")),
         )
         self._trial: Trial | None = None
         self._clock: AttemptClock | None = None
@@ -380,11 +392,29 @@ class BrowserHarness(ABC):
                 }
             )
 
+    def _scrub_text(self, text: str) -> str:
+        for alias, secret in sorted(self._secret_values.items(), key=lambda item: len(item[1]), reverse=True):
+            text = text.replace(secret, f"<secret>{alias}</secret>")
+        return text
+
+    def _scrub_host(self, authority: str) -> str:
+        """The task's own site, the one host its credentials are bound to (`allowedDomains`), is kept; any other host
+        is scrubbed like text, so a secret that appears in another host or a subdomain still does not leave."""
+        host = authority.partition(":")[0].rstrip(".").lower()
+        return authority if host and host == self._start_host else self._scrub_text(authority)
+
     def _scrub(self, value: object) -> Any:
         if isinstance(value, str):
-            for alias, secret in sorted(self._secret_values.items(), key=lambda item: len(item[1]), reverse=True):
-                value = value.replace(secret, f"<secret>{alias}</secret>")
-            return value
+            # The task's own site address is not a place a credential is typed: a public demo credential that is also a
+            # hostname word (username `practice` on practice.example.com) must not rewrite it. Every other part of a
+            # URL, and all other text, is scrubbed.
+            out, last = [], 0
+            for url in _URL.finditer(value):
+                out += [self._scrub_text(value[last : url.start()]), url["scheme"]]
+                userinfo, at, host = url["authority"].rpartition("@")
+                out += [self._scrub_text(userinfo), at, self._scrub_host(host), self._scrub_text(url["rest"])]
+                last = url.end()
+            return "".join([*out, self._scrub_text(value[last:])])
         if isinstance(value, Mapping):
             return {key: self._scrub(item) for key, item in value.items()}
         if isinstance(value, list):
@@ -646,6 +676,7 @@ class BrowserHarnessCloud(BrowserHarness):
                     self.trial.model,
                     agent_started=self._agent_started,
                     finished=self._agent_finished,
+                    proxy_country=self.config.proxy_country,
                 )
             else:
                 result = await _run_v4(
@@ -721,15 +752,15 @@ async def _run_v4(
     output_schema: dict[str, Any] | None = None,
     secret_bindings: list[dict[str, Any]] | None = None,
     max_cost_usd: float | None = None,
-    proxy_country: str | None = None,
+    proxy_country: str | None = "us",
 ) -> dict[str, Any]:
     """`spending` is called once the cloud run exists, which may bill before its browser is ready; `finished` once
     the run reaches a terminal status, before its result and costs are read."""
     request: dict[str, Any] = {"model": model} if model else {}
     if max_cost_usd is not None:
         request["max_cost_usd"] = max_cost_usd
-    if proxy_country is not None:
-        request["browser_settings"] = {"proxyCountryCode": proxy_country}
+    # Sent whatever it is: the API defaults to a US proxy, so None must go out as null to mean no proxy.
+    request["browser_settings"] = {"proxyCountryCode": proxy_country}
     if output_schema is not None:
         request["output_schema"] = output_schema
     if secret_bindings is not None:
@@ -824,11 +855,14 @@ async def _run_v3(
     *,
     agent_started: Callable[[], None] | None = None,
     finished: Callable[[], None] | None = None,
+    proxy_country: str | None = "us",
 ) -> dict[str, Any]:
     session_id: str | None = None
     try:
         try:
-            created = await client.sessions.create(task=goal, **({"model": model} if model else {}))
+            created = await client.sessions.create(
+                task=goal, proxy_country_code=proxy_country, **({"model": model} if model else {})
+            )
         except Exception as error:
             raise _failure("session create", error, starting=True) from None
         session_id = str(created.id)
@@ -1006,6 +1040,7 @@ class BrowserHarnessOSS(BrowserHarness):
             "max_steps": None,
             "timeout": None,
             "browser_minutes": browser_minutes(self.seconds_left()),
+            "proxy_country": self.config.proxy_country,
         }
 
     async def execute(self, turn: TurnInput) -> dict[str, Any]:
@@ -1116,7 +1151,12 @@ class BrowserHarnessRunner(BrowserHarness):
         browser = None
         try:
             minutes = browser_minutes(self.seconds_left())
-            async with httpx.AsyncClient() as http, cloud_browser(http, screen=(1120, 780), minutes=minutes) as browser:
+            async with (
+                httpx.AsyncClient() as http,
+                cloud_browser(
+                    http, screen=(1120, 780), minutes=minutes, proxy_country=self.config.proxy_country
+                ) as browser,
+            ):
                 # The paid browser exists, so the attempt spends from here even if the worker never starts.
                 self._browser_opened(browser.browser_id, browser.live_url)
                 if self._start_url is not None and (
