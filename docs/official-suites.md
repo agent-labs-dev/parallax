@@ -216,7 +216,7 @@ multi-turn loop itself: simulator message, harness `turn()`, and so on until an 
 termination condition (the simulator's stop token, `max_steps`, `too_many_errors`, an agent
 stop, or an agent or user error). The simulator model is pinned to the upstream default at this
 revision (`gpt-4.1-2025-04-14`, `tau2.config.DEFAULT_LLM_USER`) and runs through the configured
-gateway; its cost is recorded as simulator cost (`simulator_cost_usd` in the trial's metrics),
+gateway as `openai/gpt-4.1`; its cost is recorded as simulator cost (`simulator_cost_usd` in the trial's metrics),
 out of the harness's usage. The runner records the transcript itself, from its tool server's
 tool log and the turns it drove. The transcript is the full upstream message list: every
 assistant tool call is followed, in order, by its `ToolMessage`, and tool-call arguments are
@@ -234,8 +234,10 @@ Grading sends that record through `parallax/tau2_bridge.py` to the pinned checko
 upstream `evaluate_simulation` with `EvaluationType.ALL`, upstream's default SEMANTIC communicate
 scoring and its NL-assertion evaluator; no database, action or communication comparison is
 reimplemented in Parallax. Both judges run through the run's configured Parallax judge gateway
-under the ids `gpt-5.5` (communicate info) and `gpt-5.4-mini-2026-03-17` (NL assertions), the
-upstream pins at this revision. A preflight queries the configured gateway's model
+under the OpenRouter ids `openai/gpt-5.5` (communicate info) and `openai/gpt-5.4-mini` (NL assertions),
+whose OpenRouter canonical slugs are the upstream pins at this revision (`gpt-5.5-20260423` and
+`gpt-5.4-mini-2026-03-17`). The bridge hands LiteLLM each id behind its `openai/` provider prefix, which
+routes the call to the OpenAI-compatible gateway the run configured. A preflight queries the configured gateway's model
 list and refuses to start grading if either judge id is missing; a successful probe is cached
 per process, keyed by gateway, the key's SHA-256 fingerprint prefix (never the key itself) and
 both judge ids, and failures are not cached, so a bad judge configuration fails before any bridge process or judge spend starts. Only

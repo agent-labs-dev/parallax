@@ -99,6 +99,16 @@ def _messages(request: dict[str, Any]) -> list[dict[str, Any]]:
     return messages
 
 
+def _litellm_model(gateway_id: str) -> str:
+    """The LiteLLM model string for a gateway model id.
+
+    LiteLLM's `openai/` provider prefix sends the call to the OpenAI-compatible endpoint in
+    OPENAI_BASE_URL with the rest of the string as the model, so a gateway id that itself carries
+    a vendor prefix (OpenRouter's `openai/gpt-5.5`) reaches the gateway intact.
+    """
+    return f"openai/{gateway_id}"
+
+
 def _emit_call(calls_file: str | None, entry: dict[str, Any]) -> None:
     if calls_file:
         with Path(calls_file).open("a", encoding="utf-8") as stream:
@@ -196,8 +206,10 @@ def _evaluate(request: dict[str, Any]) -> dict[str, Any]:
     # Route both judges through the caller's configured gateway with the ids it validated:
     # the communicate judge via its settings, the NL judge via the module's pinned name.
     judge_models = request.get("judge_models") or {}
-    communicate_model = str(judge_models.get("communicate") or "")
-    nl_model = str(judge_models.get("nl") or "")
+    communicate_id = str(judge_models.get("communicate") or "")
+    nl_id = str(judge_models.get("nl") or "")
+    communicate_model = _litellm_model(communicate_id) if communicate_id else ""
+    nl_model = _litellm_model(nl_id) if nl_id else ""
     nl_module = importlib.import_module("tau2.evaluator.evaluator_nl_assertions")
     pinned_nl = getattr(nl_module, "DEFAULT_LLM_NL_ASSERTIONS", None)
     if nl_model:
@@ -269,7 +281,8 @@ class _ServeSession:
             tools = self.environment.get_user_tools()
         except ValueError:
             tools = None
-        model = str(request.get("simulator_model") or config_module.DEFAULT_LLM_USER)
+        simulator_id = str(request.get("simulator_model") or "")
+        model = _litellm_model(simulator_id) if simulator_id else str(config_module.DEFAULT_LLM_USER)
         self.simulator = user_module.UserSimulator(
             llm=model,
             instructions=instructions,
