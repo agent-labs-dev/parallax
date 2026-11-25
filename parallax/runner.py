@@ -147,7 +147,8 @@ TOKEN_ENV = "PARALLAX_WORLD_TOKEN"
 RESULTS = "results.jsonl"
 BUDGET_JOURNAL = "budget.jsonl"
 INVALID_EXIT_SHARE = 0.10
-# Every reason a trial's own execution can go INVALID for and another attempt can plausibly avoid. A
+# Every reason a trial's own execution can go INVALID for and another attempt can plausibly avoid (a run whose status
+# is in `EXECUTION_FAULTS` is retried whatever else is undecided; see `transient_invalid`). A
 # reason outside this list is not retried, because re-running cannot measure anything new: a harness or
 # box the run could not open would fail its probe again, missing evidence describes the trial's own
 # world state, a validity rejection is a judgment of the evidence that attempt produced, and a failed
@@ -165,6 +166,8 @@ RETRYABLE_INVALID = (
     "meter unreachable: ",
     ENVIRONMENT_INTERRUPTION,  # a site or provider outage the harness reported; waited out (`retry_wait_s`)
 )
+# A run that ended with one of these statuses faulted in execution on any harness; the row's `status` says so.
+EXECUTION_FAULTS = frozenset({TrajectoryStatus.HARNESS_ERROR, TrajectoryStatus.TIMEOUT, TrajectoryStatus.OVER_BUDGET})
 NEVER_RETRYABLE_INVALID = (
     " box unavailable: ",
     "harness unavailable: ",
@@ -423,6 +426,15 @@ def decide(
     reasons = [*invalid_reasons, *missing]
     if execution_valid is False:
         reasons.insert(0, "semantic judge rejected execution validity")
+    if (
+        status in EXECUTION_FAULTS
+        and execution_valid is not True
+        and reasons
+        and not any(r.startswith(ENVIRONMENT_INTERRUPTION) for r in reasons)
+    ):
+        # An undecided check beside a faulted run: keep the fault, so the row says why it measured nothing. A reported
+        # site outage already names its cause.
+        reasons.insert(0, f"execution incomplete: {status.value}")
     if status is TrajectoryStatus.BOOT_ERROR:
         reasons.insert(0, "boot_error")
     if reasons:
@@ -2044,7 +2056,8 @@ def transient_invalid(result: TrialResult) -> bool:
     reason outside `RETRYABLE_INVALID` keeps the trial as it stands: the run could not open that harness
     or box, the trial's own world state lacked the evidence a check needed, or the semantic judge
     rejected the execution it produced. A failed teardown is never retried, because a second attempt
-    would strand more of the harness's remote resources rather than fewer.
+    would strand more of the harness's remote resources rather than fewer. A run whose status is in `EXECUTION_FAULTS`
+    is the exception to the world-state rule: its missing evidence is a consequence of the fault, so it is retried.
     """
     if result.verdict is not Verdict.INVALID or not result.invalid_reason:
         return False
@@ -2056,6 +2069,9 @@ def transient_invalid(result: TrialResult) -> bool:
     ]
     if any(never in reason for reason in reasons for never in NEVER_RETRYABLE_INVALID):
         return False
+    if result.status in EXECUTION_FAULTS:
+        # The run faulted in execution, so whatever else is undecided is a consequence another attempt can avoid.
+        return bool(reasons)
     return bool(reasons) and all(reason.startswith(RETRYABLE_INVALID) for reason in reasons)
 
 

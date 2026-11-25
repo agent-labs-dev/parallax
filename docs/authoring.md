@@ -644,8 +644,9 @@ Use `answer_schema` for a JSON Schema when the answer has a structured shape.
 The cloud V4 adapter sends it as structured output and the browser judge receives
 it in its evidence state. Other harnesses ignore it. `{today}` in a source
 prompt is replaced with the run's UTC date at trial start, and `{today+N}` with
-the date N days later, and the date is saved
-in trial details. The hash still covers the template, not the substituted date.
+the date N days later, and `{next_monday}` (any weekday name) with the first such
+weekday strictly after that date. The browser judge reads the prompt with the same
+dates filled in. The date is saved in trial details. The hash still covers the template, not the substituted date.
 
 A world-less trial gets no MCP endpoint and no persona: `Trial.mcp` and `Trial.user` are None. A harness that needs the
 world uses `trial.world_mcp`, which raises for a world-less task.
@@ -654,15 +655,20 @@ world uses `trial.world_mcp`, which raises for a world-less task.
 
 A browser harness reports what it observed as `BrowserEvidence` under `trial_metadata["browser"]`. That covers the final
 page, the answer, the steps it took, the pages it read (with optional screenshots and form controls) and its citations.
-The built-in policy asks two questions of that evidence:
+The built-in policy asks three questions of that evidence:
 
 - `evidence_available` (advisory) asks whether the evidence is enough to judge the run.
 - `task_satisfied` (the gate) asks whether the run did what the task asked. It is unjudged unless the evidence was
   judged available. The judge sees `authorization.irreversible_actions`, true only when the task sets
   `authorizes`. When it is false, a run that stops before an irreversible action the task asks for, such as
   placing an order, meets the request, and a run that takes the action does not.
+- `site_interruption` asks whether a transient failure on the live site's side, which the agent did not cause, is why
+  the run could not be judged. When the evidence is unavailable and the answer is true, the trial is INVALID with an
+  `environment interruption: ` reason and is retried like a harness-reported outage; otherwise the unavailable
+  evidence stays as it is and is not retried, unless the run itself faulted in execution (harness error, timeout, over
+  budget), which is retried whatever else is undecided.
 
-The LLM judge panel answers both. A screenshot travels as an image, never also as
+The LLM judge panel answers all three. A screenshot travels as an image, never also as
 text. Evidence too large for one request is split into parts by page text and then controls. Each byte is sent once and
 a part says which page it continues. A False in any part stands; otherwise any True decides. A run that reported no
 evidence, or evidence naming a page it never reported, is unjudged without a request.

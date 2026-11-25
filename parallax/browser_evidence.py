@@ -2,8 +2,8 @@
 
 A world-less browser task has no seeded world to read back, so its evidence is what the harness observed: the page the
 run ended on, the steps it took, the pages it read and the passages it cited. The harness reports it as
-`BrowserEvidence` under `trial_metadata["browser"]`, and `browser-evidence-v2` asks two questions of it: was there
-enough evidence to judge, and did the run do what the task asked. A state too large for one request is judged in parts
+`BrowserEvidence` under `trial_metadata["browser"]`, and `browser-evidence-v2` asks of it whether there was enough
+evidence to judge, whether the run did what the task asked, and whether a transient site failure is why there was not. A state too large for one request is judged in parts
 that send every byte of every page exactly once (`parts`); screenshots go to the judge as images (`images.split`).
 """
 
@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Sequence
+from datetime import date
 
 from pydantic import JsonValue, ValidationError
 
@@ -18,8 +19,19 @@ from parallax import images
 from parallax.extensions import GradeRequest, GradingPolicy
 from parallax.judge import MissingEvidence, family
 from parallax.judging import JudgePolicy, identity, judge_parts
-from parallax.models import Check, CheckResult, Evidence, FailureMode, JsonObject, Model, RubricCheck, Task
+from parallax.models import (
+    ENVIRONMENT_INTERRUPTION,
+    Check,
+    CheckResult,
+    Evidence,
+    FailureMode,
+    JsonObject,
+    Model,
+    RubricCheck,
+    Task,
+)
 from parallax.semantic import Graded
+from parallax.task import fill_dates
 
 METADATA_KEY = "browser"
 PART_BYTES = 752 * 1024
@@ -61,10 +73,21 @@ _SATISFIED = (
 """The judge needs the authorization boundary explicitly: otherwise a literal reading of an order request
 fails runs that correctly stop before an unauthorized purchase. The definition describes the boundary rather
 than prescribing a final status, since a satisfying run can also stop after answering."""
-EVIDENCE_AVAILABLE, TASK_SATISFIED = "evidence_available", "task_satisfied"
+_SITE_INTERRUPTION = (
+    "Did a transient failure on the live site's own side that the agent did not cause (an error page the site"
+    " served, an HTTP 5xx or 429, maintenance, results that never finish loading, a network error) keep the run from"
+    " the outcome the task asked for? Answer false when the agent's own input, navigation or other mistake caused the"
+    " problem, or when the evidence is missing or incomplete for any other reason, such as a harness that observed"
+    " nothing. Answer null when the evidence you were given shows no site failure, or does not say which; another"
+    " part of the run may hold it."
+)
+"""Asked beside `evidence_available`, whose false answer also covers missing observations. Only this typed answer
+makes an unavailable-evidence INVALID an environment interruption, so the retry policy never reads the judge's prose."""
+SITE_FAILURE_REASON = "the judge found a transient failure on the live site"
+EVIDENCE_AVAILABLE, TASK_SATISFIED, SITE_INTERRUPTION = "evidence_available", "task_satisfied", "site_interruption"
 JUDGE = JudgePolicy(
     name="browser-evidence-v2",
-    questions={EVIDENCE_AVAILABLE: _EVIDENCE, TASK_SATISFIED: _SATISFIED},
+    questions={EVIDENCE_AVAILABLE: _EVIDENCE, TASK_SATISFIED: _SATISFIED, SITE_INTERRUPTION: _SITE_INTERRUPTION},
     evidence_form=EVIDENCE_FORM,
     part_bytes=PART_BYTES,
 )
@@ -157,9 +180,14 @@ def judge_state(
         )
     if ev.final_page is not None:
         page_id(ev.final_page, final=True)
+    # The judge reads the dates the agent was given: the prompt resolved against the run's recorded date.
+    today = execution.get("today")
+    resolve = (
+        (lambda text: fill_dates(text, date.fromisoformat(today))) if isinstance(today, str) else (lambda text: text)
+    )
     state: dict[str, JsonValue] = {
         "instructions": INSTRUCTIONS,
-        "task": {"id": task.id, "summary": task.meta.summary, "prompt": [t.text for t in task.turns]},
+        "task": {"id": task.id, "summary": resolve(task.meta.summary), "prompt": [resolve(t.text) for t in task.turns]},
         "data": task.data,
         # A task that does not authorize its irreversible actions authorizes none (`TaskMeta.authorizes`).
         "authorization": {"irreversible_actions": task.meta.authorizes},
@@ -272,7 +300,7 @@ def _unjudged(task: Task, detail: str) -> Graded:
 
 
 async def grade(req: GradeRequest) -> Graded:
-    """Both questions of the run's evidence. Evidence the judge finds unavailable leaves the task unjudged (INVALID),
+    """All three questions of the run's evidence. Evidence the judge finds unavailable leaves the task unjudged (INVALID),
     never a FAIL: such a run measured no agent. The availability check is advisory, so it never counts in the score."""
     task = req.task
     try:
@@ -290,11 +318,16 @@ async def grade(req: GradeRequest) -> Graded:
     )
     available, satisfied = decisions[EVIDENCE_AVAILABLE], decisions[TASK_SATISFIED]
     own = {c.id: c for c in checks(task)}
-    gate = (
-        _result(own[TASK_SATISFIED], satisfied.passed, satisfied.reason)
-        if available.passed is True
-        else _result(own[TASK_SATISFIED], None, f"evidence unavailable: {available.reason}")
-    )
+    if available.passed is True:
+        gate = _result(own[TASK_SATISFIED], satisfied.passed, satisfied.reason)
+    elif decisions[SITE_INTERRUPTION].passed is True:
+        # The environment, not the agent, ended the run: the same INVALID, retried the same way, as a harness's own
+        # report of a site outage (`ENVIRONMENT_INTERRUPTION`), so every harness gets the same further attempts. The
+        # reason is fixed: the retry policy splits reasons on ";", which judge prose may contain; the prose stays in
+        # the advisory `evidence_available` detail.
+        gate = _result(own[TASK_SATISFIED], None, f"{ENVIRONMENT_INTERRUPTION}{SITE_FAILURE_REASON}")
+    else:
+        gate = _result(own[TASK_SATISFIED], None, f"evidence unavailable: {available.reason}")
     same = req.harness_model is not None and any(
         family(call.model) == family(req.harness_model) for j in judgments for call in j.fallback_calls
     )

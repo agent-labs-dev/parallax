@@ -470,7 +470,8 @@ is written. The cloud and `browser-use-1-luna` adapters declare
 same way); the other built-in browser adapters declare only `browser`. A task may also declare `answer_schema`; cloud
 V4 sends it as structured output, while other harnesses ignore it. `{today}` in
 a source prompt is replaced with the UTC date at trial start (`{today+N}` with
-the date N days later) and the template
+the date N days later, `{next_monday}` and the other weekday names the first such
+weekday strictly after it) and the template
 continues to determine the task hash.
 
 The built-in browser harness entry points are:

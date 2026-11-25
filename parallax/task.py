@@ -287,8 +287,10 @@ def record_hash(record: TaskRecord) -> str:
     return hashlib.sha256(json.dumps(dump, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
-# A prompt's date placeholders: `{today}` is the run's UTC date, `{today+N}` the date N days later.
-DATE_PLACEHOLDER = re.compile(r"\{today(?:\+(\d+))?\}")
+# A prompt's date placeholders: `{today}` is the run's UTC date, `{today+N}` the date N days later, and `{next_monday}`
+# (any weekday name) the first such weekday strictly after the run's date, so "next Monday" is one date for every arm.
+WEEKDAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+DATE_PLACEHOLDER = re.compile(r"\{(?:today(?:\+(\d+))?|next_(" + "|".join(WEEKDAYS) + r"))\}")
 # A live site books and lists at most about a year ahead, so a later day is no task a site can answer; the bound also
 # keeps every offset inside the range `datetime.date` can represent.
 MAX_DATE_OFFSET_DAYS = 366
@@ -296,7 +298,13 @@ MAX_DATE_OFFSET_DAYS = 366
 
 def fill_dates(text: str, today: date) -> str:
     """`text` with every date placeholder replaced by its ISO date counted from `today`."""
-    return DATE_PLACEHOLDER.sub(lambda m: (today + timedelta(days=int(m.group(1) or 0))).isoformat(), text)
+
+    def resolve(m: re.Match[str]) -> str:
+        if m.group(2):
+            return (today + timedelta(days=(WEEKDAYS.index(m.group(2)) - today.weekday() - 1) % 7 + 1)).isoformat()
+        return (today + timedelta(days=int(m.group(1) or 0))).isoformat()
+
+    return DATE_PLACEHOLDER.sub(resolve, text)
 
 
 def task_from_record(source: str, record: TaskRecord) -> Task:
@@ -312,7 +320,7 @@ def task_from_record(source: str, record: TaskRecord) -> Task:
         )
     if policy.grade is None:
         raise TaskError(f"task source {source}: grading policy {policy.id} cannot grade a world-less task (no grade)")
-    for match in DATE_PLACEHOLDER.finditer(record.prompt):
+    for match in (*DATE_PLACEHOLDER.finditer(record.prompt), *DATE_PLACEHOLDER.finditer(record.summary)):
         if int(match.group(1) or 0) > MAX_DATE_OFFSET_DAYS:
             raise TaskError(
                 f"task source {source}: task {record.id} date placeholder {match.group(0)} is more than"
