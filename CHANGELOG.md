@@ -6,6 +6,12 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev60] - 2026-11-25
+
+### Fixed
+
+- tau2 telecom gives the agent upstream's full policy: the main policy and the tech-support manual, wrapped in `<main_policy>` and `<tech_support_policy>` as upstream's environment builds it. Telecom tasks move to version 2, so runs on the earlier prompt never pair with later ones.
+
 ## [2.0.0.dev59] - 2026-11-25
 
 ### Fixed
