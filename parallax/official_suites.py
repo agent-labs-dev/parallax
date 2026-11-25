@@ -73,14 +73,16 @@ TAU2_FILE_SHA256 = {
     ("telecom", "main_policy.md"): "95943844a0cf11fdf0e2842b483b81d9f9338aa53235712ed131db075d086ed7",
 }
 TAU2_EXPECTED_BASE = {"airline": 50, "retail": 114, "telecom": 114}
-# Upstream benchmark defaults at the pin (`tau2.config`): the semantic communicate judge and
-# the NL-assertion judge. The bridge routes both through the configured judge gateway under
-# these ids, validated by the preflight in `_grade_tau2` before any bridge process starts.
-TAU2_COMMUNICATE_JUDGE_MODEL = "gpt-5.5"
-TAU2_NL_JUDGE_MODEL = "gpt-5.4-mini-2026-03-17"
+# Upstream benchmark defaults at the pin (`tau2.config`), named by their OpenRouter ids, since
+# OpenRouter is Parallax's judge gateway: each id's OpenRouter canonical slug is the upstream
+# snapshot (`openai/gpt-5.5-20260423`, `openai/gpt-5.4-mini-20260317`, `openai/gpt-4.1-2025-04-14`).
+# The semantic communicate judge and the NL-assertion judge run through the configured judge
+# gateway under these ids, validated by the preflight in `_grade_tau2` before any bridge process starts.
+TAU2_COMMUNICATE_JUDGE_MODEL = "openai/gpt-5.5"
+TAU2_NL_JUDGE_MODEL = "openai/gpt-5.4-mini"
 # The user simulator's model: upstream's default at the pin (`tau2.config.DEFAULT_LLM_USER`),
 # run by parallax through the configured gateway; its cost is simulator cost, never harness usage.
-TAU2_SIMULATOR_MODEL = "gpt-4.1-2025-04-14"
+TAU2_SIMULATOR_MODEL = "openai/gpt-4.1"
 TAU2_BRIDGE_TIMEOUT_S = 900.0
 
 
