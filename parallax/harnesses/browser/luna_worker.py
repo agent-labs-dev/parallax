@@ -16,11 +16,13 @@ inside the time the host leaves it, and reports the page it ended on.
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
 import contextlib
 import importlib
 import json
 import os
 import sys
+import threading
 import time
 from typing import Any
 
@@ -112,8 +114,18 @@ async def active_url(browser: Any) -> str | None:
         targets = browser._cdp()("Target.getTargets")["targetInfos"]
         return next((t["url"] for t in targets if t["targetId"] == tab), None)
 
+    # A daemon thread, not `to_thread`: a read the daemon never answers must not hold the process open at exit.
+    read_done: concurrent.futures.Future[str | None] = concurrent.futures.Future()
+
+    def run_read() -> None:
+        try:
+            read_done.set_result(read())
+        except Exception as error:
+            read_done.set_exception(error)
+
+    threading.Thread(target=run_read, daemon=True).start()
     try:
-        return await asyncio.wait_for(asyncio.to_thread(read), timeout=URL_SECONDS)
+        return await asyncio.wait_for(asyncio.wrap_future(read_done), timeout=URL_SECONDS)
     except Exception:
         return None
 
