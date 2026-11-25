@@ -247,6 +247,14 @@ def _evaluate(request: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def environment_message(message_module: Any, results: list[Any]) -> Any:
+    """The simulator's next input after a batch of its tool calls: the one result, or every result in one
+    `MultiToolMessage`, built as upstream's orchestrator builds it (its `role` is required)."""
+    if len(results) == 1:
+        return results[0]
+    return message_module.MultiToolMessage(role="tool", tool_messages=results)
+
+
 class _ServeSession:
     """One trial's world: the domain environment plus the upstream user simulator.
 
@@ -353,13 +361,7 @@ class _ServeSession:
             consumed += 1
             if remaining_steps is not None and consumed >= max(1, remaining_steps):
                 return None, extra
-            incoming = (
-                results[0]
-                if len(results) == 1
-                else self._message.MultiToolMessage(tool_messages=results)
-                if hasattr(self._message, "MultiToolMessage")
-                else results[-1]
-            )
+            incoming = environment_message(self._message, results)
             message, self.user_state = self.simulator.generate_next_message(incoming, self.user_state)
             if getattr(message, "cost", None):
                 self.simulator_cost += float(message.cost)

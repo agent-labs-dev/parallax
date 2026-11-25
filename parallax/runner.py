@@ -1626,8 +1626,9 @@ class TrialExecution:
                     nxt = await runtime.user_turn(
                         first=False, assistant=answer, remaining_steps=runtime.max_steps - current.step_count
                     )
-                except Tau2RuntimeError:
+                except Tau2RuntimeError as exc:
                     termination = "user_error"
+                    self.t.extra["tau2_user_error"] = str(exc)
                 else:
                     messages = nxt.get("messages")
                     transcript += cleaned(messages, stop=bool(nxt.get("stop")))

@@ -6,6 +6,13 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev61] - 2026-11-25
+
+### Fixed
+
+- tau2: a simulated user that runs several tool calls in one turn (a telecom customer running two phone checks) no longer ends the trial `user_error`. The bridge built upstream's `MultiToolMessage` without its required `role`.
+- tau2: a trial that ends `user_error` because the bridge refused the user turn records the bridge's error under `tau2_user_error`.
+
 ## [2.0.0.dev60] - 2026-11-25
 
 ### Fixed
