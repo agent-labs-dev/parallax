@@ -6,6 +6,8 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev56] - 2026-11-25
+
 ### Added
 
 - `{next_monday}` (and the other weekday names) in a task prompt is the first such weekday strictly after the run's UTC date, so "next Monday" is one concrete date for every arm.
