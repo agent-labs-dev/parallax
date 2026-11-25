@@ -1559,8 +1559,9 @@ class TrialExecution:
         termination: str | None = None
         try:
             first = await runtime.user_turn(first=True, remaining_steps=runtime.max_steps)
-        except Tau2RuntimeError:
+        except Tau2RuntimeError as exc:
             first, termination = {"messages": []}, "user_error"
+            self.t.extra["tau2_user_error"] = str(exc)
         transcript += cleaned(first.get("messages"), stop=bool(first.get("stop")))
         if termination is None:
             termination = progress().termination
