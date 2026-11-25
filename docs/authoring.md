@@ -665,7 +665,8 @@ The built-in policy asks three questions of that evidence:
 - `site_interruption` asks whether a transient failure on the live site's side, which the agent did not cause, is why
   the run could not be judged. When the evidence is unavailable and the answer is true, the trial is INVALID with an
   `environment interruption: ` reason and is retried like a harness-reported outage; otherwise the unavailable
-  evidence stays as it is and is not retried.
+  evidence stays as it is and is not retried, unless the run itself faulted in execution (harness error, timeout, over
+  budget), which is retried whatever else is undecided.
 
 The LLM judge panel answers all three. A screenshot travels as an image, never also as
 text. Evidence too large for one request is split into parts by page text and then controls. Each byte is sent once and

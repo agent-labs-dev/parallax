@@ -320,7 +320,7 @@ def task_from_record(source: str, record: TaskRecord) -> Task:
         )
     if policy.grade is None:
         raise TaskError(f"task source {source}: grading policy {policy.id} cannot grade a world-less task (no grade)")
-    for match in DATE_PLACEHOLDER.finditer(record.prompt):
+    for match in (*DATE_PLACEHOLDER.finditer(record.prompt), *DATE_PLACEHOLDER.finditer(record.summary)):
         if int(match.group(1) or 0) > MAX_DATE_OFFSET_DAYS:
             raise TaskError(
                 f"task source {source}: task {record.id} date placeholder {match.group(0)} is more than"

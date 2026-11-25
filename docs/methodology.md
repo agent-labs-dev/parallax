@@ -250,7 +250,10 @@ A human moves a flagged task by editing `task.toml` and bumping the task
   question beside `evidence_available`, and when the evidence is unavailable and that answer is true the
   reason starts `environment interruption: `, exactly as a harness's own report of an outage does, so every
   harness gets the same attempts and the retry policy never reads the judge's prose. Unavailable evidence the
-  judge does not put down to the site (missing observations, an unattributable cause) is never re-run.
+  judge does not put down to the site (missing observations, an unattributable cause) is never re-run when
+  the run completed. A run that faulted in execution (harness error, timeout, over budget) keeps
+  `execution incomplete: <status>` in its reason and is re-run whatever else is undecided, unless a reason below
+  forbids it.
   Only INVALID rows are re-run: a PASS or FAIL is never overwritten, and a reason that a re-run cannot
   change (a harness or box the run cannot open, missing evidence, a validity rejection, a failed
   teardown) is never re-run. `results.jsonl` keeps every attempt; readers score one row per key, the

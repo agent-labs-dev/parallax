@@ -137,7 +137,8 @@ METER_KEY_ENV = "PARALLAX_METER_KEY"
 RESULTS = "results.jsonl"
 BUDGET_JOURNAL = "budget.jsonl"
 INVALID_EXIT_SHARE = 0.10
-# Every reason a trial's own execution can go INVALID for and another attempt can plausibly avoid. A
+# Every reason a trial's own execution can go INVALID for and another attempt can plausibly avoid (a run whose status
+# is in `EXECUTION_FAULTS` is retried whatever else is undecided; see `transient_invalid`). A
 # reason outside this list is not retried, because re-running cannot measure anything new: a harness or
 # box the run could not open would fail its probe again, missing evidence describes the trial's own
 # world state, a validity rejection is a judgment of the evidence that attempt produced, and a failed
@@ -1612,7 +1613,8 @@ def transient_invalid(result: TrialResult) -> bool:
     reason outside `RETRYABLE_INVALID` keeps the trial as it stands: the run could not open that harness
     or box, the trial's own world state lacked the evidence a check needed, or the semantic judge
     rejected the execution it produced. A failed teardown is never retried, because a second attempt
-    would strand more of the harness's remote resources rather than fewer.
+    would strand more of the harness's remote resources rather than fewer. A run whose status is in `EXECUTION_FAULTS`
+    is the exception to the world-state rule: its missing evidence is a consequence of the fault, so it is retried.
     """
     if result.verdict is not Verdict.INVALID or not result.invalid_reason:
         return False

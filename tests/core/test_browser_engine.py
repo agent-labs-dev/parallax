@@ -156,6 +156,8 @@ def test_a_source_task_has_no_world_one_turn_and_its_policys_checks() -> None:
         task_from_record("shop", RECORD.model_copy(update={"grading": "no-such-policy"}))
     with pytest.raises(TaskError, match="more than 366 days ahead"):  # an unbounded offset would overflow mid-run
         task_from_record("shop", RECORD.model_copy(update={"prompt": "Book a flight on {today+999999999}."}))
+    with pytest.raises(TaskError, match="more than 366 days ahead"):  # the judge resolves the summary too
+        task_from_record("shop", RECORD.model_copy(update={"summary": "Book on {today+999999999}."}))
 
 
 def test_nonbrowser_date_placeholders_still_expand() -> None:
