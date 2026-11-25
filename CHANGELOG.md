@@ -6,6 +6,8 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev57] - 2026-11-25
+
 ### Added
 
 - `PARALLAX_BROWSER_PROXY_COUNTRY` (a country code, or `none`) sets the proxy of every Browser Use cloud browser an arm uses: the V3 and V4 runs, browser-harness and agent-browser (`browsers.create`), and the browser-use library arms (`cloud_proxy_country_code`). It is sent explicitly, so no vendor default (the library's `us` proxy) decides it for one arm.
