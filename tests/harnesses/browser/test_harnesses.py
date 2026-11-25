@@ -724,6 +724,20 @@ async def test_luna_keeps_the_model_cost_when_the_turn_is_cancelled_after_the_ag
     await rig.harness.stop()
 
 
+async def test_luna_reports_the_model_spend_of_a_worker_that_failed_as_unknown(monkeypatch) -> None:
+    rig = LunaRig(
+        monkeypatch,
+        events=[
+            {"event": "ready"},
+            {"event": "result", "status": "error", "answer": None, "error": "RuntimeError: boom"},
+            {"event": "stopped", "stopped": True},
+        ],
+    )
+    await rig.harness.turn(TurnInput(index=1, text="find it", new_session=True))
+    assert rig.harness.trial_costs() == {"model": None, "browser": 0.02}
+    await rig.harness.stop()
+
+
 async def test_a_run_that_used_its_whole_time_is_a_timeout_not_a_harness_error() -> None:
     from parallax.harnesses.browser.harnesses import _normalise_status
     from parallax.models import TurnStatus

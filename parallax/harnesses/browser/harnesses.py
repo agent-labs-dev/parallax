@@ -1193,7 +1193,11 @@ class BrowserHarnessLuna(BrowserHarnessOSS):
                     lines.append({"component": "model", "dollars": None})
                 self._record_costs(lines)
             raise
-        result["cost_lines"] = [*_mapping_list(result.get("cost_lines")), *browser.cost]
+        # A worker that failed reports no cost: its model spend is unknown, not free.
+        model = (
+            _mapping_list(result["cost_lines"]) if "cost_lines" in result else [{"component": "model", "dollars": None}]
+        )
+        result["cost_lines"] = [*model, *browser.cost]
         return result
 
 
