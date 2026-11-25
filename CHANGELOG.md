@@ -6,6 +6,12 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev59] - 2026-11-25
+
+### Fixed
+
+- tau2 names its judge and user-simulator models by their OpenRouter ids (`openai/gpt-5.5`, `openai/gpt-5.4-mini`, `openai/gpt-4.1`), whose canonical slugs are the upstream snapshots, so the preflight finds them on the default gateway. tau2-bench calls them through LiteLLM's OpenAI-compatible provider at `PARALLAX_JUDGE_BASE_URL`, and each judge call is recorded under its gateway id.
+
 ## [2.0.0.dev58] - 2026-11-25
 
 ### Fixed
