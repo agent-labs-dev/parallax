@@ -123,10 +123,11 @@ def _error_label(exc: BaseException) -> str:
     return f"{type(exc).__name__} (HTTP {status})" if isinstance(status, int) else type(exc).__name__
 
 
-def _judge_calls(calls_file: str | None = None) -> Any:
+def _judge_calls(calls_file: str | None = None, gateway_ids: dict[str, str] | None = None) -> Any:
     """Wrap the evaluator modules' `generate` so every judge call is recorded as it happens.
 
-    Returns a restore callable. Each entry carries the model called, token usage when the reply
+    Returns a restore callable. Each entry carries the model called, under its gateway id when
+    `gateway_ids` maps the LiteLLM model string to one, token usage when the reply
     reported any, and its cost (None, never dropped, when upstream reported none); a call that
     raises is recorded unpriced with its error class and status only, then re-raised.
     """
@@ -139,7 +140,8 @@ def _judge_calls(calls_file: str | None = None) -> Any:
 
         def recording(*args: Any, _original: Any = original, **kwargs: Any) -> Any:
             started = time.monotonic()
-            model = str(kwargs.get("model") or "unknown")
+            called = str(kwargs.get("model") or "")
+            model = (gateway_ids or {}).get(called) or called or "unknown"
             try:
                 reply = _original(*args, **kwargs)
             except BaseException as exc:
@@ -150,7 +152,7 @@ def _judge_calls(calls_file: str | None = None) -> Any:
                 raise
             usage = getattr(reply, "usage", None) or {}
             _emit_call(calls_file, {
-                "model": str(kwargs.get("model") or getattr(reply, "model", "") or "unknown"),
+                "model": model if called else str(getattr(reply, "model", "") or "unknown"),
                 "input_tokens": usage.get("prompt_tokens"),
                 "output_tokens": usage.get("completion_tokens"),
                 "cost_usd": getattr(reply, "cost", None),
@@ -202,7 +204,6 @@ def _evaluate(request: dict[str, Any]) -> dict[str, Any]:
         agent_cost=None,  # simulator and agent cost stay out of the upstream reward path
         user_cost=None,
     )
-    restore = _judge_calls(str(request["calls_file"]) if request.get("calls_file") else None)
     # Route both judges through the caller's configured gateway with the ids it validated:
     # the communicate judge via its settings, the NL judge via the module's pinned name.
     judge_models = request.get("judge_models") or {}
@@ -210,6 +211,10 @@ def _evaluate(request: dict[str, Any]) -> dict[str, Any]:
     nl_id = str(judge_models.get("nl") or "")
     communicate_model = _litellm_model(communicate_id) if communicate_id else ""
     nl_model = _litellm_model(nl_id) if nl_id else ""
+    restore = _judge_calls(
+        str(request["calls_file"]) if request.get("calls_file") else None,
+        {_litellm_model(gateway_id): gateway_id for gateway_id in (communicate_id, nl_id) if gateway_id},
+    )
     nl_module = importlib.import_module("tau2.evaluator.evaluator_nl_assertions")
     pinned_nl = getattr(nl_module, "DEFAULT_LLM_NL_ASSERTIONS", None)
     if nl_model:
