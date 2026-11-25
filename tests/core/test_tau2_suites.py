@@ -1080,3 +1080,29 @@ async def test_tau2_runtime_serialises_concurrent_requests(tmp_path):
     finally:
         runtime._process.kill()
         await runtime._process.wait()
+
+
+@requires_tau2
+def test_a_user_tool_batch_becomes_one_upstream_multi_tool_message():
+    # A telecom user running two phone checks in one turn used to end the trial `user_error`: the bridge built
+    # upstream's MultiToolMessage without its required `role`.
+    root, python = _tau2_checkout()  # type: ignore[misc]
+    script = """
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location("bridge", sys.argv[1])
+bridge = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(bridge)
+from tau2.data_model import message
+results = [message.ToolMessage(id=i, role="tool", content="ok", requestor="user") for i in ("a", "b")]
+one = bridge.environment_message(message, results[:1])
+both = bridge.environment_message(message, results)
+assert one is results[0]
+assert isinstance(both, message.MultiToolMessage) and both.tool_messages == results
+"""
+    result = subprocess.run(
+        [str(python), "-B", "-c", script, str(Path(official.__file__).with_name("tau2_bridge.py"))],
+        capture_output=True,
+        cwd=root,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr.decode()[-800:]
