@@ -561,7 +561,9 @@ async def test_luna_fails_its_preflight_without_the_openrouter_key(monkeypatch) 
 class LunaRig:
     """A Luna harness whose cloud browser, start-page load and worker are stand-ins that record what they are given."""
 
-    def __init__(self, monkeypatch, *, events=None, outage=None, create_error=None, worker_error=None) -> None:
+    def __init__(
+        self, monkeypatch, *, events=None, outage=None, create_error=None, worker_error=None, observe_error=None
+    ) -> None:
         import contextlib
         from pathlib import Path
 
@@ -617,6 +619,8 @@ class LunaRig:
         class Observed(harnesses.BrowserHarnessLuna):
             async def observe(self, cdp_url: str, *, url: str | None = None) -> dict[str, object]:
                 rig.calls.append(("observe", url))
+                if observe_error is not None:
+                    raise observe_error
                 return {"url": url}
 
         monkeypatch.setattr(harnesses, "cloud_browser", paid_browser)
@@ -682,7 +686,7 @@ async def test_luna_stops_its_agent_inside_the_turn_so_a_run_at_the_limit_keeps_
     rig = LunaRig(monkeypatch)
     rig.harness._turn_ends_at = time.monotonic() + 300
     await rig.harness.execute(TurnInput(index=1, text="find it", new_session=True))
-    assert 270 < rig.sent()["timeout"] < 300
+    assert 235 < rig.sent()["timeout"] < 241
     await rig.harness.stop()
 
 
@@ -694,6 +698,36 @@ async def test_luna_keeps_the_browser_cost_of_a_cancelled_run(monkeypatch) -> No
         await rig.harness.execute(TurnInput(index=1, text="find it", new_session=True))
     assert rig.harness.trial_costs() == {"browser": 0.02}
     await rig.harness.stop()
+
+
+async def test_luna_keeps_the_model_cost_when_the_turn_is_cancelled_after_the_agent_returned(monkeypatch) -> None:
+    import asyncio
+
+    rig = LunaRig(
+        monkeypatch,
+        observe_error=asyncio.CancelledError(),
+        events=[
+            {"event": "ready"},
+            {
+                "event": "result",
+                "status": "completed",
+                "answer": "ok",
+                "cost_lines": [{"component": "model", "dollars": 0.01}],
+            },
+            {"event": "stopped", "stopped": True},
+        ],
+    )
+    with pytest.raises(asyncio.CancelledError):
+        await rig.harness.execute(TurnInput(index=1, text="find it", new_session=True))
+    assert rig.harness.trial_costs() == {"model": 0.01, "browser": 0.02}
+    await rig.harness.stop()
+
+
+async def test_a_run_that_used_its_whole_time_is_a_timeout_not_a_harness_error() -> None:
+    from parallax.harnesses.browser.harnesses import _normalise_status
+    from parallax.models import TurnStatus
+
+    assert _normalise_status("timeout") is TurnStatus.TIMEOUT
 
 
 async def test_luna_reports_a_site_that_is_down_in_its_browser_as_an_interruption(monkeypatch) -> None:

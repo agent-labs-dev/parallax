@@ -198,3 +198,22 @@ async def test_the_worker_reports_a_transient_model_failure_as_unavailable(monke
     await luna_worker.run({"goal": "g", "cdp_url": "wss://cdp.test", "timeout": 5.0})
 
     assert [e["status"] for e in emitted if e["event"] == "result"] == ["unavailable", "error"]
+
+
+async def test_the_worker_still_answers_when_the_daemon_stalls_reading_the_page(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import time
+
+    fake_browser_use(monkeypatch)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "or-key")
+    monkeypatch.setattr(sys, "stdin", io.StringIO("{}\n"))
+    monkeypatch.setattr(FakeBrowser, "remember_tab", lambda self: time.sleep(0.3))
+    monkeypatch.setattr(luna_worker, "URL_SECONDS", 0.05)
+    emitted: list[dict[str, object]] = []
+    monkeypatch.setattr(luna_worker, "emit", emitted.append)
+
+    await luna_worker.run({"goal": "g", "cdp_url": "wss://cdp.test", "timeout": 5.0})
+
+    assert emitted[1]["url"] is None
+    assert emitted[1]["answer"] == "the answer"

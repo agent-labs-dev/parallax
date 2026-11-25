@@ -26,6 +26,7 @@ from typing import Any
 
 MODEL = "openai/gpt-6-luna"
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+URL_SECONDS = 5.0
 
 
 async def run(request: dict[str, object]) -> None:
@@ -71,7 +72,7 @@ async def run(request: dict[str, object]) -> None:
                 "status": unavailable_or(result),
                 "answer": result.final_result() if structured is None else structured,
                 "error": result.error,
-                "url": await asyncio.to_thread(active_url, browser),
+                "url": await active_url(browser),
                 "successful": result.is_successful(),
                 "step_log": steps(result.messages),
                 "actual_models": served,
@@ -101,13 +102,18 @@ def unavailable_or(result: Any) -> str:
     return result.status
 
 
-def active_url(browser: Any) -> str | None:
-    """The page the agent's tab ended on, so the host reads that page and not a guess among several tabs."""
-    try:
+async def active_url(browser: Any) -> str | None:
+    """The page the agent's tab ended on, so the host reads that page and not a guess among several tabs. The daemon
+    can stall, and the result with its cost must still reach the host, so the read is bounded."""
+
+    def read() -> str | None:
         browser.remember_tab()
         tab = browser._agent_tab
         targets = browser._cdp()("Target.getTargets")["targetInfos"]
         return next((t["url"] for t in targets if t["targetId"] == tab), None)
+
+    try:
+        return await asyncio.wait_for(asyncio.to_thread(read), timeout=URL_SECONDS)
     except Exception:
         return None
 
