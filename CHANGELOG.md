@@ -6,6 +6,12 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev58] - 2026-11-25
+
+### Fixed
+
+- The `browser-use-1-luna` arm now meets the other arms' conditions: Parallax opens its cloud browser on the shared 1120x780 screen with the explicit proxy and loads the task's start page before the agent clock starts. The agent answers to the task's `answer_schema` when the judge is shown one, the result carries the active page URL for the final-page observer, and the agent stops itself inside the turn, so a run at its limit keeps its cost (a run that reported none has an unknown model cost, not a free one). A browser that will not start, a site that does not answer, and browser-use's own transient model failures report `unavailable` and retry.
+
 ## [2.0.0.dev57] - 2026-11-25
 
 ### Added
