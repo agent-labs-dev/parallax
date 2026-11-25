@@ -11,10 +11,12 @@ All notable changes to Parallax are recorded here. The format follows
 ### Added
 
 - The `terminal-bench-2` and `tau2` official suites, pinned by commit and graded by each benchmark's own verifier. Parallax owns each TB2 task container and the tau2 tool server, user simulator and transcript; a harness acts in the container with `live_container`. The codex and claude-code manifests run TB2 inside the container. tau2 needs `--isolation host` for a harness that would run in a docker box.
+- The `browser-use-1-luna` harness: the open-source browser-use 1.0.8 library in Browser Use's fast configuration, with GPT-6 Luna through OpenRouter (`--model openai/gpt-6-luna`) at low reasoning effort on a hosted Browser Use browser. Its own judge is off because Parallax judges, and naming any other model marks the row invalid.
 - A usage line keeps the billed component and the number of images its requests carried, as `component` and `images`, when a harness reports them. A browser agent that shows its decision model screenshots can then be compared by image-bearing calls alongside its tokens and dollars, per component. A line with no images omits the field, and earlier ledgers read unchanged.
 
 ### Fixed
 
+- An official judge's retried call is metered on every openai SDK major (1.x to 3.x): each retry is recorded as an unpriced attempt where the SDK builds the request, so the judge's cost reads unknown instead of under-counted.
 - The claude-code install line allows its own package's install script, so under npm 12, which blocks scripts by default, the Hyprland desktop box gets claude's native binary instead of a launcher that exits 1.
 - A desktop recording that is not kept logs why: the stop step reports a missing recorder, one that will not stop, or one that wrote no file, with the recorder's log, instead of an empty reason.
 
