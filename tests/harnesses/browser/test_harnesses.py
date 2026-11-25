@@ -933,7 +933,7 @@ async def test_a_worker_that_fails_after_its_browser_opened_keeps_the_browser_co
     )
 
     @contextlib.asynccontextmanager
-    async def paid_browser(http: object, *, screen: object, minutes: int):  # noqa: ANN202
+    async def paid_browser(http: object, *, screen: object, minutes: int, proxy_country: str | None = "us"):  # noqa: ANN202
         try:
             yield browser
         finally:
@@ -966,7 +966,7 @@ async def test_a_site_down_in_the_runners_own_browser_is_an_interruption_before_
     )
 
     @contextlib.asynccontextmanager
-    async def paid_browser(http: object, *, screen: object, minutes: int):  # noqa: ANN202
+    async def paid_browser(http: object, *, screen: object, minutes: int, proxy_country: str | None = "us"):  # noqa: ANN202
         try:
             yield browser
         finally:
@@ -1013,7 +1013,7 @@ async def test_a_browser_harness_trial_costs_its_agent_model_as_well_as_its_brow
     )
 
     @contextlib.asynccontextmanager
-    async def paid_browser(http: object, *, screen: object, minutes: int):  # noqa: ANN202
+    async def paid_browser(http: object, *, screen: object, minutes: int, proxy_country: str | None = "us"):  # noqa: ANN202
         try:
             yield browser
         finally:
@@ -1259,7 +1259,7 @@ async def test_every_cloud_arm_records_its_browser_and_live_view(monkeypatch, tm
     )
 
     @contextlib.asynccontextmanager
-    async def paid_browser(http: object, *, screen: object, minutes: int):  # noqa: ANN202
+    async def paid_browser(http: object, *, screen: object, minutes: int, proxy_country: str | None = "us"):  # noqa: ANN202
         asked.append(minutes)
         yield browser
 
@@ -1339,3 +1339,18 @@ def test_a_harness_reported_component_and_image_count_are_kept_on_usage() -> Non
     assert [(u.component, u.images) for u in _usage([{"model": "m", "component": 7, "images": None}], None)] == [
         (None, 0)
     ]
+
+
+@pytest.mark.parametrize(("value", "want"), [("us", "us"), ("DE", "de"), ("none", None), (" None ", None)])
+def test_the_proxy_country_env_names_a_country_or_no_proxy(monkeypatch, value: str, want: str | None) -> None:
+    monkeypatch.setenv("PARALLAX_BROWSER_PROXY_COUNTRY", value)
+    assert BrowserHarnessLuna().config.proxy_country == want
+
+
+def test_a_browser_use_worker_is_told_the_proxy_country(monkeypatch) -> None:
+    from parallax.models import Trial
+
+    monkeypatch.setenv("PARALLAX_BROWSER_PROXY_COUNTRY", "none")
+    harness = BrowserHarnessLuna()
+    harness._trial = Trial.model_construct(model="openai/gpt-6-luna", env={})
+    assert harness._worker_request(TurnInput(index=1, text="x", new_session=True))["proxy_country"] is None

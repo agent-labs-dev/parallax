@@ -77,7 +77,13 @@ class BrowserConfig(BaseModel):
     # Sent on every V4 run, so no vendor default decides an arm's limits: Browser Use caps a session at $25 and
     # runs its fast presets without a proxy unless told otherwise. The cap sits far above any run's cost.
     max_cost_usd: float = 1000.0
-    proxy_country: str = "us"
+    # The proxy country of every arm's Browser Use cloud browser, so no vendor default decides it; None is no proxy.
+    proxy_country: str | None = "us"
+
+
+def proxy_country_from(value: str) -> str | None:
+    """A `PARALLAX_BROWSER_PROXY_COUNTRY` value: a two-letter country code, or `none` for no proxy."""
+    return None if value.strip().lower() == "none" else value.strip().lower()
 
 
 def _info(
@@ -299,7 +305,7 @@ class BrowserHarness(ABC):
             cloud_api=os.environ.get("PARALLAX_BROWSER_CLOUD_API", "v4"),
             poll_seconds=float(os.environ.get("PARALLAX_BROWSER_POLL_SECONDS", "1")),
             max_cost_usd=float(os.environ.get("PARALLAX_BROWSER_MAX_COST_USD", "1000")),
-            proxy_country=os.environ.get("PARALLAX_BROWSER_PROXY_COUNTRY", "us"),
+            proxy_country=proxy_country_from(os.environ.get("PARALLAX_BROWSER_PROXY_COUNTRY", "us")),
         )
         self._trial: Trial | None = None
         self._clock: AttemptClock | None = None
@@ -1006,6 +1012,7 @@ class BrowserHarnessOSS(BrowserHarness):
             "max_steps": None,
             "timeout": None,
             "browser_minutes": browser_minutes(self.seconds_left()),
+            "proxy_country": self.config.proxy_country,
         }
 
     async def execute(self, turn: TurnInput) -> dict[str, Any]:
@@ -1116,7 +1123,12 @@ class BrowserHarnessRunner(BrowserHarness):
         browser = None
         try:
             minutes = browser_minutes(self.seconds_left())
-            async with httpx.AsyncClient() as http, cloud_browser(http, screen=(1120, 780), minutes=minutes) as browser:
+            async with (
+                httpx.AsyncClient() as http,
+                cloud_browser(
+                    http, screen=(1120, 780), minutes=minutes, proxy_country=self.config.proxy_country
+                ) as browser,
+            ):
                 # The paid browser exists, so the attempt spends from here even if the worker never starts.
                 self._browser_opened(browser.browser_id, browser.live_url)
                 if self._start_url is not None and (

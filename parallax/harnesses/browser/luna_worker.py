@@ -40,7 +40,9 @@ async def run(request: dict[str, object]) -> None:
         if not key:
             raise RuntimeError("browser-use-1-luna needs OPENROUTER_API_KEY for its model")
         # The host's limit for this turn, so a browser whose stop is missed stops itself (cloud.browser_minutes).
-        browser = browser_type(keep_alive=True, cloud_timeout=request["browser_minutes"])
+        browser = browser_type(
+            keep_alive=True, cloud_timeout=request["browser_minutes"], cloud_proxy_country_code=request["proxy_country"]
+        )
         started = time.monotonic()
         await browser.start()
         emit(
