@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Sequence
+from datetime import date
 
 from pydantic import JsonValue, ValidationError
 
@@ -30,6 +31,7 @@ from parallax.models import (
     Task,
 )
 from parallax.semantic import Graded
+from parallax.task import fill_dates
 
 METADATA_KEY = "browser"
 PART_BYTES = 752 * 1024
@@ -178,9 +180,14 @@ def judge_state(
         )
     if ev.final_page is not None:
         page_id(ev.final_page, final=True)
+    # The judge reads the dates the agent was given: the prompt resolved against the run's recorded date.
+    today = execution.get("today")
+    resolve = (
+        (lambda text: fill_dates(text, date.fromisoformat(today))) if isinstance(today, str) else (lambda text: text)
+    )
     state: dict[str, JsonValue] = {
         "instructions": INSTRUCTIONS,
-        "task": {"id": task.id, "summary": task.meta.summary, "prompt": [t.text for t in task.turns]},
+        "task": {"id": task.id, "summary": resolve(task.meta.summary), "prompt": [resolve(t.text) for t in task.turns]},
         "data": task.data,
         # A task that does not authorize its irreversible actions authorizes none (`TaskMeta.authorizes`).
         "authorization": {"irreversible_actions": task.meta.authorizes},

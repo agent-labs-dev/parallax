@@ -592,7 +592,9 @@ def test_a_trial_is_retried_only_for_a_transient_execution_fault(tmp_path: Path,
     assert transient_invalid(_row(tmp_path, Verdict.INVALID, reason)) is want
 
 
-@pytest.mark.parametrize("status", [TrajectoryStatus.HARNESS_ERROR, TrajectoryStatus.TIMEOUT, TrajectoryStatus.OVER_BUDGET])
+@pytest.mark.parametrize(
+    "status", [TrajectoryStatus.HARNESS_ERROR, TrajectoryStatus.TIMEOUT, TrajectoryStatus.OVER_BUDGET]
+)
 def test_an_undecided_check_on_a_faulted_run_keeps_the_fault_in_the_reason_and_is_retried(
     tmp_path: Path, status: TrajectoryStatus
 ) -> None:

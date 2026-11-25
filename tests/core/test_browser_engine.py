@@ -162,6 +162,25 @@ def test_nonbrowser_date_placeholders_still_expand() -> None:
     assert fill_dates("Run on {today+2}.", datetime(2026, 11, 15, tzinfo=UTC).date()) == "Run on 2026-11-17."
 
 
+def test_next_weekday_placeholder_is_the_first_such_day_strictly_after_today() -> None:
+    monday, tuesday = datetime(2026, 11, 23, tzinfo=UTC).date(), datetime(2026, 11, 24, tzinfo=UTC).date()
+    assert fill_dates("Fly {next_monday}.", monday) == "Fly 2026-11-30."  # not today, a week on
+    assert fill_dates("Fly {next_monday}.", tuesday) == "Fly 2026-11-30."
+    assert fill_dates("Fly {next_sunday} or {today}.", monday) == "Fly 2026-11-29 or 2026-11-23."
+
+
+def test_the_judge_sees_the_same_resolved_dates_as_the_agent() -> None:
+    record = RECORD.model_copy(
+        update={"prompt": "Fly on {today+28}, back {next_monday}.", "summary": "Book for {today+28}"}
+    )
+    state = browser_evidence.judge_state(task_from_record("shop", record), OBSERVED, (), {"today": "2026-11-15"})
+    assert state["task"]["prompt"] == ["Fly on 2026-12-13, back 2026-11-16."]
+    assert state["task"]["summary"] == "Book for 2026-12-13"
+    # With no recorded date there is nothing to resolve against: the template stays as written.
+    bare = browser_evidence.judge_state(task_from_record("shop", record), OBSERVED, (), {})
+    assert bare["task"]["prompt"] == ["Fly on {today+28}, back {next_monday}."]
+
+
 def test_answer_schema_reaches_the_browser_judge_state() -> None:
     schema = {"type": "object", "properties": {"price": {"type": "string"}}}
     task = source_task().model_copy(update={"answer_schema": schema})
@@ -517,7 +536,9 @@ async def test_a_judge_reason_holding_a_semicolon_does_not_hide_a_site_failure_f
     graded = await grade({"browser": OBSERVED.model_dump(mode="json")}, transport)
     _, reason = decide(None, [], runner.TrajectoryStatus.COMPLETED, graded.checks)
     assert reason is not None and reason.startswith(ENVIRONMENT_INTERRUPTION)
-    row = TrialResult.model_construct(verdict=Verdict.INVALID, invalid_reason=reason)
+    row = TrialResult.model_construct(
+        verdict=Verdict.INVALID, invalid_reason=reason, status=runner.TrajectoryStatus.COMPLETED
+    )
     assert runner.transient_invalid(row) is True
 
 

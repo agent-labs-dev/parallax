@@ -156,9 +156,7 @@ RETRYABLE_INVALID = (
     ENVIRONMENT_INTERRUPTION,  # a site or provider outage the harness reported; waited out (`retry_wait_s`)
 )
 # A run that ended with one of these statuses faulted in execution on any harness; the row's `status` says so.
-EXECUTION_FAULTS = frozenset(
-    {TrajectoryStatus.HARNESS_ERROR, TrajectoryStatus.TIMEOUT, TrajectoryStatus.OVER_BUDGET}
-)
+EXECUTION_FAULTS = frozenset({TrajectoryStatus.HARNESS_ERROR, TrajectoryStatus.TIMEOUT, TrajectoryStatus.OVER_BUDGET})
 NEVER_RETRYABLE_INVALID = (
     " box unavailable: ",
     "harness unavailable: ",
@@ -409,8 +407,14 @@ def decide(
     reasons = [*invalid_reasons, *missing]
     if execution_valid is False:
         reasons.insert(0, "semantic judge rejected execution validity")
-    if status in EXECUTION_FAULTS and execution_valid is not True and reasons:
-        # An undecided check beside a faulted run: keep the fault, so the row says why it measured nothing.
+    if (
+        status in EXECUTION_FAULTS
+        and execution_valid is not True
+        and reasons
+        and not any(r.startswith(ENVIRONMENT_INTERRUPTION) for r in reasons)
+    ):
+        # An undecided check beside a faulted run: keep the fault, so the row says why it measured nothing. A reported
+        # site outage already names its cause.
         reasons.insert(0, f"execution incomplete: {status.value}")
     if status is TrajectoryStatus.BOOT_ERROR:
         reasons.insert(0, "boot_error")

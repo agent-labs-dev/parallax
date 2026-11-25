@@ -644,8 +644,9 @@ Use `answer_schema` for a JSON Schema when the answer has a structured shape.
 The cloud V4 adapter sends it as structured output and the browser judge receives
 it in its evidence state. Other harnesses ignore it. `{today}` in a source
 prompt is replaced with the run's UTC date at trial start, and `{today+N}` with
-the date N days later, and the date is saved
-in trial details. The hash still covers the template, not the substituted date.
+the date N days later, and `{next_monday}` (any weekday name) with the first such
+weekday strictly after that date. The browser judge reads the prompt with the same
+dates filled in. The date is saved in trial details. The hash still covers the template, not the substituted date.
 
 A world-less trial gets no MCP endpoint and no persona: `Trial.mcp` and `Trial.user` are None. A harness that needs the
 world uses `trial.world_mcp`, which raises for a world-less task.
