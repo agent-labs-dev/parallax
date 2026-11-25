@@ -439,7 +439,7 @@ def _serve(first: dict[str, Any]) -> None:
             else:
                 reply({"ok": False, "error": f"unknown or out-of-order op {op!r}"})
         except BaseException as exc:  # the session survives a failed call; parallax records it
-            reply({"ok": False, "error": type(exc).__name__})
+            reply({"ok": False, "error": _error_label(exc)})
 
 
 def failure(exc: BaseException) -> str:

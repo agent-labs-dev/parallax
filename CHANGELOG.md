@@ -6,6 +6,10 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- tau2: a bridge call that fails on a gateway refusal reports its HTTP status, so a key limit (HTTP 403) on the simulator reads as one instead of a bare `APIError`.
+
 ## [2.0.0.dev61] - 2026-11-25
 
 ### Fixed

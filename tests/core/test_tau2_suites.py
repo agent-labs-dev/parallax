@@ -1106,3 +1106,42 @@ assert isinstance(both, message.MultiToolMessage) and both.tool_messages == resu
         check=False,
     )
     assert result.returncode == 0, result.stderr.decode()[-800:]
+
+
+@requires_tau2
+@pytest.mark.asyncio
+async def test_a_refused_simulator_call_reports_its_http_status():
+    # A gateway's key limit (HTTP 403) on the simulator's call used to reach the runner as a bare `APIError`.
+    from http.server import BaseHTTPRequestHandler
+
+    from parallax.tau2_runtime import Tau2BridgeRuntime, Tau2RuntimeError
+
+    class Gateway(BaseHTTPRequestHandler):
+        def do_POST(self):
+            self.rfile.read(int(self.headers["Content-Length"]))
+            body = json.dumps({"error": {"message": "Key limit exceeded", "code": 403}}).encode()
+            self.send_response(403)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    base_url, server = _gateway(Gateway)
+    root, python = _tau2_checkout()  # type: ignore[misc]
+    runtime = Tau2BridgeRuntime(
+        root=root, python=python, commit=official.TAU2_UPSTREAM_COMMIT, base_url=base_url, api_key="test"
+    )
+    task = next(
+        t for t in json.loads((root / "data/tau2/domains/mock/tasks.json").read_text()) if t["id"] == "create_task_1"
+    )
+    try:
+        await runtime.start(domain="mock", task=task)
+        with pytest.raises(Tau2RuntimeError, match=r"\(HTTP 403\)") as raised:
+            await runtime.user_turn(first=True)
+        assert "Key limit" not in str(raised.value)
+    finally:
+        await runtime.close()
+        server.shutdown()  # type: ignore[attr-defined]
