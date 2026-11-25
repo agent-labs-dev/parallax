@@ -1354,3 +1354,19 @@ def test_a_browser_use_worker_is_told_the_proxy_country(monkeypatch) -> None:
     harness = BrowserHarnessLuna()
     harness._trial = Trial.model_construct(model="openai/gpt-6-luna", env={})
     assert harness._worker_request(TurnInput(index=1, text="x", new_session=True))["proxy_country"] is None
+
+
+def test_scrubbing_a_public_credential_never_rewrites_a_url_host() -> None:
+    harness = BrowserHarnessLuna()
+    harness._secret_values = {"username": "practice"}
+    scrubbed = harness._scrub(
+        {
+            "url": "https://practice.expandtesting.com/login",
+            "text": "Typed practice at https://practice.expandtesting.com/login?user=practice and https://x.test/practice",
+        }
+    )
+    tag = "<secret>username</secret>"
+    assert scrubbed["url"] == "https://practice.expandtesting.com/login"
+    assert scrubbed["text"] == (
+        f"Typed {tag} at https://practice.expandtesting.com/login?user={tag} and https://x.test/{tag}"
+    )

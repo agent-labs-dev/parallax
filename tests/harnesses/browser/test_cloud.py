@@ -214,7 +214,7 @@ async def test_cloud_browser_sends_the_proxy_country_explicitly(
             return SimpleNamespace(status=BrowserSessionStatus.stopped, browser_cost="0.10", proxy_cost="0.00")
 
     monkeypatch.setattr(cloud, "PROXY_SETTLE_SECONDS", 0)
-    async with httpx.AsyncClient() as http:
-        async with cloud.cloud_browser(http, client=SimpleNamespace(browsers=Browsers()), proxy_country=proxy):
-            pass
+    client = SimpleNamespace(browsers=Browsers())
+    async with httpx.AsyncClient() as http, cloud.cloud_browser(http, client=client, proxy_country=proxy):
+        pass
     assert seen["proxy_country_code"] == proxy  # present even when None: the vendor default never decides

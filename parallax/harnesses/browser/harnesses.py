@@ -13,6 +13,7 @@ import importlib
 import json
 import logging
 import os
+import re
 import shlex
 import shutil
 import sys
@@ -79,6 +80,9 @@ class BrowserConfig(BaseModel):
     max_cost_usd: float = 1000.0
     # The proxy country of every arm's Browser Use cloud browser, so no vendor default decides it; None is no proxy.
     proxy_country: str | None = "us"
+
+
+_URL = re.compile(r"(?P<scheme>https?://)(?P<authority>[^/?#\s\"'<>]*)(?P<rest>[^\s\"'<>]*)")
 
 
 def proxy_country_from(value: str) -> str | None:
@@ -386,11 +390,23 @@ class BrowserHarness(ABC):
                 }
             )
 
+    def _scrub_text(self, text: str) -> str:
+        for alias, secret in sorted(self._secret_values.items(), key=lambda item: len(item[1]), reverse=True):
+            text = text.replace(secret, f"<secret>{alias}</secret>")
+        return text
+
     def _scrub(self, value: object) -> Any:
         if isinstance(value, str):
-            for alias, secret in sorted(self._secret_values.items(), key=lambda item: len(item[1]), reverse=True):
-                value = value.replace(secret, f"<secret>{alias}</secret>")
-            return value
+            # A URL's host is the site's address, not a place a credential is typed: a public demo credential that is
+            # also a hostname word (username `practice` on practice.example.com) must not rewrite it. Every other part
+            # of the URL, and all other text, is scrubbed.
+            out, last = [], 0
+            for url in _URL.finditer(value):
+                out += [self._scrub_text(value[last : url.start()]), url["scheme"]]
+                userinfo, at, host = url["authority"].rpartition("@")
+                out += [self._scrub_text(userinfo), at, host, self._scrub_text(url["rest"])]
+                last = url.end()
+            return "".join([*out, self._scrub_text(value[last:])])
         if isinstance(value, Mapping):
             return {key: self._scrub(item) for key, item in value.items()}
         if isinstance(value, list):
