@@ -696,7 +696,8 @@ async def test_luna_keeps_the_browser_cost_of_a_cancelled_run(monkeypatch) -> No
     rig = LunaRig(monkeypatch, worker_error=asyncio.CancelledError())
     with pytest.raises(asyncio.CancelledError):
         await rig.harness.execute(TurnInput(index=1, text="find it", new_session=True))
-    assert rig.harness.trial_costs() == {"browser": 0.02}
+    # The agent started, so its model spend is unknown, and the browser's charges are not the whole cost.
+    assert rig.harness.trial_costs() == {"model": None, "browser": 0.02}
     await rig.harness.stop()
 
 

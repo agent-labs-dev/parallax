@@ -1186,7 +1186,12 @@ class BrowserHarnessLuna(BrowserHarnessOSS):
         except BaseException:
             # The agent failed or was cancelled, but the browser it was given has settled its charges.
             if browser is not None:
-                self._record_costs(list(browser.cost))
+                lines = list(browser.cost)
+                if self._turn_spending and "cost_lines" not in result:
+                    # The agent ran but never reported its model spend: that is unknown, not free, and the browser's
+                    # charges alone must not stand for the trial's whole cost.
+                    lines.append({"component": "model", "dollars": None})
+                self._record_costs(lines)
             raise
         result["cost_lines"] = [*_mapping_list(result.get("cost_lines")), *browser.cost]
         return result
