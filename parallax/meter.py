@@ -23,6 +23,7 @@ import os
 import re
 import secrets
 import sys
+import time
 from collections.abc import AsyncGenerator, AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
@@ -179,6 +180,9 @@ SEARCHING_MODELS = frozenset({
 TOOL_TYPE_VERSION = re.compile(r"_\d{8}$")
 # How long a report waits for streams whose client hung up to finish (see `pump`).
 STREAM_DRAIN_WAIT_S = 120.0
+# A trial key is revoked when the trial ends. This crash-safe upper bound covers the longest
+# built-in install plus TB2 turn timeout without expiring while the trial is still running.
+TRIAL_CREDENTIAL_TTL_S = 24 * 60 * 60
 
 
 class MeterError(StrEnum):
@@ -188,6 +192,8 @@ class MeterError(StrEnum):
     UNREADABLE_REQUEST = "unreadable_request"
     UPSTREAM_DISABLED = "upstream_disabled"
     UPSTREAM_UNREACHABLE = "upstream_unreachable"
+    BUDGET_EXCEEDED = "budget_exceeded"
+    UNPRICED_MODEL = "unpriced_model"
 
     @property
     def anthropic_type(self) -> str:
@@ -200,6 +206,10 @@ class MeterError(StrEnum):
                 return "invalid_request_error"
             case MeterError.UPSTREAM_DISABLED | MeterError.UPSTREAM_UNREACHABLE:
                 return "api_error"
+            case MeterError.BUDGET_EXCEEDED:
+                return "rate_limit_error"
+            case MeterError.UNPRICED_MODEL:
+                return "invalid_request_error"
             case _:
                 assert_never(self)
 
@@ -246,9 +256,12 @@ class ModelTally:
 
 @dataclass
 class TrialMeter:
+    budget_usd: float | None = None
+    expires_at: float | None = None
     models: dict[str, ModelTally] = field(default_factory=dict)
     upstream_errors: int = 0
     unpriced_requests: int = 0
+    conservative_spend_usd: float = 0.0
     served: dict[str, None] = field(default_factory=dict)  # ordered set of response-named models
     unobserved_requests: int = 0
     # Upstream streams still being read, whether or not their client is still there (see `pump`),
@@ -264,6 +277,21 @@ class TrialMeter:
             unpriced_requests=self.unpriced_requests,
             unobserved_requests=self.unobserved_requests,
         )
+
+    def spent_usd(self) -> float:
+        """Priced spend plus the full trial cap for any unpriced response.
+
+        A budgeted trial therefore fails closed. Charging its whole cap is conservative because
+        the provider may have billed any amount that the response failed to expose.
+        """
+        return math.fsum((*[t.cost_usd for t in self.models.values()], self.conservative_spend_usd))
+
+    def closed(self) -> bool:
+        return self.expires_at is not None and time.time() >= self.expires_at
+
+    def over_budget(self) -> bool:
+        spent = self.spent_usd()
+        return self.budget_usd is not None and spent >= self.budget_usd
 
 
 @dataclass(frozen=True)
@@ -301,9 +329,23 @@ class UsageAccumulator:
     final chunk, Responses' `response.completed`), so the latest value of each field wins.
     """
 
-    def __init__(self, wire: Wire, request_model: str | None, endpoint: Endpoint = Endpoint.GENERATION) -> None:
+    def __init__(
+        self,
+        wire: Wire,
+        request_model: str | None,
+        endpoint: Endpoint = Endpoint.GENERATION,
+        request: Mapping[str, JsonValue] | None = None,
+        request_bytes: int = 0,
+        upstream_url: str = "",
+        catalog: Provider | None = None,
+    ) -> None:
         self.wire = wire
         self.endpoint = endpoint
+        self.request = request
+        self.request_bytes = request_bytes
+        self.response_bytes = 0
+        self.upstream_url = upstream_url
+        self.catalog = catalog
         self.reported_cost: float | None = None  # the charge the provider reported, in dollars (`Endpoint.DECISION`)
         self.model = request_model  # labels usage and prices it; the request's model until a response names one
         self.served: str | None = None  # only what a response named: the evidence for board placement
@@ -365,6 +407,8 @@ class UsageAccumulator:
                         cache_write=f("input_tokens_details.cache_write_tokens", 0),
                         reasoning=f("output_tokens_details.reasoning_tokens", 0),
                     )
+                if "prompt_tokens" not in self.fields and "completion_tokens" not in self.fields:
+                    return None
                 return Observed(  # Chat Completions (OpenRouter adds cache_write_tokens)
                     model=self.model,
                     input=f("prompt_tokens", 0),
@@ -374,6 +418,8 @@ class UsageAccumulator:
                     reasoning=f("completion_tokens_details.reasoning_tokens", 0),
                 )
             case Wire.ANTHROPIC:
+                if "input_tokens" not in self.fields and "output_tokens" not in self.fields:
+                    return None
                 cache_read = f("cache_read_input_tokens", 0)
                 cache_write = f("cache_creation_input_tokens", 0)
                 return Observed(
@@ -386,6 +432,8 @@ class UsageAccumulator:
                 )
             case Wire.GOOGLE:
                 # Google bills thinking as output; `promptTokenCount` already includes cached tokens.
+                if "promptTokenCount" not in self.fields and "candidatesTokenCount" not in self.fields:
+                    return None
                 thoughts = f("thoughtsTokenCount", 0)
                 return Observed(
                     model=self.model,
@@ -491,12 +539,51 @@ def price(observed: Observed, upstream_url: str, catalog: Provider | None = None
         return None
 
 
-def record_unpriced(trial: TrialMeter, acc: UsageAccumulator) -> str:
+def model_price_known(model: str, upstream_url: str, catalog: Provider | None = None) -> bool:
+    """Whether a budgeted trial can be admitted with a known price for its requested model."""
+    return price(Observed(model, 1, 1, 0, 0, 0), upstream_url, catalog) is not None
+
+
+def trial_wire(model: str, meter_wire: str = "model") -> Wire:
+    """The meter wire selected by a manifest declaration, or by its model provider."""
+    if meter_wire in {Wire.OPENAI.value, Wire.ANTHROPIC.value}:
+        return Wire(meter_wire)
+    provider = model.partition("/")[0]
+    return Wire.ANTHROPIC if provider == Wire.ANTHROPIC.value else Wire.OPENAI
+
+
+def unpriced_budget_usd(trial: TrialMeter, acc: UsageAccumulator, upstream_url: str, catalog: Provider | None) -> float:
+    """Conservatively price a response whose usage was absent but whose request model was priced."""
+    if trial.budget_usd is None or acc.model is None:
+        return trial.budget_usd or 0.0
+    request = acc.request or {}
+    context_window: int | None = None
+    if request.get("previous_response_id") is not None:
+        try:
+            _provider, model = genai_prices.data_snapshot.get_snapshot().find_provider_model(
+                acc.model, None, None, upstream_url
+            )
+        except LookupError:
+            model = None
+        context_window = model.context_window if model is not None else None
+    input_tokens = context_window or max(acc.request_bytes, 1024)
+    raw_output = request.get("max_tokens", request.get("max_output_tokens"))
+    output_tokens = raw_output if isinstance(raw_output, int) and raw_output > 0 else 32768
+    output_tokens = max(output_tokens, acc.response_bytes)
+    bound = price(Observed(acc.model, input_tokens, output_tokens, 0, 0, 0), upstream_url, catalog)
+    return trial.budget_usd if bound is None else bound
+
+
+def record_unpriced(
+    trial: TrialMeter, acc: UsageAccumulator, upstream_url: str, catalog: Provider | None = None
+) -> str:
     trial.unpriced_requests += 1
     model = acc.model or "unknown"
     tally = trial.models.setdefault(model, ModelTally())
     tally.requests += 1
     tally.unpriced = True
+    if trial.budget_usd is not None:
+        trial.conservative_spend_usd += unpriced_budget_usd(trial, acc, upstream_url, catalog)
     return model
 
 
@@ -507,7 +594,7 @@ def record(trial: TrialMeter, acc: UsageAccumulator, upstream_url: str, catalog:
         trial.served.setdefault(acc.served)
     observed = acc.observed()
     if observed is None:
-        model = record_unpriced(trial, acc)
+        model = record_unpriced(trial, acc, upstream_url, catalog)
         logger.warning("meter: 2xx response without usage for model %r; cost recorded as unknown", model)
         return
     tally = trial.models.setdefault(observed.model, ModelTally())
@@ -521,6 +608,8 @@ def record(trial: TrialMeter, acc: UsageAccumulator, upstream_url: str, catalog:
     if cost is None:
         trial.unpriced_requests += 1
         tally.unpriced = True
+        if trial.budget_usd is not None:
+            trial.conservative_spend_usd = trial.budget_usd
     else:
         tally.cost_usd += cost
 
@@ -581,7 +670,40 @@ def app(
             case "PUT":
                 if key in trials:
                     return JSONResponse({"error": "trial key already registered"}, status_code=409)
-                trials[key] = TrialMeter()
+                try:
+                    body = parse_json(await request.body())
+                    if not isinstance(body, dict):
+                        raise ValueError("request body must be a JSON object")
+                    budget = body.get("budget_usd")
+                    ttl = body.get("ttl_s")
+                    if budget is not None and (
+                        isinstance(budget, bool)
+                        or not isinstance(budget, int | float)
+                        or not math.isfinite(budget)
+                        or budget <= 0
+                    ):
+                        raise ValueError("budget_usd must be a positive finite number")
+                    if ttl is not None and (
+                        isinstance(ttl, bool) or not isinstance(ttl, int | float) or not math.isfinite(ttl) or ttl <= 0
+                    ):
+                        raise ValueError("ttl_s must be a positive finite number")
+                    model = body.get("model")
+                    wire_name = body.get("wire")
+                    if budget is not None and model is not None:
+                        if not isinstance(model, str) or not isinstance(wire_name, str):
+                            raise ValueError("budgeted trial model and wire are required together")
+                        try:
+                            wire = Wire(wire_name)
+                        except ValueError as exc:
+                            raise ValueError(f"unknown meter wire {wire_name!r}") from exc
+                        if wire not in PROXY_WIRES or not model_price_known(model, upstreams[wire].base_url):
+                            raise ValueError(f"unpriced model {model!r} on the {wire.value} upstream")
+                except (TypeError, ValueError) as exc:
+                    return JSONResponse({"error": str(exc)}, status_code=400)
+                trials[key] = TrialMeter(
+                    budget_usd=float(budget) if budget is not None else None,
+                    expires_at=time.time() + float(ttl or TRIAL_CREDENTIAL_TTL_S),
+                )
                 return Response(status_code=204)
             case "GET":
                 trial = trials.get(key)
@@ -589,13 +711,19 @@ def app(
                     return JSONResponse({"error": "unknown trial key"}, status_code=404)
                 await settle(trial)
                 return Response(trial.report().model_dump_json(), media_type="application/json")
+            case "DELETE":
+                if trials.pop(key, None) is None:
+                    return JSONResponse({"error": "unknown trial key"}, status_code=404)
+                return Response(status_code=204)
             case other:
                 return Response(f"method {other} not allowed", status_code=405)
 
     async def proxy(wire: Wire, request: Request) -> Response:
         trial = trials.get(str(request.path_params["trial_key"]))
-        if trial is None:
+        if trial is None or trial.closed():
             return wire_error(wire, 401, MeterError.INVALID_TRIAL_KEY, "parallax meter: unknown trial key")
+        if trial.over_budget():
+            return wire_error(wire, 429, MeterError.BUDGET_EXCEEDED, "parallax meter: trial budget exhausted")
         upstream = upstreams[wire]
         if upstream.api_key is None:
             return wire_error(
@@ -610,8 +738,10 @@ def app(
         known = RELAY_HOSTS.get(host)
         wire = known.wire if known is not None else Wire.OPENAI
         trial = trials.get(str(request.path_params["trial_key"]))
-        if trial is None:
+        if trial is None or trial.closed():
             return wire_error(wire, 401, MeterError.INVALID_TRIAL_KEY, "parallax meter: unknown trial key")
+        if trial.over_budget():
+            return wire_error(wire, 429, MeterError.BUDGET_EXCEEDED, "parallax meter: trial budget exhausted")
         full = str(request.path_params["path"]).strip("/")
         if known is None or not full.startswith(f"{known.prefix}/"):
             logger.warning("meter: refused a relay to %s/%s: not a known provider API", host, full)
@@ -699,6 +829,17 @@ def app(
                 MeterError.ENDPOINT_NOT_ALLOWED,
                 "parallax meter: background responses cannot be metered; send the request without background",
             )
+        if (
+            endpoint is not Endpoint.FREE
+            and trial.budget_usd is not None
+            and (request_model is None or price(Observed(request_model, 1, 1, 0, 0, 0), base_url, catalog) is None)
+        ):
+            return wire_error(
+                wire,
+                400,
+                MeterError.UNPRICED_MODEL,
+                f"parallax meter: budgeted trials require a known price for request model {request_model!r}",
+            )
         url = f"{base_url.rstrip('/')}/{path}"
         if request.url.query:
             url = f"{url}?{request.url.query}"
@@ -718,7 +859,15 @@ def app(
                 wire, 502, MeterError.UPSTREAM_UNREACHABLE, f"parallax meter: upstream unreachable ({exc})"
             )
         out_headers = {k: v for k, v in response.headers.items() if k.lower() in KEEP_RESPONSE_HEADERS}
-        acc = UsageAccumulator(wire, request_model, endpoint)
+        acc = UsageAccumulator(
+            wire,
+            request_model,
+            endpoint,
+            parsed if isinstance(parsed, dict) else None,
+            len(raw),
+            base_url,
+            catalog,
+        )
         ok = response.is_success
         metered = ok and endpoint is not Endpoint.FREE
         if not ok:
@@ -735,6 +884,7 @@ def app(
         finally:
             await response.aclose()
         if metered:
+            acc.response_bytes = len(content)
             acc.feed(parse_json(content))
             record(trial, acc, base_url, catalog)
         return Response(content, status_code=response.status_code, headers=out_headers)
@@ -753,7 +903,7 @@ def app(
     return Starlette(
         routes=[
             Route("/_health", health, methods=["GET"]),
-            Route("/_meter/{admin}/{trial_key}", control, methods=["GET", "PUT"]),
+            Route("/_meter/{admin}/{trial_key}", control, methods=["DELETE", "GET", "PUT"]),
             Route("/{trial_key}/relay/{host}/{path:path}", relay_proxy, methods=["GET", "POST"]),
             *(
                 Route(
@@ -776,6 +926,7 @@ class SseStream:
         self.parser = SseParser()
 
     def feed(self, chunk: bytes) -> bytes:
+        self.acc.response_bytes += len(chunk)
         for event in self.parser.feed(chunk):
             self.acc.feed(event)
         return chunk
@@ -838,7 +989,7 @@ async def settle(trial: TrialMeter) -> None:
     if pending:
         for task in pending:
             if (acc := trial.open_streams.get(task)) is not None:
-                record_unpriced(trial, acc)
+                record_unpriced(trial, acc, acc.upstream_url, acc.catalog)
                 trial.open_streams[task] = None
         logger.warning(
             "meter: %d stream(s) still open after %.0fs; their cost is recorded as unknown",
@@ -1021,12 +1172,34 @@ class MeterClient:
         self.base = f"{meter_url.rstrip('/')}/_meter/{admin_token}"
         self.transport = transport
 
-    async def register(self, trial_key: str) -> None:
-        """Opens the trial's tally. The meter records spend and never refuses it: the product under
-        test owns its own limits."""
+    async def register(
+        self,
+        trial_key: str,
+        *,
+        budget_usd: float | None = None,
+        model: str | None = None,
+        wire: Wire | None = None,
+        ttl_s: float = TRIAL_CREDENTIAL_TTL_S,
+    ) -> None:
+        """Mint a short-lived, proxy-only credential with an optional hard spend cap."""
         async with httpx.AsyncClient(transport=self.transport, timeout=10.0) as c:
-            r = await c.put(f"{self.base}/{trial_key}")
+            r = await c.put(
+                f"{self.base}/{trial_key}",
+                json={
+                    "budget_usd": budget_usd,
+                    "model": model,
+                    "wire": wire.value if wire is not None else None,
+                    "ttl_s": ttl_s,
+                },
+            )
             r.raise_for_status()
+
+    async def revoke(self, trial_key: str) -> None:
+        """Revoke a trial credential immediately; its TTL remains the crash-safe fallback."""
+        async with httpx.AsyncClient(transport=self.transport, timeout=10.0) as c:
+            r = await c.delete(f"{self.base}/{trial_key}")
+            if r.status_code != 404:
+                r.raise_for_status()
 
     async def report(self, trial_key: str) -> MeterReport:
         """Raises httpx.HTTPError when the meter is unreachable; the runner grades that INVALID."""

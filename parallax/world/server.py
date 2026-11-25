@@ -148,9 +148,11 @@ def bearer(headers: Mapping[str, str]) -> str | None:
 
 @dataclass(frozen=True)
 class _Tenant:
-    world: World
+    world: World | None
+    backend: ToolBackend
     token: str
     control_token: str
+    nonce: str
 
 
 class WorldServer:
@@ -169,10 +171,29 @@ class WorldServer:
         self._mcp = build_mcp_server(self._resolve)
 
     def register(self, world: World) -> tuple[str, str]:
-        tenant = _Tenant(world=world, token=secrets.token_urlsafe(32), control_token=secrets.token_urlsafe(32))
+        tenant = _Tenant(
+            world=world,
+            backend=LocalBackend(world),
+            token=secrets.token_urlsafe(32),
+            control_token=secrets.token_urlsafe(32),
+            nonce=secrets.token_urlsafe(32),
+        )
         self._by_token[tenant.token] = tenant
         self._by_control[tenant.control_token] = tenant
         return tenant.token, tenant.control_token
+
+    def register_backend(self, backend: ToolBackend) -> tuple[str, str, str]:
+        """Register a non-world MCP backend, such as a per-trial tau2 server."""
+        tenant = _Tenant(
+            world=None,
+            backend=backend,
+            token=secrets.token_urlsafe(32),
+            control_token=secrets.token_urlsafe(32),
+            nonce=secrets.token_urlsafe(32),
+        )
+        self._by_token[tenant.token] = tenant
+        self._by_control[tenant.control_token] = tenant
+        return tenant.token, tenant.control_token, tenant.nonce
 
     def unregister(self, control_token: str) -> None:
         tenant = self._by_control.pop(control_token, None)
@@ -182,7 +203,15 @@ class WorldServer:
 
     def world_for(self, token: str) -> World | None:
         tenant = self._by_token.get(token)
-        return tenant.world if tenant else None
+        return tenant.world if tenant is not None else None
+
+    def backend_for(self, token: str) -> ToolBackend | None:
+        tenant = self._by_token.get(token)
+        return tenant.backend if tenant is not None else None
+
+    def nonce_for(self, token: str) -> str | None:
+        tenant = self._by_token.get(token)
+        return tenant.nonce if tenant is not None else None
 
     def app(self) -> Starlette:
         # No DNS-rebinding protection: the harness reaches this server under hostnames
@@ -196,6 +225,7 @@ class WorldServer:
 
         routes = [
             Route("/_admin", self._admin, methods=["POST"]),
+            Route("/_identity", self._identity, methods=["GET"]),
             Route("/_control/{control_token}", self._control, methods=["POST", "DELETE"]),
             Route("/_control/{control_token}/evidence", self._evidence, methods=["GET"]),
             Route(MCP_PATH, endpoint=_McpEndpoint(self, manager)),
@@ -206,12 +236,24 @@ class WorldServer:
     def _resolve(self, ctx: ServerRequestContext) -> ToolBackend:
         request = ctx.request
         token = bearer(request.headers) if isinstance(request, Request) else None
-        world = self.world_for(token) if token else None
-        if world is None:
+        backend = self.backend_for(token) if token else None
+        if backend is None:
             # The HTTP layer already rejected unknown tokens; reaching here means a tenant
             # was unregistered mid-session, which must not fall through to another world.
             raise PermissionError("world unregistered")
-        return LocalBackend(world, app_service(request.url.path) if isinstance(request, Request) else None)
+        if isinstance(request, Request):
+            world = self.world_for(token or "")
+            if world is None:
+                return backend
+            return LocalBackend(world, app_service(request.url.path))
+        return backend
+
+    async def _identity(self, request: Request) -> Response:
+        token = bearer(request.headers)
+        nonce = self.nonce_for(token) if token is not None else None
+        if nonce is None:
+            return JSONResponse({"error": "unknown or missing bearer token"}, status_code=401)
+        return JSONResponse({"nonce": nonce})
 
     async def _admin(self, request: Request) -> Response:
         if self._admin_token is None or not secrets.compare_digest(bearer(request.headers) or "", self._admin_token):
@@ -236,6 +278,8 @@ class WorldServer:
         tenant = self._by_control.get(request.path_params["control_token"])
         if tenant is None:
             return JSONResponse({"error": "unknown control token"}, status_code=404)
+        if tenant.world is None:
+            return JSONResponse({"error": "backend has no world control"}, status_code=404)
         if request.method == "DELETE":
             self.unregister(tenant.control_token)
             return JSONResponse({"ok": True})
@@ -249,6 +293,8 @@ class WorldServer:
         tenant = self._by_control.get(request.path_params["control_token"])
         if tenant is None:
             return JSONResponse({"error": "unknown control token"}, status_code=404)
+        if tenant.world is None:
+            return JSONResponse({"error": "backend has no world evidence"}, status_code=404)
         return Response(tenant.world.evidence().model_dump_json(), media_type="application/json")
 
 
@@ -262,12 +308,13 @@ class _McpEndpoint:
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope)
         token = bearer(request.headers)
-        world = self._server.world_for(token) if token is not None else None
-        if world is None:
+        backend = self._server.backend_for(token) if token is not None else None
+        if backend is None:
             await JSONResponse({"error": "unknown or missing bearer token"}, status_code=401)(scope, receive, send)
             return
         service = app_service(request.url.path)
-        if service is not None and service not in world.services():
+        world = self._server.world_for(token or "")
+        if service is not None and (world is None or service not in world.services()):
             await JSONResponse({"error": f"no app {service!r} in this world"}, status_code=404)(scope, receive, send)
             return
         await self._manager.handle_request(scope, receive, send)

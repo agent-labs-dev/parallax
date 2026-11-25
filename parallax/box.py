@@ -20,6 +20,7 @@ import asyncio
 import contextlib
 import gzip
 import hashlib
+import json
 import logging
 import os
 import platform
@@ -42,7 +43,7 @@ from typing import assert_never
 
 import httpx
 
-from parallax import __version__
+from parallax import __version__, egress
 from parallax.desktop import EXEC as DESKTOP_EXEC
 from parallax.desktop import RECORDING as DESKTOP_RECORDING
 from parallax.meter import ADMIN_TOKEN_ENV as METER_ADMIN_ENV
@@ -76,6 +77,7 @@ METER_PORT = 7802
 # Hyprland takes DRM master of the host's one vkms card, so a host runs one hyprland box at a time.
 VKMS_SEAT = asyncio.Lock()
 EGRESS_PORT = 7803  # the sidecar's allowlisting proxy to the model endpoints (parallax.egress)
+EGRESS_HOSTS_ENV = "PARALLAX_EGRESS_HOSTS"
 WORLD_ADMIN_ENV = "PARALLAX_WORLD_ADMIN_TOKEN"
 BOX_WORKSPACE = Path("/workspace")
 BOX_HOME = Path("/home/agent")
@@ -200,6 +202,38 @@ async def sweep_orphan_device_boxes() -> None:
         if await process_start_stamp(int(owner_pid)) != started:
             logger.warning("removing orphan device box %s (runner %s exited)", container, owner_pid)
             await docker("rm", "-f", container)
+
+
+async def sweep_orphan_trial_networks() -> None:
+    """Remove trial networks whose creating runner process is no longer alive."""
+    rows = await docker("network", "ls", "--filter", "label=parallax.trial", "--format", "{{.Name}}")
+    for network in rows.splitlines():
+        try:
+            details = json.loads(await docker("network", "inspect", "--format", "{{json .}}", network))
+        except (BoxError, json.JSONDecodeError) as exc:
+            logger.warning("inspecting trial network %s failed: %s", network, exc)
+            continue
+        labels = details.get("Labels") if isinstance(details, dict) else None
+        owner_pid = labels.get("parallax.owner-pid") if isinstance(labels, dict) else None
+        try:
+            pid = int(owner_pid) if isinstance(owner_pid, str) else 0
+        except ValueError:
+            pid = 0
+        if pid <= 0:
+            logger.warning("keeping trial network %s without a valid owner pid", network)
+            continue
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            pass
+        except OSError:
+            logger.warning("keeping trial network %s with live owner pid %s", network, pid)
+            continue
+        else:
+            continue
+        logger.warning("removing orphan trial network %s", network)
+        with contextlib.suppress(BoxError):
+            await docker("network", "rm", network)
 
 
 class TailBuffer:
@@ -1006,15 +1040,21 @@ class Sidecar:
     values come from the runner's environment and never appear in an argv.
     """
 
-    def __init__(self, world_admin_token: str, meter_admin_token: str) -> None:
+    def __init__(self, world_admin_token: str, meter_admin_token: str, egress_hosts: Iterable[str] = ()) -> None:
         self.world_admin_token = world_admin_token
         self.meter_admin_token = meter_admin_token
+        self.allowed_hosts = tuple(
+            sorted({*egress.ALLOWED_HOSTS, *(host.lower().rstrip(".") for host in egress_hosts)})
+        )
         self.network: str | None = None
         self.container: str | None = None
+        self.run_id: str | None = None
 
     async def up(self, run_id: str) -> SidecarUrls:
         net = f"px-{run_id}"
         name = f"{net}-sidecar"
+        self.run_id = run_id
+        await sweep_orphan_trial_networks()
         image = await build_base_image()
         self.network = net
         await self.down()  # a resumed run reuses its id: clear what a killed attempt left behind
@@ -1045,7 +1085,12 @@ class Sidecar:
         )
 
     async def run_detached(self, image: str, name: str, net: str, env_names: list[str], command: str) -> None:
-        env = {**os.environ, WORLD_ADMIN_ENV: self.world_admin_token, METER_ADMIN_ENV: self.meter_admin_token}
+        env = {
+            **os.environ,
+            WORLD_ADMIN_ENV: self.world_admin_token,
+            METER_ADMIN_ENV: self.meter_admin_token,
+            EGRESS_HOSTS_ENV: ",".join(self.allowed_hosts),
+        }
         argv = [
             "docker",
             "run",
@@ -1062,6 +1107,8 @@ class Sidecar:
             f"127.0.0.1::{METER_PORT}",
             "-p",
             f"127.0.0.1::{EGRESS_PORT}",
+            "-e",
+            EGRESS_HOSTS_ENV,
             *(a for k in (WORLD_ADMIN_ENV, METER_ADMIN_ENV, *env_names) for a in ("-e", k)),
             image,
             "sh",
@@ -1080,6 +1127,39 @@ class Sidecar:
             raise BoxError("sidecar is not running")
         out = await docker("port", self.container, f"{port}/tcp")
         return int(out.strip().splitlines()[0].rpartition(":")[2])
+
+    async def trial_network(self, trial_id: str) -> str:
+        """Create a private internal network for one no-network task container."""
+        if self.container is None:
+            raise BoxError("sidecar is not running")
+        net = f"px-trial-{secrets.token_hex(8)}"
+        await docker(
+            "network",
+            "create",
+            "--internal",
+            "--label",
+            f"parallax.trial={trial_id}",
+            "--label",
+            f"parallax.run={self.run_id or 'unknown'}",
+            "--label",
+            f"parallax.owner-pid={os.getpid()}",
+            net,
+        )
+        try:
+            await docker("network", "connect", "--alias", "sidecar", net, self.container)
+        except BaseException:
+            with contextlib.suppress(BoxError):
+                await docker("network", "rm", net)
+            raise
+        return net
+
+    async def remove_trial_network(self, net: str) -> None:
+        """Disconnect the sidecar and remove one no-network trial network."""
+        if self.container is not None:
+            with contextlib.suppress(BoxError):
+                await docker("network", "disconnect", net, self.container)
+        with contextlib.suppress(BoxError):
+            await docker("network", "rm", net)
 
     async def down(self) -> None:
         """Removes every container on the run network (boxes included), then the network."""

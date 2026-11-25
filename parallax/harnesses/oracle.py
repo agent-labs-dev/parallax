@@ -117,6 +117,7 @@ def substitute(value: JsonValue, saved: dict[str, JsonValue]) -> JsonValue:
 class OracleHarness:
     def __init__(self) -> None:
         self._task: Task | None = None
+        self._tb2 = False
         self._trial: Trial | None = None
         self._saved: dict[str, JsonValue] = {}
         self._spec: OracleSpec | None = None
@@ -130,6 +131,13 @@ class OracleHarness:
     def bind_task(self, task: Task) -> None:
         """The runner hands the oracle its task; no other harness ever sees the solution."""
         self._task = task
+        self._tb2 = (
+            bool(task.data.get("task_dir")) and (Path(str(task.data["task_dir"])) / "solution" / "solve.sh").is_file()
+        )
+        if self._tb2:
+            # A world-less TB2 task: its solution runs in the runner-owned task container.
+            self._spec, self._solve = None, None
+            return
         # A task rebound to the product's account (`rebind_persona`) replays, and answers, as that account.
         self._persona = (load_seed(task.path / "world" / "seed.yaml").user.email, task.world.user.email)
         match task.oracle:
@@ -160,6 +168,20 @@ class OracleHarness:
     async def turn(self, t: TurnInput) -> TurnOutput:
         if (trial := self._trial) is None:
             raise OracleError("oracle turn() before start()")
+        if self._tb2:
+            if trial.task_container is None or self._task is None:
+                return TurnOutput(
+                    status=TurnStatus.HARNESS_ERROR, answer="", session_id=None,
+                    error="oracle TB2 turn without the parallax-owned task container",
+                )  # fmt: skip
+            from parallax.harbor_tasks import run_solution
+
+            code, detail = await run_solution(trial.task_container, self._task.data)
+            if code != 0:
+                return TurnOutput(
+                    status=TurnStatus.HARNESS_ERROR, answer="", session_id=None, error=f"solve.sh: {detail}"
+                )
+            return TurnOutput(status=TurnStatus.COMPLETED, answer="solved", session_id=None)
         try:
             name = self.step_name(t.index)
             mcp = trial.world_mcp
