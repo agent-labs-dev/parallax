@@ -8,11 +8,11 @@ All notable changes to Parallax are recorded here. The format follows
 
 ### Added
 
-- `PARALLAX_BROWSER_PROXY_COUNTRY` (a country code, or `none`) sets the proxy of every Browser Use cloud browser an arm uses: the V4 run, browser-harness and agent-browser (`browsers.create`), and the browser-use library arms (`cloud_proxy_country_code`). It is sent explicitly, so no vendor default (the library's `us` proxy) decides it for one arm.
+- `PARALLAX_BROWSER_PROXY_COUNTRY` (a country code, or `none`) sets the proxy of every Browser Use cloud browser an arm uses: the V3 and V4 runs, browser-harness and agent-browser (`browsers.create`), and the browser-use library arms (`cloud_proxy_country_code`). It is sent explicitly, so no vendor default (the library's `us` proxy) decides it for one arm.
 
 ### Fixed
 
-- Scrubbing a task secret never rewrites a URL's host: a public demo credential that is also a hostname word (username `practice` on `practice.example.com`) no longer turns the host into `<secret>username</secret>.example.com`. The rest of the URL and all other text are still scrubbed.
+- Scrubbing a task secret never rewrites the host of the task's own site (or a subdomain): a public demo credential that is also a hostname word (username `practice` on `practice.example.com`) no longer turns the host into `<secret>username</secret>.example.com`. The rest of the URL, any other host and all other text are still scrubbed.
 
 ## [2.0.0.dev56] - 2026-11-25
 

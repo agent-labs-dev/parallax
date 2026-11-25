@@ -395,16 +395,23 @@ class BrowserHarness(ABC):
             text = text.replace(secret, f"<secret>{alias}</secret>")
         return text
 
+    def _scrub_host(self, authority: str) -> str:
+        """The task's own site, the one host its credentials are bound to (`allowedDomains`), is kept; any other host
+        is scrubbed like text, so a secret that appears as some other host's name still does not leave."""
+        host = urlsplit(f"//{authority}").hostname
+        own = self._start_host
+        return authority if host and own and (host == own or host.endswith(f".{own}")) else self._scrub_text(authority)
+
     def _scrub(self, value: object) -> Any:
         if isinstance(value, str):
-            # A URL's host is the site's address, not a place a credential is typed: a public demo credential that is
-            # also a hostname word (username `practice` on practice.example.com) must not rewrite it. Every other part
-            # of the URL, and all other text, is scrubbed.
+            # The task's own site address is not a place a credential is typed: a public demo credential that is also a
+            # hostname word (username `practice` on practice.example.com) must not rewrite it. Every other part of a
+            # URL, and all other text, is scrubbed.
             out, last = [], 0
             for url in _URL.finditer(value):
                 out += [self._scrub_text(value[last : url.start()]), url["scheme"]]
                 userinfo, at, host = url["authority"].rpartition("@")
-                out += [self._scrub_text(userinfo), at, host, self._scrub_text(url["rest"])]
+                out += [self._scrub_text(userinfo), at, self._scrub_host(host), self._scrub_text(url["rest"])]
                 last = url.end()
             return "".join([*out, self._scrub_text(value[last:])])
         if isinstance(value, Mapping):
@@ -668,6 +675,7 @@ class BrowserHarnessCloud(BrowserHarness):
                     self.trial.model,
                     agent_started=self._agent_started,
                     finished=self._agent_finished,
+                    proxy_country=self.config.proxy_country,
                 )
             else:
                 result = await _run_v4(
@@ -846,11 +854,14 @@ async def _run_v3(
     *,
     agent_started: Callable[[], None] | None = None,
     finished: Callable[[], None] | None = None,
+    proxy_country: str | None = "us",
 ) -> dict[str, Any]:
     session_id: str | None = None
     try:
         try:
-            created = await client.sessions.create(task=goal, **({"model": model} if model else {}))
+            created = await client.sessions.create(
+                task=goal, proxy_country_code=proxy_country, **({"model": model} if model else {})
+            )
         except Exception as error:
             raise _failure("session create", error, starting=True) from None
         session_id = str(created.id)

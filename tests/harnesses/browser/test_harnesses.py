@@ -1363,6 +1363,7 @@ def test_a_browser_use_worker_is_told_the_proxy_country(monkeypatch) -> None:
 def test_scrubbing_a_public_credential_never_rewrites_a_url_host() -> None:
     harness = BrowserHarnessLuna()
     harness._secret_values = {"username": "practice"}
+    harness._start_host = "practice.expandtesting.com"
     scrubbed = harness._scrub(
         {
             "url": "https://practice.expandtesting.com/login",
@@ -1370,6 +1371,7 @@ def test_scrubbing_a_public_credential_never_rewrites_a_url_host() -> None:
         }
     )
     tag = "<secret>username</secret>"
+    assert harness._scrub("see https://practice.other.test/") == "see https://<secret>username</secret>.other.test/"
     assert scrubbed["url"] == "https://practice.expandtesting.com/login"
     assert scrubbed["text"] == (
         f"Typed {tag} at https://practice.expandtesting.com/login?user={tag} and https://x.test/{tag}"
@@ -1387,3 +1389,16 @@ async def test_v4_sends_no_proxy_as_an_explicit_null() -> None:
     with pytest.raises(RuntimeError, match="cloud run create failed"):
         await _run_v4(SimpleNamespace(runs=Runs()), "find it", None, 0.0, proxy_country=None)
     assert sent["browser_settings"] == {"proxyCountryCode": None}
+
+
+async def test_v3_sends_the_proxy_country_explicitly() -> None:
+    sent: dict[str, object] = {}
+
+    class Sessions:
+        async def create(self, **kwargs: object) -> SimpleNamespace:
+            sent.update(kwargs)
+            raise RuntimeError("stop after create")
+
+    with pytest.raises(RuntimeError, match="session create failed"):
+        await _run_v3(SimpleNamespace(sessions=Sessions()), "find it", None, proxy_country=None)
+    assert sent["proxy_country_code"] is None
