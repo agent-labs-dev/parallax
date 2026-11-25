@@ -233,7 +233,11 @@ async def test_v4_event_stream_retries_visibility_and_keeps_browser_identity() -
 
     client = Client()
     result = await _run_v4(client, "find it", "provider/model", 0)
-    assert client.runs.created == {"goal": "find it", "model": "provider/model"}
+    assert client.runs.created == {
+        "goal": "find it",
+        "model": "provider/model",
+        "browser_settings": {"proxyCountryCode": "us"},
+    }
     assert client.runs.after == [None, 7]
     assert result["browser_id"] == "browser-1" and result["ready"] is True
     # The run summary has only a total; the components come from the session cost read.
@@ -1370,3 +1374,16 @@ def test_scrubbing_a_public_credential_never_rewrites_a_url_host() -> None:
     assert scrubbed["text"] == (
         f"Typed {tag} at https://practice.expandtesting.com/login?user={tag} and https://x.test/{tag}"
     )
+
+
+async def test_v4_sends_no_proxy_as_an_explicit_null() -> None:
+    sent: dict[str, object] = {}
+
+    class Runs:
+        async def create(self, goal: str, **kwargs: object) -> SimpleNamespace:
+            sent.update(kwargs)
+            raise RuntimeError("stop after create")
+
+    with pytest.raises(RuntimeError, match="cloud run create failed"):
+        await _run_v4(SimpleNamespace(runs=Runs()), "find it", None, 0.0, proxy_country=None)
+    assert sent["browser_settings"] == {"proxyCountryCode": None}

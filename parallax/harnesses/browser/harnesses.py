@@ -743,15 +743,15 @@ async def _run_v4(
     output_schema: dict[str, Any] | None = None,
     secret_bindings: list[dict[str, Any]] | None = None,
     max_cost_usd: float | None = None,
-    proxy_country: str | None = None,
+    proxy_country: str | None = "us",
 ) -> dict[str, Any]:
     """`spending` is called once the cloud run exists, which may bill before its browser is ready; `finished` once
     the run reaches a terminal status, before its result and costs are read."""
     request: dict[str, Any] = {"model": model} if model else {}
     if max_cost_usd is not None:
         request["max_cost_usd"] = max_cost_usd
-    if proxy_country is not None:
-        request["browser_settings"] = {"proxyCountryCode": proxy_country}
+    # Sent whatever it is: the API defaults to a US proxy, so None must go out as null to mean no proxy.
+    request["browser_settings"] = {"proxyCountryCode": proxy_country}
     if output_schema is not None:
         request["output_schema"] = output_schema
     if secret_bindings is not None:
