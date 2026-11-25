@@ -6,8 +6,11 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev55] - 2026-11-25
+
 ### Added
 
+- The `terminal-bench-2` and `tau2` official suites, pinned by commit and graded by each benchmark's own verifier. Parallax owns each TB2 task container and the tau2 tool server, user simulator and transcript; a harness acts in the container with `live_container`. The codex and claude-code manifests run TB2 inside the container. tau2 needs `--isolation host` for a harness that would run in a docker box.
 - A usage line keeps the billed component and the number of images its requests carried, as `component` and `images`, when a harness reports them. A browser agent that shows its decision model screenshots can then be compared by image-bearing calls alongside its tokens and dollars, per component. A line with no images omits the field, and earlier ledgers read unchanged.
 
 ### Fixed
