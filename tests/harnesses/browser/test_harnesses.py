@@ -558,49 +558,173 @@ async def test_luna_fails_its_preflight_without_the_openrouter_key(monkeypatch) 
         await BrowserHarnessLuna().version(None)
 
 
+class LunaRig:
+    """A Luna harness whose cloud browser, start-page load and worker are stand-ins that record what they are given."""
+
+    def __init__(self, monkeypatch, *, events=None, outage=None, create_error=None, worker_error=None) -> None:
+        import contextlib
+        from pathlib import Path
+
+        from parallax.harnesses.browser import harnesses
+        from parallax.harnesses.browser.clock import AttemptClock
+        from parallax.models import Trial
+
+        self.calls: list[tuple[str, object]] = []
+        self.browser = SimpleNamespace(
+            cdp_url="wss://cdp.test", open_seconds=1.0, cost=(), browser_id="browser-1", live_url="https://live.test/1"
+        )
+        rig = self
+
+        @contextlib.asynccontextmanager
+        async def paid_browser(http: object, **kwargs: object):  # noqa: ANN202
+            rig.calls.append(("browser", kwargs))
+            if create_error is not None:
+                raise create_error
+            try:
+                yield rig.browser
+            finally:
+                rig.browser.cost = ({"component": "browser", "dollars": 0.02},)
+
+        async def load_start_page(cdp_url: str, url: str) -> str | None:
+            rig.calls.append(("start", url))
+            return outage
+
+        class Worker:
+            def __init__(self, command: object, *, env: object, cwd: Path) -> None:
+                self.events = iter(
+                    events
+                    or [
+                        {"event": "ready", "open_seconds": 0.5},
+                        {"event": "result", "status": "completed", "answer": "ok", "url": "https://site.test/final"},
+                        {"event": "stopped", "stopped": True},
+                    ]
+                )
+
+            async def __aenter__(self) -> Worker:
+                return self
+
+            async def __aexit__(self, *_: object) -> None:
+                return None
+
+            async def send(self, message: dict[str, object]) -> None:
+                rig.calls.append(("send", message))
+
+            async def receive(self, event: str) -> dict[str, object]:
+                if worker_error is not None and event == "result":
+                    raise worker_error
+                return next(self.events)
+
+        class Observed(harnesses.BrowserHarnessLuna):
+            async def observe(self, cdp_url: str, *, url: str | None = None) -> dict[str, object]:
+                rig.calls.append(("observe", url))
+                return {"url": url}
+
+        monkeypatch.setattr(harnesses, "cloud_browser", paid_browser)
+        monkeypatch.setattr(harnesses, "browser_site_down", load_start_page)
+        monkeypatch.setattr(harnesses, "JsonWorker", Worker)
+        self.harness = Observed()
+        self.harness._trial = Trial.model_construct(model="openai/gpt-6-luna", env={})
+        self.harness._clock = AttemptClock(bounded=False)
+        self.harness._start_url = "https://shop.example/login"
+        self.harness._start_host = "shop.example"
+
+    def sent(self) -> dict[str, object]:
+        return next(message for kind, message in self.calls if kind == "send")  # type: ignore[return-value]
+
+    def order(self) -> list[str]:
+        return [kind for kind, _ in self.calls]
+
+
 async def test_luna_sends_secrets_only_as_sensitive_data(monkeypatch) -> None:
-    from pathlib import Path
-
-    from parallax.harnesses.browser import harnesses
-    from parallax.models import Trial
-
-    sent: list[dict[str, object]] = []
-
-    class Worker:
-        def __init__(self, command: object, *, env: object, cwd: Path) -> None:
-            self.events = iter(
-                [
-                    {"event": "ready"},
-                    {"event": "result", "status": "completed", "answer": "ok"},
-                    {"event": "stopped", "stopped": True},
-                ]
-            )
-
-        async def __aenter__(self) -> Worker:
-            return self
-
-        async def __aexit__(self, *_: object) -> None:
-            return None
-
-        async def send(self, message: dict[str, object]) -> None:
-            sent.append(message)
-
-        async def receive(self, event: str) -> dict[str, object]:
-            return next(self.events)
-
-    monkeypatch.setattr(harnesses, "JsonWorker", Worker)
-    harness = BrowserHarnessLuna()
-    harness._trial = Trial.model_construct(model="openai/gpt-6-luna", env={})
-    harness._secret_values = {"shop_password": "correct-horse-battery-staple"}
-    harness._start_url = "https://shop.example/login"
-    harness._start_host = "shop.example"
-    result = await harness.execute(TurnInput(index=1, text="sign in", new_session=True))
+    rig = LunaRig(monkeypatch)
+    rig.harness._secret_values = {"shop_password": "correct-horse-battery-staple"}
+    result = await rig.harness.execute(TurnInput(index=1, text="sign in", new_session=True))
     assert result["status"] == "completed"
-    assert sent[0]["model"] == "openai/gpt-6-luna"
-    assert sent[0]["sensitive_data"] == {"https://shop.example": {"shop_password": "correct-horse-battery-staple"}}
-    assert harness.trial_details()["mode"] == "accessibility-tree"
-    assert harness.trial_details()["reasoning_effort"] == "low"
-    await harness.stop()
+    sent = rig.sent()
+    assert sent["model"] == "openai/gpt-6-luna"
+    assert sent["sensitive_data"] == {"https://shop.example": {"shop_password": "correct-horse-battery-staple"}}
+    assert rig.harness.trial_details()["mode"] == "accessibility-tree"
+    assert rig.harness.trial_details()["reasoning_effort"] == "low"
+    await rig.harness.stop()
+
+
+async def test_luna_browses_the_shared_screen_through_the_explicit_proxy_on_the_start_page(monkeypatch) -> None:
+    rig = LunaRig(monkeypatch)
+    await rig.harness.execute(TurnInput(index=1, text="find it", new_session=True))
+    _, options = rig.calls[0]
+    assert options["screen"] == (1120, 780)
+    assert options["proxy_country"] == rig.harness.config.proxy_country == "us"
+    # The start page loads in that browser before the worker, and so before the agent clock, begins.
+    assert rig.order()[:3] == ["browser", "start", "send"]
+    assert rig.sent()["cdp_url"] == "wss://cdp.test"
+    await rig.harness.stop()
+
+
+async def test_luna_gives_the_agent_the_schema_the_judge_is_shown(monkeypatch) -> None:
+    rig = LunaRig(monkeypatch)
+    rig.harness._answer_schema = {"type": "object", "properties": {"version": {"type": "string"}}}
+    await rig.harness.execute(TurnInput(index=1, text="find it", new_session=True))
+    assert rig.sent()["answer_schema"] == rig.harness._answer_schema
+    await rig.harness.stop()
+
+
+async def test_luna_names_the_active_page_for_the_final_page_observer(monkeypatch) -> None:
+    rig = LunaRig(monkeypatch)
+    result = await rig.harness.execute(TurnInput(index=1, text="find it", new_session=True))
+    assert ("observe", "https://site.test/final") in rig.calls
+    assert result["final_page"] == {"url": "https://site.test/final"}
+    await rig.harness.stop()
+
+
+async def test_luna_stops_its_agent_inside_the_turn_so_a_run_at_the_limit_keeps_its_cost(monkeypatch) -> None:
+    import time
+
+    rig = LunaRig(monkeypatch)
+    rig.harness._turn_ends_at = time.monotonic() + 300
+    await rig.harness.execute(TurnInput(index=1, text="find it", new_session=True))
+    assert 270 < rig.sent()["timeout"] < 300
+    await rig.harness.stop()
+
+
+async def test_luna_keeps_the_browser_cost_of_a_cancelled_run(monkeypatch) -> None:
+    import asyncio
+
+    rig = LunaRig(monkeypatch, worker_error=asyncio.CancelledError())
+    with pytest.raises(asyncio.CancelledError):
+        await rig.harness.execute(TurnInput(index=1, text="find it", new_session=True))
+    assert rig.harness.trial_costs() == {"browser": 0.02}
+    await rig.harness.stop()
+
+
+async def test_luna_reports_a_site_that_is_down_in_its_browser_as_an_interruption(monkeypatch) -> None:
+    rig = LunaRig(monkeypatch, outage="site unavailable: https://shop.example/login unreachable")
+    output = await rig.harness.turn(TurnInput(index=1, text="find it", new_session=True))
+    assert output.error == "environment interruption: site unavailable: https://shop.example/login unreachable"
+    assert "send" not in rig.order()
+    await rig.harness.stop()
+
+
+async def test_luna_reports_a_browser_that_will_not_start_as_an_interruption(monkeypatch) -> None:
+    from parallax.harnesses.browser.site import Unavailable
+
+    rig = LunaRig(monkeypatch, create_error=Unavailable("cloud browser create returned HTTP 429"))
+    output = await rig.harness.turn(TurnInput(index=1, text="find it", new_session=True))
+    assert output.error == "environment interruption: cloud browser create returned HTTP 429"
+    await rig.harness.stop()
+
+
+async def test_luna_reports_a_transient_model_failure_as_an_interruption(monkeypatch) -> None:
+    rig = LunaRig(
+        monkeypatch,
+        events=[
+            {"event": "ready"},
+            {"event": "result", "status": "unavailable", "answer": None, "error": "ModelServerError: upstream 503"},
+            {"event": "stopped", "stopped": True},
+        ],
+    )
+    output = await rig.harness.turn(TurnInput(index=1, text="find it", new_session=True))
+    assert output.error == "environment interruption: ModelServerError: upstream 503"
+    await rig.harness.stop()
 
 
 def test_browser_worker_does_not_declare_a_metered_provider_as_native() -> None:
