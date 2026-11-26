@@ -1105,6 +1105,30 @@ async def test_tau2_runtime_serialises_concurrent_requests(tmp_path):
         await runtime._process.wait()
 
 
+async def test_a_failed_simulator_turn_names_the_gateway_host(tmp_path):
+    from parallax.tau2_runtime import Tau2BridgeRuntime, Tau2RuntimeError
+
+    # A refused simulator call reads the same whichever gateway refused it; only the host tells the keys apart.
+    server = tmp_path / "serve.py"
+    server.write_text(
+        "import json, sys\n"
+        "for line in sys.stdin:\n"
+        "    print(json.dumps({'ok': False, 'error': 'APIError (HTTP 403)'}), flush=True)\n"
+    )
+    runtime = Tau2BridgeRuntime(
+        root=tmp_path, python=Path(sys.executable), commit="x", base_url="https://gateway.example/v1", api_key="k"
+    )
+    runtime._process = await asyncio.create_subprocess_exec(
+        sys.executable, str(server), stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE
+    )
+    try:
+        with pytest.raises(Tau2RuntimeError, match=r"APIError \(HTTP 403\) via gateway\.example$"):
+            await runtime.user_turn(first=True)
+    finally:
+        runtime._process.kill()
+        await runtime._process.wait()
+
+
 @requires_tau2
 def test_a_user_tool_batch_becomes_one_upstream_multi_tool_message():
     # A telecom user running two phone checks in one turn used to end the trial `user_error`: the bridge built
