@@ -18,6 +18,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import mcp.types as types
 from mcp.server.lowlevel import Server
@@ -113,9 +114,13 @@ class Tau2BridgeRuntime:
     async def user_turn(
         self, *, first: bool, assistant: str = "", remaining_steps: int | None = None
     ) -> dict[str, Any]:
-        result = await self._request(
-            {"op": "user", "first": first, "assistant": assistant, "remaining_steps": remaining_steps}
-        )
+        try:
+            result = await self._request(
+                {"op": "user", "first": first, "assistant": assistant, "remaining_steps": remaining_steps}
+            )
+        except Tau2RuntimeError as exc:
+            # The gateway's host names which endpoint and key refused the simulator; the message itself stays out.
+            raise Tau2RuntimeError(f"{exc} via {urlsplit(self._base_url).hostname or 'no simulator gateway'}") from exc
         cost = result.get("simulator_cost_usd")
         self.simulator_cost_usd = float(cost) if isinstance(cost, (int, float)) else self.simulator_cost_usd
         self.tool_errors = int(result.get("tool_errors", self.tool_errors))

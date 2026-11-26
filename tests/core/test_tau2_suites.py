@@ -639,6 +639,10 @@ class _ScriptedLoopRuntime:
 
     async def user_turn(self, *, first, assistant="", remaining_steps=None):
         self.remaining.append(remaining_steps)
+        if self.mode == "outage" or (self.mode == "outage-later" and not first):
+            from parallax.tau2_runtime import Tau2RuntimeError
+
+            raise Tau2RuntimeError("tau2 serve process failed: APIError (HTTP 503)")
         if first:
             if self.mode in {"user-tools", "mixed-tools"}:
                 return {
@@ -762,6 +766,25 @@ async def test_tau2_loop_none_user_turn_at_cap_does_not_reuse_stale_text() -> No
     assert delivered == 1
     assert runtime.remaining == [4, 2]
     assert trial.tau2_recorded["termination_reason"] == "max_steps"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(("mode", "want_delivered"), [("outage", 0), ("outage-later", 1)])
+async def test_a_failed_simulator_call_interrupts_the_trial_with_its_cause(mode: str, want_delivered: int) -> None:
+    # A gateway outage on the simulator's call used to end the trial `user_error`: graded as the agent's failure,
+    # or, on the first turn, INVALID for an empty transcript with the cause dropped.
+    from parallax.models import ENVIRONMENT_INTERRUPTION, TrajectoryStatus
+
+    _runtime, trial, delivered = await _run_scripted_loop(mode)
+    assert delivered == want_delivered
+    assert trial.t.status is TrajectoryStatus.HARNESS_ERROR
+    assert (
+        trial.t.error
+        == f"{ENVIRONMENT_INTERRUPTION}tau2 user simulator failed: tau2 serve process failed: APIError (HTTP 503)"
+    )
+    assert trial.t.interrupted
+    assert len(trial.t.extra["tau2_partial_transcript"]["transcript"]) == 2 * want_delivered
+    assert "tau2_recorded" not in trial.t.extra
 
 
 @pytest.mark.asyncio
@@ -1077,6 +1100,30 @@ async def test_tau2_runtime_serialises_concurrent_requests(tmp_path):
     try:
         results = await asyncio.gather(*(runtime._request({"n": n}) for n in range(4)))
         assert [r["echo"] for r in results] == [0, 1, 2, 3]
+    finally:
+        runtime._process.kill()
+        await runtime._process.wait()
+
+
+async def test_a_failed_simulator_turn_names_the_gateway_host(tmp_path):
+    from parallax.tau2_runtime import Tau2BridgeRuntime, Tau2RuntimeError
+
+    # A refused simulator call reads the same whichever gateway refused it; only the host tells the keys apart.
+    server = tmp_path / "serve.py"
+    server.write_text(
+        "import json, sys\n"
+        "for line in sys.stdin:\n"
+        "    print(json.dumps({'ok': False, 'error': 'APIError (HTTP 403)'}), flush=True)\n"
+    )
+    runtime = Tau2BridgeRuntime(
+        root=tmp_path, python=Path(sys.executable), commit="x", base_url="https://gateway.example/v1", api_key="k"
+    )
+    runtime._process = await asyncio.create_subprocess_exec(
+        sys.executable, str(server), stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE
+    )
+    try:
+        with pytest.raises(Tau2RuntimeError, match=r"APIError \(HTTP 403\) via gateway\.example$"):
+            await runtime.user_turn(first=True)
     finally:
         runtime._process.kill()
         await runtime._process.wait()

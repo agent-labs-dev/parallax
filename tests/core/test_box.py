@@ -580,3 +580,16 @@ async def test_hyprland_boxes_take_the_one_display_in_turn(monkeypatch: pytest.M
     await first.close()
     await asyncio.wait_for(waiting, 1)
     await second.close()
+
+
+async def test_a_failed_docker_command_reports_what_the_failing_step_printed(tmp_path, monkeypatch) -> None:
+    fake = tmp_path / "docker"
+    fake.write_text(
+        "#!/bin/sh\necho 'npm error 404 example-cli not found'\necho 'returned a non-zero code: 1' >&2\nexit 1\n"
+    )
+    fake.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{tmp_path}:{os.environ['PATH']}")
+    with pytest.raises(boxes.BoxError) as caught:
+        await boxes.docker("build", "-f", "box.Dockerfile", ".")
+    assert "returned a non-zero code: 1" in str(caught.value)
+    assert "npm error 404 example-cli not found" in str(caught.value)

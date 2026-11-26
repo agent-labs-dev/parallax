@@ -165,13 +165,15 @@ async def run(argv: Sequence[str], *, stdin: bytes | None = None, timeout_s: flo
 
 
 async def docker(*args: str, stdin: bytes | None = None, timeout_s: float = 600.0) -> str:
-    """`docker <args>`; a non-zero exit is a BoxError carrying docker's stderr."""
+    """`docker <args>`; a non-zero exit is a BoxError carrying the tails of docker's stderr and stdout."""
     try:
         done = await run(("docker", *args), stdin=stdin, timeout_s=timeout_s)
     except FileNotFoundError as exc:
         raise BoxError("docker CLI not found on PATH") from exc
     if done.code != 0:
-        raise BoxError(f"docker {' '.join(args[:2])} failed ({done.code}): {done.err.strip()[-2000:]}")
+        # The legacy builder writes a failing RUN step's own output to stdout and only the summary to stderr.
+        output = f"\n--- output:\n{done.out.strip()[-2000:]}" if done.out.strip() else ""
+        raise BoxError(f"docker {' '.join(args[:2])} failed ({done.code}): {done.err.strip()[-2000:]}{output}")
     return done.out
 
 
