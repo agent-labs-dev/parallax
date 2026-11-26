@@ -255,7 +255,9 @@ def cmd_compare(a: argparse.Namespace) -> int:
             notes.append(f"{row}: not compared: {invalid}")
             continue
         before, cand = load_tasks(client, before), load_tasks(client, cand)
-        conflicts = identity_conflicts(identity_of(before), identity_of(cand))
+        conflicts = identity_conflicts(
+            identity_of(before), identity_of(cand), config_is_treatment=a.allow_config_change
+        )
         if conflicts and not a.allow_identity_change:
             notes.append(f"{row}: not compared: {'; '.join(conflicts)} (--allow-identity-change compares anyway)")
             continue
@@ -448,6 +450,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--allow-identity-change", action="store_true",
         help="pair runs that measured different things: judge policy, tasks, harness or Parallax revision",
+    )  # fmt: skip
+    p.add_argument(
+        "--allow-config-change", action="store_true",
+        help="pair runs whose harness configs differ, when the config is the treatment; every other identity "
+        "difference still refuses the pair",
     )  # fmt: skip
     p.add_argument("--seed", type=int, default=0, help="bootstrap seed")
     add_dataset(p)

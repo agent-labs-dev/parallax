@@ -79,7 +79,7 @@ class Identity:
     parallax_head: str | None
 
 
-def identity_conflicts(base: Identity, cand: Identity) -> tuple[str, ...]:
+def identity_conflicts(base: Identity, cand: Identity, *, config_is_treatment: bool = False) -> tuple[str, ...]:
     """Why two runs' verdicts cannot be paired; empty when they measured the same thing.
 
     A judge, grading policy, task, harness or Parallax change moves verdicts by itself, so a paired
@@ -102,10 +102,10 @@ def identity_conflicts(base: Identity, cand: Identity) -> tuple[str, ...]:
         for task in sorted(base.tasks.keys() & cand.tasks.keys())
         if base.tasks[task] != cand.tasks[task]
     ]
-    for what, before, after in (
-        ("harness version", base.harness_versions, cand.harness_versions),
-        ("harness config", base.config_hashes, cand.config_hashes),
-    ):
+    checked = [("harness version", base.harness_versions, cand.harness_versions)]
+    if not config_is_treatment:  # an A/B whose treatment is the harness config expects this one to differ
+        checked.append(("harness config", base.config_hashes, cand.config_hashes))
+    for what, before, after in checked:
         out += [
             f"{what} of {row} differs ({', '.join(before[row])} -> {', '.join(after[row])})"
             for row in sorted(before.keys() & after.keys())

@@ -6,6 +6,12 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev62] - 2026-11-26
+
+### Added
+
+- `parallax compare --allow-config-change` pairs runs whose harness configs differ, for an A/B whose treatment is the config, and still refuses a judge, task, harness version or Parallax revision change.
+
 ### Fixed
 
 - tau2: a bridge call that fails on a gateway refusal reports its HTTP status, so a key limit (HTTP 403) on the simulator reads as one instead of a bare `APIError`.
