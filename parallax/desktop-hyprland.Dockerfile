@@ -7,7 +7,9 @@
 FROM archlinux:base@sha256:d4594bb2300cba11f41c2f27923eb56f63d9988909c402f9c95517d1e362c899
 
 ARG ARCH_SNAPSHOT=2026/11/12
-RUN echo "Server = https://archive.archlinux.org/repos/${ARCH_SNAPSHOT}/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist \
+# pacman moves to the second server, Arch's own archive mirror, when the archive stalls.
+RUN printf 'Server = https://%s/repos/%s/$repo/os/$arch\n' \
+      archive.archlinux.org "${ARCH_SNAPSHOT}" umea.archive.pkgbuild.com "${ARCH_SNAPSHOT}" > /etc/pacman.d/mirrorlist \
  && pacman -Syyuu --noconfirm --needed \
     hyprland mesa grim wf-recorder wl-clipboard at-spi2-core dbus glib2 \
     gcc make pkgconf wayland libxkbcommon cairo pixman libdrm libxcb \
