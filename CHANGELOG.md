@@ -6,9 +6,11 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0.dev63] - 2026-11-26
+
 ### Fixed
- The error ends with the simulator gateway's host, such as `via ai-gateway.vercel.sh`, so a refusal names which endpoint and key refused it.
-- tau2: a failed simulator call (a gateway outage or key limit) marks the trial an environment interruption that names the bridge's error, so it is retried and never graded. It used to end the trial `user_error`, scored as the agent's failure, or on the first turn INVALID for an empty transcript with the cause hidden under `tau2_user_error`.
+
+- tau2: a failed simulator call (a gateway outage or key limit) marks the trial an environment interruption that names the bridge's error, so it is retried and never graded. The error ends with the simulator gateway's host, such as `via ai-gateway.vercel.sh`, so a refusal names which endpoint and key refused it. It used to end the trial `user_error`, scored as the agent's failure, or on the first turn INVALID for an empty transcript with the cause hidden under `tau2_user_error`.
 - A failed `docker` command reports the tail of its output as well as its stderr, so a box image build that fails in a `RUN` step (such as the harness install) shows that step's error instead of only the legacy builder's deprecation notice.
 - `parallax check --lint-only` no longer reports every converted task in `terminal-bench-2` and `tau2` for lacking an area prefix: a converted task keeps its upstream benchmark's id, and the prefix rule still applies to tasks we author.
 
