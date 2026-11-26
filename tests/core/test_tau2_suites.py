@@ -639,6 +639,10 @@ class _ScriptedLoopRuntime:
 
     async def user_turn(self, *, first, assistant="", remaining_steps=None):
         self.remaining.append(remaining_steps)
+        if self.mode == "outage" or (self.mode == "outage-later" and not first):
+            from parallax.tau2_runtime import Tau2RuntimeError
+
+            raise Tau2RuntimeError("tau2 serve process failed: APIError (HTTP 503)")
         if first:
             if self.mode in {"user-tools", "mixed-tools"}:
                 return {
@@ -762,6 +766,23 @@ async def test_tau2_loop_none_user_turn_at_cap_does_not_reuse_stale_text() -> No
     assert delivered == 1
     assert runtime.remaining == [4, 2]
     assert trial.tau2_recorded["termination_reason"] == "max_steps"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(("mode", "want_delivered"), [("outage", 0), ("outage-later", 1)])
+async def test_a_failed_simulator_call_interrupts_the_trial_with_its_cause(mode: str, want_delivered: int) -> None:
+    # A gateway outage on the simulator's call used to end the trial `user_error`: graded as the agent's failure,
+    # or, on the first turn, INVALID for an empty transcript with the cause dropped.
+    from parallax.models import ENVIRONMENT_INTERRUPTION, TrajectoryStatus
+
+    _runtime, trial, delivered = await _run_scripted_loop(mode)
+    assert delivered == want_delivered
+    assert trial.t.status is TrajectoryStatus.HARNESS_ERROR
+    assert (
+        trial.t.error
+        == f"{ENVIRONMENT_INTERRUPTION}tau2 user simulator failed: tau2 serve process failed: APIError (HTTP 503)"
+    )
+    assert trial.t.interrupted
 
 
 @pytest.mark.asyncio

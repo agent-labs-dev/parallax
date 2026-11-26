@@ -1556,15 +1556,21 @@ class TrialExecution:
                 )
             return tau2_progress(events, max_steps, max_errors)
 
-        termination: str | None = None
+        def simulator_outage(exc: Tau2RuntimeError) -> None:
+            # The simulator is parallax's own call through the gateway: its failure measured no agent, so the trial
+            # is an environment interruption (unjudged, retried), never upstream's `user_error`.
+            self.t.status = TrajectoryStatus.HARNESS_ERROR
+            self.t.error = f"{ENVIRONMENT_INTERRUPTION}tau2 user simulator failed: {exc}"
+            if runtime.simulator_cost_usd is not None:
+                self.t.metrics["simulator_cost_usd"] = runtime.simulator_cost_usd
+
         try:
             first = await runtime.user_turn(first=True, remaining_steps=runtime.max_steps)
         except Tau2RuntimeError as exc:
-            first, termination = {"messages": []}, "user_error"
-            self.t.extra["tau2_user_error"] = str(exc)
+            simulator_outage(exc)
+            return
         transcript += cleaned(first.get("messages"), stop=bool(first.get("stop")))
-        if termination is None:
-            termination = progress().termination
+        termination = progress().termination
         policy_prompt = self.task.turns[0].text if self.task.turns else ""
         index = 0
         seen_tools = 0
@@ -1628,8 +1634,8 @@ class TrialExecution:
                         first=False, assistant=answer, remaining_steps=runtime.max_steps - current.step_count
                     )
                 except Tau2RuntimeError as exc:
-                    termination = "user_error"
-                    self.t.extra["tau2_user_error"] = str(exc)
+                    simulator_outage(exc)
+                    return
                 else:
                     messages = nxt.get("messages")
                     transcript += cleaned(messages, stop=bool(nxt.get("stop")))
