@@ -6,6 +6,10 @@ All notable changes to Parallax are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- `parallax check --lint-only` no longer reports every converted task in `terminal-bench-2` and `tau2` for lacking an area prefix: a converted task keeps its upstream benchmark's id, and the prefix rule still applies to tasks we author.
+
 ## [2.0.0.dev62] - 2026-11-26
 
 ### Added

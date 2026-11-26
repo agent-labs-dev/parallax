@@ -42,6 +42,7 @@ from parallax.models import (
     Model,
     MutationExpect,
     MutationSet,
+    Provenance,
     RunOrigin,
     Split,
     StateCheck,
@@ -630,7 +631,8 @@ def lint(task: Task) -> list[str]:
 
 def _lint_source(task: Task) -> Iterator[str]:
     """A source's task has no directory, world or oracle: its id, text and requirements are what can be wrong."""
-    if not task.id.startswith(_AREA_PREFIX[task.meta.area]):
+    # A converted task keeps its upstream benchmark's name; the area prefix is the naming convention of tasks we author.
+    if task.meta.provenance is not Provenance.CONVERTED and not task.id.startswith(_AREA_PREFIX[task.meta.area]):
         yield f"id {task.id!r} must start with {_AREA_PREFIX[task.meta.area]!r} for area {task.meta.area.value}"
     texts = {"prompt": "\n".join(t.text for t in task.turns), "data": json.dumps(task.data, ensure_ascii=False)}
     for where, text in texts.items():
