@@ -783,6 +783,8 @@ async def test_a_failed_simulator_call_interrupts_the_trial_with_its_cause(mode:
         == f"{ENVIRONMENT_INTERRUPTION}tau2 user simulator failed: tau2 serve process failed: APIError (HTTP 503)"
     )
     assert trial.t.interrupted
+    assert len(trial.t.extra["tau2_partial_transcript"]["transcript"]) == 2 * want_delivered
+    assert "tau2_recorded" not in trial.t.extra
 
 
 @pytest.mark.asyncio

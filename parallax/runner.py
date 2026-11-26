@@ -1563,6 +1563,8 @@ class TrialExecution:
             self.t.error = f"{ENVIRONMENT_INTERRUPTION}tau2 user simulator failed: {exc}"
             if runtime.simulator_cost_usd is not None:
                 self.t.metrics["simulator_cost_usd"] = runtime.simulator_cost_usd
+            # Kept for diagnosis only: an interrupted trial is never graded, so `tau2_recorded` stays unset.
+            self.t.extra["tau2_partial_transcript"] = cast(JsonObject, {"transcript": transcript})
 
         try:
             first = await runtime.user_turn(first=True, remaining_steps=runtime.max_steps)
