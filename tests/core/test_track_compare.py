@@ -69,6 +69,15 @@ def test_a_tracked_pair_that_measured_the_same_thing_pairs() -> None:
     assert identity_conflicts(identity_of(_tracked()), identity_of(_tracked(trial=served))) == ()
 
 
+def test_a_config_treatment_pairs_a_config_change_and_refuses_any_other() -> None:
+    base = identity_of(_tracked())
+    arm = identity_of(_tracked(trial=_alpha({"config_hash": "cfg2"})))
+    assert identity_conflicts(base, arm, config_is_treatment=True) == ()
+    moved = identity_of(_tracked(head="px2", trial=_alpha({"config_hash": "cfg2"})))
+    conflicts = identity_conflicts(base, moved, config_is_treatment=True)
+    assert conflicts and all("parallax head differs" in c for c in conflicts), conflicts
+
+
 def test_runs_graded_under_different_judging_identities_are_never_compared() -> None:
     # No flag overrides this: the two sides' verdicts answer different questions.
     regraded = _tracked(trial=_alpha({"judge_identity": "browser-evidence-v2:abc"}))

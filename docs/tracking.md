@@ -97,7 +97,9 @@ compared, with the reason, when the two runs differ in:
 - harness versions or configs;
 - the Parallax revision.
 
-`--allow-identity-change` compares such runs anyway. A run with more than 10%
+`--allow-identity-change` compares such runs anyway. `--allow-config-change` pairs
+runs whose only difference is the harness config, for an A/B whose treatment is
+that config; any other difference still refuses the pair. A run with more than 10%
 INVALID trials is never compared, because it measures the environment rather
 than the agent.
 
