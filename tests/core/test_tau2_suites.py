@@ -1145,3 +1145,14 @@ async def test_a_refused_simulator_call_reports_its_http_status():
     finally:
         await runtime.close()
         server.shutdown()  # type: ignore[attr-defined]
+
+
+def test_a_converted_task_keeps_its_upstream_id_and_an_authored_one_needs_the_area_prefix():
+    from parallax.task import lint
+
+    converted = _tau2_request(None).task
+    assert not any("must start with" in problem for problem in lint(converted))
+    authored = converted.model_copy(
+        update={"meta": converted.meta.model_copy(update={"provenance": Provenance.HAND_AUTHORED})}
+    )
+    assert any("must start with" in problem for problem in lint(authored))
