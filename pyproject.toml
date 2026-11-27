@@ -74,7 +74,7 @@ dev = [
     "pytest-asyncio",
     "pytest-xdist>=3.8.0",
     "ruff",
-    "ty==0.0.109",
+    "ty==0.0.111",
 ]
 
 [project.scripts]
