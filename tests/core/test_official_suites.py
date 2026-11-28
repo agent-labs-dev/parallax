@@ -444,3 +444,11 @@ def test_a_mind2web_judge_reply_cut_short_is_an_error_not_a_fail(monkeypatch, tm
     _webjudge(monkeypatch, "length")
     with pytest.raises(RuntimeError, match="no complete response"):
         official_bridge._judge_mind2web(_mind2web_request(tmp_path))
+
+
+def test_a_mind2web_judge_identity_names_its_reply_budget_and_sampling():
+    # Verdicts graded under upstream's 512-token cap failed reasoning replies; sharing an identity, they pooled.
+    identity = official._identity(official.MIND2WEB_SPEC, "deepseek/deepseek-v4.1-flash-1017")
+    assert f"max-tokens-{judging.FALLBACK_MAX_TOKENS}" in identity
+    assert '"temperature":0' in identity
+    assert "max-tokens" not in official._identity(official.BU_SPEC, "deepseek/deepseek-v4.1-flash-1017")

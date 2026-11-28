@@ -512,7 +512,13 @@ def _model(req: GradeRequest, spec: SuiteSpec) -> str:
 
 
 def _identity(spec: SuiteSpec, model: str) -> str:
-    return f"{spec.policy}:{spec.source}:judge-{spec.upstream_commit}:model-{model}"
+    identity = f"{spec.policy}:{spec.source}:judge-{spec.upstream_commit}:model-{model}"
+    if spec is MIND2WEB_SPEC:
+        # Graded under upstream's 512-token reply cap, a reasoning judge failed trials it passes with the full budget:
+        # the two are different judges, and their verdicts must not pool into one score.
+        sampling = json.dumps(FALLBACK_SAMPLING.get(model, {}), sort_keys=True, separators=(",", ":"))
+        identity += f":max-tokens-{FALLBACK_MAX_TOKENS}:sampling-{sampling}"
+    return identity
 
 
 def _policy_identity(spec: SuiteSpec) -> str:
