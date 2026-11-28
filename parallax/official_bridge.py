@@ -163,18 +163,18 @@ def _judge_mind2web(request: dict[str, Any]) -> dict[str, Any]:
 
     model = OpenaiEngine(model=request["judge_model"], api_key=os.environ["OPENAI_API_KEY"])
     model.client = OpenAI(api_key=os.environ["OPENAI_API_KEY"], base_url=os.environ.get("OPENAI_BASE_URL"))
-    original_generate = model.generate
-    reasoning_model = str(request["judge_model"]).lower().startswith(("o1", "o3", "o4", "gpt-5"))
 
+    # Upstream's `generate` sends `max_tokens=512`, which a reasoning judge spends before it writes the "Status:" line:
+    # every DeepSeek V4.1 Flash reply that failed a 10-task smoke stopped at 512 tokens with no verdict. Every model
+    # goes through this call instead, with the reply budget and pinned sampling fields Parallax's own judge sends that
+    # model (`parallax.judging`, which the upstream environment cannot import), and a reply cut short raises, so the
+    # trial is invalid rather than failed.
     def generate(messages: Any, *args: Any, **kwargs: Any) -> Any:
-        labelled = _labelled_images(messages)
-        if not reasoning_model:
-            return original_generate(labelled, *args, **kwargs)
         response = model.client.chat.completions.create(
             model=request["judge_model"],
-            messages=labelled,
-            max_completion_tokens=32768,
-            reasoning_effort=request.get("reasoning", "xhigh"),
+            messages=_labelled_images(messages),
+            max_tokens=request["max_tokens"],
+            extra_body=request["sampling"],
         )
         if not _complete(response):
             raise RuntimeError("upstream judge returned no complete response")
