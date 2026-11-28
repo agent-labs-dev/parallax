@@ -422,21 +422,23 @@ def _webjudge(monkeypatch, finish_reason: str) -> list[dict[str, object]]:
     return sent
 
 
-def _mind2web_request(tmp_path) -> dict[str, object]:
+def _mind2web_request(tmp_path, model: str = "deepseek/deepseek-v4.1-flash-1017") -> dict[str, object]:
     return {"task": "Complete the task", "actions": [], "screenshots": [], "artifact": str(tmp_path),
-            "score_threshold": 3, "judge_model": "deepseek/deepseek-v4.1-flash-1017", "reasoning": "xhigh",
-            "max_tokens": 32_768, "sampling": {"temperature": 0}}  # fmt: skip
+            "score_threshold": 3, "judge_model": model, "reasoning": "xhigh",
+            "max_tokens": judging.FALLBACK_MAX_TOKENS, "sampling": judging.FALLBACK_SAMPLING.get(model, {})}  # fmt: skip
 
 
-def test_every_mind2web_judge_model_gets_the_reply_budget_and_sampling_it_is_sent(monkeypatch, tmp_path):
+@pytest.mark.parametrize("model", [*judging.FALLBACK_SAMPLING, "example/unpinned-judge"])
+def test_every_mind2web_judge_model_gets_the_reply_budget_and_sampling_it_is_sent(monkeypatch, tmp_path, model):
     """2026-11-28: upstream's `generate` sends `max_tokens=512`, and only models named o1, o3, o4 or gpt-5 bypassed
     it. DeepSeek V4.1 Flash spent all 512 tokens reasoning before its "Status:" line on every failed trial of a
-    10-task smoke, so 5 completed runs scored a silent fail."""
+    10-task smoke, so 5 completed runs scored a silent fail. Each pinned model gets its own sampling fields: no GPT-6.1
+    Terra host accepts `temperature`, and a model with none pinned is sent none."""
     sent = _webjudge(monkeypatch, "stop")
-    result = official_bridge._judge_mind2web(_mind2web_request(tmp_path))
+    result = official_bridge._judge_mind2web(_mind2web_request(tmp_path, model))
     assert result["passed"] is True
-    assert sent and all(call["max_tokens"] == 32_768 for call in sent)
-    assert all(call["extra_body"] == {"temperature": 0} for call in sent)
+    assert sent and all(call["max_tokens"] == judging.FALLBACK_MAX_TOKENS for call in sent)
+    assert all(call["extra_body"] == judging.FALLBACK_SAMPLING.get(model, {}) for call in sent)
     assert all("reasoning_effort" not in call for call in sent)
 
 
