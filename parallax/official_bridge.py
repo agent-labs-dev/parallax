@@ -163,21 +163,18 @@ def _judge_mind2web(request: dict[str, Any]) -> dict[str, Any]:
 
     model = OpenaiEngine(model=request["judge_model"], api_key=os.environ["OPENAI_API_KEY"])
     model.client = OpenAI(api_key=os.environ["OPENAI_API_KEY"], base_url=os.environ.get("OPENAI_BASE_URL"))
-    # Upstream's `generate` sends `max_tokens=512`, which a reasoning judge spends before it writes the "Status:" line:
-    # every DeepSeek V4.1 Flash reply on a 10-task smoke stopped at 512 tokens, `extract_predication` read no success,
-    # and each run scored a silent fail. Every model goes through this call instead, with the budget the fallback judge
-    # uses (`parallax.judging.FALLBACK_MAX_TOKENS`, not importable from the upstream environment), and a reply cut short
-    # raises, so the trial is invalid rather than failed. Upstream's sampling (temperature 0) is kept; reasoning effort
-    # is sent only when the request names one.
-    reasoning = request.get("reasoning")
 
+    # Upstream's `generate` sends `max_tokens=512`, which a reasoning judge spends before it writes the "Status:" line:
+    # every DeepSeek V4.1 Flash reply that failed a 10-task smoke stopped at 512 tokens with no verdict. Every model
+    # goes through this call instead, with the reply budget and pinned sampling fields Parallax's own judge sends that
+    # model (`parallax.judging`, which the upstream environment cannot import), and a reply cut short raises, so the
+    # trial is invalid rather than failed.
     def generate(messages: Any, *args: Any, **kwargs: Any) -> Any:
         response = model.client.chat.completions.create(
             model=request["judge_model"],
             messages=_labelled_images(messages),
-            max_tokens=32_768,
-            temperature=0,
-            **({"reasoning_effort": reasoning} if reasoning else {}),
+            max_tokens=request["max_tokens"],
+            extra_body=request["sampling"],
         )
         if not _complete(response):
             raise RuntimeError("upstream judge returned no complete response")

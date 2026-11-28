@@ -12,7 +12,7 @@ import httpx
 import openai
 import pytest
 from cryptography.fernet import Fernet
-from parallax import official_bridge, runner
+from parallax import judging, official_bridge, runner
 from parallax import official_suites as official
 from parallax.extensions import GradeRequest
 from parallax.judge import JudgeConfig, JudgePanel
@@ -149,6 +149,9 @@ async def test_grade_sends_any_browser_evidence_to_the_upstream_judge(monkeypatc
     assert graded.judgments[0].decisions["upstream"].reason.endswith("Status: success")
     assert graded.judge_identity and official.MIND2WEB_UPSTREAM_COMMIT in graded.judge_identity
     assert "configured/model" in graded.judge_identity
+    # The bridge sends the judge the reply budget and sampling Parallax's own judge pins for that model.
+    assert seen["max_tokens"] == judging.FALLBACK_MAX_TOKENS
+    assert seen["sampling"] == judging.FALLBACK_SAMPLING.get("configured/model", {})
     assert seen["task"] == "Complete the task"
     assert seen["screenshots"] == ["iVBORw=="]
     assert seen["actions"]
@@ -409,7 +412,7 @@ def _webjudge(monkeypatch, finish_reason: str) -> list[dict[str, object]]:
 
     utils = SimpleNamespace(
         OpenaiEngine=lambda model, api_key: SimpleNamespace(model=model),
-        extract_predication=lambda response, mode: 1 if "success" in response else 0,
+        extract_predication=lambda response, mode: 1,
     )
     monkeypatch.setitem(sys.modules, "methods.webjudge_online_mind2web",
                         SimpleNamespace(WebJudge_Online_Mind2Web_eval=evaluate))  # fmt: skip
@@ -421,10 +424,11 @@ def _webjudge(monkeypatch, finish_reason: str) -> list[dict[str, object]]:
 
 def _mind2web_request(tmp_path) -> dict[str, object]:
     return {"task": "Complete the task", "actions": [], "screenshots": [], "artifact": str(tmp_path),
-            "score_threshold": 3, "judge_model": "deepseek/deepseek-v4.1-flash-1017", "reasoning": "xhigh"}  # fmt: skip
+            "score_threshold": 3, "judge_model": "deepseek/deepseek-v4.1-flash-1017", "reasoning": "xhigh",
+            "max_tokens": 32_768, "sampling": {"temperature": 0}}  # fmt: skip
 
 
-def test_every_mind2web_judge_model_gets_the_full_reply_budget(monkeypatch, tmp_path):
+def test_every_mind2web_judge_model_gets_the_reply_budget_and_sampling_it_is_sent(monkeypatch, tmp_path):
     """2026-11-28: upstream's `generate` sends `max_tokens=512`, and only models named o1, o3, o4 or gpt-5 bypassed
     it. DeepSeek V4.1 Flash spent all 512 tokens reasoning before its "Status:" line on every failed trial of a
     10-task smoke, so 5 completed runs scored a silent fail."""
@@ -432,7 +436,8 @@ def test_every_mind2web_judge_model_gets_the_full_reply_budget(monkeypatch, tmp_
     result = official_bridge._judge_mind2web(_mind2web_request(tmp_path))
     assert result["passed"] is True
     assert sent and all(call["max_tokens"] == 32_768 for call in sent)
-    assert all(call["reasoning_effort"] == "xhigh" for call in sent)
+    assert all(call["extra_body"] == {"temperature": 0} for call in sent)
+    assert all("reasoning_effort" not in call for call in sent)
 
 
 def test_a_mind2web_judge_reply_cut_short_is_an_error_not_a_fail(monkeypatch, tmp_path):

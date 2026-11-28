@@ -27,7 +27,7 @@ from pydantic import BaseModel, Field, JsonValue, model_validator
 from parallax.browser_evidence import BrowserEvidence, reported
 from parallax.extensions import GradeRequest, GradingPolicy, TaskExtension
 from parallax.judge import MissingEvidence
-from parallax.judging import Decision, FallbackCall, JudgePolicy, Judgment
+from parallax.judging import FALLBACK_MAX_TOKENS, FALLBACK_SAMPLING, Decision, FallbackCall, JudgePolicy, Judgment
 from parallax.models import (
     Area,
     Capability,
@@ -590,6 +590,8 @@ def _request(spec: SuiteSpec, req: GradeRequest, evidence: Any, artifact: Path) 
     }
     if spec is MIND2WEB_SPEC:
         payload["task"] = str(task_data.get("confirmed_task", req.task.turns[0].text))
+        payload["max_tokens"] = FALLBACK_MAX_TOKENS
+        payload["sampling"] = FALLBACK_SAMPLING.get(model, {})
     return payload
 
 
